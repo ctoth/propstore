@@ -52,7 +52,11 @@ def _kind_type_from_optional_fields(
             return KindType(kind_type)
         except ValueError:
             pass
-    inferred = None if not isinstance(form, str) or not form else kind_type_from_form_name(form)
+    inferred = (
+        None
+        if not isinstance(form, str) or not form
+        else kind_type_from_form_name(form)
+    )
     if inferred is None:
         raise ValueError("concept must define a valid kind_type or form")
     return inferred
@@ -99,7 +103,9 @@ def concept_info_from_concept_row(row: Any) -> ConceptInfo:
     form = row.form
     form_parameters_payload = row.form_parameters
     kind = _kind_type_from_optional_fields(
-        kind_type=kind_type if isinstance(kind_type, str | KindType) or kind_type is None else None,
+        kind_type=kind_type
+        if isinstance(kind_type, str | KindType) or kind_type is None
+        else None,
         form=form if isinstance(form, str) or form is None else None,
     )
     form_parameters = _parse_row_form_parameters(
@@ -123,7 +129,9 @@ def _parse_row_form_parameters(value: str | None) -> Mapping[str, Any]:
     try:
         parsed = json.loads(value)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"concept row has invalid form_parameters JSON: {exc}") from exc
+        raise ValueError(
+            f"concept row has invalid form_parameters JSON: {exc}"
+        ) from exc
     if not isinstance(parsed, Mapping):
         raise ValueError("concept row form_parameters must decode to a mapping")
     return parsed
@@ -161,8 +169,7 @@ def build_canonical_cel_registry(
             )
         typed_documents.append(document)
     return _build_registry(
-        concept_info_from_concept_document(document)
-        for document in typed_documents
+        concept_info_from_concept_document(document) for document in typed_documents
     )
 
 
@@ -174,7 +181,4 @@ def build_store_cel_registry(
         if not _is_concept_row(row):
             raise TypeError("build_store_cel_registry expects Iterable[ConceptRow]")
         typed_rows.append(row)
-    return _build_registry(
-        concept_info_from_concept_row(row)
-        for row in typed_rows
-    )
+    return _build_registry(concept_info_from_concept_row(row) for row in typed_rows)

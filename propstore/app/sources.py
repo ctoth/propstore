@@ -208,7 +208,9 @@ def init_source(repo: Repository, request: SourceInitRequest) -> SourceBranchRep
     return SourceBranchReport(branch=branch)
 
 
-def finalize_source(repo: Repository, request: SourceNamedRequest) -> SourceBranchReport:
+def finalize_source(
+    repo: Repository, request: SourceNamedRequest
+) -> SourceBranchReport:
     from propstore.source import finalize_source_branch
 
     source_doc = repo.families.source_documents.require(SourceRef(request.name))
@@ -217,7 +219,9 @@ def finalize_source(repo: Repository, request: SourceNamedRequest) -> SourceBran
         request.name,
         source_doc=source_doc,
     )
-    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
+    branch = repo.families.source_documents.address(
+        SourceRef(request.name)
+    ).require_branch()
     return SourceBranchReport(branch=branch)
 
 
@@ -248,7 +252,9 @@ def promote_source(
     total_claims = len(claims_doc) if claims_doc is not None else 0
     blocked_count = len(promotion.blocked_claims)
     promoted_count = max(0, total_claims - blocked_count)
-    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
+    branch = repo.families.source_documents.address(
+        SourceRef(request.name)
+    ).require_branch()
     return SourcePromoteReport(
         branch=branch,
         total_claims=total_claims,
@@ -266,7 +272,9 @@ def inspect_source(repo: Repository, request: SourceNamedRequest):
 
 
 def sync_source(repo: Repository, request: SourceSyncRequest) -> SourceSyncReport:
-    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
+    branch = repo.families.source_documents.address(
+        SourceRef(request.name)
+    ).require_branch()
     destination = request.output_dir
     if destination is None:
         destination = repo.root.parent / "papers" / source_paper_slug(request.name)
@@ -294,7 +302,9 @@ def write_source_notes(
     from propstore.source import commit_source_notes
 
     commit_source_notes(repo, request.name, request.batch_file)
-    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
+    branch = repo.families.source_documents.address(
+        SourceRef(request.name)
+    ).require_branch()
     return SourceBranchReport(branch=branch)
 
 
@@ -305,7 +315,9 @@ def write_source_metadata(
     from propstore.source import commit_source_metadata
 
     commit_source_metadata(repo, request.name, request.batch_file)
-    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
+    branch = repo.families.source_documents.address(
+        SourceRef(request.name)
+    ).require_branch()
     return SourceBranchReport(branch=branch)
 
 
@@ -348,7 +360,7 @@ def list_sources(repo: Repository) -> SourceListReport:
         # happen.
         prefix = "source/"
         slug = (
-            branch_info.name[len(prefix):]
+            branch_info.name[len(prefix) :]
             if branch_info.name.startswith(prefix)
             else branch_info.name
         )
@@ -399,7 +411,9 @@ def propose_source_concept(
     repo: Repository,
     request: SourceConceptProposalRequest,
 ) -> SourceConceptProposalReport:
-    from propstore.families.concepts.declaration import SourceConceptFormParametersDocument
+    from propstore.families.concepts.declaration import (
+        SourceConceptFormParametersDocument,
+    )
     from propstore.source import commit_source_concept_proposal
 
     if request.closed and request.form_name != "category":

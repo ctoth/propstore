@@ -40,10 +40,9 @@ class RelationEdge(FamilyModel):
     opinion: Opinion | None = None
 
     def __eq__(self, other: object) -> bool:
-        return (
-            type(self) is type(other)
-            and _public_model_attrs(self) == _public_model_attrs(other)
-        )
+        return type(self) is type(other) and _public_model_attrs(
+            self
+        ) == _public_model_attrs(other)
 
     def attribute_mapping(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
@@ -71,11 +70,7 @@ class RelationEdge(FamilyModel):
 
 
 def _public_model_attrs(model: object) -> dict[str, Any]:
-    return {
-        key: value
-        for key, value in vars(model).items()
-        if not key.startswith("_")
-    }
+    return {key: value for key, value in vars(model).items() if not key.startswith("_")}
 
 
 class ConceptRelation(RelationEdge):
@@ -102,7 +97,13 @@ class Stance(RelationEdge):
 class ConflictWitness(FamilyModel):
     def attribute_mapping(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
-        for key in ("conditions_a", "conditions_b", "value_a", "value_b", "derivation_chain"):
+        for key in (
+            "conditions_a",
+            "conditions_b",
+            "value_a",
+            "value_b",
+            "derivation_chain",
+        ):
             value = getattr(self, key)
             if value is not None:
                 data[key] = value
@@ -110,93 +111,97 @@ class ConflictWitness(FamilyModel):
 
 
 RELATIONS_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="relation_edge",
-                name="relation_edge",
+    FamilyCharter(
+        family=FamilyDefinition(
+            key="relation_edge",
+            name="relation_edge",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-relation_edge",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-relation_edge",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=RelationEdge,
-                    placement=FlatYamlPlacement(".derived/relation_edge", str),
-                ),
-                identity_field="id",
+                doc_type=RelationEdge,
+                placement=FlatYamlPlacement(".derived/relation_edge", str),
             ),
-            model=RelationEdge,
-            fields=(
-                CharterField("id", int, primary_key=True, nullable=False, generated=True),
-                CharterField("source_kind", str, nullable=False),
-                CharterField("source_id", str, nullable=False),
-                CharterField("relation_type", str, nullable=False),
-                CharterField("target_kind", str, nullable=False),
-                CharterField("target_id", str, nullable=False),
-                CharterField("perspective_source_claim_id", str),
-                CharterField("target_justification_id", str),
-                CharterField("conditions_cel", str),
-                CharterField("strength", str),
-                CharterField("conditions_differ", str),
-                CharterField("note", str),
-                CharterField("resolution_method", str),
-                CharterField("resolution_model", str),
-                CharterField("embedding_model", str),
-                CharterField("embedding_distance", float),
-                CharterField("pass_number", int),
-                CharterField("confidence", float),
-                CharterField("opinion", Opinion, nullable=True),
-            ),
-            indexes=(
-                CharterIndex("idx_relation_edge_source", ("source_kind", "source_id")),
-                CharterIndex("idx_relation_edge_target", ("target_kind", "target_id")),
-                CharterIndex("idx_relation_edge_type", ("relation_type",)),
-            ),
-            polymorphic_on="source_kind",
-            polymorphic_identity="edge",
-            polymorphic_models=(
-                CharterPolymorphicModel(Stance, "claim"),
-                CharterPolymorphicModel(ConceptRelation, "concept"),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
+            identity_field="id",
         ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="conflict_witness",
-                name="conflict_witness",
+        model=RelationEdge,
+        fields=(
+            CharterField("id", int, primary_key=True, nullable=False, generated=True),
+            CharterField("source_kind", str, nullable=False),
+            CharterField("source_id", str, nullable=False),
+            CharterField("relation_type", str, nullable=False),
+            CharterField("target_kind", str, nullable=False),
+            CharterField("target_id", str, nullable=False),
+            CharterField("perspective_source_claim_id", str),
+            CharterField("target_justification_id", str),
+            CharterField("conditions_cel", str),
+            CharterField("strength", str),
+            CharterField("conditions_differ", str),
+            CharterField("note", str),
+            CharterField("resolution_method", str),
+            CharterField("resolution_model", str),
+            CharterField("embedding_model", str),
+            CharterField("embedding_distance", float),
+            CharterField("pass_number", int),
+            CharterField("confidence", float),
+            CharterField("opinion", Opinion, nullable=True),
+        ),
+        indexes=(
+            CharterIndex("idx_relation_edge_source", ("source_kind", "source_id")),
+            CharterIndex("idx_relation_edge_target", ("target_kind", "target_id")),
+            CharterIndex("idx_relation_edge_type", ("relation_type",)),
+        ),
+        polymorphic_on="source_kind",
+        polymorphic_identity="edge",
+        polymorphic_models=(
+            CharterPolymorphicModel(Stance, "claim"),
+            CharterPolymorphicModel(ConceptRelation, "concept"),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    ),
+    FamilyCharter(
+        family=FamilyDefinition(
+            key="conflict_witness",
+            name="conflict_witness",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-conflict_witness",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-conflict_witness",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ConflictWitness,
-                    placement=FlatYamlPlacement(".derived/conflict_witness", str),
-                ),
-                identity_field="id",
+                doc_type=ConflictWitness,
+                placement=FlatYamlPlacement(".derived/conflict_witness", str),
             ),
-            model=ConflictWitness,
-            fields=(
-                CharterField("id", int, primary_key=True, nullable=False, generated=True),
-                CharterField("claim_a_id", str, nullable=False),
-                CharterField("claim_b_id", str, nullable=False),
-                CharterField("concept_id", str, nullable=False),
-                CharterField("warning_class", str, nullable=False),
-                CharterField("conditions_a", str),
-                CharterField("conditions_b", str),
-                CharterField("value_a", str),
-                CharterField("value_b", str),
-                CharterField("derivation_chain", str),
-            ),
-            indexes=(CharterIndex("idx_conflict_witness_concept", ("concept_id",)),),
-            semantic_metadata={"semantic": "propstore.world"},
+            identity_field="id",
         ),
-    )
+        model=ConflictWitness,
+        fields=(
+            CharterField("id", int, primary_key=True, nullable=False, generated=True),
+            CharterField("claim_a_id", str, nullable=False),
+            CharterField("claim_b_id", str, nullable=False),
+            CharterField("concept_id", str, nullable=False),
+            CharterField("warning_class", str, nullable=False),
+            CharterField("conditions_a", str),
+            CharterField("conditions_b", str),
+            CharterField("value_a", str),
+            CharterField("value_b", str),
+            CharterField("derivation_chain", str),
+        ),
+        indexes=(CharterIndex("idx_conflict_witness_concept", ("concept_id",)),),
+        semantic_metadata={"semantic": "propstore.world"},
+    ),
+)
 
 
-def _resolution_value(resolution: ResolutionDocument | Mapping[str, object], field: str) -> object:
+def _resolution_value(
+    resolution: ResolutionDocument | Mapping[str, object], field: str
+) -> object:
     if isinstance(resolution, Mapping):
         return resolution.get(field)
     return getattr(resolution, field)
 
 
-def _resolution_attributes(resolution: ResolutionDocument | Mapping[str, object] | None) -> dict[str, object]:
+def _resolution_attributes(
+    resolution: ResolutionDocument | Mapping[str, object] | None,
+) -> dict[str, object]:
     if resolution is None:
         return {}
     embedding_distance = _resolution_value(resolution, "embedding_distance")
@@ -212,9 +217,7 @@ def _resolution_attributes(resolution: ResolutionDocument | Mapping[str, object]
         ),
         "pass_number": _resolution_value(resolution, "pass_number"),
         "confidence": (
-            None
-            if confidence is None
-            else float(cast(float | int | str, confidence))
+            None if confidence is None else float(cast(float | int | str, confidence))
         ),
     }
     return {key: value for key, value in attributes.items() if value is not None}
@@ -224,7 +227,9 @@ def compile_claim_embedded_stance_models_with_diagnostics(
     claim: SemanticClaim,
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[tuple[Stance, ...], tuple[QuarantineDiagnostic, ...]]:
-    claim_id = claim.artifact_id or claim.resolved_claim.artifact_id or claim.resolved_claim.id
+    claim_id = (
+        claim.artifact_id or claim.resolved_claim.artifact_id or claim.resolved_claim.id
+    )
     models: list[Stance] = []
     diagnostics: list[QuarantineDiagnostic] = []
     valid_claim_ids = set(claim_index.ids())

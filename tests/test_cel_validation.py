@@ -36,6 +36,7 @@ from tests.conftest import normalize_concept_payloads
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def registry() -> dict[str, ConceptInfo]:
     """Registry with one structural and one boolean concept for contrast."""
@@ -54,6 +55,7 @@ def registry() -> dict[str, ConceptInfo]:
 
 
 # ── Unit-level validator tests ───────────────────────────────────────
+
 
 def test_validator_rejects_structural_concept_by_bare_name(registry):
     location = CelExpressionLocation(
@@ -96,6 +98,7 @@ def test_validator_is_value_error_subclass():
 
 
 # ── Helpers shared by CLI integration tests ──────────────────────────
+
 
 def _init_repo_with_structural_concept(tmp_path: Path) -> Repository:
     """Seed a repo with a form, one structural concept on master, and a
@@ -146,17 +149,24 @@ def _init_source(runner: CliRunner, repo: Repository, name: str = "demo") -> Non
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "init", name,
-            "--kind", "academic_paper",
-            "--origin-type", "manual",
-            "--origin-value", name,
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            name,
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            name,
         ],
     )
     assert result.exit_code == 0, result.output
 
 
 # ── Integration: pks source add-claim ────────────────────────────────
+
 
 def test_source_add_claim_rejects_structural_in_cel(tmp_path: Path) -> None:
     """Claim batches with a structural concept referenced in a CEL
@@ -189,9 +199,13 @@ def test_source_add_claim_rejects_structural_in_cel(tmp_path: Path) -> None:
     result_c = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "add-concepts", "demo",
-            "--batch", str(concepts_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-concepts",
+            "demo",
+            "--batch",
+            str(concepts_file),
         ],
     )
     assert result_c.exit_code == 0, result_c.output
@@ -222,9 +236,13 @@ def test_source_add_claim_rejects_structural_in_cel(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "add-claim", "demo",
-            "--batch", str(claims_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
         ],
     )
 
@@ -238,6 +256,7 @@ def test_source_add_claim_rejects_structural_in_cel(tmp_path: Path) -> None:
 
 # ── Integration: pks context add --assumption ────────────────────────
 
+
 def test_context_add_rejects_structural_in_assumption(tmp_path: Path) -> None:
     """``pks context add --assumption`` must reject CEL assumptions that
     reference structural concepts."""
@@ -247,11 +266,16 @@ def test_context_add_rejects_structural_in_assumption(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "context", "add",
-            "--name", "ctx_broken",
-            "--description", "Broken context.",
-            "--assumption", "intention_to_treat == true",
+            "-C",
+            str(repo.root),
+            "context",
+            "add",
+            "--name",
+            "ctx_broken",
+            "--description",
+            "Broken context.",
+            "--assumption",
+            "intention_to_treat == true",
         ],
     )
 
@@ -263,6 +287,7 @@ def test_context_add_rejects_structural_in_assumption(tmp_path: Path) -> None:
 
 
 # ── Integration: pks build / validate pre-pass ───────────────────────
+
 
 def test_build_rejects_structural_in_cel(tmp_path: Path) -> None:
     """``pks build`` / ``pks validate`` must fail early — before Z3 —
@@ -277,14 +302,14 @@ def test_build_rejects_structural_in_cel(tmp_path: Path) -> None:
     repo.git.commit_batch(
         adds={
             "contexts/ctx_broken.yaml": yaml.safe_dump(
-                    {
-                        "id": "ctx_broken",
-                        "name": "ctx_broken",
-                        "description": "Direct-edit context with bad CEL.",
-                        "assumptions": ["intention_to_treat == true"],
-                    },
-                    sort_keys=False,
-                ).encode("utf-8"),
+                {
+                    "id": "ctx_broken",
+                    "name": "ctx_broken",
+                    "description": "Direct-edit context with bad CEL.",
+                    "assumptions": ["intention_to_treat == true"],
+                },
+                sort_keys=False,
+            ).encode("utf-8"),
         },
         deletes=[],
         message="Direct edit that bypassed CLI validation",
@@ -299,4 +324,3 @@ def test_build_rejects_structural_in_cel(tmp_path: Path) -> None:
     assert result.exit_code != 0, result.output
     assert "intention_to_treat" in result.output
     assert "Structural concept" in result.output
-

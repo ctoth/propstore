@@ -82,31 +82,41 @@ def concept_dir(tmp_path):
     forms_dir.mkdir()
     for form_name in ("frequency", "pressure"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name, "dimensionless": False}, default_flow_style=False))
+            yaml.dump(
+                {"name": form_name, "dimensionless": False}, default_flow_style=False
+            )
+        )
 
     def write(name, data):
         normalized = normalize_concept_payloads([data], default_domain="speech")[0]
         (concepts_path / f"{name}.yaml").write_text(
-            yaml.dump(normalized, default_flow_style=False))
+            yaml.dump(normalized, default_flow_style=False)
+        )
 
-    write("fundamental_frequency", {
-        "id": "concept1",
-        "canonical_name": "fundamental_frequency",
-        "status": "accepted",
-        "definition": "The rate of vocal fold vibration during phonation.",
-        "domain": "speech",
-        "created_date": "2026-03-15",
-        "form": "frequency",
-    })
+    write(
+        "fundamental_frequency",
+        {
+            "id": "concept1",
+            "canonical_name": "fundamental_frequency",
+            "status": "accepted",
+            "definition": "The rate of vocal fold vibration during phonation.",
+            "domain": "speech",
+            "created_date": "2026-03-15",
+            "form": "frequency",
+        },
+    )
 
-    write("subglottal_pressure", {
-        "id": "concept2",
-        "canonical_name": "subglottal_pressure",
-        "status": "accepted",
-        "definition": "Air pressure below the glottis during phonation.",
-        "domain": "speech",
-        "form": "pressure",
-    })
+    write(
+        "subglottal_pressure",
+        {
+            "id": "concept2",
+            "canonical_name": "subglottal_pressure",
+            "status": "accepted",
+            "definition": "Air pressure below the glottis during phonation.",
+            "domain": "speech",
+            "form": "pressure",
+        },
+    )
 
     return concepts_path
 
@@ -161,7 +171,10 @@ class TestClaimNotesValidation:
         ]
         claims = [
             make_parameter_claim(
-                f"claim{i+1}", "concept1", 200.0, "Hz",
+                f"claim{i + 1}",
+                "concept1",
+                200.0,
+                "Hz",
                 notes=note,
             )
             for i, note in enumerate(notes_values)
@@ -178,9 +191,7 @@ class TestClaimNotesValidation:
 class TestClaimNotesSidecar:
     """Sidecar storage tests for the notes field."""
 
-    def test_sidecar_stores_notes_in_claim_table(
-        self, concept_dir, sidecar_path
-    ):
+    def test_sidecar_stores_notes_in_claim_table(self, concept_dir, sidecar_path):
         """Build sidecar with a claim that has notes, verify notes column exists."""
         knowledge = concept_dir.parent
         claims_dir = knowledge / "claims"
@@ -203,7 +214,9 @@ class TestClaimNotesSidecar:
         (claims_dir / "notes_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
-        claim1_id = make_claim_identity("claim1", namespace="notes_paper")["artifact_id"]
+        claim1_id = make_claim_identity("claim1", namespace="notes_paper")[
+            "artifact_id"
+        ]
 
         build_sidecar(knowledge, sidecar_path, force=True)
 
@@ -219,9 +232,7 @@ class TestClaimNotesSidecar:
         assert row is not None, "claim text payload not found in sidecar"
         assert row.notes == "This is a test note"
 
-    def test_world_query_get_claim_returns_notes(
-        self, concept_dir, sidecar_path
-    ):
+    def test_world_query_get_claim_returns_notes(self, concept_dir, sidecar_path):
         """After building sidecar, WorldQuery.get_claim returns notes field."""
         knowledge = concept_dir.parent
         claims_dir = knowledge / "claims"
@@ -248,7 +259,9 @@ class TestClaimNotesSidecar:
         build_sidecar(knowledge, sidecar_path, force=True)
 
         wm = world_query_from_sqlite_path(sidecar_path)
-        claim = wm.get_claim(make_claim_identity("claim1", namespace="wm_notes_paper")["artifact_id"])
+        claim = wm.get_claim(
+            make_claim_identity("claim1", namespace="wm_notes_paper")["artifact_id"]
+        )
         assert claim is not None
         assert claim.text_payload is not None
         assert claim.text_payload.notes == "WorldQuery test note"
@@ -278,7 +291,9 @@ class TestClaimNotesProperties:
             claim_files = load_claim_files(claims_dir)
             context = make_compilation_context()
             result = validate_claims(claim_files, context)
-            assert result.ok, f"Validation failed for notes={notes_text!r}: {result.errors}"
+            assert result.ok, (
+                f"Validation failed for notes={notes_text!r}: {result.errors}"
+            )
 
     @settings(deadline=None)
     @pytest.mark.property
@@ -299,18 +314,28 @@ class TestClaimNotesProperties:
             forms_dir = knowledge / "forms"
             forms_dir.mkdir(exist_ok=True)
             (forms_dir / "frequency.yaml").write_text(
-                yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False))
+                yaml.dump(
+                    {"name": "frequency", "dimensionless": False},
+                    default_flow_style=False,
+                )
+            )
 
-            concept_payload = normalize_concept_payloads([{
-                    "id": "concept1",
-                    "canonical_name": "fundamental_frequency",
-                    "status": "accepted",
-                    "definition": "F0",
-                    "domain": "speech",
-                    "form": "frequency",
-                }], default_domain="speech")[0]
+            concept_payload = normalize_concept_payloads(
+                [
+                    {
+                        "id": "concept1",
+                        "canonical_name": "fundamental_frequency",
+                        "status": "accepted",
+                        "definition": "F0",
+                        "domain": "speech",
+                        "form": "frequency",
+                    }
+                ],
+                default_domain="speech",
+            )[0]
             (concepts_path / "fundamental_frequency.yaml").write_text(
-                yaml.dump(concept_payload, default_flow_style=False))
+                yaml.dump(concept_payload, default_flow_style=False)
+            )
 
             claims_dir = knowledge / "claims"
             claims_dir.mkdir(exist_ok=True)
@@ -332,7 +357,9 @@ class TestClaimNotesProperties:
             (claims_dir / "rt_paper.yaml").write_text(
                 yaml.dump(claim_data, default_flow_style=False)
             )
-            claim1_id = make_claim_identity("claim1", namespace="rt_paper")["artifact_id"]
+            claim1_id = make_claim_identity("claim1", namespace="rt_paper")[
+                "artifact_id"
+            ]
 
             sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
             build_sidecar(knowledge, sidecar_path, force=True)

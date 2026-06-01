@@ -15,7 +15,9 @@ from quire import canonical_json_bytes
 def test_quire_canonical_json_bytes_is_the_payload_hashing_source(
     payload: dict[str, int],
 ) -> None:
-    assert canonical_json_bytes(payload) == canonical_json_bytes(dict(reversed(payload.items())))
+    assert canonical_json_bytes(payload) == canonical_json_bytes(
+        dict(reversed(payload.items()))
+    )
 
 
 def test_propstore_defines_no_local_canonical_json_helpers() -> None:

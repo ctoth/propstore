@@ -25,7 +25,10 @@ def test_world_store_content_hash_changes_on_schema_version_bump(
     sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
     hash_path = sidecar_path.with_suffix(".hash")
 
-    assert sidecar_build.write_repository_world_store(repo, sidecar_path, force=True) is True
+    assert (
+        sidecar_build.write_repository_world_store(repo, sidecar_path, force=True)
+        is True
+    )
     first_hash = hash_path.read_text().strip()
 
     monkeypatch.setattr(

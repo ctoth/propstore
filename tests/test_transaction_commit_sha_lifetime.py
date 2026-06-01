@@ -23,7 +23,10 @@ def test_head_bound_transaction_commit_sha_is_read_inside_context() -> None:
             set(ast.walk(with_node))
             for with_node in ast.walk(tree)
             if isinstance(with_node, ast.With)
-            and any(_is_head_bound_transaction(item.context_expr) for item in with_node.items)
+            and any(
+                _is_head_bound_transaction(item.context_expr)
+                for item in with_node.items
+            )
         ]
         for node in ast.walk(tree):
             if not _is_head_txn_commit_sha(node):

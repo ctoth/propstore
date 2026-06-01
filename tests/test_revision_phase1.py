@@ -47,7 +47,8 @@ class _RevisionStore:
         return [
             claim
             for claim in self._claims
-            if claim.output_concept_id == concept_id or claim.target_concept == concept_id
+            if claim.output_concept_id == concept_id
+            or claim.target_concept == concept_id
         ]
 
     def get_claim(self, claim_id: str) -> Claim | None:
@@ -87,7 +88,10 @@ class _RevisionStore:
 
     def get_concept(self, concept_id: str) -> Concept | None:
         for claim in self._claims:
-            if claim.output_concept_id == concept_id or claim.target_concept == concept_id:
+            if (
+                claim.output_concept_id == concept_id
+                or claim.target_concept == concept_id
+            ):
                 return Concept(id=concept_id, canonical_name=concept_id)
         return None
 
@@ -105,7 +109,9 @@ def _make_bound(
     environment = Environment(
         bindings=bindings,
         context_id=None if context_id is None else ContextId(context_id),
-        effective_assumptions=tuple(to_cel_expr(item) for item in effective_assumptions),
+        effective_assumptions=tuple(
+            to_cel_expr(item) for item in effective_assumptions
+        ),
         assumptions=compile_environment_assumptions(
             bindings=bindings,
             effective_assumptions=effective_assumptions,
@@ -115,12 +121,16 @@ def _make_bound(
     return BoundWorld(
         cast(Any, store),
         environment=environment,
-        lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
+        lifting_system=leaf_lifting_system(context_id)
+        if context_id is not None
+        else None,
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
     )
 
 
-def test_project_belief_base_includes_exact_support_claims_and_active_assumptions() -> None:
+def test_project_belief_base_includes_exact_support_claims_and_active_assumptions() -> (
+    None
+):
     from propstore.support_revision.projection import project_belief_base
 
     store = _RevisionStore(
@@ -151,7 +161,9 @@ def test_project_belief_base_includes_exact_support_claims_and_active_assumption
     assert "x == 1" in assumption_cels
 
 
-def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_support() -> None:
+def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_support() -> (
+    None
+):
     from propstore.support_revision.entrenchment import compute_entrenchment
     from propstore.support_revision.projection import project_belief_base
 
@@ -177,7 +189,9 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
         atom.atom_id
         for atom in base.atoms
         if isinstance(atom, AssertionAtom)
-        and any(str(claim.id) == "claim_override_target" for claim in atom.source_claims)
+        and any(
+            str(claim.id) == "claim_override_target" for claim in atom.source_claims
+        )
     )
 
     report = compute_entrenchment(

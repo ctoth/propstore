@@ -55,8 +55,8 @@ def test_claim_index_html_route_renders_inventory(
     assert "Claim Inventory" in html
     assert "fundamental_frequency" in html
     assert "/claim/claim1" in html
-    assert "<th scope=\"col\">Concept(s)</th>" in html
-    assert "<th scope=\"col\">Status</th>" in html
+    assert '<th scope="col">Concept(s)</th>' in html
+    assert '<th scope="col">Status</th>' in html
 
 
 def test_claim_index_json_route_uses_search_report_when_query_present(

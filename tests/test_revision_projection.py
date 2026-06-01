@@ -44,10 +44,16 @@ def test_project_belief_base_is_stable_under_claim_order_variation() -> None:
         ),
     ]
 
-    base_a = project_belief_base(_make_bound(_RevisionStore(claims=claims), bindings={"x": 1}))
-    base_b = project_belief_base(_make_bound(_RevisionStore(claims=list(reversed(claims))), bindings={"x": 1}))
+    base_a = project_belief_base(
+        _make_bound(_RevisionStore(claims=claims), bindings={"x": 1})
+    )
+    base_b = project_belief_base(
+        _make_bound(_RevisionStore(claims=list(reversed(claims))), bindings={"x": 1})
+    )
 
-    assert [atom.atom_id for atom in base_a.atoms] == [atom.atom_id for atom in base_b.atoms]
+    assert [atom.atom_id for atom in base_a.atoms] == [
+        atom.atom_id for atom in base_b.atoms
+    ]
     assert [assumption.assumption_id for assumption in base_a.assumptions] == [
         assumption.assumption_id for assumption in base_b.assumptions
     ]

@@ -33,7 +33,9 @@ class SensitivityEntry:
 class SensitivityResult:
     concept_id: ConceptId
     formula: str
-    entries: list[SensitivityEntry] = field(default_factory=list)  # sorted by |elasticity| descending
+    entries: list[SensitivityEntry] = field(
+        default_factory=list
+    )  # sorted by |elasticity| descending
     input_values: dict[ConceptId, float] = field(default_factory=dict)
     output_value: float | None = None
     method: str = "local_oat"
@@ -61,8 +63,7 @@ class GlobalSensitivityResult:
             for concept_id, value in self.first_order.items()
         }
         self.total = {
-            str(concept_id): float(value)
-            for concept_id, value in self.total.items()
+            str(concept_id): float(value) for concept_id, value in self.total.items()
         }
 
 
@@ -187,14 +188,18 @@ def analyze_sensitivity(
                 add(entry.get("value"))
                 namespace = entry.get("namespace")
                 value = entry.get("value")
-                if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+                if (
+                    isinstance(namespace, str)
+                    and isinstance(value, str)
+                    and namespace
+                    and value
+                ):
                     add(f"{namespace}:{value}")
         return tuple(candidates)
 
     output_key = "__out__"
     input_symbol_map = {
-        input_id: f"__in_{index}__"
-        for index, input_id in enumerate(effective_inputs)
+        input_id: f"__in_{index}__" for index, input_id in enumerate(effective_inputs)
     }
     rewritten_sympy = rewrite_parameterization_symbols(
         sympy_str,
@@ -207,10 +212,7 @@ def analyze_sensitivity(
         },
         symbol_targets={
             str(lookup_concept_id): output_key,
-            **{
-                str(input_id): symbol
-                for input_id, symbol in input_symbol_map.items()
-            },
+            **{str(input_id): symbol for input_id, symbol in input_symbol_map.items()},
         },
     )
 
@@ -294,15 +296,20 @@ def analyze_sensitivity(
             x_val = input_values[iid]
             elasticity = partial_val * x_val / output_value
 
-        entries.append(SensitivityEntry(
-            input_concept_id=iid,
-            partial_derivative_expr=partial_str,
-            partial_derivative_value=partial_val,
-            elasticity=elasticity,
-        ))
+        entries.append(
+            SensitivityEntry(
+                input_concept_id=iid,
+                partial_derivative_expr=partial_str,
+                partial_derivative_value=partial_val,
+                elasticity=elasticity,
+            )
+        )
 
     # Sort by |elasticity| descending
-    entries.sort(key=lambda e: abs(e.elasticity) if e.elasticity is not None else -1, reverse=True)
+    entries.sort(
+        key=lambda e: abs(e.elasticity) if e.elasticity is not None else -1,
+        reverse=True,
+    )
 
     return SensitivityResult(
         concept_id=lookup_concept_id,
@@ -335,8 +342,7 @@ def analyze_global_sensitivity(
         raise ValueError("method must be 'sobol_first_order' or 'sobol_total'")
 
     midpoint_overrides = {
-        key: (float(low) + float(high)) / 2.0
-        for key, (low, high) in bounds.items()
+        key: (float(low) + float(high)) / 2.0 for key, (low, high) in bounds.items()
     }
     local = analyze_sensitivity(
         world,
@@ -418,12 +424,10 @@ def analyze_global_sensitivity(
     for input_id in input_ids:
         mixed_values = cross_samples[input_id]
         first_order[input_id] = sum(
-            b * (mixed - a)
-            for a, b, mixed in zip(samples_a, samples_b, mixed_values)
+            b * (mixed - a) for a, b, mixed in zip(samples_a, samples_b, mixed_values)
         ) / (n_samples * variance)
         total[input_id] = sum(
-            (a - mixed) ** 2
-            for a, mixed in zip(samples_a, mixed_values)
+            (a - mixed) ** 2 for a, mixed in zip(samples_a, mixed_values)
         ) / (2.0 * n_samples * variance)
 
     return GlobalSensitivityResult(

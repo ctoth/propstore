@@ -95,7 +95,9 @@ def source_justifications_document(
 ) -> dict[str, object]:
     return {
         "source": {"paper": paper},
-        "justifications": [justification.to_payload() for justification in justifications],
+        "justifications": [
+            justification.to_payload() for justification in justifications
+        ],
     }
 
 

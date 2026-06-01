@@ -119,15 +119,17 @@ def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -
 def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
-    definition = WorldlineDefinition.from_dict({
-        "id": "demo_worldline",
-        "name": "Demo worldline",
-        "targets": ["force", "mass"],
-        "inputs": {
-            "bindings": {"location": "earth"},
-            "overrides": {"mass": 10.0},
-        },
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "demo_worldline",
+            "name": "Demo worldline",
+            "targets": ["force", "mass"],
+            "inputs": {
+                "bindings": {"location": "earth"},
+                "overrides": {"mass": 10.0},
+            },
+        }
+    )
 
     commit_sha = repo.families.worldlines.save(
         WorldlineRef("demo_worldline"),
@@ -165,11 +167,13 @@ def test_artifact_store_renders_typed_documents(tmp_path: Path) -> None:
 
 def test_artifact_store_moves_worldlines_atomically(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    definition = WorldlineDefinition.from_dict({
-        "id": "demo_worldline",
-        "name": "Demo worldline",
-        "targets": ["force"],
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "demo_worldline",
+            "name": "Demo worldline",
+            "targets": ["force"],
+        }
+    )
     document = definition.to_document()
 
     repo.families.worldlines.save(
@@ -192,17 +196,27 @@ def test_artifact_store_moves_worldlines_atomically(tmp_path: Path) -> None:
     assert WorldlineDefinition.from_document(renamed.document) == definition
 
 
-def test_artifact_store_derives_refs_from_paths_and_loaded_objects(tmp_path: Path) -> None:
+def test_artifact_store_derives_refs_from_paths_and_loaded_objects(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     concept_ref = repo.families.concepts.ref_from_path("concepts/demo.yaml")
-    claims_ref = repo.families.claims.ref_from_path(str(Path("claims/ps__claim__a.yaml")))
+    claims_ref = repo.families.claims.ref_from_path(
+        str(Path("claims/ps__claim__a.yaml"))
+    )
 
     assert concept_ref == ConceptFileRef("demo")
     assert claims_ref == ClaimRef("ps:claim:a")
 
-    loaded_concept = SimpleNamespace(artifact_path=repo.tree() / "concepts" / "demo.yaml")
-    loaded_claims = SimpleNamespace(artifact_path=repo.tree() / "claims" / "ps__claim__a.yaml")
+    loaded_concept = SimpleNamespace(
+        artifact_path=repo.tree() / "concepts" / "demo.yaml"
+    )
+    loaded_claims = SimpleNamespace(
+        artifact_path=repo.tree() / "claims" / "ps__claim__a.yaml"
+    )
 
-    assert repo.families.concepts.ref_from_loaded(loaded_concept) == ConceptFileRef("demo")
+    assert repo.families.concepts.ref_from_loaded(loaded_concept) == ConceptFileRef(
+        "demo"
+    )
     assert repo.families.claims.ref_from_loaded(loaded_claims) == ClaimRef("ps:claim:a")

@@ -151,9 +151,7 @@ def extract_facts(
     # deterministic function of its inputs; downstream consumers
     # (the gunray translator, the sidecar populate stage) rely on
     # this stability for reproducible builds.
-    return tuple(
-        sorted(collected, key=lambda atom: (atom.predicate, atom.arguments))
-    )
+    return tuple(sorted(collected, key=lambda atom: (atom.predicate, atom.arguments)))
 
 
 def _collect_concept_relation_facts(
@@ -253,7 +251,11 @@ def _collect_claim_facts(
             continue
         if kind == "claim_provenance" and provenance_field is not None:
             provenance = claim.provenance
-            value = None if provenance is None else getattr(provenance, provenance_field, None)
+            value = (
+                None
+                if provenance is None
+                else getattr(provenance, provenance_field, None)
+            )
             if value is not None:
                 _add_claim_scalar_fact(
                     collected,

@@ -5,6 +5,7 @@ Request/result/failure types owned here:
 - `WorldStatusReport`
 - `WorldQueryError`
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,7 +14,10 @@ from typing import TYPE_CHECKING, Mapping
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.reporting import JsonReportMixin
 from propstore.families.claims.declaration import Claim
-from propstore.families.concepts.declaration import Concept, ConceptSearchQuerySyntaxError
+from propstore.families.concepts.declaration import (
+    Concept,
+    ConceptSearchQuerySyntaxError,
+)
 from propstore.world.types import BeliefSpace, RenderPolicy
 
 if TYPE_CHECKING:
@@ -435,11 +439,7 @@ def _world_chain_concept_line(
     concept_id: str,
 ) -> WorldChainConceptLine:
     concept = world.get_concept(concept_id)
-    canonical_name = (
-        concept.canonical_name
-        if concept is not None
-        else None
-    )
+    canonical_name = concept.canonical_name if concept is not None else None
     return WorldChainConceptLine(
         display_id=world_concept_display_id(world, concept_id),
         canonical_name=canonical_name,
@@ -551,9 +551,7 @@ def explain_world_claim(
         target_claim_id = str(stance.target_claim_id)
         target_claim = world.get_claim(target_claim_id)
         target_display_id = (
-            world_claim_display_id(target_claim)
-            if target_claim
-            else target_claim_id
+            world_claim_display_id(target_claim) if target_claim else target_claim_id
         )
         stances.append(
             WorldStanceLine(
@@ -599,9 +597,7 @@ def list_world_algorithms(
         algorithms=tuple(
             WorldAlgorithmLine(
                 claim_id=str(claim.id),
-                name=(
-                    None if claim.text_payload is None else claim.text_payload.name
-                )
+                name=(None if claim.text_payload is None else claim.text_payload.name)
                 or (
                     (claim.algorithm_payload.body or "")[:25]
                     if claim.algorithm_payload is not None
@@ -727,10 +723,7 @@ def _diff_grounded_extension(
     overlay: OverlayWorld,
 ) -> WorldHypotheticalExtensionDiff:
     base_active_ids = {str(claim.id) for claim in bound.active_claims()}
-    hypothetical_active_ids = {
-        str(claim.id)
-        for claim in overlay.active_claims()
-    }
+    hypothetical_active_ids = {str(claim.id) for claim in overlay.active_claims()}
     before = _grounded_extension_snapshot(world, base_active_ids)
     after = _grounded_extension_snapshot(overlay, hypothetical_active_ids)
 
@@ -822,8 +815,7 @@ def query_world_chain(
     result = world.chain_query(resolved, strategy=strategy, **dict(request.bindings))
     value = (
         result.result.value
-        if isinstance(result.result, DerivedResult)
-        and result.result.value is not None
+        if isinstance(result.result, DerivedResult) and result.result.value is not None
         else None
     )
     return WorldChainReport(

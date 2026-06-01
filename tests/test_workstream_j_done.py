@@ -21,8 +21,9 @@ def test_workstream_j_done() -> None:
     assert (WORKSTREAMS / "WS-J6-worldline-stale-fingerprint.md").exists()
 
     assert "**Status**: CLOSED 9eefe5ce" in ws_j.read_text(encoding="utf-8")
-    assert "| WS-J | Worldline determinism, hashing, OverlayWorld rename | CLOSED 9eefe5ce" in index.read_text(
-        encoding="utf-8"
+    assert (
+        "| WS-J | Worldline determinism, hashing, OverlayWorld rename | CLOSED 9eefe5ce"
+        in index.read_text(encoding="utf-8")
     )
     assert "Closed 2026-04-28 (WS-J worldline determinism" in gaps.read_text(
         encoding="utf-8"

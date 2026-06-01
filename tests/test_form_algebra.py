@@ -70,64 +70,146 @@ def physics_project(tmp_path):
     (counters / "physics.next").write_text("10")
 
     # Forms with SI dimensions
-    _write_form(forms_dir, "mass", kind="quantity", unit_symbol="kg",
-                dimensions={"M": 1})
-    _write_form(forms_dir, "distance", kind="quantity", unit_symbol="m",
-                dimensions={"L": 1})
-    _write_form(forms_dir, "time", kind="quantity", unit_symbol="s",
-                dimensions={"T": 1})
-    _write_form(forms_dir, "velocity", kind="quantity", unit_symbol="m/s",
-                dimensions={"L": 1, "T": -1})
-    _write_form(forms_dir, "acceleration", kind="quantity", unit_symbol="m/s^2",
-                dimensions={"L": 1, "T": -2})
-    _write_form(forms_dir, "force", kind="quantity", unit_symbol="N",
-                dimensions={"M": 1, "L": 1, "T": -2})
-    _write_form(forms_dir, "energy", kind="quantity", unit_symbol="J",
-                dimensions={"M": 1, "L": 2, "T": -2})
+    _write_form(
+        forms_dir, "mass", kind="quantity", unit_symbol="kg", dimensions={"M": 1}
+    )
+    _write_form(
+        forms_dir, "distance", kind="quantity", unit_symbol="m", dimensions={"L": 1}
+    )
+    _write_form(
+        forms_dir, "time", kind="quantity", unit_symbol="s", dimensions={"T": 1}
+    )
+    _write_form(
+        forms_dir,
+        "velocity",
+        kind="quantity",
+        unit_symbol="m/s",
+        dimensions={"L": 1, "T": -1},
+    )
+    _write_form(
+        forms_dir,
+        "acceleration",
+        kind="quantity",
+        unit_symbol="m/s^2",
+        dimensions={"L": 1, "T": -2},
+    )
+    _write_form(
+        forms_dir,
+        "force",
+        kind="quantity",
+        unit_symbol="N",
+        dimensions={"M": 1, "L": 1, "T": -2},
+    )
+    _write_form(
+        forms_dir,
+        "energy",
+        kind="quantity",
+        unit_symbol="J",
+        dimensions={"M": 1, "L": 2, "T": -2},
+    )
     _write_form(forms_dir, "ratio", dimensionless=True)
 
     # Concepts
-    _write_concept(concepts_dir, "mass", {
-        "id": "concept1", "canonical_name": "mass", "status": "accepted",
-        "definition": "Inertial mass.", "domain": "physics", "form": "mass",
-    })
-    _write_concept(concepts_dir, "distance", {
-        "id": "concept2", "canonical_name": "distance", "status": "accepted",
-        "definition": "Spatial displacement.", "domain": "physics", "form": "distance",
-    })
-    _write_concept(concepts_dir, "time", {
-        "id": "concept3", "canonical_name": "time", "status": "accepted",
-        "definition": "Duration.", "domain": "physics", "form": "time",
-    })
-    _write_concept(concepts_dir, "velocity", {
-        "id": "concept4", "canonical_name": "velocity", "status": "accepted",
-        "definition": "Rate of displacement.", "domain": "physics", "form": "velocity",
-    })
-    _write_concept(concepts_dir, "acceleration", {
-        "id": "concept5", "canonical_name": "acceleration", "status": "accepted",
-        "definition": "Rate of velocity change.", "domain": "physics",
-        "form": "acceleration",
-    })
-    _write_concept(concepts_dir, "force", {
-        "id": "concept6", "canonical_name": "force", "status": "accepted",
-        "definition": "Push or pull on an object.", "domain": "physics", "form": "force",
-        "parameterization_relationships": [{
-            "inputs": ["concept1", "concept5"],
-            "formula": "F = m * a",
-            "sympy": "Eq(concept6, concept1 * concept5)",
-            "exactness": "exact",
-        }],
-    })
-    _write_concept(concepts_dir, "energy", {
-        "id": "concept7", "canonical_name": "energy", "status": "accepted",
-        "definition": "Capacity to do work.", "domain": "physics", "form": "energy",
-        "parameterization_relationships": [{
-            "inputs": ["concept1", "concept4"],
-            "formula": "E = m * v^2",
-            "sympy": "Eq(concept7, concept1 * concept4**2)",
-            "exactness": "approximate",
-        }],
-    })
+    _write_concept(
+        concepts_dir,
+        "mass",
+        {
+            "id": "concept1",
+            "canonical_name": "mass",
+            "status": "accepted",
+            "definition": "Inertial mass.",
+            "domain": "physics",
+            "form": "mass",
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "distance",
+        {
+            "id": "concept2",
+            "canonical_name": "distance",
+            "status": "accepted",
+            "definition": "Spatial displacement.",
+            "domain": "physics",
+            "form": "distance",
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "time",
+        {
+            "id": "concept3",
+            "canonical_name": "time",
+            "status": "accepted",
+            "definition": "Duration.",
+            "domain": "physics",
+            "form": "time",
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "velocity",
+        {
+            "id": "concept4",
+            "canonical_name": "velocity",
+            "status": "accepted",
+            "definition": "Rate of displacement.",
+            "domain": "physics",
+            "form": "velocity",
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "acceleration",
+        {
+            "id": "concept5",
+            "canonical_name": "acceleration",
+            "status": "accepted",
+            "definition": "Rate of velocity change.",
+            "domain": "physics",
+            "form": "acceleration",
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "force",
+        {
+            "id": "concept6",
+            "canonical_name": "force",
+            "status": "accepted",
+            "definition": "Push or pull on an object.",
+            "domain": "physics",
+            "form": "force",
+            "parameterization_relationships": [
+                {
+                    "inputs": ["concept1", "concept5"],
+                    "formula": "F = m * a",
+                    "sympy": "Eq(concept6, concept1 * concept5)",
+                    "exactness": "exact",
+                }
+            ],
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "energy",
+        {
+            "id": "concept7",
+            "canonical_name": "energy",
+            "status": "accepted",
+            "definition": "Capacity to do work.",
+            "domain": "physics",
+            "form": "energy",
+            "parameterization_relationships": [
+                {
+                    "inputs": ["concept1", "concept4"],
+                    "formula": "E = m * v^2",
+                    "sympy": "Eq(concept7, concept1 * concept4**2)",
+                    "exactness": "approximate",
+                }
+            ],
+        },
+    )
 
     return tmp_path
 
@@ -154,32 +236,65 @@ def bad_dims_project(tmp_path):
     counters.mkdir()
     (counters / "physics.next").write_text("5")
 
-    _write_form(forms_dir, "mass", kind="quantity", unit_symbol="kg",
-                dimensions={"M": 1})
-    _write_form(forms_dir, "time", kind="quantity", unit_symbol="s",
-                dimensions={"T": 1})
+    _write_form(
+        forms_dir, "mass", kind="quantity", unit_symbol="kg", dimensions={"M": 1}
+    )
+    _write_form(
+        forms_dir, "time", kind="quantity", unit_symbol="s", dimensions={"T": 1}
+    )
     # force form has M·L·T⁻² but we'll parameterize it from mass * time (wrong!)
-    _write_form(forms_dir, "force", kind="quantity", unit_symbol="N",
-                dimensions={"M": 1, "L": 1, "T": -2})
+    _write_form(
+        forms_dir,
+        "force",
+        kind="quantity",
+        unit_symbol="N",
+        dimensions={"M": 1, "L": 1, "T": -2},
+    )
 
-    _write_concept(concepts_dir, "mass", {
-        "id": "concept1", "canonical_name": "mass", "status": "accepted",
-        "definition": "Mass.", "domain": "physics", "form": "mass",
-    })
-    _write_concept(concepts_dir, "time", {
-        "id": "concept2", "canonical_name": "time", "status": "accepted",
-        "definition": "Time.", "domain": "physics", "form": "time",
-    })
-    _write_concept(concepts_dir, "force", {
-        "id": "concept3", "canonical_name": "force", "status": "accepted",
-        "definition": "Force.", "domain": "physics", "form": "force",
-        "parameterization_relationships": [{
-            "inputs": ["concept1", "concept2"],
-            "formula": "F = m * t",
-            "sympy": "Eq(concept3, concept1 * concept2)",
-            "exactness": "exact",
-        }],
-    })
+    _write_concept(
+        concepts_dir,
+        "mass",
+        {
+            "id": "concept1",
+            "canonical_name": "mass",
+            "status": "accepted",
+            "definition": "Mass.",
+            "domain": "physics",
+            "form": "mass",
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "time",
+        {
+            "id": "concept2",
+            "canonical_name": "time",
+            "status": "accepted",
+            "definition": "Time.",
+            "domain": "physics",
+            "form": "time",
+        },
+    )
+    _write_concept(
+        concepts_dir,
+        "force",
+        {
+            "id": "concept3",
+            "canonical_name": "force",
+            "status": "accepted",
+            "definition": "Force.",
+            "domain": "physics",
+            "form": "force",
+            "parameterization_relationships": [
+                {
+                    "inputs": ["concept1", "concept2"],
+                    "formula": "F = m * t",
+                    "sympy": "Eq(concept3, concept1 * concept2)",
+                    "exactness": "exact",
+                }
+            ],
+        },
+    )
 
     return tmp_path
 
@@ -308,9 +423,7 @@ class TestFormTable:
 
     def test_form_kind_stored(self, sidecar_path):
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute(
-            "SELECT kind FROM form WHERE name = 'force'"
-        ).fetchone()
+        row = conn.execute("SELECT kind FROM form WHERE name = 'force'").fetchone()
         assert row[0] == "quantity"
 
 
@@ -367,7 +480,9 @@ class TestFormAlgebra:
         """Parameterization with wrong dimensions → stored with dim_verified=0."""
         conn = sqlite3.connect(bad_dims_sidecar)
         rows = conn.execute("SELECT dim_verified FROM form_algebra").fetchall()
-        assert len(rows) >= 1, "dimensionally invalid entries must be stored, not dropped"
+        assert len(rows) >= 1, (
+            "dimensionally invalid entries must be stored, not dropped"
+        )
         assert all(row[0] == 0 for row in rows), (
             "dimensionally invalid entries must have dim_verified=0"
         )
@@ -383,50 +498,113 @@ class TestFormAlgebra:
         counters.mkdir()
         (counters / "physics.next").write_text("10")
 
-        _write_form(forms_dir, "mass", kind="quantity", unit_symbol="kg",
-                    dimensions={"M": 1})
-        _write_form(forms_dir, "acceleration", kind="quantity", unit_symbol="m/s^2",
-                    dimensions={"L": 1, "T": -2})
-        _write_form(forms_dir, "force", kind="quantity", unit_symbol="N",
-                    dimensions={"M": 1, "L": 1, "T": -2})
+        _write_form(
+            forms_dir, "mass", kind="quantity", unit_symbol="kg", dimensions={"M": 1}
+        )
+        _write_form(
+            forms_dir,
+            "acceleration",
+            kind="quantity",
+            unit_symbol="m/s^2",
+            dimensions={"L": 1, "T": -2},
+        )
+        _write_form(
+            forms_dir,
+            "force",
+            kind="quantity",
+            unit_symbol="N",
+            dimensions={"M": 1, "L": 1, "T": -2},
+        )
 
         # Two different concepts, same form algebra: force = mass * acceleration
-        _write_concept(concepts_dir, "mass_a", {
-            "id": "concept1", "canonical_name": "mass_a", "status": "accepted",
-            "definition": "Mass A.", "domain": "physics", "form": "mass",
-        })
-        _write_concept(concepts_dir, "accel_a", {
-            "id": "concept2", "canonical_name": "accel_a", "status": "accepted",
-            "definition": "Accel A.", "domain": "physics", "form": "acceleration",
-        })
-        _write_concept(concepts_dir, "force_a", {
-            "id": "concept3", "canonical_name": "force_a", "status": "accepted",
-            "definition": "Force A.", "domain": "physics", "form": "force",
-            "parameterization_relationships": [{
-                "inputs": ["concept1", "concept2"],
-                "formula": "F_a = m_a * a_a",
-                "sympy": "Eq(concept3, concept1 * concept2)",
-                "exactness": "exact",
-            }],
-        })
-        _write_concept(concepts_dir, "mass_b", {
-            "id": "concept4", "canonical_name": "mass_b", "status": "accepted",
-            "definition": "Mass B.", "domain": "physics", "form": "mass",
-        })
-        _write_concept(concepts_dir, "accel_b", {
-            "id": "concept5", "canonical_name": "accel_b", "status": "accepted",
-            "definition": "Accel B.", "domain": "physics", "form": "acceleration",
-        })
-        _write_concept(concepts_dir, "force_b", {
-            "id": "concept6", "canonical_name": "force_b", "status": "accepted",
-            "definition": "Force B.", "domain": "physics", "form": "force",
-            "parameterization_relationships": [{
-                "inputs": ["concept4", "concept5"],
-                "formula": "F_b = m_b * a_b",
-                "sympy": "Eq(concept6, concept4 * concept5)",
-                "exactness": "exact",
-            }],
-        })
+        _write_concept(
+            concepts_dir,
+            "mass_a",
+            {
+                "id": "concept1",
+                "canonical_name": "mass_a",
+                "status": "accepted",
+                "definition": "Mass A.",
+                "domain": "physics",
+                "form": "mass",
+            },
+        )
+        _write_concept(
+            concepts_dir,
+            "accel_a",
+            {
+                "id": "concept2",
+                "canonical_name": "accel_a",
+                "status": "accepted",
+                "definition": "Accel A.",
+                "domain": "physics",
+                "form": "acceleration",
+            },
+        )
+        _write_concept(
+            concepts_dir,
+            "force_a",
+            {
+                "id": "concept3",
+                "canonical_name": "force_a",
+                "status": "accepted",
+                "definition": "Force A.",
+                "domain": "physics",
+                "form": "force",
+                "parameterization_relationships": [
+                    {
+                        "inputs": ["concept1", "concept2"],
+                        "formula": "F_a = m_a * a_a",
+                        "sympy": "Eq(concept3, concept1 * concept2)",
+                        "exactness": "exact",
+                    }
+                ],
+            },
+        )
+        _write_concept(
+            concepts_dir,
+            "mass_b",
+            {
+                "id": "concept4",
+                "canonical_name": "mass_b",
+                "status": "accepted",
+                "definition": "Mass B.",
+                "domain": "physics",
+                "form": "mass",
+            },
+        )
+        _write_concept(
+            concepts_dir,
+            "accel_b",
+            {
+                "id": "concept5",
+                "canonical_name": "accel_b",
+                "status": "accepted",
+                "definition": "Accel B.",
+                "domain": "physics",
+                "form": "acceleration",
+            },
+        )
+        _write_concept(
+            concepts_dir,
+            "force_b",
+            {
+                "id": "concept6",
+                "canonical_name": "force_b",
+                "status": "accepted",
+                "definition": "Force B.",
+                "domain": "physics",
+                "form": "force",
+                "parameterization_relationships": [
+                    {
+                        "inputs": ["concept4", "concept5"],
+                        "formula": "F_b = m_b * a_b",
+                        "sympy": "Eq(concept6, concept4 * concept5)",
+                        "exactness": "exact",
+                    }
+                ],
+            },
+        )
 
         sidecar = knowledge / "sidecar" / "propstore.sqlite"
         sidecar.parent.mkdir(parents=True, exist_ok=True)
@@ -448,6 +626,7 @@ def world_model(physics_project):
     from propstore.repository import Repository
     from propstore.world import WorldQuery
     from tests.family_helpers import materialized_world_store_path
+
     knowledge = physics_project / "knowledge"
     repo = Repository(knowledge)
     materialized_world_store_path(repo, force=True)
@@ -466,8 +645,9 @@ class TestFormListDims:
         from propstore.cli.form import form
 
         runner = CliRunner()
-        result = runner.invoke(form, ["list", "--show-dims"],
-                               obj={"repo": _repo_from_world(world_model)})
+        result = runner.invoke(
+            form, ["list", "--show-dims"], obj={"repo": _repo_from_world(world_model)}
+        )
         assert result.exit_code == 0
         assert "force" in result.output
         assert "M" in result.output  # dimension symbol present
@@ -477,8 +657,11 @@ class TestFormListDims:
         from propstore.cli.form import form
 
         runner = CliRunner()
-        result = runner.invoke(form, ["list", "--dims", "M:1,L:1,T:-2"],
-                               obj={"repo": _repo_from_world(world_model)})
+        result = runner.invoke(
+            form,
+            ["list", "--dims", "M:1,L:1,T:-2"],
+            obj={"repo": _repo_from_world(world_model)},
+        )
         assert result.exit_code == 0
         assert "force" in result.output
         # mass should NOT be in output (different dimensions)
@@ -496,8 +679,9 @@ class TestFormShowAlgebra:
         from propstore.cli.form import form
 
         runner = CliRunner()
-        result = runner.invoke(form, ["show", "force"],
-                               obj={"repo": _repo_from_world(world_model)})
+        result = runner.invoke(
+            form, ["show", "force"], obj={"repo": _repo_from_world(world_model)}
+        )
         assert result.exit_code == 0
         assert "mass" in result.output
         assert "acceleration" in result.output
@@ -540,4 +724,3 @@ class TestWorldQueryFormQueries:
         results = world_model.form_algebra_using("mass")
         output_forms = [r["output_form"] for r in results]
         assert "force" in output_forms or "energy" in output_forms
-

@@ -21,12 +21,15 @@ class TestRunAsyncFromSyncContext:
 class TestPublicAsyncAPIs:
     def test_relate_claim_async_importable(self):
         from propstore.heuristic.relate import relate_claim_async
+
         assert asyncio.iscoroutinefunction(relate_claim_async)
 
     def test_relate_all_async_importable(self):
         from propstore.heuristic.relate import relate_all_async
+
         assert asyncio.iscoroutinefunction(relate_all_async)
 
     def test_classify_stance_async_importable(self):
         from propstore.heuristic.classify import classify_stance_async
+
         assert asyncio.iscoroutinefunction(classify_stance_async)

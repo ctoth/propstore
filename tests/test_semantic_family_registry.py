@@ -42,7 +42,9 @@ def test_semantic_registry_declares_complete_canonical_family_set() -> None:
     )
     assert semantic_registry.by_storage_root("claims").name == "claims"
     assert semantic_registry.by_storage_root("rules").name == "rules"
-    assert semantic_registry.family_for_path("predicates/base.yaml").name == "predicates"
+    assert (
+        semantic_registry.family_for_path("predicates/base.yaml").name == "predicates"
+    )
 
 
 def test_semantic_registry_exposes_artifact_families_for_rules_and_predicates() -> None:
@@ -75,7 +77,9 @@ def test_rule_family_target_model_is_one_semantic_artifact_per_file() -> None:
     assert canonical.metadata and canonical.metadata["collection_field"] is None
 
 
-def test_rule_superiority_family_target_model_is_one_semantic_artifact_per_file() -> None:
+def test_rule_superiority_family_target_model_is_one_semantic_artifact_per_file() -> (
+    None
+):
     from propstore.families.rules.declaration import RuleSuperiorityDocument
     from propstore.families.registry import RuleSuperiorityRef
 
@@ -123,7 +127,9 @@ def test_semantic_family_contract_includes_path_schema() -> None:
     assert stance_placement["codec"] == "colon_to_double_underscore"
     assert "root" not in concept_body
     assert "filename_codec" not in concept_body
-    assert concept_body["artifact_family_contract"]["doc_type"].endswith(".ConceptDocument")
+    assert concept_body["artifact_family_contract"]["doc_type"].endswith(
+        ".ConceptDocument"
+    )
 
 
 def test_stance_family_target_model_is_one_semantic_artifact_per_file() -> None:
@@ -159,11 +165,15 @@ def test_justification_family_target_model_is_one_semantic_artifact_per_file() -
     assert canonical.storage_root() == "justifications"
     assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "colon_to_double_underscore"
-    assert canonical.metadata is None or canonical.metadata.get("collection_field") is None
+    assert (
+        canonical.metadata is None or canonical.metadata.get("collection_field") is None
+    )
 
 
 def test_micropub_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.micropublications.declaration import MicropublicationDocument
+    from propstore.families.micropublications.declaration import (
+        MicropublicationDocument,
+    )
     from propstore.families.registry import MicropublicationRef
 
     canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.MICROPUBS)
@@ -177,7 +187,9 @@ def test_micropub_family_target_model_is_one_semantic_artifact_per_file() -> Non
     assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "base64url"
     assert placement["filename_mode"] == "encoded_ref"
-    assert canonical.metadata is None or canonical.metadata.get("collection_field") is None
+    assert (
+        canonical.metadata is None or canonical.metadata.get("collection_field") is None
+    )
 
 
 def test_claim_family_target_model_is_one_semantic_artifact_per_file() -> None:
@@ -273,11 +285,32 @@ def test_semantic_family_owns_path_ref_and_listing_behaviour(tmp_path: Path) -> 
     claim = semantic_family_by_name(PropstoreFamily.CLAIMS.value)
     stance = semantic_family_by_name(PropstoreFamily.STANCES.value)
 
-    assert semantic_address_path(concept.name, repo, repo.families.concepts.ref_from_path("concepts/pitch.yaml")) == "concepts/pitch.yaml"
-    claim_ref = repo.families.by_name(claim.name).ref_from_path("claims/ps__claim__paper.yaml")
+    assert (
+        semantic_address_path(
+            concept.name,
+            repo,
+            repo.families.concepts.ref_from_path("concepts/pitch.yaml"),
+        )
+        == "concepts/pitch.yaml"
+    )
+    claim_ref = repo.families.by_name(claim.name).ref_from_path(
+        "claims/ps__claim__paper.yaml"
+    )
     assert claim_ref.artifact_id == "ps:claim:paper"
-    assert semantic_address_path(stance.name, repo, repo.families.stances.ref_from_path("stances/claim__a.yaml")) == "stances/claim__a.yaml"
-    assert repo.families.by_name(stance.name).ref_from_path("stances/claim__a.yaml").artifact_id == "claim:a"
+    assert (
+        semantic_address_path(
+            stance.name,
+            repo,
+            repo.families.stances.ref_from_path("stances/claim__a.yaml"),
+        )
+        == "stances/claim__a.yaml"
+    )
+    assert (
+        repo.families.by_name(stance.name)
+        .ref_from_path("stances/claim__a.yaml")
+        .artifact_id
+        == "claim:a"
+    )
     assert repo.families.concepts.ref_from_path("concepts/pitch.yaml").name == "pitch"
     assert list(repo.families.concepts.iter()) == []
 
@@ -303,9 +336,9 @@ def test_repository_import_module_has_no_local_semantic_root_dispatch() -> None:
 
     assert "SEMANTIC_ROOT_DIRS" not in source
     assert "if root == " not in source
-    assert "path.startswith(\"claims/\")" not in source
-    assert "path.startswith(\"concepts/\")" not in source
-    assert "path.startswith(\"stances/\")" not in source
+    assert 'path.startswith("claims/")' not in source
+    assert 'path.startswith("concepts/")' not in source
+    assert 'path.startswith("stances/")' not in source
 
 
 def test_compiler_foreign_keys_are_registry_derived() -> None:
@@ -327,10 +360,18 @@ def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) ->
     from propstore.families.claims.declaration import ClaimDocument
     from propstore.families.contexts.declaration import ContextDocument
     from propstore.families.contexts.declaration import ContextReferenceDocument
-    from propstore.families.micropublications.declaration import MicropublicationDocument
+    from propstore.families.micropublications.declaration import (
+        MicropublicationDocument,
+    )
     from propstore.families.predicates.declaration import PredicateDocument
     from propstore.families.rules.declaration import AtomDocument, RuleDocument
-    from propstore.families.registry import ClaimRef, ContextRef, MicropublicationRef, PredicateRef, RuleRef
+    from propstore.families.registry import (
+        ClaimRef,
+        ContextRef,
+        MicropublicationRef,
+        PredicateRef,
+        RuleRef,
+    )
 
     repo = Repository.init(tmp_path / "knowledge")
     repo.families.contexts.save(

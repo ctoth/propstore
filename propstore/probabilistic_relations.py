@@ -14,6 +14,7 @@ from propstore.stances import StanceType, coerce_stance_type
 
 RelationKind = Literal["attack", "support", "direct_defeat", "derived_defeat"]
 
+
 @dataclass(frozen=True)
 class RelationProvenance:
     """Stable provenance for a probabilistic relation."""

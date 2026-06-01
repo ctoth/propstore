@@ -59,7 +59,9 @@ def _rule_fixture() -> str:
     )
 
 
-def test_propose_rules_writes_only_admitted_rule_proposals(monkeypatch, tmp_path) -> None:
+def test_propose_rules_writes_only_admitted_rule_proposals(
+    monkeypatch, tmp_path
+) -> None:
     from propstore.heuristic import rule_extraction
 
     repo = Repository.init(tmp_path / "knowledge")
@@ -76,7 +78,10 @@ def test_propose_rules_writes_only_admitted_rule_proposals(monkeypatch, tmp_path
     assert result.rule_ids == ("rule-001",)
     assert [rejection.rule_id for rejection in result.rejections] == ["rule-unknown"]
     assert result.rejections[0].status == "vacuous"
-    assert repo.families.rules.load(rule_extraction.canonical_rule_ref(PAPER, "rule-001")) is None
+    assert (
+        repo.families.rules.load(rule_extraction.canonical_rule_ref(PAPER, "rule-001"))
+        is None
+    )
 
     proposal = repo.families.proposal_rules.require(
         RuleProposalRef(PAPER, "rule-001"),

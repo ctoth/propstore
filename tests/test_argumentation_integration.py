@@ -34,10 +34,15 @@ from tests.conftest import (
 # ── SQLite fixture ──────────────────────────────────────────────────
 
 
-def _insert_claim(conn: Connection, claim_id: str, concept_id: str,
-                   value: float, sample_size: int | None = None,
-                   uncertainty: float | None = None,
-                   confidence: float | None = None) -> None:
+def _insert_claim(
+    conn: Connection,
+    claim_id: str,
+    concept_id: str,
+    value: float,
+    sample_size: int | None = None,
+    uncertainty: float | None = None,
+    confidence: float | None = None,
+) -> None:
     insert_claim(
         conn,
         claim_id,
@@ -50,9 +55,13 @@ def _insert_claim(conn: Connection, claim_id: str, concept_id: str,
     )
 
 
-def _insert_stance(conn: Connection, claim_id: str,
-                     target_claim_id: str, stance_type: str,
-                     confidence: float = 0.9) -> None:
+def _insert_stance(
+    conn: Connection,
+    claim_id: str,
+    target_claim_id: str,
+    stance_type: str,
+    confidence: float = 0.9,
+) -> None:
     insert_stance(
         conn,
         claim_id,
@@ -92,13 +101,19 @@ def basic_scenario(conn):
       - claim_c undercuts claim_b (always succeeds)
       - claim_a supports claim_c (NOT a defeat — excluded)
     """
-    _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=1000, uncertainty=0.05, confidence=0.9)
-    _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=10, uncertainty=0.8, confidence=0.2)
-    _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=500, uncertainty=0.2, confidence=0.7)
-    _insert_stance(conn, "claim_b", "claim_a", "rebuts")      # weak → strong (blocked)
-    _insert_stance(conn, "claim_a", "claim_b", "rebuts")      # strong → weak (succeeds)
-    _insert_stance(conn, "claim_c", "claim_b", "undercuts")   # always succeeds
-    _insert_stance(conn, "claim_a", "claim_c", "supports")    # not a defeat
+    _insert_claim(
+        conn, "claim_a", "c1", 200.0, sample_size=1000, uncertainty=0.05, confidence=0.9
+    )
+    _insert_claim(
+        conn, "claim_b", "c1", 300.0, sample_size=10, uncertainty=0.8, confidence=0.2
+    )
+    _insert_claim(
+        conn, "claim_c", "c1", 250.0, sample_size=500, uncertainty=0.2, confidence=0.7
+    )
+    _insert_stance(conn, "claim_b", "claim_a", "rebuts")  # weak → strong (blocked)
+    _insert_stance(conn, "claim_a", "claim_b", "rebuts")  # strong → weak (succeeds)
+    _insert_stance(conn, "claim_c", "claim_b", "undercuts")  # always succeeds
+    _insert_stance(conn, "claim_a", "claim_c", "supports")  # not a defeat
     conn.commit()
     return conn
 
@@ -195,14 +210,17 @@ class TestBuildAF:
         existence probability, not binary gated.
         """
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(vacuous_opinion_scenario), {"claim_x", "claim_y"},
+            SQLiteArgumentationStore(vacuous_opinion_scenario),
+            {"claim_x", "claim_y"},
         )
         assert ("claim_x", "claim_y") in af.defeats
 
     def test_arguments_match_input(self, basic_scenario):
         """AF arguments match the active claim IDs passed in."""
         ids = {"claim_a", "claim_b", "claim_c"}
-        af = build_argumentation_framework(SQLiteArgumentationStore(basic_scenario), ids)
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(basic_scenario), ids
+        )
         assert af.arguments == frozenset(ids)
 
     def test_stances_referencing_inactive_claims_skipped(self, conn):
@@ -215,9 +233,11 @@ class TestBuildAF:
         _insert_claim(conn, "active_b", "c1", 200.0, sample_size=100)
         _insert_claim(conn, "inactive_c", "c1", 300.0, sample_size=100)
         # Stances referencing inactive_c (not in active set)
-        _insert_stance(conn, "inactive_c", "active_a", "rebuts")   # source inactive
-        _insert_stance(conn, "active_b", "inactive_c", "rebuts")   # target inactive
-        _insert_stance(conn, "inactive_c", "active_b", "supports") # support, source inactive
+        _insert_stance(conn, "inactive_c", "active_a", "rebuts")  # source inactive
+        _insert_stance(conn, "active_b", "inactive_c", "rebuts")  # target inactive
+        _insert_stance(
+            conn, "inactive_c", "active_b", "supports"
+        )  # support, source inactive
         # One valid stance between active claims
         _insert_stance(conn, "active_a", "active_b", "rebuts")
         conn.commit()
@@ -285,7 +305,9 @@ class TestComputeJustified:
         _insert_claim(conn, "c1", "x", 1.0)
         _insert_claim(conn, "c2", "x", 2.0)
         conn.commit()
-        result = compute_claim_graph_justified_claims(SQLiteArgumentationStore(conn), {"c1", "c2"}, semantics="grounded")
+        result = compute_claim_graph_justified_claims(
+            SQLiteArgumentationStore(conn), {"c1", "c2"}, semantics="grounded"
+        )
         assert result == frozenset({"c1", "c2"})
 
 
@@ -300,7 +322,14 @@ def stance_scenarios(draw):
     """Generate random stance scenarios for property testing."""
     n = draw(st.integers(2, 5))
     claim_ids = [f"c{i}" for i in range(n)]
-    attack_types = ["rebuts", "undercuts", "undermines", "supports", "explains", "supersedes"]
+    attack_types = [
+        "rebuts",
+        "undercuts",
+        "undermines",
+        "supports",
+        "explains",
+        "supersedes",
+    ]
     n_stances = draw(st.integers(0, n * 2))
     stances = []
     for _ in range(n_stances):
@@ -317,14 +346,16 @@ def stance_scenarios(draw):
 @st.composite
 def active_stance_scenarios(draw):
     claim_ids, stances, sample_sizes = draw(stance_scenarios())
-    active_ids = set(draw(
-        st.lists(
-            st.sampled_from(claim_ids),
-            unique=True,
-            min_size=0,
-            max_size=len(claim_ids),
+    active_ids = set(
+        draw(
+            st.lists(
+                st.sampled_from(claim_ids),
+                unique=True,
+                min_size=0,
+                max_size=len(claim_ids),
+            )
         )
-    ))
+    )
     return claim_ids, stances, sample_sizes, active_ids
 
 
@@ -333,8 +364,9 @@ def _build_scenario_db(claim_ids, stances, sample_sizes):
     conn = sqlite3.connect(":memory:")
     create_argumentation_schema(conn)
     for cid in claim_ids:
-        _insert_claim(conn, cid, "concept", float(hash(cid) % 1000),
-                       sample_size=sample_sizes[cid])
+        _insert_claim(
+            conn, cid, "concept", float(hash(cid) % 1000), sample_size=sample_sizes[cid]
+        )
     for a, b, t, conf in stances:
         _insert_stance(conn, a, b, t, confidence=conf)
     conn.commit()
@@ -354,7 +386,9 @@ class TestAFProperties:
         """
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
-        af = build_argumentation_framework(SQLiteArgumentationStore(conn), set(claim_ids))
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(conn), set(claim_ids)
+        )
         support_only_pairs = set()
         for a, b, t, conf in stances:
             if t in ("supports", "explains"):
@@ -374,7 +408,9 @@ class TestAFProperties:
         """P3: Grounded computation is conflict-free with respect to defeats."""
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
-        af = build_argumentation_framework(SQLiteArgumentationStore(conn), set(claim_ids))
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(conn), set(claim_ids)
+        )
         ext = grounded_extension(af)
         assert conflict_free(ext, af.defeats)
 
@@ -388,9 +424,7 @@ class TestAFProperties:
         af = build_argumentation_framework(SQLiteArgumentationStore(conn), active_ids)
         assert af.arguments == frozenset(active_ids)
         assert af.defeats <= {
-            (source, target)
-            for source in active_ids
-            for target in active_ids
+            (source, target) for source in active_ids for target in active_ids
         }
 
     @pytest.mark.property
@@ -460,18 +494,16 @@ class TestConflictDerivedDefeats:
         """
         _insert_claim(conn, "alpha", "c1", 100.0, sample_size=50)
         _insert_claim(conn, "beta", "c1", 200.0, sample_size=50)
-        _insert_conflict(conn, "c1", "alpha", "beta", "CONFLICT",
-                         value_a="100.0", value_b="200.0")
+        _insert_conflict(
+            conn, "c1", "alpha", "beta", "CONFLICT", value_a="100.0", value_b="200.0"
+        )
         conn.commit()
 
         af = build_argumentation_framework(
             SQLiteArgumentationStore(conn), {"alpha", "beta"}
         )
         # A genuine conflict should produce at least one defeat direction
-        has_defeat = (
-            ("alpha", "beta") in af.defeats
-            or ("beta", "alpha") in af.defeats
-        )
+        has_defeat = ("alpha", "beta") in af.defeats or ("beta", "alpha") in af.defeats
         assert has_defeat, (
             "CONFLICT record between alpha and beta should generate defeats, "
             f"but af.defeats = {af.defeats}"
@@ -485,8 +517,9 @@ class TestConflictDerivedDefeats:
         """
         _insert_claim(conn, "phi_a", "c1", 100.0, sample_size=50)
         _insert_claim(conn, "phi_b", "c1", 200.0, sample_size=50)
-        _insert_conflict(conn, "c1", "phi_a", "phi_b", "PHI_NODE",
-                         value_a="100.0", value_b="200.0")
+        _insert_conflict(
+            conn, "c1", "phi_a", "phi_b", "PHI_NODE", value_a="100.0", value_b="200.0"
+        )
         conn.commit()
 
         af = build_argumentation_framework(
@@ -505,8 +538,9 @@ class TestConflictDerivedDefeats:
         _insert_claim(conn, "prec_a", "c1", 100.0, sample_size=100)
         _insert_claim(conn, "prec_b", "c1", 200.0, sample_size=100)
         _insert_stance(conn, "prec_a", "prec_b", "supports")
-        _insert_conflict(conn, "c1", "prec_a", "prec_b", "CONFLICT",
-                         value_a="100.0", value_b="200.0")
+        _insert_conflict(
+            conn, "c1", "prec_a", "prec_b", "CONFLICT", value_a="100.0", value_b="200.0"
+        )
         conn.commit()
 
         af = build_argumentation_framework(
@@ -525,20 +559,19 @@ class TestConflictDerivedDefeats:
         """Synthetic stances from conflicts must stay structural only."""
         _insert_claim(conn, "vac_a", "c1", 100.0, sample_size=50, confidence=1.0)
         _insert_claim(conn, "vac_b", "c1", 200.0, sample_size=50, confidence=1.0)
-        _insert_conflict(conn, "c1", "vac_a", "vac_b", "CONFLICT",
-                         value_a="100.0", value_b="200.0")
+        _insert_conflict(
+            conn, "c1", "vac_a", "vac_b", "CONFLICT", value_a="100.0", value_b="200.0"
+        )
         conn.commit()
 
         store = SQLiteArgumentationStore(conn)
         af = build_argumentation_framework(store, {"vac_a", "vac_b"})
 
-        has_defeat = (
-            ("vac_a", "vac_b") in af.defeats
-            or ("vac_b", "vac_a") in af.defeats
-        )
-        assert has_defeat, (
-            "CONFLICT should generate structural defeats"
-        )
+        has_defeat = ("vac_a", "vac_b") in af.defeats or (
+            "vac_b",
+            "vac_a",
+        ) in af.defeats
+        assert has_defeat, "CONFLICT should generate structural defeats"
 
         shared = shared_analyzer_input_from_store(store, {"vac_a", "vac_b"})
         synthetic_stances = [
@@ -561,17 +594,15 @@ class TestConflictDerivedDefeats:
         """
         _insert_claim(conn, "ov_a", "c1", 100.0, sample_size=50)
         _insert_claim(conn, "ov_b", "c1", 200.0, sample_size=50)
-        _insert_conflict(conn, "c1", "ov_a", "ov_b", "OVERLAP",
-                         value_a="100.0", value_b="200.0")
+        _insert_conflict(
+            conn, "c1", "ov_a", "ov_b", "OVERLAP", value_a="100.0", value_b="200.0"
+        )
         conn.commit()
 
         af = build_argumentation_framework(
             SQLiteArgumentationStore(conn), {"ov_a", "ov_b"}
         )
-        has_defeat = (
-            ("ov_a", "ov_b") in af.defeats
-            or ("ov_b", "ov_a") in af.defeats
-        )
+        has_defeat = ("ov_a", "ov_b") in af.defeats or ("ov_b", "ov_a") in af.defeats
         assert has_defeat, (
             "OVERLAP conflict between ov_a and ov_b should generate defeats, "
             f"but af.defeats = {af.defeats}"

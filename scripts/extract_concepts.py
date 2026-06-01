@@ -1,4 +1,5 @@
 """Extract all concept names from claims.yaml files and build frequency table."""
+
 import yaml
 import json
 from pathlib import Path
@@ -6,7 +7,7 @@ from collections import defaultdict
 
 papers_dir = Path("C:/Users/Q/code/propstore/papers")
 concept_papers = defaultdict(set)  # concept_name -> set of papers
-concept_count = defaultdict(int)   # concept_name -> total occurrences
+concept_count = defaultdict(int)  # concept_name -> total occurrences
 concept_sources = defaultdict(list)  # concept_name -> list of (paper, claim_id, field)
 
 for claims_file in sorted(papers_dir.glob("*/claims.yaml")):
@@ -48,7 +49,9 @@ for claims_file in sorted(papers_dir.glob("*/claims.yaml")):
                         if isinstance(c, str):
                             concept_papers[c].add(paper_name)
                             concept_count[c] += 1
-                            concept_sources[c].append((paper_name, claim_id, f"{param_field}.concept"))
+                            concept_sources[c].append(
+                                (paper_name, claim_id, f"{param_field}.concept")
+                            )
 
         # Extract from target_concept
         if "target_concept" in claim and isinstance(claim["target_concept"], str):
@@ -72,7 +75,7 @@ for c in sorted_concepts:
     output[c] = {
         "count": concept_count[c],
         "papers": sorted(concept_papers[c]),
-        "sources": concept_sources[c]
+        "sources": concept_sources[c],
     }
 
 out_path = Path("C:/Users/Q/code/propstore/scripts/concept_inventory.json")
@@ -83,4 +86,6 @@ print(f"Wrote inventory to {out_path}")
 print("\n=== ALL CONCEPTS (alphabetical) ===")
 for c in sorted_concepts:
     papers = sorted(concept_papers[c])
-    print(f"  {c} ({concept_count[c]}x, {len(papers)} papers: {', '.join(papers[:3])}{'...' if len(papers) > 3 else ''})")
+    print(
+        f"  {c} ({concept_count[c]}x, {len(papers)} papers: {', '.join(papers[:3])}{'...' if len(papers) > 3 else ''})"
+    )

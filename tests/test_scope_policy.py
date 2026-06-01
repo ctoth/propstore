@@ -95,14 +95,14 @@ def test_p_scope_degrade_warns_and_forces_rebind_false() -> None:
     """rebind=True with empty bindings ⇒ warns and degrades to flat view."""
     incomplete = RevisionScope(bindings={}, context_id=None)  # no bindings
     complete = RevisionScope(bindings={}, context_id=None)
-    space, journal = _build_journal_with_scope(
-        scope_in=complete, scope_out=incomplete
-    )
+    space, journal = _build_journal_with_scope(scope_in=complete, scope_out=incomplete)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         view = at_journal_step(space, journal, 0, rebind=True)
     matched = [w for w in caught if "degrading" in str(w.message)]
-    assert matched, f"expected a 'degrading' UserWarning, got {[str(w.message) for w in caught]}"
+    assert matched, (
+        f"expected a 'degrading' UserWarning, got {[str(w.message) for w in caught]}"
+    )
     # Degraded path returns a ClaimView whose bound is None (rebind=False shape)
     assert view.bound is None
 
@@ -133,9 +133,7 @@ def test_p_scope_noop_rebind_returns_observable_bound_view() -> None:
         branch="main",
         commit="0" * 40,
     )
-    space, journal = _build_journal_with_scope(
-        scope_in=complete, scope_out=complete
-    )
+    space, journal = _build_journal_with_scope(scope_in=complete, scope_out=complete)
     flat = at_journal_step(space, journal, 0, rebind=False)
     rebound = at_journal_step(space, journal, 0, rebind=True)
     # The rebind path MUST produce a different observable shape.

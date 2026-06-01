@@ -63,9 +63,7 @@ def _notes_sha(notes: str) -> str:
 
 
 def _llm_call(**kwargs: object) -> str:
-    raise RuntimeError(
-        "predicate extraction requires an LLM client or a test fixture"
-    )
+    raise RuntimeError("predicate extraction requires an LLM client or a test fixture")
 
 
 def _loads_payload(raw: str | dict[str, Any]) -> dict[str, Any]:
@@ -78,7 +76,9 @@ def _loads_payload(raw: str | dict[str, Any]) -> dict[str, Any]:
     return loaded
 
 
-def _declarations_from_payload(payload: dict[str, Any]) -> tuple[PredicateDeclaration, ...]:
+def _declarations_from_payload(
+    payload: dict[str, Any],
+) -> tuple[PredicateDeclaration, ...]:
     raw_declarations = payload.get("declarations")
     if not isinstance(raw_declarations, list):
         raise ValueError("predicate extraction output requires declarations list")

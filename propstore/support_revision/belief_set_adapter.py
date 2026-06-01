@@ -81,8 +81,7 @@ def project_formal_bundle(
             max_alphabet_size=max_alphabet_size,
         )
     formula_by_atom_id = {
-        atom_id: Atom(_formula_name(atom_id))
-        for atom_id in sorted(atoms_by_id)
+        atom_id: Atom(_formula_name(atom_id)) for atom_id in sorted(atoms_by_id)
     }
     base_formulas = tuple(
         formula_by_atom_id[atom.atom_id]
@@ -99,8 +98,7 @@ def project_formal_bundle(
         belief_set=belief_set,
         formula_by_atom_id=formula_by_atom_id,
         atom_id_by_formula_name={
-            _formula_name(atom_id): atom_id
-            for atom_id in formula_by_atom_id
+            _formula_name(atom_id): atom_id for atom_id in formula_by_atom_id
         },
         epistemic_state=epistemic_state,
         entrenchment=EpistemicEntrenchment.from_state(epistemic_state),
@@ -114,7 +112,9 @@ def decide_expand(
     *,
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size)
+    bundle = project_formal_bundle(
+        base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size
+    )
     formula = bundle.formula_by_atom_id[atom.atom_id]
     outcome = expand(bundle.belief_set, formula)
     report = _decision_report(
@@ -134,7 +134,9 @@ def decide_contract(
     max_alphabet_size: int,
 ) -> FormalDecision:
     bundle = project_formal_bundle(base, max_alphabet_size=max_alphabet_size)
-    formula = conjunction(*(bundle.formula_by_atom_id[atom_id] for atom_id in target_atom_ids))
+    formula = conjunction(
+        *(bundle.formula_by_atom_id[atom_id] for atom_id in target_atom_ids)
+    )
     outcome = full_meet_contract(
         _state_for(bundle),
         formula,
@@ -157,7 +159,9 @@ def decide_revise(
     conflicts: tuple[str, ...] = (),
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size)
+    bundle = project_formal_bundle(
+        base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size
+    )
     formula = _revision_formula(
         bundle,
         atom.atom_id,
@@ -187,7 +191,9 @@ def decide_iterated_revise(
     operator: str,
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size)
+    bundle = project_formal_bundle(
+        base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size
+    )
     formula = _revision_formula(
         bundle,
         atom.atom_id,
@@ -243,8 +249,7 @@ def decide_ic_merge(
         belief_set=outcome.belief_set,
         formula_by_atom_id=formula_by_atom_id,
         atom_id_by_formula_name={
-            _formula_name(atom_id): atom_id
-            for atom_id in formula_by_atom_id
+            _formula_name(atom_id): atom_id for atom_id in formula_by_atom_id
         },
         budget_config={"max_alphabet_size": max_alphabet_size},
     )
@@ -276,9 +281,7 @@ def decide_ic_merge_profile(
 ) -> FormalDecision:
     alphabet = frozenset(atom_id for profile in profile_atom_ids for atom_id in profile)
     profile = tuple(
-        conjunction(*(Atom(atom_id) for atom_id in atom_ids))
-        if atom_ids
-        else TOP
+        conjunction(*(Atom(atom_id) for atom_id in atom_ids)) if atom_ids else TOP
         for atom_ids in profile_atom_ids
     )
     return decide_ic_merge(
@@ -289,7 +292,9 @@ def decide_ic_merge_profile(
         max_alphabet_size=max_alphabet_size,
         trace_metadata={
             "profile_atom_ids": [list(atom_ids) for atom_ids in profile_atom_ids],
-            "profile_hash": _plain_hash([list(atom_ids) for atom_ids in profile_atom_ids]),
+            "profile_hash": _plain_hash(
+                [list(atom_ids) for atom_ids in profile_atom_ids]
+            ),
             "integrity_constraint": dict(integrity_constraint),
         },
     )
@@ -319,11 +324,15 @@ def selected_world_atom_ids(decision: FormalDecision) -> tuple[tuple[str, ...], 
     return tuple(
         tuple(
             sorted(
-                decision.projection.atom_id_by_formula_name.get(formula_name, formula_name)
+                decision.projection.atom_id_by_formula_name.get(
+                    formula_name, formula_name
+                )
                 for formula_name in world
             )
         )
-        for world in sorted(decision.outcome.belief_set.models, key=lambda item: tuple(sorted(item)))
+        for world in sorted(
+            decision.outcome.belief_set.models, key=lambda item: tuple(sorted(item))
+        )
     )
 
 
@@ -371,9 +380,7 @@ def _decision_report(
         if belief_set.entails(formula)
     )
     rejected = tuple(
-        atom_id
-        for atom_id in bundle.formula_by_atom_id
-        if atom_id not in set(accepted)
+        atom_id for atom_id in bundle.formula_by_atom_id if atom_id not in set(accepted)
     )
     state = _outcome_state(outcome)
     state_hash = None if state is None else _state_hash(state)
@@ -483,7 +490,9 @@ def _state_hash(state: SpohnEpistemicState) -> str:
         "alphabet": sorted(state.alphabet),
         "ranks": [
             [sorted(world), _json_rank(rank)]
-            for world, rank in sorted(state.ranks.items(), key=lambda item: tuple(sorted(item[0])))
+            for world, rank in sorted(
+                state.ranks.items(), key=lambda item: tuple(sorted(item[0]))
+            )
         ],
     }
     body = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -491,10 +500,17 @@ def _state_hash(state: SpohnEpistemicState) -> str:
 
 
 def _worlds_hash(worlds: frozenset[frozenset[str]]) -> str:
-    return _plain_hash([sorted(world) for world in sorted(worlds, key=lambda item: tuple(sorted(item)))])
+    return _plain_hash(
+        [
+            sorted(world)
+            for world in sorted(worlds, key=lambda item: tuple(sorted(item)))
+        ]
+    )
 
 
-def _scored_worlds_hash(scored_worlds: tuple[tuple[frozenset[str], tuple[float, ...]], ...]) -> str:
+def _scored_worlds_hash(
+    scored_worlds: tuple[tuple[frozenset[str], tuple[float, ...]], ...],
+) -> str:
     return _plain_hash(
         [
             {

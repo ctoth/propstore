@@ -1,4 +1,5 @@
 """CLI command for committed-snapshot repository import."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,9 +12,15 @@ from propstore.app.repository_import import RepositoryImportError, import_reposi
 
 
 @click.command("import-repository")
-@click.argument("source_repository", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.option("--target-branch", default=None, help="Branch that receives the import commit.")
-@click.option("--message", default=None, help="Override the default import commit message.")
+@click.argument(
+    "source_repository", type=click.Path(exists=True, file_okay=False, path_type=Path)
+)
+@click.option(
+    "--target-branch", default=None, help="Branch that receives the import commit."
+)
+@click.option(
+    "--message", default=None, help="Override the default import commit message."
+)
 @click.pass_context
 def import_repository_cmd(
     ctx: click.Context,

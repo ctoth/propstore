@@ -9,7 +9,9 @@ def test_assertion_id_distinguishes_source_paper_provenance() -> None:
         paper="left_paper",
     )
     right = merge_claim_from_payload(
-        obs_claim("claim_b", "The same proposition", ["concept_x"], paper="right_paper"),
+        obs_claim(
+            "claim_b", "The same proposition", ["concept_x"], paper="right_paper"
+        ),
         paper="right_paper",
     )
 

@@ -31,7 +31,9 @@ def claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
+def claim_payloads(
+    kr: GitStore, claims: list[dict], paper: str = "test_paper"
+) -> dict[str, bytes]:
     doc = normalize_claims_payload(
         {
             "source": {
@@ -42,7 +44,9 @@ def claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") 
             "claims": claims,
         }
     )
-    return claim_artifact_commit_payloads(_repo_for_store(kr), doc, source=f"claims/{paper}.yaml")
+    return claim_artifact_commit_payloads(
+        _repo_for_store(kr), doc, source=f"claims/{paper}.yaml"
+    )
 
 
 def claim_yaml_with_explicit_identities(

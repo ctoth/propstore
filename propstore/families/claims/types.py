@@ -19,7 +19,5 @@ class ClaimType(StrEnum):
 
 
 VALID_CLAIM_TYPES = frozenset(
-    claim_type.value
-    for claim_type in ClaimType
-    if claim_type is not ClaimType.UNKNOWN
+    claim_type.value for claim_type in ClaimType if claim_type is not ClaimType.UNKNOWN
 )

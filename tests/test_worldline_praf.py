@@ -87,7 +87,9 @@ class FakeWorld:
         }
         self._active_graph = WorldActivationGraph(
             compiled=CompiledWorldGraph(
-                claims=tuple(claim_node_from_payload(payload) for payload in claim_payloads),
+                claims=tuple(
+                    claim_node_from_payload(payload) for payload in claim_payloads
+                ),
             ),
             active_claim_ids=("claim_a", "claim_b"),
         )
@@ -108,11 +110,7 @@ class FakeWorld:
         return name == "relation_edge"
 
     def claims_by_ids(self, claim_ids):
-        return {
-            cid: self._claims[cid]
-            for cid in claim_ids
-            if cid in self._claims
-        }
+        return {cid: self._claims[cid] for cid in claim_ids if cid in self._claims}
 
     def stances_between(self, claim_ids):
         if {"claim_a", "claim_b"}.issubset(claim_ids):
@@ -157,15 +155,17 @@ class TestPrafWorldlineStateCapture:
         - strategy_used: string (e.g. "mc", "exact_enum", "dfquad_quad", "dfquad_baf")
         - semantics: string (e.g. "grounded")
         """
-        wl = WorldlineDefinition.from_dict({
-            "id": "praf_state_test",
-            "targets": ["target"],
-            "policy": {
-                "strategy": "argumentation",
-                "reasoning_backend": "praf",
-                "semantics": "grounded",
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "praf_state_test",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "praf",
+                    "semantics": "grounded",
+                },
+            }
+        )
 
         world = FakeWorld()
         result = run_worldline(wl, world)
@@ -187,15 +187,17 @@ class TestPrafWorldlineStateCapture:
         DAFs of P_PrAF(AF) * xi^S(AF, X). Each claim's acceptance
         probability must be in [0.0, 1.0].
         """
-        wl = WorldlineDefinition.from_dict({
-            "id": "praf_probs_test",
-            "targets": ["target"],
-            "policy": {
-                "strategy": "argumentation",
-                "reasoning_backend": "praf",
-                "semantics": "grounded",
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "praf_probs_test",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "praf",
+                    "semantics": "grounded",
+                },
+            }
+        )
 
         world = FakeWorld()
         result = run_worldline(wl, world)
@@ -208,12 +210,8 @@ class TestPrafWorldlineStateCapture:
         probs = result.argumentation.acceptance_probs
 
         # Both active claims must have acceptance probabilities
-        assert "claim_a" in probs, (
-            "acceptance_probs missing entry for claim_a"
-        )
-        assert "claim_b" in probs, (
-            "acceptance_probs missing entry for claim_b"
-        )
+        assert "claim_a" in probs, "acceptance_probs missing entry for claim_a"
+        assert "claim_b" in probs, "acceptance_probs missing entry for claim_b"
 
         # Acceptance probabilities must be floats in [0.0, 1.0]
         # (Li et al. 2011, Proposition 1: probabilities form a proper distribution)

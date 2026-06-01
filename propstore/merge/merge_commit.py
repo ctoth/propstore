@@ -1,4 +1,5 @@
 """Merge commit creation for propstore knowledge repositories."""
+
 from __future__ import annotations
 
 import time
@@ -107,7 +108,9 @@ def create_merge_commit(
         if right_sha_for_path is not None:
             merged_entries[path] = right_sha_for_path
 
-    sorted_arguments = sorted(merge.arguments, key=lambda argument: argument.assertion_id)
+    sorted_arguments = sorted(
+        merge.arguments, key=lambda argument: argument.assertion_id
+    )
     artifact_counts = Counter(argument.artifact_id for argument in sorted_arguments)
     claim_payloads_by_ref: dict[ClaimRef, dict] = {}
     for argument in sorted_arguments:
@@ -140,8 +143,7 @@ def create_merge_commit(
                     "logical_id": argument.logical_id,
                     "branch_origins": list(argument.branch_origins),
                     "witness_basis": [
-                        witness.to_payload()
-                        for witness in argument.witness_basis
+                        witness.to_payload() for witness in argument.witness_basis
                     ],
                     "materialized": True,
                 }
@@ -180,7 +182,9 @@ def create_merge_commit(
     )
 
     for prepared in (*prepared_claims, prepared_manifest):
-        merged_entries[prepared.address.require_path()] = kr.store_blob(prepared.content)
+        merged_entries[prepared.address.require_path()] = kr.store_blob(
+            prepared.content
+        )
 
     return kr.commit_flat_tree(
         merged_entries,

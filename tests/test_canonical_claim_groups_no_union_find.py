@@ -9,7 +9,9 @@ from tests.ws_l_merge_helpers import (
 )
 
 
-def test_logical_id_alias_chain_does_not_union_without_accepted_sameas(tmp_path) -> None:
+def test_logical_id_alias_chain_does_not_union_without_accepted_sameas(
+    tmp_path,
+) -> None:
     kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/right"
@@ -40,7 +42,9 @@ def test_logical_id_alias_chain_does_not_union_without_accepted_sameas(tmp_path)
         "left",
     )
     kr.commit_files(
-        claim_payloads_with_explicit_identities(kr, [claim_b, claim_c], paper="paper_b"),
+        claim_payloads_with_explicit_identities(
+            kr, [claim_b, claim_c], paper="paper_b"
+        ),
         "right",
         branch=branch_name,
     )
@@ -49,7 +53,8 @@ def test_logical_id_alias_chain_does_not_union_without_accepted_sameas(tmp_path)
 
     assert len(merge.arguments) == 3
     assert len({argument.canonical_claim_id for argument in merge.arguments}) == 3
-    assert {
-        argument.canonical_claim_id
-        for argument in merge.arguments
-    } == {"paper_a:a", "paper_b:b", "paper_c:c"}
+    assert {argument.canonical_claim_id for argument in merge.arguments} == {
+        "paper_a:a",
+        "paper_b:b",
+        "paper_c:c",
+    }

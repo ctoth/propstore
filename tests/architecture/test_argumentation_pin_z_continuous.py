@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from argumentation.dung import ArgumentationFramework
-from argumentation.probabilistic import ProbabilisticAF, compute_probabilistic_acceptance
+from argumentation.probabilistic import (
+    ProbabilisticAF,
+    compute_probabilistic_acceptance,
+)
 
 
 def test_argumentation_pin_mc_confidence_accepts_non_lookup_value() -> None:
     praf = ProbabilisticAF(
-        framework=ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset()),
+        framework=ArgumentationFramework(
+            arguments=frozenset({"a"}), defeats=frozenset()
+        ),
         p_args={"a": 0.5},
         p_defeats={},
     )

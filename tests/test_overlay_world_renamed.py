@@ -23,9 +23,15 @@ def test_ws_j_old_overlay_name_is_absent_from_python_surfaces() -> None:
                 if isinstance(node, ast.ClassDef) and node.name == _OLD:
                     offenders.append(f"{path}:class")
                 elif isinstance(node, ast.ImportFrom):
-                    offenders.extend(f"{path}:import" for alias in node.names if alias.name == _OLD)
+                    offenders.extend(
+                        f"{path}:import" for alias in node.names if alias.name == _OLD
+                    )
                 elif isinstance(node, ast.Import):
-                    offenders.extend(f"{path}:import" for alias in node.names if alias.name.endswith(_OLD))
+                    offenders.extend(
+                        f"{path}:import"
+                        for alias in node.names
+                        if alias.name.endswith(_OLD)
+                    )
                 elif isinstance(node, ast.Name) and node.id == _OLD:
                     offenders.append(f"{path}:name")
                 elif isinstance(node, ast.Attribute) and node.attr == _OLD:

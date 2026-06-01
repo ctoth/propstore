@@ -48,10 +48,7 @@ def _make_praf(
 
 
 def _tau_from_praf(praf: ProbabilisticAF) -> dict[str, float]:
-    return {
-        arg: praf.p_args[arg]
-        for arg in praf.framework.arguments
-    }
+    return {arg: praf.p_args[arg] for arg in praf.framework.arguments}
 
 
 def _compute_quad_strengths(
@@ -282,9 +279,7 @@ class TestChainPropagation:
     """
 
     def test_support_then_attack_chain(self) -> None:
-        praf = _make_praf(
-            ["A", "B", "C"], [("B", "C")], {"A": 0.9, "B": 0.5, "C": 0.7}
-        )
+        praf = _make_praf(["A", "B", "C"], [("B", "C")], {"A": 0.9, "B": 0.5, "C": 0.7})
         supports = {("A", "B"): 0.9}
         strengths = _compute_quad_strengths(praf, supports)
 
@@ -323,7 +318,9 @@ class TestPrAFDispatch:
         QBAF should not collapse to the target's base score when invoked through
         compute_probabilistic_acceptance().
         """
-        af = ArgumentationFramework(arguments=frozenset({"A", "B"}), defeats=frozenset())
+        af = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}), defeats=frozenset()
+        )
         praf = ProbabilisticAF(
             framework=af,
             p_args={
@@ -351,7 +348,9 @@ class TestPrAFDispatch:
 
     def test_dfquad_dispatch_respects_support_weight_changes(self) -> None:
         """Changing support weight should change the target's gradual strength."""
-        af = ArgumentationFramework(arguments=frozenset({"A", "B"}), defeats=frozenset())
+        af = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}), defeats=frozenset()
+        )
         weak = ProbabilisticAF(
             framework=af,
             p_args={
@@ -550,10 +549,12 @@ from hypothesis import strategies as st
 
 from argumentation.dung import ArgumentationFramework
 
+
 def _small_praf_strategy_dfquad():
     """Strategy: build a small PrAF with 2-4 arguments, random attacks,
     random P_A opinions.  All P_D are dogmatic (certain defeats).
     """
+
     @st.composite
     def build(draw):
         n_args = draw(st.integers(min_value=2, max_value=4))
@@ -614,8 +615,7 @@ def _isolated_prafs(draw):
     n_args = draw(st.integers(min_value=1, max_value=4))
     arg_names = [f"iso{idx}" for idx in range(n_args)]
     base_scores = {
-        arg: draw(st.floats(min_value=0.05, max_value=0.95))
-        for arg in arg_names
+        arg: draw(st.floats(min_value=0.05, max_value=0.95)) for arg in arg_names
     }
     return _make_praf(arg_names, [], base_scores)
 
@@ -647,7 +647,9 @@ def test_dfquad_scores_bounded(praf):
 @pytest.mark.property
 @given(sample=_paired_quad_inputs())
 @settings(deadline=None)
-def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixed(sample):
+def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixed(
+    sample,
+):
     praf, alt_praf, tau = sample
 
     left = compute_probabilistic_acceptance(
@@ -684,7 +686,9 @@ def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sampl
 
     assert left.acceptance_probs["A"] == pytest.approx(tau_left, abs=1e-9)
     assert right.acceptance_probs["A"] == pytest.approx(tau_right, abs=1e-9)
-    assert left.acceptance_probs["A"] != pytest.approx(right.acceptance_probs["A"], abs=1e-6)
+    assert left.acceptance_probs["A"] != pytest.approx(
+        right.acceptance_probs["A"], abs=1e-6
+    )
 
 
 @pytest.mark.property
@@ -713,10 +717,7 @@ def _monotonicity_scenario(draw):
     args = [f"a{i}" for i in range(n_existing)]
     target = args[0]
 
-    base_scores = {
-        a: draw(st.floats(min_value=0.1, max_value=0.9))
-        for a in args
-    }
+    base_scores = {a: draw(st.floats(min_value=0.1, max_value=0.9)) for a in args}
 
     # Random attacks among existing args (not self-attacks)
     defeats = []
@@ -746,7 +747,9 @@ def test_dfquad_adding_attacker_never_increases_strength(scenario):
     praf_base = _make_praf(args, defeats, base_scores)
     tau_base = {a: base_scores[a] for a in args}
     result_base = compute_dfquad_quad_strengths(
-        praf_base, {}, tau=tau_base,
+        praf_base,
+        {},
+        tau=tau_base,
     )
     strength_before = result_base[target]
 
@@ -757,7 +760,9 @@ def test_dfquad_adding_attacker_never_increases_strength(scenario):
     praf_with = _make_praf(all_args, all_defeats, all_scores)
     tau_with = {a: all_scores[a] for a in all_args}
     result_with = compute_dfquad_quad_strengths(
-        praf_with, {}, tau=tau_with,
+        praf_with,
+        {},
+        tau=tau_with,
     )
     strength_after = result_with[target]
 
@@ -783,7 +788,9 @@ def test_dfquad_adding_supporter_never_decreases_strength(scenario):
     praf_base = _make_praf(args, defeats, base_scores)
     tau_base = {a: base_scores[a] for a in args}
     result_base = compute_dfquad_quad_strengths(
-        praf_base, {}, tau=tau_base,
+        praf_base,
+        {},
+        tau=tau_base,
     )
     strength_before = result_base[target]
 
@@ -794,7 +801,9 @@ def test_dfquad_adding_supporter_never_decreases_strength(scenario):
     tau_with = {a: all_scores[a] for a in all_args}
     supports = {(extra, target): 1.0}
     result_with = compute_dfquad_quad_strengths(
-        praf_with, supports, tau=tau_with,
+        praf_with,
+        supports,
+        tau=tau_with,
     )
     strength_after = result_with[target]
 

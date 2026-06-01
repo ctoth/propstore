@@ -222,8 +222,7 @@ def _overview_report(
     request: Request,
     *,
     wants_json: Literal[True],
-) -> RepositoryOverviewReport | JSONResponse:
-    ...
+) -> RepositoryOverviewReport | JSONResponse: ...
 
 
 @overload
@@ -231,8 +230,7 @@ def _overview_report(
     request: Request,
     *,
     wants_json: Literal[False],
-) -> RepositoryOverviewReport | HTMLResponse:
-    ...
+) -> RepositoryOverviewReport | HTMLResponse: ...
 
 
 def _overview_report(
@@ -261,8 +259,7 @@ def _claim_report(
     request: Request,
     *,
     wants_json: Literal[True],
-) -> ClaimViewReport | JSONResponse:
-    ...
+) -> ClaimViewReport | JSONResponse: ...
 
 
 @overload
@@ -271,8 +268,7 @@ def _claim_report(
     request: Request,
     *,
     wants_json: Literal[False],
-) -> ClaimViewReport | HTMLResponse:
-    ...
+) -> ClaimViewReport | HTMLResponse: ...
 
 
 def _claim_report(
@@ -303,8 +299,7 @@ def _concept_report(
     request: Request,
     *,
     wants_json: Literal[True],
-) -> ConceptViewReport | JSONResponse:
-    ...
+) -> ConceptViewReport | JSONResponse: ...
 
 
 @overload
@@ -313,8 +308,7 @@ def _concept_report(
     request: Request,
     *,
     wants_json: Literal[False],
-) -> ConceptViewReport | HTMLResponse:
-    ...
+) -> ConceptViewReport | HTMLResponse: ...
 
 
 def _concept_report(
@@ -344,8 +338,7 @@ def _claims_report(
     request: Request,
     *,
     wants_json: Literal[True],
-) -> ClaimSummaryReport | JSONResponse:
-    ...
+) -> ClaimSummaryReport | JSONResponse: ...
 
 
 @overload
@@ -353,8 +346,7 @@ def _claims_report(
     request: Request,
     *,
     wants_json: Literal[False],
-) -> ClaimSummaryReport | HTMLResponse:
-    ...
+) -> ClaimSummaryReport | HTMLResponse: ...
 
 
 def _claims_report(
@@ -401,8 +393,7 @@ def _neighborhood_report(
     request: Request,
     *,
     wants_json: Literal[True],
-) -> SemanticNeighborhoodReport | JSONResponse:
-    ...
+) -> SemanticNeighborhoodReport | JSONResponse: ...
 
 
 @overload
@@ -411,8 +402,7 @@ def _neighborhood_report(
     request: Request,
     *,
     wants_json: Literal[False],
-) -> SemanticNeighborhoodReport | HTMLResponse:
-    ...
+) -> SemanticNeighborhoodReport | HTMLResponse: ...
 
 
 def _neighborhood_report(
@@ -445,8 +435,7 @@ def _concepts_report(
     request: Request,
     *,
     wants_json: Literal[True],
-) -> ConceptListReport | ConceptSearchReport | JSONResponse:
-    ...
+) -> ConceptListReport | ConceptSearchReport | JSONResponse: ...
 
 
 @overload
@@ -454,8 +443,7 @@ def _concepts_report(
     request: Request,
     *,
     wants_json: Literal[False],
-) -> ConceptListReport | ConceptSearchReport | HTMLResponse:
-    ...
+) -> ConceptListReport | ConceptSearchReport | HTMLResponse: ...
 
 
 def _concepts_report(
@@ -535,8 +523,7 @@ def _expected_error_response(
     exc: Exception,
     *,
     wants_json: Literal[True],
-) -> JSONResponse:
-    ...
+) -> JSONResponse: ...
 
 
 @overload
@@ -544,8 +531,7 @@ def _expected_error_response(
     exc: Exception,
     *,
     wants_json: Literal[False],
-) -> HTMLResponse:
-    ...
+) -> HTMLResponse: ...
 
 
 def _expected_error_response(
@@ -566,8 +552,7 @@ def _error_response(
     status_code: int,
     *,
     wants_json: Literal[True],
-) -> JSONResponse:
-    ...
+) -> JSONResponse: ...
 
 
 @overload
@@ -577,8 +562,7 @@ def _error_response(
     status_code: int,
     *,
     wants_json: Literal[False],
-) -> HTMLResponse:
-    ...
+) -> HTMLResponse: ...
 
 
 def _error_response(

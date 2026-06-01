@@ -1,4 +1,5 @@
 """Repository-facing summaries for merge frameworks."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -15,26 +16,32 @@ def semantic_candidate_details(merge: RepositoryMergeFramework) -> list[dict]:
     argument_index = merge.argument_index()
     details: list[dict] = []
     for assertion_ids in merge.semantic_candidates:
-        arguments = [argument_index[assertion_id] for assertion_id in sorted(assertion_ids)]
-        details.append({
-            "assertion_ids": [argument.assertion_id for argument in arguments],
-            "logical_ids": [
-                argument.logical_id
-                for argument in arguments
-                if isinstance(argument.logical_id, str) and argument.logical_id
-            ],
-            "artifact_ids": [argument.artifact_id for argument in arguments],
-            "arguments": [
-                {
-                    "assertion_id": argument.assertion_id,
-                    "logical_id": argument.logical_id,
-                    "artifact_id": argument.artifact_id,
-                    "branch_origins": list(argument.branch_origins),
-                    "source_paper": argument.claim.provenance_payload().get("paper"),
-                }
-                for argument in arguments
-            ],
-        })
+        arguments = [
+            argument_index[assertion_id] for assertion_id in sorted(assertion_ids)
+        ]
+        details.append(
+            {
+                "assertion_ids": [argument.assertion_id for argument in arguments],
+                "logical_ids": [
+                    argument.logical_id
+                    for argument in arguments
+                    if isinstance(argument.logical_id, str) and argument.logical_id
+                ],
+                "artifact_ids": [argument.artifact_id for argument in arguments],
+                "arguments": [
+                    {
+                        "assertion_id": argument.assertion_id,
+                        "logical_id": argument.logical_id,
+                        "artifact_id": argument.artifact_id,
+                        "branch_origins": list(argument.branch_origins),
+                        "source_paper": argument.claim.provenance_payload().get(
+                            "paper"
+                        ),
+                    }
+                    for argument in arguments
+                ],
+            }
+        )
     return details
 
 
@@ -43,8 +50,12 @@ def summarize_merge_framework(
     *,
     semantics: str = "grounded",
 ) -> dict:
-    skeptical = sorted(skeptically_accepted_arguments(merge.framework, semantics=semantics))
-    credulous = sorted(credulously_accepted_arguments(merge.framework, semantics=semantics))
+    skeptical = sorted(
+        skeptically_accepted_arguments(merge.framework, semantics=semantics)
+    )
+    credulous = sorted(
+        credulously_accepted_arguments(merge.framework, semantics=semantics)
+    )
 
     statuses = {}
     argument_details = []

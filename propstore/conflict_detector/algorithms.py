@@ -44,7 +44,12 @@ def detect_algorithm_conflicts(
                 bindings_b = _bindings_for_algorithm_claim(claim_b)
                 try:
                     result = ast_compare(body_a, bindings_a, body_b, bindings_b)
-                except (ValueError, SyntaxError, AlgorithmParseError, RecursionError) as exc:
+                except (
+                    ValueError,
+                    SyntaxError,
+                    AlgorithmParseError,
+                    RecursionError,
+                ) as exc:
                     logging.warning(
                         "ast_compare failed for %s vs %s: %s",
                         claim_a.claim_id,
@@ -57,7 +62,9 @@ def detect_algorithm_conflicts(
 
                 conditions_a = sorted(claim_a.conditions)
                 conditions_b = sorted(claim_b.conditions)
-                derivation_chain = f"similarity:{result.similarity:.3f} tier:{result.tier}"
+                derivation_chain = (
+                    f"similarity:{result.similarity:.3f} tier:{result.tier}"
+                )
                 if _append_context_classified_record(
                     records,
                     concept_id=concept_id,
@@ -73,22 +80,24 @@ def detect_algorithm_conflicts(
                     derivation_chain=derivation_chain,
                 ):
                     continue
-                records.append(ConflictRecord(
-                    concept_id=concept_id,
-                    claim_a_id=claim_a.claim_id,
-                    claim_b_id=claim_b.claim_id,
-                    warning_class=_classify_conditions(
-                        conditions_a,
-                        conditions_b,
-                        cel_registry,
-                        solver=solver,
-                    ),
-                    conditions_a=conditions_a,
-                    conditions_b=conditions_b,
-                    value_a=f"algorithm:{claim_a.claim_id}",
-                    value_b=f"algorithm:{claim_b.claim_id}",
-                    derivation_chain=derivation_chain,
-                ))
+                records.append(
+                    ConflictRecord(
+                        concept_id=concept_id,
+                        claim_a_id=claim_a.claim_id,
+                        claim_b_id=claim_b.claim_id,
+                        warning_class=_classify_conditions(
+                            conditions_a,
+                            conditions_b,
+                            cel_registry,
+                            solver=solver,
+                        ),
+                        conditions_a=conditions_a,
+                        conditions_b=conditions_b,
+                        value_a=f"algorithm:{claim_a.claim_id}",
+                        value_b=f"algorithm:{claim_b.claim_id}",
+                        derivation_chain=derivation_chain,
+                    )
+                )
 
     return records
 

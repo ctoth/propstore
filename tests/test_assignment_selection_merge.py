@@ -10,7 +10,10 @@ from hypothesis import strategies as st
 
 from assignment_selection import Assignment, MergeOperator, Problem, SourceAssignment
 from assignment_selection import solve as package_solve
-from assignment_selection.solver import assignment_satisfies, enumerate_candidate_assignments
+from assignment_selection.solver import (
+    assignment_satisfies,
+    enumerate_candidate_assignments,
+)
 
 from propstore.core.conditions.registry import ConceptInfo, KindType
 import propstore.storage as repo_api
@@ -240,7 +243,9 @@ class TestAssignmentSelectionCelAdapter:
 
     def test_duplicate_production_cel_runtime_is_removed(self):
         assert not hasattr(assignment_selection_adapter, "_eval_cel_ast")
-        assert not hasattr(assignment_selection_adapter, "_eval_cel_constraint_bruteforce")
+        assert not hasattr(
+            assignment_selection_adapter, "_eval_cel_constraint_bruteforce"
+        )
 
     def test_cel_constraints_reuse_one_solver_per_problem(self, monkeypatch):
         real_solver = assignment_selection_adapter.ConditionSolver
@@ -269,7 +274,9 @@ class TestAssignmentSelectionCelAdapter:
             operator=MergeOperator.SIGMA,
         )
 
-        monkeypatch.setattr(assignment_selection_adapter, "ConditionSolver", CountingSolver)
+        monkeypatch.setattr(
+            assignment_selection_adapter, "ConditionSolver", CountingSolver
+        )
         result = _solve(problem)
 
         assert result.winners
@@ -278,14 +285,19 @@ class TestAssignmentSelectionCelAdapter:
     @pytest.mark.property
     @given(
         st.lists(
-            st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
+            st.tuples(
+                st.integers(min_value=0, max_value=2),
+                st.integers(min_value=0, max_value=2),
+            ),
             min_size=2,
             max_size=5,
         ),
         st.sampled_from(list(MergeOperator)),
     )
     @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-    def test_unsatisfiable_cel_constraint_yields_no_winners(self, source_pairs, operator):
+    def test_unsatisfiable_cel_constraint_yields_no_winners(
+        self, source_pairs, operator
+    ):
         result = _solve(
             Problem(
                 concept_ids=("x", "y"),
@@ -314,14 +326,19 @@ class TestAssignmentSelectionCelAdapter:
     @pytest.mark.property
     @given(
         st.lists(
-            st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
+            st.tuples(
+                st.integers(min_value=0, max_value=2),
+                st.integers(min_value=0, max_value=2),
+            ),
             min_size=2,
             max_size=5,
         ),
         st.integers(min_value=0, max_value=4),
     )
     @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-    def test_solver_and_bruteforce_cel_agree_on_bounded_cases(self, source_pairs, limit):
+    def test_solver_and_bruteforce_cel_agree_on_bounded_cases(
+        self, source_pairs, limit
+    ):
         problem = Problem(
             concept_ids=("x", "y"),
             sources=tuple(
@@ -361,7 +378,10 @@ class TestRenderPolicyIntegration:
         assert policy.branch_filter is None
 
     def test_resolution_strategy_has_assignment_selection_merge(self):
-        assert ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE == "assignment_selection_merge"
+        assert (
+            ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE
+            == "assignment_selection_merge"
+        )
 
     def test_render_policy_round_trips_merge_operator_enum(self):
         policy = RenderPolicy(merge_operator=MergeOperator.GMAX)

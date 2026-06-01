@@ -48,7 +48,9 @@ def test_cross_paper_corroboration_survives_merge_materialization(tmp_path) -> N
 
     merge_sha = create_merge_commit(snapshot(kr), "master", branch_name)
 
-    manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
+    manifest = yaml.safe_load(
+        (kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text()
+    )
     arguments = manifest["merge"]["arguments"]
     assert len(arguments) == 2
     assert {row["artifact_id"] for row in arguments} == {

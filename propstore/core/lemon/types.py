@@ -41,7 +41,9 @@ class LexicalEntry:
     physical_dimension_form: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "identifier", require_text(self.identifier, "identifier"))
+        object.__setattr__(
+            self, "identifier", require_text(self.identifier, "identifier")
+        )
         if not self.senses:
             raise ValueError("LexicalEntry requires at least one lexical sense")
         if self.physical_dimension_form is not None:
@@ -66,7 +68,9 @@ def lexical_form_identity_key(entry: LexicalEntry) -> tuple[str, str, str | None
     return (
         fold_text(entry.canonical_form.language),
         fold_text(entry.canonical_form.written_rep),
-        None if entry.physical_dimension_form is None else fold_text(entry.physical_dimension_form),
+        None
+        if entry.physical_dimension_form is None
+        else fold_text(entry.physical_dimension_form),
     )
 
 

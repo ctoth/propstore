@@ -11,7 +11,11 @@ from propstore.core.graph_relation_types import GraphRelationType
 from tests.family_helpers import materialized_world_store_path
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.world import WorldQuery
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
+from tests.conftest import (
+    normalize_claims_payload,
+    normalize_concept_payloads,
+    write_test_context,
+)
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -35,7 +39,11 @@ def graph_build_world(tmp_path):
 
     for form_name, form_data in {
         "mass": {"name": "mass", "kind": "quantity", "dimensionless": False},
-        "acceleration": {"name": "acceleration", "kind": "quantity", "dimensionless": False},
+        "acceleration": {
+            "name": "acceleration",
+            "kind": "quantity",
+            "dimensionless": False,
+        },
         "force": {"name": "force", "kind": "quantity", "dimensionless": False},
         "category": {"name": "category", "kind": "category", "dimensionless": True},
     }.items():
@@ -97,55 +105,57 @@ def graph_build_world(tmp_path):
             encoding="utf-8",
         )
 
-    claims_payload = normalize_claims_payload({
-        "source": {"paper": "graph_build_test"},
-        "claims": [
-            {
-                "id": "claim_mass",
-                "type": "parameter",
-                "output_concept": "concept1",
-                "value": 5.0,
-                "unit": "kg",
-                "conditions": ["task == 'speech'"],
-                "provenance": {"paper": "graph_build_test", "page": 1},
-            },
-            {
-                "id": "claim_accel",
-                "type": "parameter",
-                "output_concept": "concept2",
-                "value": 2.0,
-                "unit": "m/s^2",
-                "conditions": ["task == 'speech'"],
-                "provenance": {"paper": "graph_build_test", "page": 2},
-            },
-            {
-                "id": "claim_force_a",
-                "type": "parameter",
-                "output_concept": "concept3",
-                "value": 10.0,
-                "unit": "N",
-                "conditions": ["task == 'speech'"],
-                "provenance": {"paper": "graph_build_test", "page": 3},
-            },
-            {
-                "id": "claim_force_b",
-                "type": "parameter",
-                "output_concept": "concept3",
-                "value": 12.0,
-                "unit": "N",
-                "conditions": ["task == 'speech'"],
-                "provenance": {"paper": "graph_build_test", "page": 4},
-                "stances": [
-                    {
-                        "type": "rebuts",
-                        "target": "claim_force_a",
-                        "strength": "strong",
-                        "note": "conflicting direct measurement",
-                    }
-                ],
-            },
-        ],
-    })
+    claims_payload = normalize_claims_payload(
+        {
+            "source": {"paper": "graph_build_test"},
+            "claims": [
+                {
+                    "id": "claim_mass",
+                    "type": "parameter",
+                    "output_concept": "concept1",
+                    "value": 5.0,
+                    "unit": "kg",
+                    "conditions": ["task == 'speech'"],
+                    "provenance": {"paper": "graph_build_test", "page": 1},
+                },
+                {
+                    "id": "claim_accel",
+                    "type": "parameter",
+                    "output_concept": "concept2",
+                    "value": 2.0,
+                    "unit": "m/s^2",
+                    "conditions": ["task == 'speech'"],
+                    "provenance": {"paper": "graph_build_test", "page": 2},
+                },
+                {
+                    "id": "claim_force_a",
+                    "type": "parameter",
+                    "output_concept": "concept3",
+                    "value": 10.0,
+                    "unit": "N",
+                    "conditions": ["task == 'speech'"],
+                    "provenance": {"paper": "graph_build_test", "page": 3},
+                },
+                {
+                    "id": "claim_force_b",
+                    "type": "parameter",
+                    "output_concept": "concept3",
+                    "value": 12.0,
+                    "unit": "N",
+                    "conditions": ["task == 'speech'"],
+                    "provenance": {"paper": "graph_build_test", "page": 4},
+                    "stances": [
+                        {
+                            "type": "rebuts",
+                            "target": "claim_force_a",
+                            "strength": "strong",
+                            "note": "conflicting direct measurement",
+                        }
+                    ],
+                },
+            ],
+        }
+    )
     (claims_dir / "claims.yaml").write_text(
         yaml.dump(normalize_claims_payload(claims_payload), default_flow_style=False),
         encoding="utf-8",
@@ -187,9 +197,7 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
         and relation.relation_type is GraphRelationType.REBUTS
         for relation in graph.relations
     )
-    assert graph.parameterizations == (
-        graph.parameterizations[0],
-    )
+    assert graph.parameterizations == (graph.parameterizations[0],)
     assert graph.parameterizations[0].output_concept_id == _concept_artifact("concept3")
     assert graph.parameterizations[0].input_concept_ids == (
         _concept_artifact("concept1"),
@@ -242,7 +250,9 @@ def test_build_compiled_world_graph_carries_relation_opinion(graph_build_world) 
     assert stance_edges[0].opinion is opinion
 
 
-def test_world_relationship_rows_use_concept_relationship_enum(graph_build_world) -> None:
+def test_world_relationship_rows_use_concept_relationship_enum(
+    graph_build_world,
+) -> None:
     relationships = graph_build_world.all_relationships()
 
     assert relationships
@@ -256,10 +266,7 @@ def test_world_concept_rows_use_concept_status_enum(graph_build_world) -> None:
     concepts = graph_build_world.all_concepts()
 
     assert concepts
-    assert any(
-        concept.status == ConceptStatus.ACCEPTED.value
-        for concept in concepts
-    )
+    assert any(concept.status == ConceptStatus.ACCEPTED.value for concept in concepts)
 
 
 def test_build_compiled_world_graph_is_row_order_independent(graph_build_world) -> None:

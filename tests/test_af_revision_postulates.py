@@ -15,7 +15,11 @@ from argumentation.af_revision import (
     diller_2015_revise_by_formula,
     stable_kernel,
 )
-from argumentation.dung import ArgumentationFramework, grounded_extension, stable_extensions
+from argumentation.dung import (
+    ArgumentationFramework,
+    grounded_extension,
+    stable_extensions,
+)
 
 
 pytestmark = pytest.mark.property
@@ -38,21 +42,27 @@ st_formula = st.sampled_from(FORMULAS)
 
 @st.composite
 def st_framework(draw) -> ArgumentationFramework:
-    pairs = tuple((left, right) for left in sorted(ARGUMENTS) for right in sorted(ARGUMENTS))
+    pairs = tuple(
+        (left, right) for left in sorted(ARGUMENTS) for right in sorted(ARGUMENTS)
+    )
     defeats = frozenset(draw(st.sets(st.sampled_from(pairs), max_size=5)))
     return ArgumentationFramework(arguments=ARGUMENTS, defeats=defeats)
 
 
 @st.composite
 def st_revision_state(draw) -> ExtensionRevisionState:
-    extensions = tuple(frozenset(ext) for ext in stable_extensions(draw(st_framework())))
+    extensions = tuple(
+        frozenset(ext) for ext in stable_extensions(draw(st_framework()))
+    )
     if not extensions:
         extensions = (frozenset(),)
     ranking = {
         candidate: draw(st.integers(min_value=0, max_value=4))
         for candidate in ExtensionRevisionState.all_extensions(ARGUMENTS)
     }
-    return ExtensionRevisionState.from_extensions(ARGUMENTS, extensions, ranking=ranking)
+    return ExtensionRevisionState.from_extensions(
+        ARGUMENTS, extensions, ranking=ranking
+    )
 
 
 def _satisfies(extension: frozenset[str], formula: Formula) -> bool:
@@ -70,7 +80,9 @@ def test_baumann_brewka_2015_kernel_union_expansion_success_and_inclusion(
     union = ArgumentationFramework(
         arguments=base.arguments | new.arguments,
         defeats=frozenset(base.defeats | new.defeats),
-        attacks=frozenset((base.attacks or base.defeats) | (new.attacks or new.defeats)),
+        attacks=frozenset(
+            (base.attacks or base.defeats) | (new.attacks or new.defeats)
+        ),
     )
 
     assert base.arguments <= expanded.arguments
@@ -89,12 +101,22 @@ def test_diller_2015_p_star_1_p_star_6_formula_revision(
     result = diller_2015_revise_by_formula(state, formula)
 
     assert all(_satisfies(extension, formula) for extension in result.extensions)
-    if any(_satisfies(extension, formula) for extension in state.all_extensions(state.arguments)):
+    if any(
+        _satisfies(extension, formula)
+        for extension in state.all_extensions(state.arguments)
+    ):
         assert result.extensions
 
-    syntactic_variant = conjunction(formula, Atom("__top_guard__").or_(negate(Atom("__top_guard__"))))
-    variant = diller_2015_revise_by_formula(state.with_argument("__top_guard__"), syntactic_variant)
-    projected = tuple(frozenset(arg for arg in ext if arg != "__top_guard__") for ext in variant.extensions)
+    syntactic_variant = conjunction(
+        formula, Atom("__top_guard__").or_(negate(Atom("__top_guard__")))
+    )
+    variant = diller_2015_revise_by_formula(
+        state.with_argument("__top_guard__"), syntactic_variant
+    )
+    projected = tuple(
+        frozenset(arg for arg in ext if arg != "__top_guard__")
+        for ext in variant.extensions
+    )
     assert frozenset(projected) == frozenset(result.extensions)
 
     satisfying = tuple(
@@ -123,7 +145,9 @@ def test_diller_2015_a_star_1_a_star_6_framework_revision(
 
     assert frozenset(result.extensions) <= frozenset(target_extensions)
     if frozenset(state.extensions) & frozenset(target_extensions):
-        assert frozenset(result.extensions) == frozenset(state.extensions) & frozenset(target_extensions)
+        assert frozenset(result.extensions) == frozenset(state.extensions) & frozenset(
+            target_extensions
+        )
     if target_extensions:
         assert result.extensions
     assert result.extensions == state.minimal_extensions(target_extensions)

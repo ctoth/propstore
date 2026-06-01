@@ -9,7 +9,10 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
-from propstore.families.concepts.alignment import build_alignment_artifact, classify_relation
+from propstore.families.concepts.alignment import (
+    build_alignment_artifact,
+    classify_relation,
+)
 from propstore.families.forms.models import FORM_CHARTER
 from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.repository import Repository
@@ -114,13 +117,17 @@ def test_alignment_builder_emits_mutual_attacks_for_same_name_different_definiti
 @pytest.mark.property
 @given(
     shared_token=st.text(
-        alphabet=st.characters(blacklist_categories=("Cs",), blacklist_characters="\x00"),
+        alphabet=st.characters(
+            blacklist_categories=("Cs",), blacklist_characters="\x00"
+        ),
         min_size=1,
         max_size=20,
     ).filter(lambda value: bool(value.strip())),
 )
 @settings(deadline=None)
-def test_alignment_does_not_infer_from_definition_token_overlap(shared_token: str) -> None:
+def test_alignment_does_not_infer_from_definition_token_overlap(
+    shared_token: str,
+) -> None:
     left = {
         "source": "tag:local@propstore,2026:source/a",
         "local_handle": "local_a",
@@ -187,7 +194,9 @@ def test_concept_align_creates_proposal_artifact_and_promote(tmp_path: Path) -> 
     proposal_tip = repo.git.branch_sha("proposal/concepts")
     assert proposal_tip is not None
     artifact = yaml.safe_load(
-        repo.git.read_file(f"merge/concepts/{cluster_id.split(':', 1)[1]}.yaml", commit=proposal_tip)
+        repo.git.read_file(
+            f"merge/concepts/{cluster_id.split(':', 1)[1]}.yaml", commit=proposal_tip
+        )
     )
     first_arg = artifact["arguments"][0]["id"]
 
@@ -217,6 +226,10 @@ def test_concept_align_creates_proposal_artifact_and_promote(tmp_path: Path) -> 
     )
     assert promote_result.exit_code == 0, promote_result.output
 
-    concept_document = repo.families.concepts.require(ConceptFileRef("claims_identical"))
-    assert concept_document.lexical_entry.canonical_form.written_rep == "claims_identical"
+    concept_document = repo.families.concepts.require(
+        ConceptFileRef("claims_identical")
+    )
+    assert (
+        concept_document.lexical_entry.canonical_form.written_rep == "claims_identical"
+    )
     assert concept_document.status == "accepted"

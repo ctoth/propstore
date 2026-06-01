@@ -115,7 +115,9 @@ def test_claim_dimensional_error_records_error(tmp_path) -> None:
     )
 
     rendered_errors = [error.render() for error in result.errors]
-    assert any("dimensional" in error.lower() and "sin" in error for error in rendered_errors)
+    assert any(
+        "dimensional" in error.lower() and "sin" in error for error in rendered_errors
+    )
 
 
 def test_concept_dimensional_error_records_error(tmp_path) -> None:
@@ -174,4 +176,6 @@ def test_concept_dimensional_error_records_error(tmp_path) -> None:
 
     result = validate_concepts(load_concepts(concept_dir), forms_dir=forms_dir)
 
-    assert any("dimensional" in error.lower() and "sin" in error for error in result.errors)
+    assert any(
+        "dimensional" in error.lower() and "sin" in error for error in result.errors
+    )

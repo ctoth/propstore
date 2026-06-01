@@ -44,5 +44,7 @@ def test_T_canonical_dump_golden_uses_versioned_ast_key() -> None:
         )
     )
 
-    assert canonical_dump(golden["body"], golden["bindings"]) == golden["canonical_dump"]
+    assert (
+        canonical_dump(golden["body"], golden["bindings"]) == golden["canonical_dump"]
+    )
     assert golden["canonical_dump"].startswith("1:")

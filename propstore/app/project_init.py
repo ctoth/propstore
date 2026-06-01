@@ -44,7 +44,9 @@ def initialize_project(root: Path) -> ProjectInitReport:
             **_render_seed_form_files(repo, form_documents),
             **_render_seed_concept_files(repo, concept_documents),
         }
-        seed_commit = repo.require_git().commit_files(seed_files, "Seed default forms and concepts")
+        seed_commit = repo.require_git().commit_files(
+            seed_files, "Seed default forms and concepts"
+        )
         repo.write_bootstrap_manifest(seed_commit=seed_commit)
 
     return ProjectInitReport(root=root, initialized=True)
@@ -70,7 +72,9 @@ def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocument]]
         form_documents.append(
             (
                 FormRef(form_path.name.removesuffix(".yaml")),
-                convert_document_value(payload, FORM_DOCUMENT_TYPE, source=str(form_path)),
+                convert_document_value(
+                    payload, FORM_DOCUMENT_TYPE, source=str(form_path)
+                ),
             )
         )
     return form_documents
@@ -212,7 +216,9 @@ def _seed_concept_payload(entry: dict[str, object]) -> dict[str, object]:
     return payload
 
 
-def _seed_concept_documents(repo: Repository) -> list[tuple[ConceptFileRef, ConceptDocument]]:
+def _seed_concept_documents(
+    repo: Repository,
+) -> list[tuple[ConceptFileRef, ConceptDocument]]:
     concept_documents: list[tuple[ConceptFileRef, ConceptDocument]] = []
     package_concepts_dir = _get_resource("concepts")
     if not package_concepts_dir.is_dir():
@@ -233,7 +239,9 @@ def _seed_concept_documents(repo: Repository) -> list[tuple[ConceptFileRef, Conc
             raise ProjectInitError(f"{seed_path} must contain a concepts list")
         for entry in entries:
             if not isinstance(entry, dict):
-                raise ProjectInitError(f"{seed_path} contains a non-mapping concept entry")
+                raise ProjectInitError(
+                    f"{seed_path} contains a non-mapping concept entry"
+                )
             ref = ConceptFileRef(str(entry["ref"]))
             concept_documents.append(
                 (

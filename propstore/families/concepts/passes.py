@@ -67,7 +67,6 @@ if TYPE_CHECKING:
     from quire.tree_path import TreePath as KnowledgePath
 
 
-
 VALID_RELATIONSHIP_TYPES = VALID_CONCEPT_RELATIONSHIP_TYPES
 _QUALIA_ROLE_NAMES = ("formal", "constitutive", "telic", "agentive")
 _TYPE_RELATIONSHIPS = {
@@ -182,10 +181,14 @@ def _validate_phase3_lemon_references(
                         reference_index=reference_index,
                         result=result,
                     )
-                    if target is not None and required is not None and not _concept_satisfies_type(
-                        target,
-                        required_uri,
-                        reference_index,
+                    if (
+                        target is not None
+                        and required is not None
+                        and not _concept_satisfies_type(
+                            target,
+                            required_uri,
+                            reference_index,
+                        )
                     ):
                         result.errors.append(
                             f"{concept.filename}: qualia.{role_name} reference "
@@ -384,9 +387,7 @@ def _check_concepts(
         return {} if form_def.is_dimensionless else None
 
     loaded_claim_index = (
-        _load_claim_reference_index(claims_dir)
-        if claim_index is None
-        else claim_index
+        _load_claim_reference_index(claims_dir) if claim_index is None else claim_index
     )
 
     for c in concepts:
@@ -404,7 +405,9 @@ def _check_concepts(
             result.errors.append(f"{c.filename}: missing required field 'artifact_id'")
             continue
         if not name:
-            result.errors.append(f"{c.filename}: missing required field 'canonical_name'")
+            result.errors.append(
+                f"{c.filename}: missing required field 'canonical_name'"
+            )
         if not status:
             result.errors.append(f"{c.filename}: missing required field 'status'")
         if not definition:
@@ -417,15 +420,15 @@ def _check_concepts(
             result=result,
         )
         version_id = data.get("version_id")
-        if not isinstance(version_id, str) or not CONCEPT_VERSION_ID_RE.match(version_id):
+        if not isinstance(version_id, str) or not CONCEPT_VERSION_ID_RE.match(
+            version_id
+        ):
             result.errors.append(
                 f"{c.filename}: concept '{cid}' version_id must match sha256:<64 hex chars>"
             )
         else:
             version_document = (
-                document_to_payload(c.document)
-                if c.document is not None
-                else data
+                document_to_payload(c.document) if c.document is not None else data
             )
             expected_version_id = compute_concept_version_id(
                 normalize_canonical_concept_payload(version_document)
@@ -442,7 +445,8 @@ def _check_concepts(
         else:
             if not _form_exists(c, form):
                 result.errors.append(
-                    f"{c.filename}: form '{form}' has no matching file at forms/{form}.yaml")
+                    f"{c.filename}: form '{form}' has no matching file at forms/{form}.yaml"
+                )
 
         # Validate form_parameters if present
         form_params = data.get("form_parameters")
@@ -462,7 +466,8 @@ def _check_concepts(
                     if not isinstance(category_values, list):
                         result.errors.append(
                             f"{c.filename}: category concept must have "
-                            f"form_parameters with a 'values' list")
+                            f"form_parameters with a 'values' list"
+                        )
 
                 # Check form_parameters keys against form's declared parameters
                 if form_def.parameters and isinstance(form_params, dict):
@@ -473,7 +478,8 @@ def _check_concepts(
                         result.warnings.append(
                             f"{c.filename}: form_parameter '{key}' is not "
                             f"declared in form '{form}' "
-                            f"(expected: {sorted(declared_keys)})")
+                            f"(expected: {sorted(declared_keys)})"
+                        )
 
         # Validate range if present
         range_val = data.get("range")
@@ -487,7 +493,8 @@ def _check_concepts(
         if cid in id_to_concept:
             result.errors.append(
                 f"{c.filename}: duplicate concept artifact_id '{cid}' "
-                f"(also in {id_to_concept[cid].filename})")
+                f"(also in {id_to_concept[cid].filename})"
+            )
         else:
             id_to_concept[cid] = c
 
@@ -503,7 +510,8 @@ def _check_concepts(
             replaced_by = data.get("replaced_by")
             if not replaced_by:
                 result.errors.append(
-                    f"{c.filename}: deprecated concept must have 'replaced_by'")
+                    f"{c.filename}: deprecated concept must have 'replaced_by'"
+                )
 
     all_ids = set(id_to_concept.keys())
     reference_index = _concept_reference_index(concepts)
@@ -516,7 +524,9 @@ def _check_concepts(
     except ValueError as exc:
         message = str(exc)
         if "duplicate canonical_name" in message:
-            result.warnings.append(f"CEL registry skipped ambiguous lexical form: {message}")
+            result.warnings.append(
+                f"CEL registry skipped ambiguous lexical form: {message}"
+            )
         else:
             result.errors.append(f"CEL registry error: {message}")
 
@@ -538,12 +548,14 @@ def _check_concepts(
             if replaced_by:
                 if replaced_by not in all_ids:
                     result.errors.append(
-                        f"{c.filename}: replaced_by target '{replaced_by}' not found in registry")
+                        f"{c.filename}: replaced_by target '{replaced_by}' not found in registry"
+                    )
                 else:
                     target = id_to_concept[replaced_by]
                     if target.record.status is ConceptStatus.DEPRECATED:
                         result.errors.append(
-                            f"{c.filename}: replaced_by target '{replaced_by}' is itself deprecated")
+                            f"{c.filename}: replaced_by target '{replaced_by}' is itself deprecated"
+                        )
 
         # ── Relationship targets exist ──────────────────────────
         for rel in data.get("relationships", []) or []:
@@ -554,16 +566,19 @@ def _check_concepts(
             if rel_type and rel_type not in VALID_RELATIONSHIP_TYPES:
                 result.errors.append(
                     f"{c.filename}: invalid relationship type '{rel_type}'. "
-                    f"Valid types: {', '.join(sorted(VALID_RELATIONSHIP_TYPES))}")
+                    f"Valid types: {', '.join(sorted(VALID_RELATIONSHIP_TYPES))}"
+                )
 
             if target and target not in all_ids:
                 result.errors.append(
-                    f"{c.filename}: relationship target '{target}' not found in registry")
+                    f"{c.filename}: relationship target '{target}' not found in registry"
+                )
 
             # contested_definition must have note
             if rel.get("type") == "contested_definition" and not rel.get("note"):
                 result.errors.append(
-                    f"{c.filename}: contested_definition relationship to '{target}' must have a note")
+                    f"{c.filename}: contested_definition relationship to '{target}' must have a note"
+                )
 
             # CEL conditions in relationships
             if cel_registry is not None:
@@ -583,18 +598,21 @@ def _check_concepts(
                 if input_id == cid:
                     result.errors.append(
                         f"{c.filename}: parameterization input '{input_id}' "
-                        f"cannot reference the concept being defined")
+                        f"cannot reference the concept being defined"
+                    )
                     continue
                 if input_id not in all_ids:
                     result.errors.append(
-                        f"{c.filename}: parameterization input '{input_id}' not found in registry")
+                        f"{c.filename}: parameterization input '{input_id}' not found in registry"
+                    )
                 else:
                     input_concept = id_to_concept[input_id]
                     input_kind = kind_type_from_form_name(input_concept.record.form)
                     if input_kind and input_kind != KindType.QUANTITY:
                         result.errors.append(
                             f"{c.filename}: parameterization input '{input_id}' "
-                            f"must be quantity kind (is {input_kind.value})")
+                            f"must be quantity kind (is {input_kind.value})"
+                        )
 
             # ── Dimensional compatibility (bridgman) ─────────────
             output_form_def = _form_definition(c, data.get("form"))
@@ -609,8 +627,12 @@ def _check_concepts(
                 if len(input_form_defs) == len(inputs) and input_form_defs:
                     input_dims = [_effective_dims(fd) for fd in input_form_defs]
                     output_dims = _effective_dims(output_form_def)
-                    concrete_input_dims = [dims for dims in input_dims if dims is not None]
-                    if output_dims is not None and len(concrete_input_dims) == len(input_dims):
+                    concrete_input_dims = [
+                        dims for dims in input_dims if dims is not None
+                    ]
+                    if output_dims is not None and len(concrete_input_dims) == len(
+                        input_dims
+                    ):
                         # ── Sympy-based dimensional verification ───────
                         # If the parameterization has a sympy expression,
                         # use bridgman's tree-walking verifier (handles
@@ -620,6 +642,7 @@ def _check_concepts(
                         if sympy_expr_str:
                             try:
                                 import sympy as sp
+
                                 parsed = sp.sympify(sympy_expr_str)
                                 # Build dim_map: concept ID -> dimensions
                                 dim_map: dict[str, dict[str, int]] = {}
@@ -631,13 +654,19 @@ def _check_concepts(
                                 if c.source_local_id:
                                     dim_map[c.source_local_id] = dict(output_dims)
                                 # Input concepts
-                                for inp_id, input_dims_map in zip(inputs, concrete_input_dims):
+                                for inp_id, input_dims_map in zip(
+                                    inputs, concrete_input_dims
+                                ):
                                     dim_map[inp_id] = dict(input_dims_map)
                                     inp_c = id_to_concept.get(inp_id)
                                     if inp_c is not None:
-                                        dim_map[inp_c.record.canonical_name] = dict(input_dims_map)
+                                        dim_map[inp_c.record.canonical_name] = dict(
+                                            input_dims_map
+                                        )
                                         if inp_c.source_local_id:
-                                            dim_map[inp_c.source_local_id] = dict(input_dims_map)
+                                            dim_map[inp_c.source_local_id] = dict(
+                                                input_dims_map
+                                            )
                                 if verify_expr(parsed, dim_map):
                                     sympy_verified = True
                                 else:
@@ -650,7 +679,8 @@ def _check_concepts(
                                         f"{c.filename}: sympy dimensional verification "
                                         f"failed for '{sympy_expr_str}': inputs "
                                         f"[{', '.join(input_strs)}] → output "
-                                        f"'{output_form_def.name}' {format_dims(output_dims)}")
+                                        f"'{output_form_def.name}' {format_dims(output_dims)}"
+                                    )
                             except DimensionalError as exc:
                                 result.errors.append(
                                     f"{c.filename}: sympy dimensional verification "
@@ -665,9 +695,13 @@ def _check_concepts(
                             # for the N-1 operations between inputs
                             ops = [mul_dims, div_dims]
                             found_valid = False
-                            for op_combo in product(ops, repeat=len(concrete_input_dims) - 1):
+                            for op_combo in product(
+                                ops, repeat=len(concrete_input_dims) - 1
+                            ):
                                 result_dims = concrete_input_dims[0]
-                                for op, next_dims in zip(op_combo, concrete_input_dims[1:]):
+                                for op, next_dims in zip(
+                                    op_combo, concrete_input_dims[1:]
+                                ):
                                     result_dims = op(result_dims, next_dims)
                                 if dims_equal(result_dims, output_dims):
                                     found_valid = True
@@ -681,25 +715,32 @@ def _check_concepts(
                                     f"{c.filename}: no combination of mul/div on inputs "
                                     f"[{', '.join(input_strs)}] produces output "
                                     f"'{output_form_def.name}' {format_dims(output_dims)} — "
-                                    f"dimensional mismatch")
+                                    f"dimensional mismatch"
+                                )
                     else:
                         # Fall back to name-based heuristic when dimensions
                         # are missing from any form
                         input_form_names = [fd.name for fd in input_form_defs]
                         unique_input_forms = set(input_form_names)
-                        if (len(unique_input_forms) == 1
-                                and input_form_names[0] != output_form_def.name):
+                        if (
+                            len(unique_input_forms) == 1
+                            and input_form_names[0] != output_form_def.name
+                        ):
                             result.warnings.append(
                                 f"{c.filename}: all inputs share form '{input_form_names[0]}' "
                                 f"but output has form '{output_form_def.name}' — "
-                                f"possible dimensional mismatch")
-                        elif (len(unique_input_forms) > 1
-                              and not output_form_def.is_dimensionless):
+                                f"possible dimensional mismatch"
+                            )
+                        elif (
+                            len(unique_input_forms) > 1
+                            and not output_form_def.is_dimensionless
+                        ):
                             result.warnings.append(
                                 f"{c.filename}: inputs have mixed forms "
                                 f"{sorted(unique_input_forms)} but output form "
                                 f"'{output_form_def.name}' is not dimensionless — "
-                                f"possible dimensional mismatch")
+                                f"possible dimensional mismatch"
+                            )
 
             # conditional exactness must have conditions
             if param.get("exactness") == "conditional":
@@ -707,7 +748,8 @@ def _check_concepts(
                 if not conditions:
                     result.errors.append(
                         f"{c.filename}: parameterization with conditional exactness "
-                        f"must have conditions")
+                        f"must have conditions"
+                    )
 
             # CEL conditions in parameterizations
             if cel_registry is not None:
@@ -727,18 +769,21 @@ def _check_concepts(
                     # No claims_dir provided — can't validate, emit error
                     result.errors.append(
                         f"{c.filename}: canonical_claim '{canonical_claim}' "
-                        f"cannot be validated (no claims directory provided)")
+                        f"cannot be validated (no claims directory provided)"
+                    )
                 else:
                     claim_id = loaded_claim_index.resolve_id(str(canonical_claim))
                     if claim_id is None:
                         result.errors.append(
                             f"{c.filename}: canonical_claim '{canonical_claim}' "
-                            f"not found in claim files")
+                            f"not found in claim files"
+                        )
 
             # Warning: missing sympy
             if not param.get("sympy"):
                 result.warnings.append(
-                    f"{c.filename}: parameterization relationship missing sympy expression")
+                    f"{c.filename}: parameterization relationship missing sympy expression"
+                )
 
     # ── Circular deprecation chains ─────────────────────────────
     for c in concepts:
@@ -749,7 +794,8 @@ def _check_concepts(
         while current_id:
             if current_id in visited:
                 result.errors.append(
-                    f"{c.filename}: circular deprecation chain detected involving '{current_id}'")
+                    f"{c.filename}: circular deprecation chain detected involving '{current_id}'"
+                )
                 break
             visited.add(current_id)
             current_concept = id_to_concept.get(current_id)
@@ -786,9 +832,7 @@ class ConceptNormalizePass:
         value: ConceptAuthoredSet,
         context: object,
     ) -> PassResult[ConceptNormalizedSet]:
-        return PassResult.ok(
-            ConceptNormalizedSet(concepts=tuple(value.concepts))
-        )
+        return PassResult.ok(ConceptNormalizedSet(concepts=tuple(value.concepts)))
 
 
 class ConceptIdentityPass:
@@ -840,8 +884,7 @@ class ConceptSemanticCheckPass:
             for warning in checked.warnings
         ]
         diagnostics.extend(
-            _diagnostic("error", "concept.error", error)
-            for error in checked.errors
+            _diagnostic("error", "concept.error", error) for error in checked.errors
         )
         return PassResult(
             output=ConceptCheckedRegistry(

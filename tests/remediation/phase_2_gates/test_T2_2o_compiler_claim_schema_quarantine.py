@@ -50,7 +50,9 @@ def test_build_repository_claim_schema_error_quarantines_not_raises(
         valid_claims,
         source="claims/workflow_claim_schema.yaml",
     )
-    bad_claim_path = repo.families.claims.address(ClaimRef("zz_bad_schema")).require_path()
+    bad_claim_path = repo.families.claims.address(
+        ClaimRef("zz_bad_schema")
+    ).require_path()
     repo.git.commit_files(
         {
             "forms/frequency.yaml": yaml.dump(

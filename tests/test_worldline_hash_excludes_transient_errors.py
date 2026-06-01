@@ -19,7 +19,11 @@ class _FakeWorld:
         return self._bound or _FakeBound()
 
     def get_concept(self, concept_id):
-        resolved_id = concept_id if str(concept_id).startswith("concept:") else f"concept:{concept_id}"
+        resolved_id = (
+            concept_id
+            if str(concept_id).startswith("concept:")
+            else f"concept:{concept_id}"
+        )
         return Concept(
             id=resolved_id,
             canonical_name=str(resolved_id).removeprefix("concept:"),

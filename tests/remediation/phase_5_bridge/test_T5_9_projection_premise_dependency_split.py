@@ -31,7 +31,9 @@ def _justification(
     )
 
 
-def test_chained_projection_separates_direct_premises_from_recursive_dependencies() -> None:
+def test_chained_projection_separates_direct_premises_from_recursive_dependencies() -> (
+    None
+):
     claims = [_claim("A"), _claim("B"), _claim("C")]
     justifications = [
         _justification("reported:A", "A"),

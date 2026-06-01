@@ -306,7 +306,10 @@ def _rewrite_claim_concept_payload(
     if "concept" in normalized:
         concept = resolve(normalized.pop("concept"))
         claim_type = normalized.get("type")
-        if claim_type in {"parameter", "algorithm"} and "output_concept" not in normalized:
+        if (
+            claim_type in {"parameter", "algorithm"}
+            and "output_concept" not in normalized
+        ):
             normalized["output_concept"] = concept
         elif claim_type == "measurement" and "target_concept" not in normalized:
             normalized["target_concept"] = concept

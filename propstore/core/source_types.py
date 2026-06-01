@@ -14,7 +14,9 @@ class SourceOriginType(StrEnum):
 
 
 VALID_SOURCE_KINDS = frozenset(kind.value for kind in SourceKind)
-VALID_SOURCE_ORIGIN_TYPES = frozenset(origin_type.value for origin_type in SourceOriginType)
+VALID_SOURCE_ORIGIN_TYPES = frozenset(
+    origin_type.value for origin_type in SourceOriginType
+)
 
 
 def coerce_source_kind(value: object) -> SourceKind:

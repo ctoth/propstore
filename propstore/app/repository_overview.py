@@ -63,8 +63,12 @@ _RECENT_ACTIVITY_MESSAGE_TRUNCATE = 80
 
 @dataclass(frozen=True)
 class RepositoryOverviewRequest:
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -197,9 +201,7 @@ def build_repository_overview(
             entries=(),
             sentence="Notable conflicts are not yet computed.",
         ),
-        prose_summary=_compose_prose_summary(
-            repository_state, inventory_rows, policy
-        ),
+        prose_summary=_compose_prose_summary(repository_state, inventory_rows, policy),
     )
 
 
@@ -251,9 +253,7 @@ def _build_recent_activity(repo: Repository) -> RecentActivity:
     return RecentActivity(
         state="known",
         entries=tuple(_recent_entry_from_log(record) for record in log_report.entries),
-        sentence=(
-            f"Last {len(log_report.entries)} commits on {log_report.branch}."
-        ),
+        sentence=(f"Last {len(log_report.entries)} commits on {log_report.branch}."),
     )
 
 

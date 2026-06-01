@@ -3,7 +3,9 @@ from __future__ import annotations
 from argumentation.af_revision import ExtensionRevisionState
 
 
-def test_argumentation_pin_revision_state_does_not_rank_full_powerset_at_construction() -> None:
+def test_argumentation_pin_revision_state_does_not_rank_full_powerset_at_construction() -> (
+    None
+):
     calls: list[frozenset[str]] = []
 
     def ranking(extension: frozenset[str]) -> int:

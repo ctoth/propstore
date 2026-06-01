@@ -14,7 +14,9 @@ def test_expand_contract_revise_return_split_decision_and_realization() -> None:
     new_atom = make_assertion_atom("new")
 
     expanded = expand_via_formal_decision(base, new_atom)
-    contracted = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    contracted = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
     revised = revise_via_formal_decision(
         base,
         new_atom,

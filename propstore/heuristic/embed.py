@@ -77,7 +77,7 @@ def _embed_entities(
     now = datetime.now(timezone.utc).isoformat()
 
     for offset in range(0, len(to_embed), batch_size):
-        batch = to_embed[offset:offset + batch_size]
+        batch = to_embed[offset : offset + batch_size]
         texts = [entity.text for entity in batch]
 
         try:
@@ -227,9 +227,7 @@ def _find_similar_disagree_generic(
                 similar_entities=similar_entities,
                 top_k=top_k * 2,
             )
-            per_model[model_identity.model_name] = {
-                result["id"] for result in results
-            }
+            per_model[model_identity.model_name] = {result["id"] for result in results}
         except ValueError:
             continue
 

@@ -36,7 +36,9 @@ def test_alignment_default_keeps_distinct_conflicting_proposals_non_attacking() 
     assert classify_relation(left, right) == "non_attack"
 
 
-def test_alignment_shared_reference_classifies_conflicting_definitions_as_attack() -> None:
+def test_alignment_shared_reference_classifies_conflicting_definitions_as_attack() -> (
+    None
+):
     shared_uri = "tag:example.org,2026:concept/motion"
     left = _proposal(
         handle="motion_a",

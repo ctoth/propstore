@@ -6,6 +6,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+
 def test_embedding_identity_distinguishes_punctuation_collisions() -> None:
     from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
 
@@ -74,9 +75,11 @@ def test_sidecar_embedding_registry_stores_typed_identity_rows(tmp_path: Path) -
 
     with writable_session(store_path, schema) as derived:
         table = schema.table("embedding_model")
-        rows = derived.session.execute(
-            table.select().order_by(table.c.model_name)
-        ).mappings().all()
+        rows = (
+            derived.session.execute(table.select().order_by(table.c.model_name))
+            .mappings()
+            .all()
+        )
         column_names = set(table.c.keys())
 
     assert len(rows) == 4

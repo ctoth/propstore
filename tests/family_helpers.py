@@ -32,7 +32,10 @@ from propstore.families.claims.declaration import JustificationDocument
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.justifications import derive_justification_artifact_id
-from propstore.families.identity.stances import derive_stance_artifact_id, stamp_stance_artifact_id
+from propstore.families.identity.stances import (
+    derive_stance_artifact_id,
+    stamp_stance_artifact_id,
+)
 from propstore.families.registry import CanonicalSourceRef, ClaimRef
 from propstore.families.registry import JustificationRef, StanceRef
 from propstore.provenance import ProvenanceStatus
@@ -71,7 +74,9 @@ def build_compilation_context_from_paths(
     )
 
 
-def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path, **kwargs):
+def build_sidecar(
+    repo_or_path: Repository | TreePath | Path, sidecar_path: Path, **kwargs
+):
     if isinstance(repo_or_path, Repository):
         repo = repo_or_path
         if repo.git is None:
@@ -80,7 +85,9 @@ def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path
     elif isinstance(repo_or_path, GitTreePath):
         root = getattr(repo_or_path._store, "root", None)
         if root is None:
-            raise TypeError("GitTreePath sidecar builds require a store with a filesystem root")
+            raise TypeError(
+                "GitTreePath sidecar builds require a store with a filesystem root"
+            )
         kwargs.setdefault("commit_hash", repo_or_path._commit)
         repo = Repository(root)
     elif isinstance(repo_or_path, FilesystemTreePath):
@@ -89,7 +96,9 @@ def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path
         repo = Repository(root)
     else:
         if not isinstance(repo_or_path, Path):
-            raise TypeError("build_sidecar requires a Repository, Path, or concrete Quire tree path")
+            raise TypeError(
+                "build_sidecar requires a Repository, Path, or concrete Quire tree path"
+            )
         _init_git_without_sync(repo_or_path)
         repo = Repository(repo_or_path)
     _materialize_claim_fixture_batches(repo)
@@ -161,13 +170,15 @@ def claim_artifact_commit_payloads(
             raise ValueError(f"{source}: normalized claim is missing artifact_id")
         ref = ClaimRef(artifact_id)
         artifact_path = repo.families.claims.address(ref).require_path()
-        payloads[artifact_path] = (
-            repo.families.claims.render(claim) + "\n"
-        ).encode("utf-8")
+        payloads[artifact_path] = (repo.families.claims.render(claim) + "\n").encode(
+            "utf-8"
+        )
     for source_name in sorted(source_names):
         ref = CanonicalSourceRef(source_name)
         source_artifact_path = repo.families.sources.address(ref).require_path()
-        if (repo.root / source_artifact_path).exists() or source_artifact_path in payloads:
+        if (
+            repo.root / source_artifact_path
+        ).exists() or source_artifact_path in payloads:
             continue
         source_doc = SourceDocument(
             id=source_name,
@@ -211,7 +222,9 @@ def justification_artifact_commit_payload(
         JustificationDocument,
         source=artifact_id,
     )
-    path = repo.families.justifications.address(JustificationRef(artifact_id)).require_path()
+    path = repo.families.justifications.address(
+        JustificationRef(artifact_id)
+    ).require_path()
     return {
         path: (repo.families.justifications.render(document) + "\n").encode("utf-8"),
     }
@@ -254,7 +267,9 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
             source_names.add(claim_file_source_paper(loaded))
             artifact_id = claim.artifact_id
             if artifact_id is None:
-                raise ValueError(f"{path.as_posix()}: normalized claim is missing artifact_id")
+                raise ValueError(
+                    f"{path.as_posix()}: normalized claim is missing artifact_id"
+                )
             ref = ClaimRef(artifact_id)
             artifact_path = repo.root / repo.families.claims.address(ref).require_path()
             artifact_path.parent.mkdir(parents=True, exist_ok=True)
@@ -303,7 +318,9 @@ def _commit_worktree(repo: Repository, message: str = "Update test knowledge") -
         if ".git" in rel.parts:
             continue
         rel_text = rel.as_posix()
-        if rel_text.startswith("sidecar/") or rel_text.endswith((".sqlite", ".sqlite-wal", ".sqlite-shm", ".hash")):
+        if rel_text.startswith("sidecar/") or rel_text.endswith(
+            (".sqlite", ".sqlite-wal", ".sqlite-shm", ".hash")
+        ):
             continue
         content = path.read_bytes()
         adds[rel_text] = content

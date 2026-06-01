@@ -36,7 +36,9 @@ from tests.support_revision.revision_assertion_helpers import make_assertion_ato
 from tests.test_revision_iterated import _history_sensitive_base
 
 
-def test_investigation_plan_from_fragility_report_roundtrips_with_stable_identity() -> None:
+def test_investigation_plan_from_fragility_report_roundtrips_with_stable_identity() -> (
+    None
+):
     from propstore.epistemic_process import InvestigationPlan
 
     report = FragilityReport(
@@ -61,12 +63,16 @@ def test_investigation_plan_from_fragility_report_roundtrips_with_stable_identit
     assert restored.content_hash == plan.content_hash
 
 
-def test_public_fragility_investigation_path_reuses_fragility_query(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_public_fragility_investigation_path_reuses_fragility_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from propstore.epistemic_process import plan_fragility_investigation
     from propstore.fragility import FragilityRequest
 
     report = FragilityReport(
-        interventions=(_ranked_intervention("assumption:temperature", "temperature == 300"),),
+        interventions=(
+            _ranked_intervention("assumption:temperature", "temperature == 300"),
+        ),
         world_fragility=0.4,
         analysis_scope="subject:enthalpy",
     )
@@ -76,7 +82,9 @@ def test_public_fragility_investigation_path_reuses_fragility_query(monkeypatch:
         calls.append((world, request))
         return report
 
-    monkeypatch.setattr("propstore.epistemic_process.query_fragility", fake_query_fragility)
+    monkeypatch.setattr(
+        "propstore.epistemic_process.query_fragility", fake_query_fragility
+    )
     world = MagicMock()
     request = FragilityRequest(bindings={"sample": "s1"}, concept_id="enthalpy")
 
@@ -92,7 +100,9 @@ def test_public_fragility_investigation_path_reuses_fragility_query(monkeypatch:
     assert plan.objective == "stabilize enthalpy"
 
 
-def test_process_manager_queues_jobs_referencing_snapshots_policies_assertions_and_journal_entries() -> None:
+def test_process_manager_queues_jobs_referencing_snapshots_policies_assertions_and_journal_entries() -> (
+    None
+):
     from propstore.epistemic_process import (
         EpistemicProcessManager,
         JobKind,
@@ -175,7 +185,9 @@ def test_intervention_revision_and_merge_jobs_are_first_class_process_jobs() -> 
     }
     assert all(job.snapshot_hash == snapshot.content_hash for job in jobs)
     assert all(job.policy_payload == policy.to_dict() for job in jobs)
-    assert all(job.journal_entry_hashes == (journal_entry.content_hash,) for job in jobs)
+    assert all(
+        job.journal_entry_hashes == (journal_entry.content_hash,) for job in jobs
+    )
 
 
 def test_completion_recording_is_idempotent_but_rejects_conflicting_results() -> None:
@@ -222,7 +234,9 @@ def test_completion_recording_is_idempotent_but_rejects_conflicting_results() ->
 @pytest.mark.property
 @given(objective=st.text(min_size=1, max_size=40))
 @settings(max_examples=16)
-def test_process_manager_replay_is_deterministic_for_fixed_inputs(objective: str) -> None:
+def test_process_manager_replay_is_deterministic_for_fixed_inputs(
+    objective: str,
+) -> None:
     from propstore.epistemic_process import (
         EpistemicProcessManager,
         JobKind,
@@ -238,11 +252,15 @@ def test_process_manager_replay_is_deterministic_for_fixed_inputs(objective: str
         assertion_ids=(atom_id,),
         journal_entries=(journal_entry,),
     )
-    first = EpistemicProcessManager().queue(job).complete(
-        job.job_id,
-        snapshot=snapshot,
-        journal_entries=(journal_entry,),
-        result_payload={"objective": objective},
+    first = (
+        EpistemicProcessManager()
+        .queue(job)
+        .complete(
+            job.job_id,
+            snapshot=snapshot,
+            journal_entries=(journal_entry,),
+            result_payload={"objective": objective},
+        )
     )
     second = EpistemicProcessManager.from_dict(first.to_dict())
 
@@ -285,7 +303,9 @@ def _investigation_plan():
 
     return InvestigationPlan.from_fragility_report(
         FragilityReport(
-            interventions=(_ranked_intervention("assumption:temperature", "temperature == 300"),),
+            interventions=(
+                _ranked_intervention("assumption:temperature", "temperature == 300"),
+            ),
             world_fragility=0.4,
             analysis_scope="subject:enthalpy",
         ),

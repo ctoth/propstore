@@ -1,4 +1,5 @@
 """Propstore contracts that rely on Quire's generic GitStore substrate."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,11 +11,17 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.sources.declaration import SourceDocument, source_document_payload
+from propstore.families.sources.declaration import (
+    SourceDocument,
+    source_document_payload,
+)
 from propstore.families.registry import SourceRef, semantic_import_roots
 from propstore.repository import Repository
 from propstore.source.common import initial_source_document
-from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+from propstore.importing.repository_import import (
+    commit_repository_import,
+    plan_repository_import,
+)
 from tests.conftest import make_claim_identity
 
 
@@ -47,7 +54,9 @@ def _claim_artifact_path(local_id: str, *, namespace: str) -> str:
     return f"claims/{artifact_id.replace(':', '__')}.yaml"
 
 
-def test_propstore_init_commits_gitignore_without_materializing_it(tmp_path: Path) -> None:
+def test_propstore_init_commits_gitignore_without_materializing_it(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     git = repo.git
     assert git is not None
@@ -65,11 +74,15 @@ def test_propstore_init_commits_gitignore_without_materializing_it(tmp_path: Pat
 )
 @pytest.mark.property
 @given(payload=_PAYLOAD)
-def test_propstore_sync_preserves_ignored_runtime_outputs(tmp_path: Path, payload: bytes) -> None:
+def test_propstore_sync_preserves_ignored_runtime_outputs(
+    tmp_path: Path, payload: bytes
+) -> None:
     repo = Repository.init(tmp_path / f"project_{uuid4().hex}" / "knowledge")
     git = repo.git
     assert git is not None
-    git.commit_files({"claims/committed.yaml": _raw_claim_yaml("claim_a")}, "seed claim")
+    git.commit_files(
+        {"claims/committed.yaml": _raw_claim_yaml("claim_a")}, "seed claim"
+    )
     git.sync_worktree()
 
     sidecar = repo.root / "sidecar" / "propstore.sqlite"
@@ -182,15 +195,28 @@ def test_source_documents_with_same_path_are_isolated_by_source_branch(
         origin_value=second,
     )
 
-    repo.families.source_documents.save(SourceRef(first), first_doc, message=f"Init {first}")
-    repo.families.source_documents.save(SourceRef(second), second_doc, message=f"Init {second}")
+    repo.families.source_documents.save(
+        SourceRef(first), first_doc, message=f"Init {first}"
+    )
+    repo.families.source_documents.save(
+        SourceRef(second), second_doc, message=f"Init {second}"
+    )
 
-    loaded_first = repo.snapshot.read_document("source.yaml", SourceDocument, branch=first_branch)
-    loaded_second = repo.snapshot.read_document("source.yaml", SourceDocument, branch=second_branch)
+    loaded_first = repo.snapshot.read_document(
+        "source.yaml", SourceDocument, branch=first_branch
+    )
+    loaded_second = repo.snapshot.read_document(
+        "source.yaml", SourceDocument, branch=second_branch
+    )
 
     assert loaded_first is not None
     assert loaded_second is not None
     assert source_document_payload(loaded_first) == source_document_payload(first_doc)
     assert source_document_payload(loaded_second) == source_document_payload(second_doc)
-    assert source_document_payload(loaded_first) != source_document_payload(loaded_second)
-    assert repo.snapshot.read_document("source.yaml", SourceDocument, branch="master") is None
+    assert source_document_payload(loaded_first) != source_document_payload(
+        loaded_second
+    )
+    assert (
+        repo.snapshot.read_document("source.yaml", SourceDocument, branch="master")
+        is None
+    )

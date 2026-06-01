@@ -92,7 +92,7 @@ def _claim_link(
     concept_id: str,
     role: ClaimConceptLinkRole,
     ordinal: int = 0,
-    ) -> ClaimConceptLink:
+) -> ClaimConceptLink:
     return claim_concept_link(
         claim_id=claim_id,
         concept_id=concept_id,
@@ -177,7 +177,9 @@ def test_build_claim_view_returns_typed_literal_states(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _World(claim=_claim(conditions_cel=None), concept=_concept())
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     report = build_claim_view(_repo(), ClaimViewRequest(claim_id="claim1"))
 
@@ -217,7 +219,9 @@ def test_build_claim_view_speaks_absence_literals(
         provenance_page=0,
     )
     world = _World(claim=claim, concept=None)
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     report = build_claim_view(_repo(), ClaimViewRequest(claim_id="claim1"))
 
@@ -233,7 +237,9 @@ def test_build_claim_view_reports_policy_blocked_claim(
 ) -> None:
     claim = _claim(stage="draft")
     world = _World(claim=claim, concept=_concept(), visible=False)
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     with pytest.raises(ClaimViewBlockedError, match="Not Found"):
         build_claim_view(
@@ -260,7 +266,9 @@ def test_build_claim_view_reports_unknown_claim(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _World(claim=None)
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     with pytest.raises(ClaimViewUnknownClaimError, match="missing"):
         build_claim_view(_repo(), ClaimViewRequest(claim_id="missing"))
@@ -276,9 +284,13 @@ def test_list_claim_views_projects_visible_claims(
         ),
         concept=_concept(),
     )
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
-    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+    report = claim_views.list_claim_views(
+        _repo(), claim_views.ClaimListRequest(limit=10)
+    )
 
     assert [entry.claim_id for entry in report.entries] == ["claim1", "claim2"]
     assert report.entries[0].concept_name == "fundamental_frequency"
@@ -316,12 +328,19 @@ def test_list_claim_views_renders_statement_claim_summaries(
         ),
         concepts=(_concept(), _concept2()),
     )
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
-    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+    report = claim_views.list_claim_views(
+        _repo(), claim_views.ClaimListRequest(limit=10)
+    )
 
     assert len(report.entries) == 1
-    assert report.entries[0].concept_display == "fundamental_frequency, subglottal_pressure"
+    assert (
+        report.entries[0].concept_display
+        == "fundamental_frequency, subglottal_pressure"
+    )
     assert report.entries[0].value_display == (
         "No interaction was found between aspirin and antioxidant treatments on any outcome."
     )
@@ -342,9 +361,13 @@ def test_list_claim_views_renders_interval_only_parameters(
         ),
         concept=_concept(),
     )
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
-    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+    report = claim_views.list_claim_views(
+        _repo(), claim_views.ClaimListRequest(limit=10)
+    )
 
     assert len(report.entries) == 1
     assert report.entries[0].value_display == "0.76 to 1.26 dimensionless"
@@ -372,12 +395,19 @@ def test_list_claim_views_renders_equation_variable_concepts_and_expression(
         ),
         concepts=(_concept(), _concept2()),
     )
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
-    report = claim_views.list_claim_views(_repo(), claim_views.ClaimListRequest(limit=10))
+    report = claim_views.list_claim_views(
+        _repo(), claim_views.ClaimListRequest(limit=10)
+    )
 
     assert len(report.entries) == 1
-    assert report.entries[0].concept_display == "fundamental_frequency, subglottal_pressure"
+    assert (
+        report.entries[0].concept_display
+        == "fundamental_frequency, subglottal_pressure"
+    )
     assert report.entries[0].value_display == "y = f(x)"
 
 
@@ -391,7 +421,9 @@ def test_search_claim_views_filters_by_query_and_concept(
         ),
         concept=_concept(),
     )
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     report = claim_views.search_claim_views(
         _repo(),
@@ -434,7 +466,9 @@ def test_search_claim_views_matches_linked_concept_labels(
         ),
         concepts=(_concept(), _concept2()),
     )
-    monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        claim_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     report = claim_views.search_claim_views(
         _repo(),

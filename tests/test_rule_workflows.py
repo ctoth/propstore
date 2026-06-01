@@ -217,7 +217,9 @@ def test_rule_owner_list_and_show(tmp_path) -> None:
     items = list_rules(repo)
     shown = show_rule(repo, "r_mi")
 
-    assert [(item.authoring_group, item.rule_id) for item in items] == [("ikeda_2014", "r_mi")]
+    assert [(item.authoring_group, item.rule_id) for item in items] == [
+        ("ikeda_2014", "r_mi")
+    ]
     assert "id: r_mi" in shown.rendered
 
     try:

@@ -99,7 +99,9 @@ def _promoted_claims(repo: Repository, source_name: str) -> list[dict]:
     return claims
 
 
-def _propose_claims_identical(repo: Repository, runner: CliRunner, source_name: str) -> None:
+def _propose_claims_identical(
+    repo: Repository, runner: CliRunner, source_name: str
+) -> None:
     result = runner.invoke(
         cli,
         [
@@ -147,7 +149,9 @@ def _add_claims(
     assert result.exit_code == 0, result.output
     source_head = repo.git.branch_sha(f"source/{source_name}")
     stored = yaml.safe_load(repo.git.read_file("claims.yaml", commit=source_head))
-    return {claim["source_local_id"]: claim["artifact_id"] for claim in stored["claims"]}
+    return {
+        claim["source_local_id"]: claim["artifact_id"] for claim in stored["claims"]
+    }
 
 
 def _save_claims_directly(
@@ -207,7 +211,9 @@ def _add_justification(
     assert result.exit_code == 0, result.output
 
 
-def _finalize_and_promote(repo: Repository, runner: CliRunner, source_name: str) -> None:
+def _finalize_and_promote(
+    repo: Repository, runner: CliRunner, source_name: str
+) -> None:
     finalize = runner.invoke(
         cli,
         ["-C", str(repo.root), "source", "finalize", source_name],
@@ -220,7 +226,9 @@ def _finalize_and_promote(repo: Repository, runner: CliRunner, source_name: str)
     assert promote.exit_code == 0, promote.output
 
 
-def _read_promoted_justifications(repo: Repository, source_name: str) -> list[dict[str, object]]:
+def _read_promoted_justifications(
+    repo: Repository, source_name: str
+) -> list[dict[str, object]]:
     justifications: list[dict[str, object]] = []
     for filename in repo.git.iter_dir("justifications"):
         stored = yaml.safe_load(repo.git.read_file(f"justifications/{filename}"))
@@ -279,7 +287,9 @@ def test_promote_rejects_justification_reference_to_unpromoted_source_claim(
     _finalize_and_promote(repo, runner, "demo")
 
     justifications = _read_promoted_justifications(repo, "demo")
-    assert all(claim_ids["blocked"] not in item.get("premises", ()) for item in justifications)
+    assert all(
+        claim_ids["blocked"] not in item.get("premises", ()) for item in justifications
+    )
 
 
 def test_promote_accepts_justification_reference_to_master_claim(

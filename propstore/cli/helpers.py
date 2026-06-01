@@ -1,4 +1,5 @@
 """Shared helpers for CLI subcommands."""
+
 from __future__ import annotations
 
 from typing import NoReturn
@@ -6,6 +7,7 @@ from typing import NoReturn
 import click
 
 # ── Key=value parsing ────────────────────────────────────────────────
+
 
 def parse_kv_pairs(
     args: tuple[str, ...] | list[str],

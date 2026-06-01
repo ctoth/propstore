@@ -72,13 +72,17 @@ class WorldSidecarMissingError(WorldAppError):
 
 @dataclass(frozen=True)
 class AppWorldStatusRequest:
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
 
 
 @dataclass(frozen=True)
 class AppWorldConceptQueryRequest:
     target: str
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -102,7 +106,9 @@ class AppWorldAlgorithmsRequest:
 class AppWorldDeriveRequest:
     concept_id: str
     bindings: Mapping[str, str]
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -111,7 +117,9 @@ class AppWorldResolveRequest:
     bindings: Mapping[str, str]
     strategy: str
     override_id: str | None = None
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -126,7 +134,9 @@ class AppWorldChainRequest:
     concept_id: str
     bindings: Mapping[str, str]
     strategy: str | None = None
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -296,7 +306,9 @@ def world_resolve(
             build_render_policy(
                 replace(request.render_policy, strategy=request.strategy),
             ),
-            overrides={} if request.override_id is None else {resolved: request.override_id},
+            overrides={}
+            if request.override_id is None
+            else {resolved: request.override_id},
         )
         return resolve_world_value(
             world,

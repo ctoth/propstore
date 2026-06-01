@@ -47,8 +47,7 @@ def _validated_revision_target(operation: str, target: object) -> str | None:
         return None
     target_id = str(target)
     if operation == "contract" and not (
-        target_id.startswith("ps:assertion:")
-        or target_id.startswith("assumption:")
+        target_id.startswith("ps:assertion:") or target_id.startswith("assumption:")
     ):
         raise WorldlineRevisionTargetValidationError(
             "Worldline revision target must be an assertion or assumption atom id: "
@@ -99,7 +98,9 @@ class WorldlineRevisionQuery:
     operation: str = ""
     atom: RevisionAtomRef | None = None
     target: str | None = None
-    conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
+    conflicts: RevisionConflictSelection = field(
+        default_factory=RevisionConflictSelection
+    )
     operator: str | None = None
     merge_operator: str | None = None
     profile_atom_ids: tuple[tuple[str, ...], ...] = ()
@@ -117,7 +118,9 @@ class WorldlineRevisionQuery:
         atom = None
         if data.atom is not None:
             atom = RevisionAtomRef.from_json_payload(
-                _required_document_mapping(to_document_builtins(data.atom), "revision.atom")
+                _required_document_mapping(
+                    to_document_builtins(data.atom), "revision.atom"
+                )
             )
         return cls(
             operation=data.operation,
@@ -164,7 +167,9 @@ class WorldlineRevisionQuery:
         if self.merge_operator is not None:
             data["merge_operator"] = self.merge_operator
         if self.profile_atom_ids:
-            data["profile_atom_ids"] = [list(profile) for profile in self.profile_atom_ids]
+            data["profile_atom_ids"] = [
+                list(profile) for profile in self.profile_atom_ids
+            ]
         if self.integrity_constraint is not None:
             data["integrity_constraint"] = dict(self.integrity_constraint)
         if self.merge_parent_commits:
@@ -191,7 +196,9 @@ class WorldlineResult:
         values: dict[str, WorldlineTargetValue] = {}
         for target_name, value in self.values.items():
             if not isinstance(value, WorldlineTargetValue):
-                raise TypeError("WorldlineResult.values entries must be WorldlineTargetValue")
+                raise TypeError(
+                    "WorldlineResult.values entries must be WorldlineTargetValue"
+                )
             values[str(target_name)] = value
         self.values = values
         steps: list[WorldlineStep] = []
@@ -201,16 +208,32 @@ class WorldlineResult:
             steps.append(step)
         self.steps = tuple(steps)
         if not isinstance(self.dependencies, WorldlineDependencies):
-            raise TypeError("WorldlineResult.dependencies must be WorldlineDependencies")
-        if self.sensitivity is not None and not isinstance(self.sensitivity, WorldlineSensitivityReport):
-            raise TypeError("WorldlineResult.sensitivity must be WorldlineSensitivityReport or None")
-        if self.argumentation is not None and not isinstance(self.argumentation, WorldlineArgumentationState):
-            raise TypeError("WorldlineResult.argumentation must be WorldlineArgumentationState or None")
-        if self.revision is not None and not isinstance(self.revision, WorldlineRevisionState):
-            raise TypeError("WorldlineResult.revision must be WorldlineRevisionState or None")
+            raise TypeError(
+                "WorldlineResult.dependencies must be WorldlineDependencies"
+            )
+        if self.sensitivity is not None and not isinstance(
+            self.sensitivity, WorldlineSensitivityReport
+        ):
+            raise TypeError(
+                "WorldlineResult.sensitivity must be WorldlineSensitivityReport or None"
+            )
+        if self.argumentation is not None and not isinstance(
+            self.argumentation, WorldlineArgumentationState
+        ):
+            raise TypeError(
+                "WorldlineResult.argumentation must be WorldlineArgumentationState or None"
+            )
+        if self.revision is not None and not isinstance(
+            self.revision, WorldlineRevisionState
+        ):
+            raise TypeError(
+                "WorldlineResult.revision must be WorldlineRevisionState or None"
+            )
 
     @classmethod
-    def from_document(cls, data: WorldlineResultDocument | None) -> WorldlineResult | None:
+    def from_document(
+        cls, data: WorldlineResultDocument | None
+    ) -> WorldlineResult | None:
         if data is None:
             return None
         return cls(
@@ -238,7 +261,9 @@ class WorldlineResult:
                 )
             ),
             sensitivity=WorldlineSensitivityReport.from_json_payload(data.sensitivity),
-            argumentation=WorldlineArgumentationState.from_json_payload(data.argumentation),
+            argumentation=WorldlineArgumentationState.from_json_payload(
+                data.argumentation
+            ),
             revision=WorldlineRevisionState.from_json_payload(
                 None if data.revision is None else to_document_builtins(data.revision)
             ),

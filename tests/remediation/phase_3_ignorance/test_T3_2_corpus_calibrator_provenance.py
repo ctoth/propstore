@@ -14,7 +14,6 @@ def test_to_opinion_stamps_calibrated_and_uses_corpus_base_rate() -> None:
     assert opinion.provenance.status is ProvenanceStatus.CALIBRATED
     assert opinion.provenance.witnesses
     assert (
-        opinion.provenance.witnesses[0].source_artifact_code
-        == "corpus_cdf_calibration"
+        opinion.provenance.witnesses[0].source_artifact_code == "corpus_cdf_calibration"
     )
     assert opinion.base_rate == 0.3

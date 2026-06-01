@@ -31,12 +31,14 @@ def test_repository_import_attaches_import_provenance_note(tmp_path) -> None:
             "claims/source.yaml": yaml.safe_dump(
                 {"id": "claim_one", "context": {"id": "ctx"}},
                 sort_keys=False,
-            ).encode()
+            ).encode(),
         },
         "seed source",
     )
 
-    result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
+    result = commit_repository_import(
+        destination, plan_repository_import(destination, source.root.parent)
+    )
 
     assert destination.git is not None
     provenance = read_provenance_note(destination.git.raw_repo, result.commit_sha)

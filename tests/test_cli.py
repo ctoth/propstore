@@ -3,6 +3,7 @@
 Uses Click's CliRunner for isolated testing with temporary directories.
 Each test gets a fresh concepts directory with known state.
 """
+
 from __future__ import annotations
 
 from importlib import import_module
@@ -16,7 +17,12 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from propstore.app.claim_views import ClaimListRequest, ClaimSearchRequest, ClaimViewRequest, build_claim_view
+from propstore.app.claim_views import (
+    ClaimListRequest,
+    ClaimSearchRequest,
+    ClaimViewRequest,
+    build_claim_view,
+)
 from propstore.app.claims import (
     ClaimCompareRequest,
     ClaimComparisonError,
@@ -69,8 +75,15 @@ from tests.family_helpers import (
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
-def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
-                  form: str = "frequency", **extra: object) -> dict:
+
+def _make_concept(
+    name: str,
+    cid: str,
+    domain: str,
+    status: str = "accepted",
+    form: str = "frequency",
+    **extra: object,
+) -> dict:
     """Build a minimal valid concept dict."""
     data: dict = {
         "canonical_name": name,
@@ -94,15 +107,27 @@ def _normalize_claim_concept_refs(data: dict) -> dict:
         if not isinstance(claim, dict):
             continue
         concept = claim.get("concept")
-        if isinstance(concept, str) and concept.startswith("concept") and ":" not in concept:
+        if (
+            isinstance(concept, str)
+            and concept.startswith("concept")
+            and ":" not in concept
+        ):
             claim["concept"] = _concept_artifact(concept)
         target_concept = claim.get("target_concept")
-        if isinstance(target_concept, str) and target_concept.startswith("concept") and ":" not in target_concept:
+        if (
+            isinstance(target_concept, str)
+            and target_concept.startswith("concept")
+            and ":" not in target_concept
+        ):
             claim["target_concept"] = _concept_artifact(target_concept)
         concepts = claim.get("concepts")
         if isinstance(concepts, list):
             claim["concepts"] = [
-                _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") and ":" not in value else value
+                _concept_artifact(value)
+                if isinstance(value, str)
+                and value.startswith("concept")
+                and ":" not in value
+                else value
                 for value in concepts
             ]
         variables = claim.get("variables")
@@ -111,7 +136,11 @@ def _normalize_claim_concept_refs(data: dict) -> dict:
                 if not isinstance(variable, dict):
                     continue
                 value = variable.get("concept")
-                if isinstance(value, str) and value.startswith("concept") and ":" not in value:
+                if (
+                    isinstance(value, str)
+                    and value.startswith("concept")
+                    and ":" not in value
+                ):
                     variable["concept"] = _concept_artifact(value)
         parameters = claim.get("parameters")
         if isinstance(parameters, list):
@@ -119,7 +148,11 @@ def _normalize_claim_concept_refs(data: dict) -> dict:
                 if not isinstance(parameter, dict):
                     continue
                 value = parameter.get("concept")
-                if isinstance(value, str) and value.startswith("concept") and ":" not in value:
+                if (
+                    isinstance(value, str)
+                    and value.startswith("concept")
+                    and ":" not in value
+                ):
                     parameter["concept"] = _concept_artifact(value)
         claim["version_id"] = compute_claim_version_id(claim)
     return normalized
@@ -159,7 +192,9 @@ def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
     return path
 
 
-def _commit_workspace_paths(workspace: Path, relpaths: list[str], message: str = "Sync test changes") -> None:
+def _commit_workspace_paths(
+    workspace: Path, relpaths: list[str], message: str = "Sync test changes"
+) -> None:
     repo = Repository.find(workspace / "knowledge")
     adds: dict[str, bytes] = {}
     for relpath in relpaths:
@@ -168,8 +203,12 @@ def _commit_workspace_paths(workspace: Path, relpaths: list[str], message: str =
             adds[relpath] = path.read_bytes()
             continue
         if relpath.startswith("claims/"):
-            for claim_path in sorted((workspace / "knowledge" / "claims").glob("*.yaml")):
-                adds[claim_path.relative_to(workspace / "knowledge").as_posix()] = claim_path.read_bytes()
+            for claim_path in sorted(
+                (workspace / "knowledge" / "claims").glob("*.yaml")
+            ):
+                adds[claim_path.relative_to(workspace / "knowledge").as_posix()] = (
+                    claim_path.read_bytes()
+                )
             continue
         raise FileNotFoundError(path)
     repo.git.commit_files(adds, message)
@@ -189,7 +228,9 @@ def _workspace_repo(workspace: Path) -> Repository:
     return Repository.find(workspace / "knowledge")
 
 
-def _export_workspace_sidecar(workspace: Path, sidecar: Path, *, force: bool = False) -> bool:
+def _export_workspace_sidecar(
+    workspace: Path, sidecar: Path, *, force: bool = False
+) -> bool:
     return build_sidecar(_workspace_repo(workspace), sidecar, force=force)
 
 
@@ -197,7 +238,9 @@ def _derived_store_path_from_output(output: str) -> Path:
     for line in output.splitlines():
         if line.startswith("Derived store: "):
             return Path(line.split(maxsplit=5)[5])
-    raise AssertionError(f"Build output did not include a derived-store path:\n{output}")
+    raise AssertionError(
+        f"Build output did not include a derived-store path:\n{output}"
+    )
 
 
 class TestRootCli:
@@ -232,7 +275,6 @@ class TestRootCli:
         assert calls == ["--help"]
 
 
-
 @pytest.fixture()
 def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Set up a temporary workspace with knowledge/ containing concepts, forms, etc."""
@@ -243,25 +285,50 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
     # Create form definition files
     forms_dir = knowledge / "forms"
-    _dimensionless_forms = {"duration_ratio", "amplitude_ratio", "level", "dimensionless_compound"}
+    _dimensionless_forms = {
+        "duration_ratio",
+        "amplitude_ratio",
+        "level",
+        "dimensionless_compound",
+    }
     adds: dict[str, bytes] = {}
-    for form_name in ("frequency", "category", "boolean", "structural",
-                      "duration_ratio", "pressure", "level", "time",
-                      "flow", "flow_derivative", "amplitude_ratio",
-                      "dimensionless_compound"):
-        form_data: dict = {"name": form_name, "dimensionless": form_name in _dimensionless_forms}
+    for form_name in (
+        "frequency",
+        "category",
+        "boolean",
+        "structural",
+        "duration_ratio",
+        "pressure",
+        "level",
+        "time",
+        "flow",
+        "flow_derivative",
+        "amplitude_ratio",
+        "dimensionless_compound",
+    ):
+        form_data: dict = {
+            "name": form_name,
+            "dimensionless": form_name in _dimensionless_forms,
+        }
         if form_name == "category":
             form_data["kind"] = "category"
             form_data["parameters"] = {
                 "values": {"required": True, "note": "List of allowed category values"},
-                "extensible": {"required": False, "note": "Whether new values can be added (default true)"},
+                "extensible": {
+                    "required": False,
+                    "note": "Whether new values can be added (default true)",
+                },
             }
-        adds[f"forms/{form_name}.yaml"] = yaml.dump(form_data, default_flow_style=False).encode("utf-8")
+        adds[f"forms/{form_name}.yaml"] = yaml.dump(
+            form_data, default_flow_style=False
+        ).encode("utf-8")
 
     # Write two concepts
     adds["concepts/fundamental_frequency.yaml"] = yaml.dump(
         _make_concept(
-            "fundamental_frequency", "concept1", "speech",
+            "fundamental_frequency",
+            "concept1",
+            "speech",
             form="frequency",
             range=[50, 1000],
             aliases=[{"name": "F0", "source": "common"}],
@@ -271,7 +338,9 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     ).encode("utf-8")
     adds["concepts/task.yaml"] = yaml.dump(
         _make_concept(
-            "task", "concept2", "speech",
+            "task",
+            "concept2",
+            "speech",
             form="category",
             form_parameters={"values": ["speech", "singing"], "extensible": True},
         ),
@@ -285,7 +354,12 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     repo.git.sync_worktree()
 
     # Copy schema if it exists (for JSON Schema validation)
-    schema_src = Path(__file__).parent.parent / "schema" / "generated" / "concept_registry.schema.json"
+    schema_src = (
+        Path(__file__).parent.parent
+        / "schema"
+        / "generated"
+        / "concept_registry.schema.json"
+    )
     if schema_src.exists():
         schema_dir = tmp_path / "schema" / "generated"
         schema_dir.mkdir(parents=True)
@@ -309,22 +383,29 @@ def freq_workspace(workspace: Path) -> Path:
         ],
     }
     (forms_dir / "frequency.yaml").write_text(
-        yaml.dump(freq_form, default_flow_style=False))
+        yaml.dump(freq_form, default_flow_style=False)
+    )
 
     claims_dir = workspace / "knowledge" / "claims"
-    _write_claim_file(claims_dir, "freq_paper.yaml", _normalize_claim_concept_refs({
-        "source": {"paper": "freq_paper"},
-        "claims": [
+    _write_claim_file(
+        claims_dir,
+        "freq_paper.yaml",
+        _normalize_claim_concept_refs(
             {
-                "id": "freq_claim1",
-                "type": "parameter",
-                "concept": "concept1",
-                "value": 0.2,
-                "unit": "kHz",
-                "provenance": {"paper": "freq_paper", "page": 1},
+                "source": {"paper": "freq_paper"},
+                "claims": [
+                    {
+                        "id": "freq_claim1",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 0.2,
+                        "unit": "kHz",
+                        "provenance": {"paper": "freq_paper", "page": 1},
+                    }
+                ],
             }
-        ],
-    }))
+        ),
+    )
     _commit_workspace_paths(
         workspace,
         ["forms/frequency.yaml", "claims/freq_paper.yaml"],
@@ -338,7 +419,9 @@ def freq_workspace(workspace: Path) -> Path:
 
 
 class TestInit:
-    def test_init_seeds_forms_in_store_only(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_init_seeds_forms_in_store_only(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.chdir(tmp_path)
         runner = CliRunner()
 
@@ -371,21 +454,32 @@ class TestInit:
         assert result.exit_code == 0, result.output
         assert captured_roots == [(tmp_path / "custom").resolve()]
 
-    def test_fresh_project_can_add_concept(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_fresh_project_can_add_concept(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.chdir(tmp_path)
         runner = CliRunner()
 
         init_result = runner.invoke(cli, ["init"])
         assert init_result.exit_code == 0, init_result.output
 
-        add_result = runner.invoke(cli, [
-            "-C", str(tmp_path / "knowledge"),
-            "concept", "add",
-            "--domain", "test",
-            "--name", "test_structural",
-            "--definition", "A test concept",
-            "--form", "structural",
-        ])
+        add_result = runner.invoke(
+            cli,
+            [
+                "-C",
+                str(tmp_path / "knowledge"),
+                "concept",
+                "add",
+                "--domain",
+                "test",
+                "--name",
+                "test_structural",
+                "--definition",
+                "A test concept",
+                "--form",
+                "structural",
+            ],
+        )
         assert add_result.exit_code == 0, add_result.output
         assert "Created" in add_result.output
         repo = Repository.find(tmp_path / "knowledge")
@@ -394,16 +488,25 @@ class TestInit:
 
 # ── concept add ──────────────────────────────────────────────────────
 
+
 class TestConceptAdd:
     def test_creates_valid_file(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech",
-            "--name", "test_pressure",
-            "--definition", "A test concept",
-            "--form", "pressure",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "test_pressure",
+                "--definition",
+                "A test concept",
+                "--form",
+                "pressure",
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert "Created" in result.output
 
@@ -413,19 +516,30 @@ class TestConceptAdd:
         assert data["lexical_entry"]["canonical_form"]["written_rep"] == "test_pressure"
         assert data["status"] == "proposed"
         assert data["lexical_entry"]["physical_dimension_form"] == "pressure"
-        assert data["logical_ids"][0] == {"namespace": "speech", "value": "test_pressure"}
+        assert data["logical_ids"][0] == {
+            "namespace": "speech",
+            "value": "test_pressure",
+        }
         assert {"namespace": "propstore", "value": "concept3"} in data["logical_ids"]
         assert data["version_id"].startswith("sha256:")
 
     def test_created_concept_can_be_shown_by_logical_id(self, workspace: Path) -> None:
         runner = CliRunner()
-        add_result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech",
-            "--name", "test_pressure",
-            "--definition", "A test concept",
-            "--form", "pressure",
-        ])
+        add_result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "test_pressure",
+                "--definition",
+                "A test concept",
+                "--form",
+                "pressure",
+            ],
+        )
         assert add_result.exit_code == 0, add_result.output
 
         show_result = runner.invoke(cli, ["concept", "show", "speech:test_pressure"])
@@ -435,53 +549,99 @@ class TestConceptAdd:
 
     def test_increments_counter(self, workspace: Path) -> None:
         runner = CliRunner()
-        runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech", "--name", "c1",
-            "--definition", "d1", "--form", "boolean",
-        ])
+        runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "c1",
+                "--definition",
+                "d1",
+                "--form",
+                "boolean",
+            ],
+        )
         c1_data = _read_repo_yaml(workspace, "concepts/c1.yaml")
         assert c1_data["artifact_id"] == _concept_artifact("concept3")
 
-        runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech", "--name", "c2",
-            "--definition", "d2", "--form", "boolean",
-        ])
+        runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "c2",
+                "--definition",
+                "d2",
+                "--form",
+                "boolean",
+            ],
+        )
         c2_data = _read_repo_yaml(workspace, "concepts/c2.yaml")
         assert c2_data["artifact_id"] == _concept_artifact("concept4")
 
     def test_dry_run_does_not_write(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech", "--name", "ghost",
-            "--definition", "d", "--form", "boolean",
-            "--dry-run",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "ghost",
+                "--definition",
+                "d",
+                "--form",
+                "boolean",
+                "--dry-run",
+            ],
+        )
         assert result.exit_code == 0
         assert "Would create" in result.output
         assert "concepts/ghost.yaml" not in _repo_entries(workspace)
 
     def test_validation_failure_does_not_advance_counter(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech",
-            "--name", "bad_pressure",
-            "--definition", "d",
-            "--form", "missing_form",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "bad_pressure",
+                "--definition",
+                "d",
+                "--form",
+                "missing_form",
+            ],
+        )
         assert result.exit_code != 0
         assert "concepts/bad_pressure.yaml" not in _repo_entries(workspace)
 
-        valid_result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech",
-            "--name", "good_pressure",
-            "--definition", "d",
-            "--form", "pressure",
-        ])
+        valid_result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "good_pressure",
+                "--definition",
+                "d",
+                "--form",
+                "pressure",
+            ],
+        )
         assert valid_result.exit_code == 0, valid_result.output
         data = _read_repo_yaml(workspace, "concepts/good_pressure.yaml")
         assert data["artifact_id"] == _concept_artifact("concept3")
@@ -489,13 +649,22 @@ class TestConceptAdd:
 
 # ── concept alias ────────────────────────────────────────────────────
 
+
 class TestConceptAlias:
     def test_adds_alias(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "alias", "speech:fundamental_frequency",
-            "--name", "f_zero", "--source", "Smith_2020",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "alias",
+                "speech:fundamental_frequency",
+                "--name",
+                "f_zero",
+                "--source",
+                "Smith_2020",
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert "Added alias" in result.output
 
@@ -506,10 +675,18 @@ class TestConceptAlias:
     def test_rejects_name_collision(self, workspace: Path) -> None:
         runner = CliRunner()
         # "task" is a canonical_name of concept2
-        result = runner.invoke(cli, [
-            "concept", "alias", "speech:fundamental_frequency",
-            "--name", "task", "--source", "test",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "alias",
+                "speech:fundamental_frequency",
+                "--name",
+                "task",
+                "--source",
+                "test",
+            ],
+        )
         assert result.exit_code != 0
         data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         alias_names = [a["name"] for a in data.get("aliases", [])]
@@ -518,13 +695,20 @@ class TestConceptAlias:
 
 # ── concept rename ───────────────────────────────────────────────────
 
+
 class TestConceptRename:
     def test_renames_file_and_field(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "rename", "speech:task",
-            "--name", "vocal_task",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "rename",
+                "speech:task",
+                "--name",
+                "vocal_task",
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert "task -> vocal_task" in result.output
 
@@ -538,45 +722,73 @@ class TestConceptRename:
         assert data["logical_ids"][0] == {"namespace": "speech", "value": "vocal_task"}
         assert {"namespace": "propstore", "value": "concept2"} in data["logical_ids"]
 
-    def test_updates_cel_references_in_concepts_and_claims(self, workspace: Path) -> None:
-        concept_path = workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml"
+    def test_updates_cel_references_in_concepts_and_claims(
+        self, workspace: Path
+    ) -> None:
+        concept_path = (
+            workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml"
+        )
         concept_data = yaml.safe_load(concept_path.read_text())
         concept_data["relationships"] = [
-            {"type": "related", "target": _concept_artifact("concept2"), "conditions": ["task == 'speech'"]}
+            {
+                "type": "related",
+                "target": _concept_artifact("concept2"),
+                "conditions": ["task == 'speech'"],
+            }
         ]
-        concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
-        _commit_workspace_paths(workspace, ["concepts/fundamental_frequency.yaml"], "Seed concept relationship edit")
+        concept_path.write_text(
+            yaml.dump(concept_data, default_flow_style=False, sort_keys=False)
+        )
+        _commit_workspace_paths(
+            workspace,
+            ["concepts/fundamental_frequency.yaml"],
+            "Seed concept relationship edit",
+        )
 
         claims_dir = workspace / "knowledge" / "claims"
         claim_path = _write_claim_file(
             claims_dir,
             "paper.yaml",
-            _normalize_claim_concept_refs({
-                "source": {"paper": "paper"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "concept": _concept_artifact("concept1"),
-                        "value": 200.0,
-                        "unit": "Hz",
-                        "conditions": ["task == 'speech'"],
-                        "provenance": {"paper": "paper", "page": 1},
-                    }
-                ],
-            }),
+            _normalize_claim_concept_refs(
+                {
+                    "source": {"paper": "paper"},
+                    "claims": [
+                        {
+                            "id": "claim1",
+                            "type": "parameter",
+                            "concept": _concept_artifact("concept1"),
+                            "value": 200.0,
+                            "unit": "Hz",
+                            "conditions": ["task == 'speech'"],
+                            "provenance": {"paper": "paper", "page": 1},
+                        }
+                    ],
+                }
+            ),
         )
-        _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed claim conditions edit")
+        _commit_workspace_paths(
+            workspace, ["claims/paper.yaml"], "Seed claim conditions edit"
+        )
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "rename", "speech:task",
-            "--name", "vocal_task",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "rename",
+                "speech:task",
+                "--name",
+                "vocal_task",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
-        renamed_concept = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
-        assert renamed_concept["relationships"][0]["conditions"] == ["vocal_task == 'speech'"]
+        renamed_concept = _read_repo_yaml(
+            workspace, "concepts/fundamental_frequency.yaml"
+        )
+        assert renamed_concept["relationships"][0]["conditions"] == [
+            "vocal_task == 'speech'"
+        ]
 
         claim_relpath = claim_path.relative_to(workspace / "knowledge").as_posix()
         claim_data = _read_repo_yaml(workspace, claim_relpath)
@@ -585,13 +797,20 @@ class TestConceptRename:
 
 # ── concept deprecate ────────────────────────────────────────────────
 
+
 class TestConceptDeprecate:
     def test_sets_fields(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "deprecate", "speech:task",
-            "--replaced-by", "speech:fundamental_frequency",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "deprecate",
+                "speech:task",
+                "--replaced-by",
+                "speech:fundamental_frequency",
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert "Deprecated" in result.output
 
@@ -601,52 +820,87 @@ class TestConceptDeprecate:
 
     def test_rejects_nonexistent_replacement(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "deprecate", "speech:task",
-            "--replaced-by", "speech:missing_concept",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "deprecate",
+                "speech:task",
+                "--replaced-by",
+                "speech:missing_concept",
+            ],
+        )
         assert result.exit_code != 0
         assert "not found" in result.output
 
     def test_rejects_deprecated_replacement(self, workspace: Path) -> None:
         # First deprecate concept2
         data = yaml.safe_load(
-            (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+            (workspace / "knowledge" / "concepts" / "task.yaml").read_text()
+        )
         data["status"] = "deprecated"
         data["replaced_by"] = _concept_artifact("concept1")
         with open(workspace / "knowledge" / "concepts" / "task.yaml", "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-        _commit_workspace_paths(workspace, ["concepts/task.yaml"], "Seed deprecated replacement")
+        _commit_workspace_paths(
+            workspace, ["concepts/task.yaml"], "Seed deprecated replacement"
+        )
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "deprecate", "speech:fundamental_frequency",
-            "--replaced-by", "speech:task",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "deprecate",
+                "speech:fundamental_frequency",
+                "--replaced-by",
+                "speech:task",
+            ],
+        )
         assert result.exit_code != 0
         assert "deprecated" in result.output
 
 
 # ── concept link ─────────────────────────────────────────────────────
 
+
 class TestConceptLink:
     def test_adds_relationship(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "link", "speech:fundamental_frequency", "broader", "speech:task",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "link",
+                "speech:fundamental_frequency",
+                "broader",
+                "speech:task",
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert "Added broader" in result.output
 
         data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         rels = data.get("relationships", [])
-        assert any(r["type"] == "broader" and r["target"] == _concept_artifact("concept2") for r in rels)
+        assert any(
+            r["type"] == "broader" and r["target"] == _concept_artifact("concept2")
+            for r in rels
+        )
 
-    def test_rejects_invalid_relationship_without_writing(self, workspace: Path) -> None:
+    def test_rejects_invalid_relationship_without_writing(
+        self, workspace: Path
+    ) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "link", "speech:fundamental_frequency", "contested_definition", "speech:task",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "link",
+                "speech:fundamental_frequency",
+                "contested_definition",
+                "speech:task",
+            ],
+        )
         assert result.exit_code != 0
         assert "Validation failed" in result.output
 
@@ -656,42 +910,60 @@ class TestConceptLink:
 
 def _provenance_cli_options() -> list[str]:
     return [
-        "--asserter", "tests",
-        "--timestamp", "2026-04-17T00:00:00Z",
-        "--source-artifact-code", "ps:test:concept-cli",
-        "--method", "unit-test",
+        "--asserter",
+        "tests",
+        "--timestamp",
+        "2026-04-17T00:00:00Z",
+        "--source-artifact-code",
+        "ps:test:concept-cli",
+        "--method",
+        "unit-test",
     ]
 
 
 class TestConceptPhase3Semantics:
     def test_qualia_add_persists_typed_reference(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "qualia-add",
-            "speech:fundamental_frequency",
-            "telic",
-            "speech:task",
-            "--type-constraint", "speech:task",
-            *_provenance_cli_options(),
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "qualia-add",
+                "speech:fundamental_frequency",
+                "telic",
+                "speech:task",
+                "--type-constraint",
+                "speech:task",
+                *_provenance_cli_options(),
+            ],
+        )
 
         assert result.exit_code == 0, result.output
         data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
         telic = data["lexical_entry"]["senses"][0]["qualia"]["telic"][0]
         assert telic["reference"]["uri"] == _concept_artifact("concept2")
-        assert telic["type_constraint"]["reference"]["uri"] == _concept_artifact("concept2")
+        assert telic["type_constraint"]["reference"]["uri"] == _concept_artifact(
+            "concept2"
+        )
         assert telic["provenance"]["status"] == "stated"
         assert telic["provenance"]["witnesses"][0]["method"] == "unit-test"
 
     def test_description_kind_adds_typed_slot(self, workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "description-kind",
-            "speech:task",
-            "--name", "TaskDescription",
-            "--reference", "speech:task",
-            "--slot", "observer=speech:fundamental_frequency",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "description-kind",
+                "speech:task",
+                "--name",
+                "TaskDescription",
+                "--reference",
+                "speech:task",
+                "--slot",
+                "observer=speech:fundamental_frequency",
+            ],
+        )
 
         assert result.exit_code == 0, result.output
         data = _read_repo_yaml(workspace, "concepts/task.yaml")
@@ -699,28 +971,43 @@ class TestConceptPhase3Semantics:
         assert description_kind["name"] == "TaskDescription"
         assert description_kind["reference"]["uri"] == _concept_artifact("concept2")
         assert description_kind["slots"][0]["name"] == "observer"
-        assert description_kind["slots"][0]["type_constraint"]["uri"] == _concept_artifact("concept1")
+        assert description_kind["slots"][0]["type_constraint"][
+            "uri"
+        ] == _concept_artifact("concept1")
 
-    def test_proto_role_adds_entailment_to_role_and_description_slot(self, workspace: Path) -> None:
+    def test_proto_role_adds_entailment_to_role_and_description_slot(
+        self, workspace: Path
+    ) -> None:
         runner = CliRunner()
-        kind_result = runner.invoke(cli, [
-            "concept", "description-kind",
-            "speech:task",
-            "--name", "TaskDescription",
-            "--reference", "speech:task",
-            "--slot", "observer=speech:fundamental_frequency",
-        ])
+        kind_result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "description-kind",
+                "speech:task",
+                "--name",
+                "TaskDescription",
+                "--reference",
+                "speech:task",
+                "--slot",
+                "observer=speech:fundamental_frequency",
+            ],
+        )
         assert kind_result.exit_code == 0, kind_result.output
 
-        result = runner.invoke(cli, [
-            "concept", "proto-role",
-            "speech:task",
-            "observer",
-            "agent",
-            "sentience",
-            "0.75",
-            *_provenance_cli_options(),
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "proto-role",
+                "speech:task",
+                "observer",
+                "agent",
+                "sentience",
+                "0.75",
+                *_provenance_cli_options(),
+            ],
+        )
 
         assert result.exit_code == 0, result.output
         data = _read_repo_yaml(workspace, "concepts/task.yaml")
@@ -728,13 +1015,14 @@ class TestConceptPhase3Semantics:
         entailment = bundle["proto_agent_entailments"][0]
         assert entailment["property"] == "sentience"
         assert entailment["value"] == 0.75
-        slot_bundle = data["lexical_entry"]["senses"][0]["description_kind"]["slots"][0][
-            "proto_role_bundle"
-        ]
+        slot_bundle = data["lexical_entry"]["senses"][0]["description_kind"]["slots"][
+            0
+        ]["proto_role_bundle"]
         assert slot_bundle["proto_agent_entailments"][0]["property"] == "sentience"
 
 
 # ── validate ─────────────────────────────────────────────────────────
+
 
 class TestValidate:
     def test_passes_on_valid(self, workspace: Path) -> None:
@@ -746,36 +1034,49 @@ class TestValidate:
     def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
         concepts_dir = workspace / "knowledge" / "concepts"
         claims_dir = workspace / "knowledge" / "claims"
-        claim_payload = _normalize_claim_concept_refs({
-            "source": {"paper": "paper"},
-            "claims": [
-                {
-                    "id": "claim1",
-                    "type": "parameter",
-                    "output_concept": _concept_artifact("concept3"),
-                    "value": 800.0,
-                    "unit": "Pa",
-                    "provenance": {"paper": "paper", "page": 1},
-                    "context": {"id": TEST_CONTEXT_ID},
-                }
-            ],
-        })
+        claim_payload = _normalize_claim_concept_refs(
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "output_concept": _concept_artifact("concept3"),
+                        "value": 800.0,
+                        "unit": "Pa",
+                        "provenance": {"paper": "paper", "page": 1},
+                        "context": {"id": TEST_CONTEXT_ID},
+                    }
+                ],
+            }
+        )
         claim_artifact_id = claim_payload["claims"][0]["artifact_id"]
 
-        _write_concept(concepts_dir, "subglottal_pressure", _make_concept(
-            "subglottal_pressure", "concept3", "speech", form="pressure",
-        ))
+        _write_concept(
+            concepts_dir,
+            "subglottal_pressure",
+            _make_concept(
+                "subglottal_pressure",
+                "concept3",
+                "speech",
+                form="pressure",
+            ),
+        )
         concept_path = concepts_dir / "fundamental_frequency.yaml"
         concept_data = yaml.safe_load(concept_path.read_text())
-        concept_data["parameterization_relationships"] = [{
-            "formula": "fundamental_frequency = subglottal_pressure",
-            "inputs": [_concept_artifact("concept3")],
-            "exactness": "approximate",
-            "canonical_claim": claim_artifact_id,
-            "sympy": "concept3",
-        }]
+        concept_data["parameterization_relationships"] = [
+            {
+                "formula": "fundamental_frequency = subglottal_pressure",
+                "inputs": [_concept_artifact("concept3")],
+                "exactness": "approximate",
+                "canonical_claim": claim_artifact_id,
+                "sympy": "concept3",
+            }
+        ]
         concept_data = attach_concept_version_id(concept_data)
-        concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
+        concept_path.write_text(
+            yaml.dump(concept_data, default_flow_style=False, sort_keys=False)
+        )
         _write_claim_file(claims_dir, "paper.yaml", claim_payload)
         _commit_workspace_paths(
             workspace,
@@ -795,14 +1096,20 @@ class TestValidate:
     def test_fails_on_invalid(self, workspace: Path) -> None:
         # Write a broken concept
         bad = workspace / "knowledge" / "concepts" / "broken.yaml"
-        bad.write_text(yaml.dump({
-            "id": "concept1",  # duplicate ID
-            "canonical_name": "broken",
-            "status": "accepted",
-            "definition": "dup",
-            "form": "frequency",
-        }))
-        _commit_workspace_paths(workspace, ["concepts/broken.yaml"], "Seed invalid concept for validate")
+        bad.write_text(
+            yaml.dump(
+                {
+                    "id": "concept1",  # duplicate ID
+                    "canonical_name": "broken",
+                    "status": "accepted",
+                    "definition": "dup",
+                    "form": "frequency",
+                }
+            )
+        )
+        _commit_workspace_paths(
+            workspace, ["concepts/broken.yaml"], "Seed invalid concept for validate"
+        )
         runner = CliRunner()
         result = runner.invoke(cli, ["validate"])
         assert result.exit_code != 0
@@ -810,6 +1117,7 @@ class TestValidate:
 
 
 # ── build ────────────────────────────────────────────────────────────
+
 
 class TestBuild:
     def test_produces_sidecar(self, workspace: Path) -> None:
@@ -829,36 +1137,49 @@ class TestBuild:
     def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
         concepts_dir = workspace / "knowledge" / "concepts"
         claims_dir = workspace / "knowledge" / "claims"
-        claim_payload = _normalize_claim_concept_refs({
-            "source": {"paper": "paper"},
-            "claims": [
-                {
-                    "id": "claim1",
-                    "type": "parameter",
-                    "output_concept": _concept_artifact("concept3"),
-                    "value": 800.0,
-                    "unit": "Pa",
-                    "provenance": {"paper": "paper", "page": 1},
-                    "context": {"id": TEST_CONTEXT_ID},
-                }
-            ],
-        })
+        claim_payload = _normalize_claim_concept_refs(
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "output_concept": _concept_artifact("concept3"),
+                        "value": 800.0,
+                        "unit": "Pa",
+                        "provenance": {"paper": "paper", "page": 1},
+                        "context": {"id": TEST_CONTEXT_ID},
+                    }
+                ],
+            }
+        )
         claim_artifact_id = claim_payload["claims"][0]["artifact_id"]
 
-        _write_concept(concepts_dir, "subglottal_pressure", _make_concept(
-            "subglottal_pressure", "concept3", "speech", form="pressure",
-        ))
+        _write_concept(
+            concepts_dir,
+            "subglottal_pressure",
+            _make_concept(
+                "subglottal_pressure",
+                "concept3",
+                "speech",
+                form="pressure",
+            ),
+        )
         concept_path = concepts_dir / "fundamental_frequency.yaml"
         concept_data = yaml.safe_load(concept_path.read_text())
-        concept_data["parameterization_relationships"] = [{
-            "formula": "fundamental_frequency = subglottal_pressure",
-            "inputs": [_concept_artifact("concept3")],
-            "exactness": "approximate",
-            "canonical_claim": claim_artifact_id,
-            "sympy": "concept3",
-        }]
+        concept_data["parameterization_relationships"] = [
+            {
+                "formula": "fundamental_frequency = subglottal_pressure",
+                "inputs": [_concept_artifact("concept3")],
+                "exactness": "approximate",
+                "canonical_claim": claim_artifact_id,
+                "sympy": "concept3",
+            }
+        ]
         concept_data = attach_concept_version_id(concept_data)
-        concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
+        concept_path.write_text(
+            yaml.dump(concept_data, default_flow_style=False, sort_keys=False)
+        )
         _write_claim_file(claims_dir, "paper.yaml", claim_payload)
         _commit_workspace_paths(
             workspace,
@@ -875,16 +1196,24 @@ class TestBuild:
         assert result.exit_code == 0, result.output
         assert _derived_store_path_from_output(result.output).exists()
 
-    def test_build_records_validation_failure_diagnostics(self, workspace: Path) -> None:
+    def test_build_records_validation_failure_diagnostics(
+        self, workspace: Path
+    ) -> None:
         bad = workspace / "knowledge" / "concepts" / "broken.yaml"
-        bad.write_text(yaml.dump({
-            "id": "concept1",  # duplicate
-            "canonical_name": "broken",
-            "status": "accepted",
-            "definition": "dup",
-            "form": "frequency",
-        }))
-        _commit_workspace_paths(workspace, ["concepts/broken.yaml"], "Seed invalid duplicate concept")
+        bad.write_text(
+            yaml.dump(
+                {
+                    "id": "concept1",  # duplicate
+                    "canonical_name": "broken",
+                    "status": "accepted",
+                    "definition": "dup",
+                    "form": "frequency",
+                }
+            )
+        )
+        _commit_workspace_paths(
+            workspace, ["concepts/broken.yaml"], "Seed invalid duplicate concept"
+        )
         runner = CliRunner()
         result = runner.invoke(cli, ["build"])
         assert result.exit_code == 0, result.output
@@ -920,45 +1249,74 @@ class TestClaimValidate:
         alt_concepts.mkdir(parents=True)
         alt_forms.mkdir()
 
-        _write_concept(alt_concepts, "fundamental_frequency", _make_concept(
-            "fundamental_frequency", "concept1", "speech", form="frequency",
-        ))
-        _write_concept(alt_concepts, "other_task", _make_concept(
-            "other_task", "concept9", "speech", form="category",
-            form_parameters={"values": ["speech"], "extensible": True},
-        ))
+        _write_concept(
+            alt_concepts,
+            "fundamental_frequency",
+            _make_concept(
+                "fundamental_frequency",
+                "concept1",
+                "speech",
+                form="frequency",
+            ),
+        )
+        _write_concept(
+            alt_concepts,
+            "other_task",
+            _make_concept(
+                "other_task",
+                "concept9",
+                "speech",
+                form="category",
+                form_parameters={"values": ["speech"], "extensible": True},
+            ),
+        )
         (alt_forms / "frequency.yaml").write_text(
-            yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False)
+            yaml.dump(
+                {"name": "frequency", "dimensionless": False}, default_flow_style=False
+            )
         )
         (alt_forms / "category.yaml").write_text(
-            yaml.dump({"name": "category", "dimensionless": True}, default_flow_style=False)
+            yaml.dump(
+                {"name": "category", "dimensionless": True}, default_flow_style=False
+            )
         )
 
         _write_claim_file(
             workspace / "knowledge" / "claims",
             "paper.yaml",
-            _normalize_claim_concept_refs({
-                "source": {"paper": "paper"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "concept": "concept1",
-                        "value": 200.0,
-                        "unit": "Hz",
-                        "conditions": ["other_task == 'speech'"],
-                        "provenance": {"paper": "paper", "page": 1},
-                    }
-                ],
-            }),
+            _normalize_claim_concept_refs(
+                {
+                    "source": {"paper": "paper"},
+                    "claims": [
+                        {
+                            "id": "claim1",
+                            "type": "parameter",
+                            "concept": "concept1",
+                            "value": 200.0,
+                            "unit": "Hz",
+                            "conditions": ["other_task == 'speech'"],
+                            "provenance": {"paper": "paper", "page": 1},
+                        }
+                    ],
+                }
+            ),
         )
-        _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed committed claim validate override file")
+        _commit_workspace_paths(
+            workspace,
+            ["claims/paper.yaml"],
+            "Seed committed claim validate override file",
+        )
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "claim", "validate",
-            "--concepts-dir", str(alt_concepts),
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "claim",
+                "validate",
+                "--concepts-dir",
+                str(alt_concepts),
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert "Validation passed" in result.output
 
@@ -979,6 +1337,7 @@ class TestSourceCutover:
 
 # ── build (extended) ────────────────────────────────────────────────
 
+
 class TestBuildExtended:
     def test_sidecar_contains_expected_tables(self, workspace: Path) -> None:
         """Built sidecar should contain core and grounding tables."""
@@ -987,9 +1346,12 @@ class TestBuildExtended:
         _export_workspace_sidecar(workspace, sidecar)
 
         conn = sqlite3.connect(sidecar)
-        tables = {row[0] for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()}
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
         conn.close()
 
         assert "concept" in tables
@@ -1034,20 +1396,28 @@ class TestBuildExtended:
     def test_build_with_claims(self, workspace: Path) -> None:
         """Build with claim files should create claim table with data."""
         claims_dir = workspace / "knowledge" / "claims"
-        _write_claim_file(claims_dir, "paper.yaml", _normalize_claim_concept_refs({
-            "source": {"paper": "paper"},
-            "claims": [
+        _write_claim_file(
+            claims_dir,
+            "paper.yaml",
+            _normalize_claim_concept_refs(
                 {
-                    "id": "claim1",
-                    "type": "parameter",
-                    "concept": "concept1",
-                    "value": 200.0,
-                    "unit": "Hz",
-                    "provenance": {"paper": "paper", "page": 1},
+                    "source": {"paper": "paper"},
+                    "claims": [
+                        {
+                            "id": "claim1",
+                            "type": "parameter",
+                            "concept": "concept1",
+                            "value": 200.0,
+                            "unit": "Hz",
+                            "provenance": {"paper": "paper", "page": 1},
+                        }
+                    ],
                 }
-            ],
-        }))
-        _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed committed claim file")
+            ),
+        )
+        _commit_workspace_paths(
+            workspace, ["claims/paper.yaml"], "Seed committed claim file"
+        )
 
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
@@ -1083,10 +1453,12 @@ class TestBuildExtended:
 
 # ── export-aliases ──────────────────────────────────────────────────
 
+
 class TestExportAliases:
     def test_export_aliases_json(self, workspace: Path) -> None:
         """export-aliases --format json should produce valid JSON with alias data."""
         import json as _json
+
         runner = CliRunner()
         result = runner.invoke(cli, ["export-aliases", "--format", "json"])
         assert result.exit_code == 0, result.output
@@ -1107,6 +1479,7 @@ class TestExportAliases:
 
 
 # ── concept search ──────────────────────────────────────────────────
+
 
 class TestConceptList:
     def test_list_shows_logical_ids_not_artifact_ids(self, workspace: Path) -> None:
@@ -1205,19 +1578,25 @@ class TestClaimValidateFile:
         claims_dir = workspace / "knowledge" / "claims"
         bad_claim = {
             "source": {"paper": "test_paper"},
-            "claims": [{
-                "id": "claim1",
-                "type": "parameter",
-                "concept": "fundamental_frequency",
-                "value": 440.0,
-                "unit": "Hz",
-                "provenance": {"paper": "test_paper", "page": 1},
-            }],
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "fundamental_frequency",
+                    "value": 440.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "test_paper", "page": 1},
+                }
+            ],
         }
-        filepath = _write_claim_file(claims_dir, "bad.yaml", _normalize_claim_concept_refs(bad_claim))
+        filepath = _write_claim_file(
+            claims_dir, "bad.yaml", _normalize_claim_concept_refs(bad_claim)
+        )
         artifact_payload = yaml.safe_load(filepath.read_text())
         artifact_payload["provenance"].pop("page")
-        filepath.write_text(yaml.dump(artifact_payload, default_flow_style=False, sort_keys=False))
+        filepath.write_text(
+            yaml.dump(artifact_payload, default_flow_style=False, sort_keys=False)
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
@@ -1229,16 +1608,20 @@ class TestClaimValidateFile:
         claims_dir = workspace / "knowledge" / "claims"
         good_claim = {
             "source": {"paper": "test_paper"},
-            "claims": [{
-                "id": "claim1",
-                "type": "parameter",
-                "concept": "fundamental_frequency",
-                "value": 440.0,
-                "unit": "Hz",
-                "provenance": {"paper": "test_paper", "page": 1},
-            }],
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "fundamental_frequency",
+                    "value": 440.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "test_paper", "page": 1},
+                }
+            ],
         }
-        filepath = _write_claim_file(claims_dir, "good.yaml", _normalize_claim_concept_refs(good_claim))
+        filepath = _write_claim_file(
+            claims_dir, "good.yaml", _normalize_claim_concept_refs(good_claim)
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
@@ -1249,43 +1632,73 @@ class TestConceptCategoryValues:
     def test_add_category_with_values(self, workspace: Path) -> None:
         """pks concept add --form category --values creates valid concept with form_parameters."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "general",
-            "--name", "dataset",
-            "--definition", "The benchmark dataset",
-            "--form", "category",
-            "--values", "ActivityNet,YouCook2,Charades",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "general",
+                "--name",
+                "dataset",
+                "--definition",
+                "The benchmark dataset",
+                "--form",
+                "category",
+                "--values",
+                "ActivityNet,YouCook2,Charades",
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert "Created" in result.output
 
         data = _read_repo_yaml(workspace, "concepts/dataset.yaml")
         assert data["lexical_entry"]["physical_dimension_form"] == "category"
-        assert data["form_parameters"]["values"] == ["ActivityNet", "YouCook2", "Charades"]
+        assert data["form_parameters"]["values"] == [
+            "ActivityNet",
+            "YouCook2",
+            "Charades",
+        ]
 
     def test_add_category_without_values_fails(self, workspace: Path) -> None:
         """pks concept add --form category without --values fails before writing file."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "general",
-            "--name", "dataset",
-            "--definition", "The benchmark dataset",
-            "--form", "category",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "general",
+                "--name",
+                "dataset",
+                "--definition",
+                "The benchmark dataset",
+                "--form",
+                "category",
+            ],
+        )
         assert result.exit_code != 0
         assert "values" in result.output.lower()
         assert "concepts/dataset.yaml" not in _repo_entries(workspace)
 
-        valid_result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "general",
-            "--name", "valid_dataset",
-            "--definition", "The benchmark dataset",
-            "--form", "category",
-            "--values", "ActivityNet",
-        ])
+        valid_result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "general",
+                "--name",
+                "valid_dataset",
+                "--definition",
+                "The benchmark dataset",
+                "--form",
+                "category",
+                "--values",
+                "ActivityNet",
+            ],
+        )
         assert valid_result.exit_code == 0, valid_result.output
         data = _read_repo_yaml(workspace, "concepts/valid_dataset.yaml")
         assert data["artifact_id"] == _concept_artifact("concept3")
@@ -1293,14 +1706,23 @@ class TestConceptCategoryValues:
     def test_add_category_values_strips_whitespace(self, workspace: Path) -> None:
         """Whitespace around comma-separated values is stripped."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "general",
-            "--name", "metric",
-            "--definition", "Evaluation metric",
-            "--form", "category",
-            "--values", " CIDEr , METEOR , BLEU ",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "general",
+                "--name",
+                "metric",
+                "--definition",
+                "Evaluation metric",
+                "--form",
+                "category",
+                "--values",
+                " CIDEr , METEOR , BLEU ",
+            ],
+        )
         assert result.exit_code == 0, result.output
         data = _read_repo_yaml(workspace, "concepts/metric.yaml")
         assert data["form_parameters"]["values"] == ["CIDEr", "METEOR", "BLEU"]
@@ -1308,46 +1730,75 @@ class TestConceptCategoryValues:
     def test_add_non_category_with_values_fails(self, workspace: Path) -> None:
         """--values on a non-category form is an error."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech",
-            "--name", "test_freq",
-            "--definition", "A frequency",
-            "--form", "frequency",
-            "--values", "a,b",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "test_freq",
+                "--definition",
+                "A frequency",
+                "--form",
+                "frequency",
+                "--values",
+                "a,b",
+            ],
+        )
         assert result.exit_code != 0
         assert "concepts/test_freq.yaml" not in _repo_entries(workspace)
 
     def test_add_category_closed_sets_extensible_false(self, workspace: Path) -> None:
         """pks concept add --form category --closed writes extensible: false in form_parameters."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "general",
-            "--name", "closed_cat",
-            "--definition", "A closed category",
-            "--form", "category",
-            "--values", "a,b,c",
-            "--closed",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "general",
+                "--name",
+                "closed_cat",
+                "--definition",
+                "A closed category",
+                "--form",
+                "category",
+                "--values",
+                "a,b,c",
+                "--closed",
+            ],
+        )
         assert result.exit_code == 0, result.output
         data = _read_repo_yaml(workspace, "concepts/closed_cat.yaml")
         assert data["lexical_entry"]["physical_dimension_form"] == "category"
         assert data["form_parameters"]["values"] == ["a", "b", "c"]
         assert data["form_parameters"]["extensible"] is False
 
-    def test_add_category_without_closed_omits_extensible(self, workspace: Path) -> None:
+    def test_add_category_without_closed_omits_extensible(
+        self, workspace: Path
+    ) -> None:
         """Without --closed, extensible key is not written (defaults to true at read time)."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "general",
-            "--name", "open_cat",
-            "--definition", "An open category",
-            "--form", "category",
-            "--values", "x,y",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "general",
+                "--name",
+                "open_cat",
+                "--definition",
+                "An open category",
+                "--form",
+                "category",
+                "--values",
+                "x,y",
+            ],
+        )
         assert result.exit_code == 0, result.output
         data = _read_repo_yaml(workspace, "concepts/open_cat.yaml")
         assert "extensible" not in data.get("form_parameters", {})
@@ -1355,14 +1806,22 @@ class TestConceptCategoryValues:
     def test_closed_on_non_category_fails(self, workspace: Path) -> None:
         """--closed on a non-category form is an error."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add",
-            "--domain", "speech",
-            "--name", "test_freq2",
-            "--definition", "A frequency",
-            "--form", "frequency",
-            "--closed",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add",
+                "--domain",
+                "speech",
+                "--name",
+                "test_freq2",
+                "--definition",
+                "A frequency",
+                "--form",
+                "frequency",
+                "--closed",
+            ],
+        )
         assert result.exit_code != 0
         assert "closed" in result.output.lower() or "category" in result.output.lower()
 
@@ -1407,12 +1866,16 @@ class TestConceptCategories:
         assert data["entries"][0]["canonical_name"] == "task"
         assert data["entries"][0]["values"] == ["speech", "singing"]
 
-    def test_categories_empty_when_no_category_concepts(self, tmp_path: Path, monkeypatch) -> None:
+    def test_categories_empty_when_no_category_concepts(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         """Returns cleanly when no category concepts exist."""
         monkeypatch.chdir(tmp_path)
         knowledge = tmp_path / "knowledge"
         repo = Repository.init(knowledge)
-        concept_data = _make_concept("only_struct", "concept1", "test", form="structural")
+        concept_data = _make_concept(
+            "only_struct", "concept1", "test", form="structural"
+        )
         repo.git.commit_files(
             {
                 "forms/structural.yaml": b"name: structural\n",
@@ -1435,13 +1898,21 @@ class TestConceptCategories:
 
 # ── concept add-value ────────────────────────────────────────────────
 
+
 class TestConceptAddValue:
     def test_add_value_appends_to_category(self, workspace: Path) -> None:
         """pks concept add-value appends a new value to the category's values list."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add-value", "task", "--value", "reading",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add-value",
+                "task",
+                "--value",
+                "reading",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         data = _read_repo_yaml(workspace, "concepts/task.yaml")
@@ -1453,18 +1924,32 @@ class TestConceptAddValue:
     def test_add_value_rejects_duplicate(self, workspace: Path) -> None:
         """Adding an already-present value is rejected."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add-value", "task", "--value", "speech",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add-value",
+                "task",
+                "--value",
+                "speech",
+            ],
+        )
         assert result.exit_code != 0
         assert "already" in result.output.lower()
 
     def test_add_value_to_non_category_fails(self, workspace: Path) -> None:
         """add-value on a non-category concept fails."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add-value", "fundamental_frequency", "--value", "nope",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add-value",
+                "fundamental_frequency",
+                "--value",
+                "nope",
+            ],
+        )
         assert result.exit_code != 0
         assert "category" in result.output.lower()
 
@@ -1472,20 +1957,37 @@ class TestConceptAddValue:
         """add-value on a non-extensible category fails."""
         # Create a non-extensible category concept
         _write_concept(
-            workspace / "knowledge" / "concepts", "fixed_cat",
-            _make_concept("fixed_cat", "concept99", "test", form="category",
-                          form_parameters={"values": ["a", "b"], "extensible": False}))
-        _commit_workspace_paths(workspace, ["concepts/fixed_cat.yaml"], "Seed non-extensible category")
+            workspace / "knowledge" / "concepts",
+            "fixed_cat",
+            _make_concept(
+                "fixed_cat",
+                "concept99",
+                "test",
+                form="category",
+                form_parameters={"values": ["a", "b"], "extensible": False},
+            ),
+        )
+        _commit_workspace_paths(
+            workspace, ["concepts/fixed_cat.yaml"], "Seed non-extensible category"
+        )
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "concept", "add-value", "fixed_cat", "--value", "c",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "concept",
+                "add-value",
+                "fixed_cat",
+                "--value",
+                "c",
+            ],
+        )
         assert result.exit_code != 0
         assert "extensible" in result.output.lower()
 
 
 # ── Claim embedding CLI progress tests ───────────────────────────────
+
 
 class TestClaimEmbedProgress:
     """Verify claim embedding CLI progress rendering."""
@@ -1590,6 +2092,7 @@ class TestClaimRelateCli:
 
 
 # ── claim show ──────────────────────────────────────────────────────
+
 
 class TestClaimShow:
     def test_owner_build_claim_view_reports_si_value(
@@ -1709,7 +2212,9 @@ class TestClaimShow:
                 condition=SimpleNamespace(expression=None),
             )
 
-        monkeypatch.setattr(claim_display_cli, "build_claim_view", fake_build_claim_view)
+        monkeypatch.setattr(
+            claim_display_cli, "build_claim_view", fake_build_claim_view
+        )
 
         result = CliRunner().invoke(
             cli,
@@ -1771,7 +2276,9 @@ class TestClaimShow:
             captured.append(request)
             return SimpleNamespace(entries=())
 
-        monkeypatch.setattr(claim_display_cli, "list_claim_views", fake_list_claim_views)
+        monkeypatch.setattr(
+            claim_display_cli, "list_claim_views", fake_list_claim_views
+        )
 
         result = CliRunner().invoke(
             cli,
@@ -1845,6 +2352,7 @@ class TestClaimShow:
 
 
 # ── world owner reports ─────────────────────────────────────────────
+
 
 class TestWorldOwnerReports:
     def test_owner_explain_reports_claim_without_stances(
@@ -1943,28 +2451,34 @@ class TestWorldOwnerReports:
         freq_workspace: Path,
     ) -> None:
         claims_dir = freq_workspace / "knowledge" / "claims"
-        _write_claim_file(claims_dir, "freq_paper.yaml", _normalize_claim_concept_refs({
-            "source": {"paper": "freq_paper"},
-            "claims": [
+        _write_claim_file(
+            claims_dir,
+            "freq_paper.yaml",
+            _normalize_claim_concept_refs(
                 {
-                    "id": "freq_claim1",
-                    "type": "parameter",
-                    "concept": "concept1",
-                    "value": 0.2,
-                    "unit": "kHz",
-                    "stances": [{"type": "rebuts", "target": "freq_claim2"}],
-                    "provenance": {"paper": "freq_paper", "page": 1},
-                },
-                {
-                    "id": "freq_claim2",
-                    "type": "parameter",
-                    "concept": "concept1",
-                    "value": 0.18,
-                    "unit": "kHz",
-                    "provenance": {"paper": "freq_paper", "page": 2},
-                },
-            ],
-        }))
+                    "source": {"paper": "freq_paper"},
+                    "claims": [
+                        {
+                            "id": "freq_claim1",
+                            "type": "parameter",
+                            "concept": "concept1",
+                            "value": 0.2,
+                            "unit": "kHz",
+                            "stances": [{"type": "rebuts", "target": "freq_claim2"}],
+                            "provenance": {"paper": "freq_paper", "page": 1},
+                        },
+                        {
+                            "id": "freq_claim2",
+                            "type": "parameter",
+                            "concept": "concept1",
+                            "value": 0.18,
+                            "unit": "kHz",
+                            "provenance": {"paper": "freq_paper", "page": 2},
+                        },
+                    ],
+                }
+            ),
+        )
         _commit_workspace_paths(
             freq_workspace,
             ["claims/freq_paper.yaml"],
@@ -1989,7 +2503,13 @@ class TestWorldOwnerReports:
             (["world", "algorithms"], "algorithms"),
             (["world", "derive", "speech:fundamental_frequency"], "concept_id"),
             (
-                ["world", "resolve", "speech:fundamental_frequency", "--strategy", "recency"],
+                [
+                    "world",
+                    "resolve",
+                    "speech:fundamental_frequency",
+                    "--strategy",
+                    "recency",
+                ],
                 "concept_display_id",
             ),
             (["world", "chain", "speech:fundamental_frequency"], "target"),
@@ -2222,6 +2742,7 @@ class TestWorldOwnerReports:
 
 # ── world query/bind SI values ──────────────────────────────────────
 
+
 class TestWorldQuerySIValues:
     def test_world_query_shows_si_value(self, freq_workspace: Path) -> None:
         runner = CliRunner()
@@ -2282,15 +2803,46 @@ class TestWorldCommandsKeepConnectionOpen:
     @pytest.mark.parametrize(
         ("args", "expected_substrings"),
         [
-            (["world", "resolve", "speech:fundamental_frequency", "--strategy", "recency"], ["speech:fundamental_frequency: determined"]),
-            (["world", "derive", "speech:fundamental_frequency"], [": no_relationship"]),
-            (["world", "chain", "speech:fundamental_frequency"], ["Target: speech:fundamental_frequency (fundamental_frequency)", "Result: determined", "0.2 (claim)"]),
-            (["world", "extensions", "--semantics", "grounded"], ["Backend: claim_graph", "Accepted (1 claims):"]),
-            (["world", "hypothetical", "--remove", "freq_paper:freq_claim1"], ["speech:fundamental_frequency:", "no_claims"]),
+            (
+                [
+                    "world",
+                    "resolve",
+                    "speech:fundamental_frequency",
+                    "--strategy",
+                    "recency",
+                ],
+                ["speech:fundamental_frequency: determined"],
+            ),
+            (
+                ["world", "derive", "speech:fundamental_frequency"],
+                [": no_relationship"],
+            ),
+            (
+                ["world", "chain", "speech:fundamental_frequency"],
+                [
+                    "Target: speech:fundamental_frequency (fundamental_frequency)",
+                    "Result: determined",
+                    "0.2 (claim)",
+                ],
+            ),
+            (
+                ["world", "extensions", "--semantics", "grounded"],
+                ["Backend: claim_graph", "Accepted (1 claims):"],
+            ),
+            (
+                ["world", "hypothetical", "--remove", "freq_paper:freq_claim1"],
+                ["speech:fundamental_frequency:", "no_claims"],
+            ),
             (["world", "export-graph", "--format", "json"], ['"nodes"', '"edges"']),
             (["world", "check-consistency"], ["No conflicts under current bindings."]),
-            (["world", "check-consistency", "--transitive"], ["No transitive conflicts found."]),
-            (["world", "sensitivity", "speech:fundamental_frequency"], ["No sensitivity analysis available for "]),
+            (
+                ["world", "check-consistency", "--transitive"],
+                ["No transitive conflicts found."],
+            ),
+            (
+                ["world", "sensitivity", "speech:fundamental_frequency"],
+                ["No sensitivity analysis available for "],
+            ),
         ],
     )
     def test_world_commands_do_not_use_closed_world_model(
@@ -2361,7 +2913,9 @@ class TestWorldHypotheticalCli:
         from propstore.cli.world.analysis import _parse_hypothetical_add
 
         with pytest.raises(click.ClickException) as exc_info:
-            _parse_hypothetical_add('{"id": "synthetic_claim"\n "concept_id": "speech:frequency"}')
+            _parse_hypothetical_add(
+                '{"id": "synthetic_claim"\n "concept_id": "speech:frequency"}'
+            )
 
         message = str(exc_info.value)
         assert "invalid --add JSON" in message
@@ -2419,7 +2973,9 @@ class TestSourceProposalCli:
 
 
 class TestWorldFragilityInterventions:
-    def test_world_fragility_json_uses_interventions_key(self, freq_workspace: Path) -> None:
+    def test_world_fragility_json_uses_interventions_key(
+        self, freq_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(
             cli,
@@ -2441,7 +2997,9 @@ class TestWorldFragilityInterventions:
         assert '"analysis_scope"' in result.output
         assert '"targets"' not in result.output
 
-    def test_world_fragility_text_uses_intervention_header(self, freq_workspace: Path) -> None:
+    def test_world_fragility_text_uses_intervention_header(
+        self, freq_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(
             cli,
@@ -2482,13 +3040,17 @@ class TestWorldFragilityInterventions:
 
 # ── form show — unit conversions ─────────────────────────────────────
 
+
 class TestFormShowConversions:
     """Tests for unit conversion display in `pks form show`."""
 
-    def _write_form_with_conversions(self, workspace: Path, name: str, data: dict) -> None:
+    def _write_form_with_conversions(
+        self, workspace: Path, name: str, data: dict
+    ) -> None:
         forms_dir = workspace / "knowledge" / "forms"
         (forms_dir / f"{name}.yaml").write_text(
-            yaml.dump(data, default_flow_style=False, sort_keys=False))
+            yaml.dump(data, default_flow_style=False, sort_keys=False)
+        )
         _commit_workspace_paths(
             workspace,
             [f"forms/{name}.yaml"],
@@ -2496,34 +3058,44 @@ class TestFormShowConversions:
         )
 
     def test_form_show_displays_conversions(self, workspace: Path) -> None:
-        self._write_form_with_conversions(workspace, "frequency", {
-            "name": "frequency",
-            "kind": "quantity",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-            "dimensions": {"T": -1},
-            "common_alternatives": [
-                {"unit": "kHz", "type": "multiplicative", "multiplier": 1000},
-                {"unit": "MHz", "type": "multiplicative", "multiplier": 1000000},
-            ],
-        })
+        self._write_form_with_conversions(
+            workspace,
+            "frequency",
+            {
+                "name": "frequency",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+                "dimensions": {"T": -1},
+                "common_alternatives": [
+                    {"unit": "kHz", "type": "multiplicative", "multiplier": 1000},
+                    {"unit": "MHz", "type": "multiplicative", "multiplier": 1000000},
+                ],
+            },
+        )
         runner = CliRunner()
         result = runner.invoke(cli, ["form", "show", "frequency"])
         assert result.exit_code == 0, result.output
         assert "Unit Conversions" in result.output
         assert "kHz" in result.output
 
-    def test_owner_form_show_reports_yaml_and_conversions(self, workspace: Path) -> None:
-        self._write_form_with_conversions(workspace, "frequency", {
-            "name": "frequency",
-            "kind": "quantity",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-            "dimensions": {"T": -1},
-            "common_alternatives": [
-                {"unit": "kHz", "type": "multiplicative", "multiplier": 1000},
-            ],
-        })
+    def test_owner_form_show_reports_yaml_and_conversions(
+        self, workspace: Path
+    ) -> None:
+        self._write_form_with_conversions(
+            workspace,
+            "frequency",
+            {
+                "name": "frequency",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+                "dimensions": {"T": -1},
+                "common_alternatives": [
+                    {"unit": "kHz", "type": "multiplicative", "multiplier": 1000},
+                ],
+            },
+        )
         repo = Repository.find(workspace)
 
         report = show_form(repo, "frequency")
@@ -2539,17 +3111,31 @@ class TestFormShowConversions:
         assert "Unit Conversions" not in result.output
 
     def test_form_show_affine_conversion(self, workspace: Path) -> None:
-        self._write_form_with_conversions(workspace, "temperature", {
-            "name": "temperature",
-            "kind": "quantity",
-            "dimensionless": False,
-            "unit_symbol": "K",
-            "dimensions": {"\u0398": 1},
-            "common_alternatives": [
-                {"unit": "\u00b0C", "type": "affine", "multiplier": 1.0, "offset": 273.15},
-                {"unit": "\u00b0F", "type": "affine", "multiplier": 0.5556, "offset": 255.372},
-            ],
-        })
+        self._write_form_with_conversions(
+            workspace,
+            "temperature",
+            {
+                "name": "temperature",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "K",
+                "dimensions": {"\u0398": 1},
+                "common_alternatives": [
+                    {
+                        "unit": "\u00b0C",
+                        "type": "affine",
+                        "multiplier": 1.0,
+                        "offset": 273.15,
+                    },
+                    {
+                        "unit": "\u00b0F",
+                        "type": "affine",
+                        "multiplier": 0.5556,
+                        "offset": 255.372,
+                    },
+                ],
+            },
+        )
         runner = CliRunner()
         result = runner.invoke(cli, ["form", "show", "temperature"])
         assert result.exit_code == 0, result.output
@@ -2559,16 +3145,26 @@ class TestFormShowConversions:
         assert "affine" in result.output
 
     def test_form_show_logarithmic_conversion(self, workspace: Path) -> None:
-        self._write_form_with_conversions(workspace, "sound_pressure_level", {
-            "name": "sound_pressure_level",
-            "kind": "quantity",
-            "dimensionless": False,
-            "unit_symbol": "Pa",
-            "dimensions": {"M": 1, "L": -1, "T": -2},
-            "common_alternatives": [
-                {"unit": "dB_SPL", "type": "logarithmic", "base": 10, "divisor": 20, "reference": 0.00002},
-            ],
-        })
+        self._write_form_with_conversions(
+            workspace,
+            "sound_pressure_level",
+            {
+                "name": "sound_pressure_level",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "Pa",
+                "dimensions": {"M": 1, "L": -1, "T": -2},
+                "common_alternatives": [
+                    {
+                        "unit": "dB_SPL",
+                        "type": "logarithmic",
+                        "base": 10,
+                        "divisor": 20,
+                        "reference": 0.00002,
+                    },
+                ],
+            },
+        )
         runner = CliRunner()
         result = runner.invoke(cli, ["form", "show", "sound_pressure_level"])
         assert result.exit_code == 0, result.output
@@ -2580,6 +3176,7 @@ class TestFormShowConversions:
 
 
 # ── Promote command (F17) ────────────────────────────────────────────
+
 
 class TestProposalPromoteCommandExists:
     """Bug F17: There is no 'pks proposal promote' command to move proposal artifacts

@@ -16,9 +16,7 @@ from tests.family_helpers import world_query_from_sqlite_path
 # ── test fixture helpers ─────────────────────────────────────────────
 
 
-def _insert_claim_row(
-    conn: Connection, claim_id: str, seq: int
-) -> None:
+def _insert_claim_row(conn: Connection, claim_id: str, seq: int) -> None:
     """Insert a claim_core row with a matching ``test:<id>`` logical id.
 
     Mirrors the claim_core shape the fallback scans: ``primary_logical_id``

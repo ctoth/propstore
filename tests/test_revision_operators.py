@@ -13,10 +13,15 @@ from tests.support_revision.formal_realization_helpers import (
     expand_via_formal_decision,
     revise_via_formal_decision,
 )
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
+from tests.support_revision.revision_assertion_helpers import (
+    make_assertion_atom,
+    make_assumption_atom,
+)
 
 
-def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport, dict[str, str]]:
+def _base_with_shared_support() -> tuple[
+    BeliefBase, EntrenchmentReport, dict[str, str]
+]:
     legacy = make_assertion_atom("legacy")
     dependent = make_assertion_atom("dependent")
     independent = make_assertion_atom("independent")
@@ -70,7 +75,9 @@ def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport, dict[st
 def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() -> None:
     base, entrenchment, ids = _base_with_shared_support()
 
-    result = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
 
     assert result.incision_set == ("assumption:shared_weak",)
     assert "assumption:shared_weak" in result.rejected_atom_ids
@@ -79,7 +86,9 @@ def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() ->
     assert ids["independent"] in result.accepted_atom_ids
     assert result.explanation[ids["legacy"]].reason == "support_lost"
     assert result.explanation[ids["dependent"]].reason == "support_lost"
-    assert result.explanation[ids["dependent"]].incision_set == ("assumption:shared_weak",)
+    assert result.explanation[ids["dependent"]].incision_set == (
+        "assumption:shared_weak",
+    )
 
 
 def test_contract_uses_computed_entrenchment_order_for_equal_size_cuts() -> None:
@@ -118,9 +127,9 @@ def test_contract_uses_computed_entrenchment_order_for_equal_size_cuts() -> None
         max_candidates=8,
     )
 
-    assert entrenchment.ranked_atom_ids.index("assumption:z_strong") < entrenchment.ranked_atom_ids.index(
-        "assumption:a_weak"
-    )
+    assert entrenchment.ranked_atom_ids.index(
+        "assumption:z_strong"
+    ) < entrenchment.ranked_atom_ids.index("assumption:a_weak")
     assert incision_set == ("assumption:a_weak",)
 
 
@@ -210,7 +219,9 @@ def test_expand_rejects_synthetic_claim_mapping_adapter() -> None:
     base, _, _ = _base_with_shared_support()
 
     try:
-        expand_via_formal_decision(base, {"kind": "claim", "id": "new_from_adapter", "value": 9.0})
+        expand_via_formal_decision(
+            base, {"kind": "claim", "id": "new_from_adapter", "value": 9.0}
+        )
     except ValueError as exc:
         assert "Assertion revision input requires an AssertionAtom" in str(exc)
     else:
@@ -237,7 +248,9 @@ def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
     base, _, _ = _base_with_shared_support()
 
     stabilized = stabilize_belief_base(base, incision_set=("assumption:shared_weak",))
-    rerun = stabilize_belief_base(stabilized.revised_base, incision_set=stabilized.incision_set)
+    rerun = stabilize_belief_base(
+        stabilized.revised_base, incision_set=stabilized.incision_set
+    )
 
     assert tuple(atom.atom_id for atom in stabilized.revised_base.atoms) == tuple(
         atom.atom_id for atom in rerun.revised_base.atoms
@@ -250,7 +263,9 @@ def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> Non
 
     base, entrenchment, ids = _base_with_shared_support()
 
-    contracted = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    contracted = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
     stabilized = stabilize_belief_base(base, incision_set=contracted.incision_set)
 
     assert contracted.accepted_atom_ids == stabilized.accepted_atom_ids

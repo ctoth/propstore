@@ -8,6 +8,7 @@ The base lookup table is shipped as propstore/_resources/physgen_units.json,
 generated from physgen's ISO 80000 physics.yml. Domain-specific units
 come from form YAML files via extra_units and register_form_units().
 """
+
 from __future__ import annotations
 
 import json
@@ -69,6 +70,7 @@ def register_form_units(forms_dir: Path) -> None:
 
 
 # ── Public API ───────────────────────────────────────────────────────
+
 
 def resolve_unit_dimensions(unit: str) -> Dimensions | None:
     """Resolve a unit string to its SI dimensions.

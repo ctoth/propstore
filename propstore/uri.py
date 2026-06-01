@@ -14,7 +14,9 @@ NI_SHA256_PREFIX = "ni:///sha-256;"
 
 
 def normalize_uri_token(value: str) -> str:
-    cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in value.strip())
+    cleaned = "".join(
+        ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in value.strip()
+    )
     cleaned = cleaned.strip("._-")
     return cleaned or "item"
 

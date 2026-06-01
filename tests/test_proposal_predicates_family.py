@@ -18,7 +18,9 @@ def test_proposal_predicates_family_is_registered(tmp_path) -> None:
     ref = PredicateProposalRef("Ioannidis_2005_WhyMostPublishedResearch")
 
     assert repo.families.proposal_predicates.family is (
-        PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.PROPOSAL_PREDICATES).artifact_family
+        PROPSTORE_FAMILY_REGISTRY.by_key(
+            PropstoreFamily.PROPOSAL_PREDICATES
+        ).artifact_family
     )
     assert repo.families.proposal_predicates.address(ref).require_path() == (
         "predicates/Ioannidis_2005_WhyMostPublishedResearch/declarations.yaml"
@@ -90,7 +92,9 @@ def test_predicate_arg_type_closed_set_rejects_unknown_tag() -> None:
 @given(
     name=st.from_regex(r"[a-z_][a-z0-9_]{0,20}", fullmatch=True),
     arg_types=st.lists(
-        st.sampled_from(("paper_id", "int", "float", "str", "bool", "enum:hot|warm|cold")),
+        st.sampled_from(
+            ("paper_id", "int", "float", "str", "bool", "enum:hot|warm|cold")
+        ),
         min_size=0,
         max_size=4,
     ),

@@ -21,7 +21,7 @@ from propstore.core.conditions import check_condition_ir
         (r'"café"', "café"),
         (r'"\x4A"', "J"),
         (r'"\000\012\177"', "\x00\n\x7f"),
-        (r'"\U0001F62C"', "\U0001F62C"),
+        (r'"\U0001F62C"', "\U0001f62c"),
     ],
 )
 def test_cel_string_escape_sequences(expr: str, expected: str) -> None:
@@ -71,7 +71,7 @@ _ESCAPE_CASES = (
     (r"é", "é"),
     (r"\x4A", "J"),
     (r"\000", "\x00"),
-    (r"\U0001F62C", "\U0001F62C"),
+    (r"\U0001F62C", "\U0001f62c"),
 )
 
 

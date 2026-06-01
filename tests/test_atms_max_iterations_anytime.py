@@ -28,7 +28,4 @@ def test_ws_i_atms_build_max_iterations_returns_partial_state(
 
     assert engine.fixpoint_reached is False
     assert engine.iterations_run == 2
-    assert engine.warnings == (
-        "ATMS build stopped before fixpoint after 2 iterations",
-    )
-
+    assert engine.warnings == ("ATMS build stopped before fixpoint after 2 iterations",)

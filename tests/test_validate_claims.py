@@ -43,7 +43,9 @@ def _rewrite_claim_concept_refs(claim: dict) -> dict:
     concepts = rewritten.get("concepts")
     if isinstance(concepts, list):
         rewritten["concepts"] = [
-            _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+            _concept_artifact(value)
+            if isinstance(value, str) and value.startswith("concept")
+            else value
             for value in concepts
         ]
 
@@ -74,6 +76,8 @@ def _rewrite_claim_concept_refs(claim: dict) -> dict:
             rewritten["parameters"].append(parameter_copy)
 
     return rewritten
+
+
 from tests.conftest import (
     TEST_CONTEXT_ID,
     attach_claim_version_id,
@@ -107,7 +111,9 @@ def write_single_claim_artifact(claims_dir, filename, data):
         data=data,
         knowledge_root=claims_dir,
     )
-    path.write_text(yaml.dump(document_to_payload(loaded.document), default_flow_style=False))
+    path.write_text(
+        yaml.dump(document_to_payload(loaded.document), default_flow_style=False)
+    )
     return path
 
 
@@ -137,7 +143,9 @@ def make_observation_claim(id, statement, concepts, page=1, **kwargs):
         "type": "observation",
         "statement": statement,
         "concepts": [
-            _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+            _concept_artifact(value)
+            if isinstance(value, str) and value.startswith("concept")
+            else value
             for value in concepts
         ],
         "provenance": {"paper": "test_paper", "page": page},
@@ -158,11 +166,15 @@ def make_model_claim(id, name, equations, parameters, page=1, **kwargs):
             {
                 **parameter,
                 "concept": _concept_artifact(parameter["concept"])
-                if isinstance(parameter, dict) and isinstance(parameter.get("concept"), str)
+                if isinstance(parameter, dict)
+                and isinstance(parameter.get("concept"), str)
                 and parameter["concept"].startswith("concept")
-                else parameter.get("concept") if isinstance(parameter, dict) else parameter,
+                else parameter.get("concept")
+                if isinstance(parameter, dict)
+                else parameter,
             }
-            if isinstance(parameter, dict) else parameter
+            if isinstance(parameter, dict)
+            else parameter
             for parameter in parameters
         ],
         "provenance": {"paper": "test_paper", "page": page},
@@ -282,12 +294,18 @@ class TestValidClaims:
 
 class TestClaimIdErrors:
     def test_duplicate_claim_id_error(self, claims_dir):
-        data1 = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-        ], paper="paper_a")
-        data2 = make_claim_file_data([
-            make_parameter_claim("claim1", "concept2", 100.0, "Pa"),
-        ], paper="paper_b")
+        data1 = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            ],
+            paper="paper_a",
+        )
+        data2 = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept2", 100.0, "Pa"),
+            ],
+            paper="paper_b",
+        )
         write_claim_file(claims_dir, "paper_a.yaml", data1)
         write_claim_file(claims_dir, "paper_b.yaml", data2)
 
@@ -308,7 +326,9 @@ class TestClaimIdErrors:
         assert not result.ok
         assert any("format" in e.lower() for e in result.errors)
 
-    def test_source_local_artifact_code_rejected_at_canonical_boundary(self, claims_dir):
+    def test_source_local_artifact_code_rejected_at_canonical_boundary(
+        self, claims_dir
+    ):
         claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
         claim["artifact_code"] = "ps:artifact:test"
         claim["version_id"] = attach_claim_version_id(claim)["version_id"]
@@ -439,8 +459,10 @@ class TestParameterClaimErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_compilation_context())
         assert not result.ok
-        assert any("allowed units" in e.lower() or "does not match" in e.lower()
-                   for e in result.errors)
+        assert any(
+            "allowed units" in e.lower() or "does not match" in e.lower()
+            for e in result.errors
+        )
 
     def test_parameter_missing_value_error(self, claims_dir):
         claim = {
@@ -634,117 +656,139 @@ class TestModelClaimErrors:
 
 class TestStanceGraphIntegrity:
     def test_inline_stance_target_must_exist(self, claims_dir):
-        data = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-            make_parameter_claim(
-                "claim2",
-                "concept1",
-                450.0,
-                "Hz",
-                stances=[{"type": "rebuts", "target": "missing_claim"}],
-            ),
-        ])
+        data = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+                make_parameter_claim(
+                    "claim2",
+                    "concept1",
+                    450.0,
+                    "Hz",
+                    stances=[{"type": "rebuts", "target": "missing_claim"}],
+                ),
+            ]
+        )
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_compilation_context())
         assert not result.ok
-        assert any("missing_claim" in e and "stance" in e.lower() for e in result.errors)
+        assert any(
+            "missing_claim" in e and "stance" in e.lower() for e in result.errors
+        )
 
     def test_inline_stance_type_must_be_recognized(self, claims_dir):
-        data = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-            make_parameter_claim(
-                "claim2",
-                "concept1",
-                450.0,
-                "Hz",
-                stances=[{"type": "contradicts", "target": "claim1"}],
-            ),
-        ])
+        data = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+                make_parameter_claim(
+                    "claim2",
+                    "concept1",
+                    450.0,
+                    "Hz",
+                    stances=[{"type": "contradicts", "target": "claim1"}],
+                ),
+            ]
+        )
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         with pytest.raises(DocumentSchemaError, match="contradicts"):
             load_claim_files(claims_dir)
 
     def test_inline_target_justification_id_must_be_string(self, claims_dir):
-        data = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-            make_parameter_claim(
-                "claim2",
-                "concept1",
-                450.0,
-                "Hz",
-                stances=[{
-                    "type": "undercuts",
-                    "target": "claim1",
-                    "target_justification_id": 123,
-                }],
-            ),
-        ])
+        data = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+                make_parameter_claim(
+                    "claim2",
+                    "concept1",
+                    450.0,
+                    "Hz",
+                    stances=[
+                        {
+                            "type": "undercuts",
+                            "target": "claim1",
+                            "target_justification_id": 123,
+                        }
+                    ],
+                ),
+            ]
+        )
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         with pytest.raises(DocumentSchemaError, match="target_justification_id"):
             load_claim_files(claims_dir)
 
     def test_inline_conditions_differ_must_be_string(self, claims_dir):
-        data = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-            make_parameter_claim(
-                "claim2",
-                "concept1",
-                450.0,
-                "Hz",
-                stances=[{
-                    "type": "supports",
-                    "target": "claim1",
-                    "conditions_differ": ["vowel = /a/"],
-                }],
-            ),
-        ])
+        data = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+                make_parameter_claim(
+                    "claim2",
+                    "concept1",
+                    450.0,
+                    "Hz",
+                    stances=[
+                        {
+                            "type": "supports",
+                            "target": "claim1",
+                            "conditions_differ": ["vowel = /a/"],
+                        }
+                    ],
+                ),
+            ]
+        )
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         with pytest.raises(DocumentSchemaError, match="conditions_differ"):
             load_claim_files(claims_dir)
 
     def test_inline_resolution_must_be_mapping(self, claims_dir):
-        data = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-            make_parameter_claim(
-                "claim2",
-                "concept1",
-                450.0,
-                "Hz",
-                stances=[{
-                    "type": "supports",
-                    "target": "claim1",
-                    "resolution": ["nli_first_pass"],
-                }],
-            ),
-        ])
+        data = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+                make_parameter_claim(
+                    "claim2",
+                    "concept1",
+                    450.0,
+                    "Hz",
+                    stances=[
+                        {
+                            "type": "supports",
+                            "target": "claim1",
+                            "resolution": ["nli_first_pass"],
+                        }
+                    ],
+                ),
+            ]
+        )
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         with pytest.raises(DocumentSchemaError, match="resolution"):
             load_claim_files(claims_dir)
 
     def test_inline_resolution_method_required(self, claims_dir):
-        data = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-            make_parameter_claim(
-                "claim2",
-                "concept1",
-                450.0,
-                "Hz",
-                stances=[{
-                    "type": "supports",
-                    "target": "claim1",
-                    "resolution": {
-                        "model": "test-model",
-                        "confidence": 0.9,
-                    },
-                }],
-            ),
-        ])
+        data = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+                make_parameter_claim(
+                    "claim2",
+                    "concept1",
+                    450.0,
+                    "Hz",
+                    stances=[
+                        {
+                            "type": "supports",
+                            "target": "claim1",
+                            "resolution": {
+                                "model": "test-model",
+                                "confidence": 0.9,
+                            },
+                        }
+                    ],
+                ),
+            ]
+        )
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         with pytest.raises(DocumentSchemaError, match="method"):
@@ -885,7 +929,10 @@ class TestCelErrors:
         }
 
         claim = make_parameter_claim(
-            "claim1", "concept1", 440.0, "Hz",
+            "claim1",
+            "concept1",
+            440.0,
+            "Hz",
             conditions=["focalization == 'internal'"],
         )
         data = make_claim_file_data([claim])
@@ -894,12 +941,17 @@ class TestCelErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_compilation_context(registry))
         assert not result.ok
-        assert any("cel" in e.lower() or "structural" in e.lower() for e in result.errors)
+        assert any(
+            "cel" in e.lower() or "structural" in e.lower() for e in result.errors
+        )
 
     def test_cel_undefined_concept_in_conditions(self, claims_dir):
         """CEL referencing undefined concept should produce an error."""
         claim = make_parameter_claim(
-            "claim1", "concept1", 440.0, "Hz",
+            "claim1",
+            "concept1",
+            440.0,
+            "Hz",
             conditions=["nonexistent_concept > 5"],
         )
         data = make_claim_file_data([claim])
@@ -908,7 +960,9 @@ class TestCelErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_compilation_context())
         assert not result.ok
-        assert any("cel" in e.lower() or "undefined" in e.lower() for e in result.errors)
+        assert any(
+            "cel" in e.lower() or "undefined" in e.lower() for e in result.errors
+        )
 
 
 # ── Hypothesis property test ─────────────────────────────────────────
@@ -922,13 +976,16 @@ from hypothesis import given, strategies as st, settings
 @pytest.mark.property
 @given(
     claim_id_num=st.integers(min_value=0, max_value=9999),
-    value=st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False),
+    value=st.floats(
+        min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False
+    ),
     page=st.integers(min_value=1, max_value=1000),
 )
 @settings()
 def test_valid_claims_always_pass(claim_id_num, value, page):
     """Property: any parameter claim with all required fields and valid concept refs should pass."""
     import pathlib
+
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = pathlib.Path(tmpdir)
         claim_id = f"claim{claim_id_num}"
@@ -1212,10 +1269,16 @@ class TestMeasurementClaimValidation:
         result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    @pytest.mark.parametrize("measure", [
-        "jnd_absolute", "jnd_relative", "discrimination_threshold",
-        "preference_rating", "detection_threshold",
-    ])
+    @pytest.mark.parametrize(
+        "measure",
+        [
+            "jnd_absolute",
+            "jnd_relative",
+            "discrimination_threshold",
+            "preference_rating",
+            "detection_threshold",
+        ],
+    )
     def test_valid_measure_types(self, claims_dir, measure):
         """All valid measure types should validate."""
         claim = {
@@ -1250,34 +1313,90 @@ class TestFormAwareUnitValidation:
         repo = Repository.init(knowledge)
 
         import yaml as _yaml
+
         forms = {
-            "forms/frequency.yaml": {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz",
-                                      "dimensions": {"T": -1}},
-            "forms/pressure.yaml": {"name": "pressure", "dimensionless": False, "unit_symbol": "Pa",
-                                     "dimensions": {"M": 1, "L": -1, "T": -2},
-                                     "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
-            "forms/duration_ratio.yaml": {"name": "duration_ratio", "dimensionless": True, "base": "ratio",
-                                           "dimensions": {},
-                                           "parameters": {"numerator": "duration", "denominator": "duration"}},
-            "forms/level.yaml": {"name": "level", "dimensionless": True, "unit_symbol": "dB",
-                                  "dimensions": {},
-                                  "parameters": {"scale": "dB", "reference": None}},
-            "forms/category.yaml": {"name": "category", "dimensionless": True, "parameters": {"values": [], "extensible": False}},
+            "forms/frequency.yaml": {
+                "name": "frequency",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+                "dimensions": {"T": -1},
+            },
+            "forms/pressure.yaml": {
+                "name": "pressure",
+                "dimensionless": False,
+                "unit_symbol": "Pa",
+                "dimensions": {"M": 1, "L": -1, "T": -2},
+                "common_alternatives": [
+                    {"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}
+                ],
+            },
+            "forms/duration_ratio.yaml": {
+                "name": "duration_ratio",
+                "dimensionless": True,
+                "base": "ratio",
+                "dimensions": {},
+                "parameters": {"numerator": "duration", "denominator": "duration"},
+            },
+            "forms/level.yaml": {
+                "name": "level",
+                "dimensionless": True,
+                "unit_symbol": "dB",
+                "dimensions": {},
+                "parameters": {"scale": "dB", "reference": None},
+            },
+            "forms/category.yaml": {
+                "name": "category",
+                "dimensionless": True,
+                "parameters": {"values": [], "extensible": False},
+            },
         }
 
         concept_payloads = normalize_concept_payloads(
             [
-                {"id": "concept1", "canonical_name": "fundamental_frequency",
-                 "form": "frequency", "status": "accepted", "definition": "F0", "domain": "speech"},
-                {"id": "concept2", "canonical_name": "subglottal_pressure",
-                 "form": "pressure", "status": "accepted", "definition": "Ps", "domain": "speech"},
-                {"id": "concept3", "canonical_name": "task",
-                 "form": "category", "status": "accepted", "definition": "Task type", "domain": "speech",
-                 "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True}},
-                {"id": "concept4", "canonical_name": "open_quotient",
-                 "form": "duration_ratio", "status": "accepted", "definition": "OQ", "domain": "speech"},
-                {"id": "concept5", "canonical_name": "h1_h2_difference",
-                 "form": "level", "status": "accepted", "definition": "H1-H2", "domain": "speech"},
+                {
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "form": "frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                },
+                {
+                    "id": "concept2",
+                    "canonical_name": "subglottal_pressure",
+                    "form": "pressure",
+                    "status": "accepted",
+                    "definition": "Ps",
+                    "domain": "speech",
+                },
+                {
+                    "id": "concept3",
+                    "canonical_name": "task",
+                    "form": "category",
+                    "status": "accepted",
+                    "definition": "Task type",
+                    "domain": "speech",
+                    "form_parameters": {
+                        "values": ["speech", "singing", "whisper"],
+                        "extensible": True,
+                    },
+                },
+                {
+                    "id": "concept4",
+                    "canonical_name": "open_quotient",
+                    "form": "duration_ratio",
+                    "status": "accepted",
+                    "definition": "OQ",
+                    "domain": "speech",
+                },
+                {
+                    "id": "concept5",
+                    "canonical_name": "h1_h2_difference",
+                    "form": "level",
+                    "status": "accepted",
+                    "definition": "H1-H2",
+                    "domain": "speech",
+                },
             ],
             default_domain="speech",
         )
@@ -1297,7 +1416,9 @@ class TestFormAwareUnitValidation:
         repo.git.commit_files(adds, "Seed form-aware validation fixture")
         return build_compilation_context_from_repo(repo)
 
-    def test_parameter_claim_hz_on_frequency_concept_validates(self, claims_dir, tmp_path):
+    def test_parameter_claim_hz_on_frequency_concept_validates(
+        self, claims_dir, tmp_path
+    ):
         registry = self._make_registry_with_forms(tmp_path)
         claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
         data = make_claim_file_data([claim])
@@ -1316,7 +1437,9 @@ class TestFormAwareUnitValidation:
         assert not result.ok
         assert any("unit" in e.lower() and "Pa" in e for e in result.errors)
 
-    def test_parameter_claim_ratio_on_duration_ratio_concept_validates(self, claims_dir, tmp_path):
+    def test_parameter_claim_ratio_on_duration_ratio_concept_validates(
+        self, claims_dir, tmp_path
+    ):
         registry = self._make_registry_with_forms(tmp_path)
         claim = make_parameter_claim("claim1", "concept4", 0.7, "ratio")
         data = make_claim_file_data([claim])
@@ -1325,7 +1448,9 @@ class TestFormAwareUnitValidation:
         result = validate_claims(files, registry)
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    def test_parameter_claim_percent_on_duration_ratio_concept_validates(self, claims_dir, tmp_path):
+    def test_parameter_claim_percent_on_duration_ratio_concept_validates(
+        self, claims_dir, tmp_path
+    ):
         registry = self._make_registry_with_forms(tmp_path)
         claim = make_parameter_claim("claim1", "concept4", 70.0, "%")
         data = make_claim_file_data([claim])
@@ -1334,7 +1459,9 @@ class TestFormAwareUnitValidation:
         result = validate_claims(files, registry)
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    def test_parameter_claim_hz_on_duration_ratio_concept_errors(self, claims_dir, tmp_path):
+    def test_parameter_claim_hz_on_duration_ratio_concept_errors(
+        self, claims_dir, tmp_path
+    ):
         registry = self._make_registry_with_forms(tmp_path)
         claim = make_parameter_claim("claim1", "concept4", 440.0, "Hz")
         data = make_claim_file_data([claim])
@@ -1363,7 +1490,9 @@ class TestFormAwareUnitValidation:
         assert not result.ok
         assert any("unit" in e.lower() and "Hz" in e for e in result.errors)
 
-    def test_parameter_claim_cmh2o_on_pressure_concept_validates(self, claims_dir, tmp_path):
+    def test_parameter_claim_cmh2o_on_pressure_concept_validates(
+        self, claims_dir, tmp_path
+    ):
         registry = self._make_registry_with_forms(tmp_path)
         claim = make_parameter_claim("claim1", "concept2", 5.0, "cmH2O")
         data = make_claim_file_data([claim])
@@ -1372,7 +1501,9 @@ class TestFormAwareUnitValidation:
         result = validate_claims(files, registry)
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    def test_measurement_claim_unit_not_checked_against_form(self, claims_dir, tmp_path):
+    def test_measurement_claim_unit_not_checked_against_form(
+        self, claims_dir, tmp_path
+    ):
         """Measurement claims skip form-based unit checking."""
         registry = self._make_registry_with_forms(tmp_path)
         claim = {
@@ -1390,7 +1521,9 @@ class TestFormAwareUnitValidation:
         result = validate_claims(files, registry)
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    def test_parameter_claim_on_concept_without_form_definition_errors(self, claims_dir):
+    def test_parameter_claim_on_concept_without_form_definition_errors(
+        self, claims_dir
+    ):
         """Missing form metadata is a hard validation error."""
         registry = make_concept_registry()
         registry[_concept_artifact("concept1")].pop("_form_definition", None)
@@ -1439,9 +1572,11 @@ class TestEmptyClaimFiles:
         empty_data = {"source": make_source("empty_paper"), "claims": []}
         write_claim_file(claims_dir, "empty_paper.yaml", empty_data)
 
-        valid_data = make_claim_file_data([
-            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
-        ])
+        valid_data = make_claim_file_data(
+            [
+                make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            ]
+        )
         write_claim_file(claims_dir, "valid_paper.yaml", valid_data)
 
         files = load_claim_files(claims_dir)
@@ -1491,7 +1626,9 @@ class TestValidateAlgorithm:
         result = validate_claims(files, make_compilation_context())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    def test_algorithm_mapping_variables_rejected_at_document_boundary(self, claims_dir):
+    def test_algorithm_mapping_variables_rejected_at_document_boundary(
+        self, claims_dir
+    ):
         claim = make_algorithm_claim(
             "claim1",
             VALID_ALGORITHM_BODY,
@@ -1599,7 +1736,9 @@ class TestClaimIdFormat:
 
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_compilation_context())
-        id_errors = [e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()]
+        id_errors = [
+            e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()
+        ]
         assert not id_errors, f"Prefixed ID rejected: {id_errors}"
 
     def test_bare_claim_id_still_valid(self, claims_dir):
@@ -1610,7 +1749,9 @@ class TestClaimIdFormat:
 
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_compilation_context())
-        id_errors = [e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()]
+        id_errors = [
+            e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()
+        ]
         assert not id_errors, f"Bare ID rejected: {id_errors}"
 
     def test_invalid_claim_id_rejected(self, claims_dir):
@@ -1630,9 +1771,7 @@ class TestClaimIdFormat:
 
     def test_source_with_hyphens_valid(self, claims_dir):
         """Source names can contain hyphens and underscores."""
-        claim = make_parameter_claim(
-            "de-Kleer_1986:claim1", "concept1", 440.0, "Hz"
-        )
+        claim = make_parameter_claim("de-Kleer_1986:claim1", "concept1", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -1723,7 +1862,9 @@ class TestNewClaimTypes:
 
     def test_comparison_claim_valid(self, claims_dir):
         """A comparison claim with statement and concepts validates."""
-        claim = make_observation_claim("claim1", "X outperforms Y because Z", ["concept1"])
+        claim = make_observation_claim(
+            "claim1", "X outperforms Y because Z", ["concept1"]
+        )
         claim["type"] = "comparison"
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test.yaml", data)
@@ -1766,7 +1907,8 @@ class TestSympyExceptNarrowing:
                 "status": "accepted",
                 "definition": "F0",
                 "_form_definition": FormDefinition(
-                    name="frequency", kind=KindType.QUANTITY,
+                    name="frequency",
+                    kind=KindType.QUANTITY,
                     dimensions={"T": -1},
                 ),
             },
@@ -1777,7 +1919,8 @@ class TestSympyExceptNarrowing:
                 "status": "accepted",
                 "definition": "Ps",
                 "_form_definition": FormDefinition(
-                    name="pressure", kind=KindType.QUANTITY,
+                    name="pressure",
+                    kind=KindType.QUANTITY,
                     dimensions={"M": 1, "L": -1, "T": -2},
                 ),
             },
@@ -1785,7 +1928,9 @@ class TestSympyExceptNarrowing:
 
         # Equation claim with sympy that will trigger dimensional check
         claim = make_equation_claim(
-            "claim1", "F0 = Ps", sympy="Eq(F0, Ps)",
+            "claim1",
+            "F0 = Ps",
+            sympy="Eq(F0, Ps)",
             variables=[
                 {"symbol": "F0", "concept": "concept1"},
                 {"symbol": "Ps", "concept": "concept2"},
@@ -1886,8 +2031,12 @@ class TestNonNumericBounds:
 
     def test_non_numeric_lower_bound(self, claims_dir):
         claim = make_parameter_claim(
-            "claim1", "concept1", 440.0, "Hz",
-            lower_bound="abc", upper_bound=450.0,
+            "claim1",
+            "concept1",
+            440.0,
+            "Hz",
+            lower_bound="abc",
+            upper_bound=450.0,
         )
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
@@ -1897,8 +2046,12 @@ class TestNonNumericBounds:
 
     def test_non_numeric_upper_bound(self, claims_dir):
         claim = make_parameter_claim(
-            "claim1", "concept1", 440.0, "Hz",
-            lower_bound=430.0, upper_bound="not_a_number",
+            "claim1",
+            "concept1",
+            440.0,
+            "Hz",
+            lower_bound=430.0,
+            upper_bound="not_a_number",
         )
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
@@ -1908,8 +2061,12 @@ class TestNonNumericBounds:
 
     def test_non_numeric_uncertainty(self, claims_dir):
         claim = make_parameter_claim(
-            "claim1", "concept1", 440.0, "Hz",
-            uncertainty="high", uncertainty_type="std",
+            "claim1",
+            "concept1",
+            440.0,
+            "Hz",
+            uncertainty="high",
+            uncertainty_type="std",
         )
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
@@ -1919,8 +2076,12 @@ class TestNonNumericBounds:
 
     def test_numeric_string_bounds_fail_at_document_boundary(self, claims_dir):
         claim = make_parameter_claim(
-            "claim1", "concept1", 440.0, "Hz",
-            lower_bound="430.5", upper_bound="450.5",
+            "claim1",
+            "concept1",
+            440.0,
+            "Hz",
+            lower_bound="430.5",
+            upper_bound="450.5",
         )
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)

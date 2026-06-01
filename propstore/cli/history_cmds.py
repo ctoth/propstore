@@ -27,8 +27,7 @@ def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> Non
         operation = record.operation
         msg_first_line = record.message.split("\n")[0]
         emit(
-            f"  {sha_short}  {time_str}  "
-            f"[{branch}]  {operation:<22}  {msg_first_line}"
+            f"  {sha_short}  {time_str}  [{branch}]  {operation:<22}  {msg_first_line}"
         )
         parents = record.parents
         if len(parents) > 1:
@@ -53,7 +52,9 @@ def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> Non
 
 
 @click.command("log")
-@click.option("-n", "--count", default=20, show_default=True, help="Number of entries to show")
+@click.option(
+    "-n", "--count", default=20, show_default=True, help="Number of entries to show"
+)
 @click.option(
     "--branch",
     "branch_name",
@@ -70,7 +71,13 @@ def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> Non
     help="Render as human-readable text or structured YAML.",
 )
 @click.pass_context
-def log_cmd(ctx: click.Context, count: int, branch_name: str | None, show_files: bool, output_format: str) -> None:
+def log_cmd(
+    ctx: click.Context,
+    count: int,
+    branch_name: str | None,
+    show_files: bool,
+    output_format: str,
+) -> None:
     """Show knowledge repository history."""
     repo = ctx.obj["repo"]
     try:

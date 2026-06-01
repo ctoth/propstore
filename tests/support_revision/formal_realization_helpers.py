@@ -41,7 +41,10 @@ def expand_via_formal_decision(
 
 def contract_via_formal_decision(
     base: BeliefBase,
-    targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
+    targets: str
+    | BeliefAtom
+    | Mapping[str, Any]
+    | Sequence[str | BeliefAtom | Mapping[str, Any]],
     *,
     entrenchment: EntrenchmentReport,
     max_candidates: int,
@@ -88,7 +91,10 @@ def revise_via_formal_decision(
 
 def _normalize_targets(
     base: BeliefBase,
-    targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
+    targets: str
+    | BeliefAtom
+    | Mapping[str, Any]
+    | Sequence[str | BeliefAtom | Mapping[str, Any]],
 ) -> tuple[str, ...]:
     if isinstance(targets, (str, Mapping)):
         return (normalize_revision_input(base, targets).atom_id,)
@@ -96,8 +102,12 @@ def _normalize_targets(
         return ()
     if isinstance(targets, list) and len(targets) == 0:
         return ()
-    if isinstance(targets, Sequence) and not isinstance(targets, (AssertionAtom, AssumptionAtom)):
-        return tuple(normalize_revision_input(base, target).atom_id for target in targets)
+    if isinstance(targets, Sequence) and not isinstance(
+        targets, (AssertionAtom, AssumptionAtom)
+    ):
+        return tuple(
+            normalize_revision_input(base, target).atom_id for target in targets
+        )
     return (normalize_revision_input(base, targets).atom_id,)
 
 

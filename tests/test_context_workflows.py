@@ -53,7 +53,10 @@ def test_add_context_workflow_writes_structured_document(tmp_path) -> None:
     )
     items = list_context_items(repo)
 
-    expected_path = repo.root / repo.families.contexts.address(ContextRef("ctx_test")).require_path()
+    expected_path = (
+        repo.root
+        / repo.families.contexts.address(ContextRef("ctx_test")).require_path()
+    )
     assert report.created is True
     assert report.filepath == expected_path
     assert report.document.parameters == {"domain": "speech"}
@@ -134,7 +137,9 @@ def test_context_cli_add_dry_run_and_list_use_owner_reports(tmp_path) -> None:
 
     assert dry_run.exit_code == 0, dry_run.output
     assert "Would create" in dry_run.output
-    dry_path = repo.root / repo.families.contexts.address(ContextRef("ctx_dry")).require_path()
+    dry_path = (
+        repo.root / repo.families.contexts.address(ContextRef("ctx_dry")).require_path()
+    )
     assert not dry_path.exists()
     assert add.exit_code == 0, add.output
     data = _read_context_file(repo, "ctx_real")
@@ -161,7 +166,10 @@ def test_context_show_and_search_owner_reports(tmp_path) -> None:
         ContextSearchRequest(query="analyst", limit=10),
     )
 
-    expected_path = repo.root / repo.families.contexts.address(ContextRef("ctx_real")).require_path()
+    expected_path = (
+        repo.root
+        / repo.families.contexts.address(ContextRef("ctx_real")).require_path()
+    )
     assert shown.filepath == expected_path
     assert "description: Real context" in shown.rendered
     assert [item.context_id for item in searched] == ["ctx_real"]
@@ -188,7 +196,9 @@ def test_context_cli_show_and_search_use_owner_reports(tmp_path) -> None:
     runner = CliRunner()
 
     shown = runner.invoke(cli, ["-C", str(repo.root), "context", "show", "ctx_real"])
-    searched = runner.invoke(cli, ["-C", str(repo.root), "context", "search", "analyst"])
+    searched = runner.invoke(
+        cli, ["-C", str(repo.root), "context", "search", "analyst"]
+    )
 
     assert shown.exit_code == 0, shown.output
     assert "description: Real context" in shown.output
@@ -196,7 +206,9 @@ def test_context_cli_show_and_search_use_owner_reports(tmp_path) -> None:
     assert "ctx_real (analyst) — Real context" in searched.output
 
 
-def test_remove_context_blocks_referenced_artifacts_and_supports_force(tmp_path) -> None:
+def test_remove_context_blocks_referenced_artifacts_and_supports_force(
+    tmp_path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     add_context(
         repo,
@@ -260,7 +272,9 @@ def test_context_cli_remove_uses_owner_reference_checks(tmp_path) -> None:
     )
     runner = CliRunner()
 
-    blocked = runner.invoke(cli, ["-C", str(repo.root), "context", "remove", "ctx_real"])
+    blocked = runner.invoke(
+        cli, ["-C", str(repo.root), "context", "remove", "ctx_real"]
+    )
     dry_run = runner.invoke(
         cli,
         ["-C", str(repo.root), "context", "remove", "ctx_real", "--force", "--dry-run"],
@@ -518,7 +532,10 @@ def test_context_lifting_cli_crud(tmp_path) -> None:
     assert add.exit_code == 0, add.output
     assert "Added lifting rule 'lift_source_target'" in add.output
     assert listed.exit_code == 0, listed.output
-    assert "ctx_target: lift_source_target [ctx_source -> ctx_target, mode=bridge, conditions=1]" in listed.output
+    assert (
+        "ctx_target: lift_source_target [ctx_source -> ctx_target, mode=bridge, conditions=1]"
+        in listed.output
+    )
     assert shown.exit_code == 0, shown.output
     assert "justification: Bridge rule" in shown.output
     assert updated.exit_code == 0, updated.output

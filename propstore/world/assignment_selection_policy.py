@@ -38,7 +38,9 @@ def _claim_id(claim: Claim) -> ClaimId:
 def _claim_value_concept_id(claim: Claim) -> str:
     concept_id = None if claim.value_concept_id is None else str(claim.value_concept_id)
     if not isinstance(concept_id, str) or not concept_id:
-        raise KeyError("resolution requires each claim to have a non-empty value concept")
+        raise KeyError(
+            "resolution requires each claim to have a non-empty value concept"
+        )
     return concept_id
 
 
@@ -120,7 +122,9 @@ def _filtered_assignment_selection_claims(
     return filtered
 
 
-def _integrity_constraint_concept_ids(constraints: Sequence[IntegrityConstraint]) -> set[str]:
+def _integrity_constraint_concept_ids(
+    constraints: Sequence[IntegrityConstraint],
+) -> set[str]:
     return {
         concept_id
         for constraint in constraints
@@ -150,7 +154,10 @@ def _enriched_policy_integrity_constraints(
     enriched: list[IntegrityConstraint] = []
     for constraint in constraints:
         metadata = dict(constraint.metadata)
-        if constraint.kind == IntegrityConstraintKind.CEL and "registry" not in metadata:
+        if (
+            constraint.kind == IntegrityConstraintKind.CEL
+            and "registry" not in metadata
+        ):
             metadata["registry"] = cel_registry
         enriched.append(
             IntegrityConstraint(
@@ -220,12 +227,16 @@ def _compile_integrity_constraint(constraint: IntegrityConstraint) -> Constraint
                 except (TypeError, ValueError):
                     return False
                 if lower is not None:
-                    if isinstance(lower, bool) or not isinstance(lower, int | float | str):
+                    if isinstance(lower, bool) or not isinstance(
+                        lower, int | float | str
+                    ):
                         return False
                     if numeric < float(lower):
                         return False
                 if upper is not None:
-                    if isinstance(upper, bool) or not isinstance(upper, int | float | str):
+                    if isinstance(upper, bool) or not isinstance(
+                        upper, int | float | str
+                    ):
                         return False
                     if numeric > float(upper):
                         return False
@@ -243,7 +254,9 @@ def _compile_integrity_constraint(constraint: IntegrityConstraint) -> Constraint
             allowed_values_raw,
             Sequence,
         ):
-            raise TypeError("CATEGORY integrity constraint allowed_values must be a sequence")
+            raise TypeError(
+                "CATEGORY integrity constraint allowed_values must be a sequence"
+            )
         else:
             allowed_values = tuple(allowed_values_raw)
         extensible = bool(constraint.metadata.get("extensible", False))
@@ -277,7 +290,9 @@ def _compile_integrity_constraint(constraint: IntegrityConstraint) -> Constraint
     if constraint.kind == IntegrityConstraintKind.CUSTOM:
         predicate = constraint.metadata.get("predicate")
         if not callable(predicate):
-            raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
+            raise TypeError(
+                "CUSTOM integrity constraint requires callable metadata['predicate']"
+            )
 
         def _holds(assignment: Assignment) -> bool:
             return bool(predicate(_constraint_scope_values(assignment, constraint)))
@@ -300,19 +315,14 @@ def build_assignment_selection_problem(
 ) -> Problem:
     branch_weights = None if policy is None else policy.branch_weights
     merge_operator = (
-        policy.merge_operator
-        if policy is not None
-        else MergeOperator.SIGMA
+        policy.merge_operator if policy is not None else MergeOperator.SIGMA
     )
     explicit_constraints = (
         tuple()
         if policy is None
         else _enriched_policy_integrity_constraints(world, policy.integrity_constraints)
     )
-    concept_ids = {
-        _claim_value_concept_id(claim)
-        for claim in active_claims
-    }
+    concept_ids = {_claim_value_concept_id(claim) for claim in active_claims}
     concept_ids.add(target_concept_id)
     concept_ids.update(_integrity_constraint_concept_ids(explicit_constraints))
 
@@ -373,7 +383,10 @@ def resolve_assignment_selection_merge(
     policy: RenderPolicy | None = None,
 ) -> tuple[str | None, str | None]:
     if world is None:
-        return None, "assignment_selection_merge strategy requires an explicit artifact store"
+        return (
+            None,
+            "assignment_selection_merge strategy requires an explicit artifact store",
+        )
 
     filtered_claims = _filtered_assignment_selection_claims(active_claims, policy)
     if not filtered_claims:
@@ -392,12 +405,12 @@ def resolve_assignment_selection_merge(
     if not result.winners:
         return None, result.reason
 
-    target_values = {
-        winner.value_for(concept_id)
-        for winner in result.winners
-    }
+    target_values = {winner.value_for(concept_id) for winner in result.winners}
     if len(target_values) != 1:
-        return None, f"{len(result.winners)} assignment-selection merge assignments disagree on target value"
+        return (
+            None,
+            f"{len(result.winners)} assignment-selection merge assignments disagree on target value",
+        )
 
     winning_value = next(iter(target_values))
     matching_claims = [

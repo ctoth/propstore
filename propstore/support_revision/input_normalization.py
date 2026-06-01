@@ -34,7 +34,11 @@ def normalize_revision_input(
 
     kind = str(revision_input.get("kind") or "")
     if kind == "assertion":
-        assertion_id = revision_input.get("assertion_id") or revision_input.get("id") or revision_input.get("atom_id")
+        assertion_id = (
+            revision_input.get("assertion_id")
+            or revision_input.get("id")
+            or revision_input.get("atom_id")
+        )
         if not assertion_id:
             raise ValueError("Assertion revision input requires 'assertion_id' or 'id'")
         existing = _find_existing_atom(base, str(assertion_id))
@@ -45,7 +49,9 @@ def normalize_revision_input(
     if kind == "assumption":
         assumption_id = revision_input.get("assumption_id") or revision_input.get("id")
         if not assumption_id:
-            raise ValueError("Assumption revision input requires 'assumption_id' or 'id'")
+            raise ValueError(
+                "Assumption revision input requires 'assumption_id' or 'id'"
+            )
         assumption_id_text = str(assumption_id)
         atom_id = str(revision_input.get("atom_id") or f"assumption:{assumption_id}")
         return AssumptionAtom(
@@ -74,7 +80,9 @@ def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | N
     for atom in base.atoms:
         if atom.atom_id == revision_input:
             return atom
-        if is_assertion_atom(atom) and revision_input in _assertion_input_candidates(atom):
+        if is_assertion_atom(atom) and revision_input in _assertion_input_candidates(
+            atom
+        ):
             return atom
         if is_assumption_atom(atom) and atom.assumption.assumption_id == revision_input:
             return atom

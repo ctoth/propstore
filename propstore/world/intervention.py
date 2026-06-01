@@ -72,8 +72,7 @@ class InterventionWorld:
     ) -> None:
         self._base_scm = scm
         self._assignment = {
-            str(concept_id): value
-            for concept_id, value in assignment.items()
+            str(concept_id): value for concept_id, value in assignment.items()
         }
         self.scm = scm.intervene(self._assignment)
 
@@ -115,6 +114,7 @@ class InterventionWorld:
             status=ValueStatus.DERIVED,
             value=values[concept_key],
         )
+
     def diff(self) -> dict[str, InterventionDiffEntry]:
         base_values = self._base_scm.evaluate()
         post_values = self.scm.evaluate()
@@ -143,8 +143,7 @@ class ObservationWorld:
     ) -> None:
         self.scm = scm
         self._assignment = {
-            str(concept_id): value
-            for concept_id, value in assignment.items()
+            str(concept_id): value for concept_id, value in assignment.items()
         }
         values = scm.evaluate()
         for concept_id, observed_value in self._assignment.items():

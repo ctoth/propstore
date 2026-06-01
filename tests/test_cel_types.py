@@ -63,7 +63,9 @@ def test_registry_fingerprint_changes_with_condition_semantics(registry):
         category_extensible=False,
     )
 
-    assert condition_registry_fingerprint(registry) != condition_registry_fingerprint(changed)
+    assert condition_registry_fingerprint(registry) != condition_registry_fingerprint(
+        changed
+    )
 
 
 def test_checked_condition_set_normalizes_and_deduplicates(registry):
@@ -76,7 +78,9 @@ def test_checked_condition_set_normalizes_and_deduplicates(registry):
     )
 
     assert condition_set.sources == ("task == 'speech'", "x > 1")
-    assert condition_set.registry_fingerprint == condition_registry_fingerprint(registry)
+    assert condition_set.registry_fingerprint == condition_registry_fingerprint(
+        registry
+    )
 
 
 def test_checked_condition_set_rejects_mixed_registry_fingerprints(registry):

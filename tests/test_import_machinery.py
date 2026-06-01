@@ -57,7 +57,10 @@ def test_import_compiler_builds_situated_assertion_with_external_contract() -> N
     compiled = ImportCompiler().compile(form)
 
     assert str(compiled.assertion.assertion_id).startswith("ps:assertion:")
-    assert str(compiled.assertion.relation.concept_id) == "ps:concept:relation:measured-value"
+    assert (
+        str(compiled.assertion.relation.concept_id)
+        == "ps:concept:relation:measured-value"
+    )
     assert compiled.assertion.role_bindings.identity_payload() == (
         ("subject", "ps:concept:temperature"),
         ("unit", "K"),
@@ -77,7 +80,10 @@ def test_import_compiler_builds_situated_assertion_with_external_contract() -> N
     assert metadata.external_statement.statement_id == "urn:example:statement:row-7"
     assert metadata.external_inference is not None
     assert metadata.external_inference.inference_id == "urn:example:inference:row-7"
-    assert metadata.mapping_policy.policy_id == "urn:propstore:mapping-policy:non-nl-fixture"
+    assert (
+        metadata.mapping_policy.policy_id
+        == "urn:propstore:mapping-policy:non-nl-fixture"
+    )
     assert metadata.context_mapping.microtheory_id == "cyc:Microtheory:LabA"
 
 

@@ -47,8 +47,7 @@ def _coerce_json_value(value: object, *, field_name: str) -> JsonValue:
         return _coerce_json_object(value, field_name=field_name)
     if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
         return [
-            _coerce_json_value(item, field_name=f"{field_name}[]")
-            for item in value
+            _coerce_json_value(item, field_name=f"{field_name}[]") for item in value
         ]
     raise WorldlineValidationError(f"{field_name} is not JSON-serializable")
 
@@ -286,8 +285,12 @@ def diff_worldlines(
             )
         )
 
-    left_overrides = _coerce_json_object(dict(left.inputs.overrides), field_name="left overrides")
-    right_overrides = _coerce_json_object(dict(right.inputs.overrides), field_name="right overrides")
+    left_overrides = _coerce_json_object(
+        dict(left.inputs.overrides), field_name="left overrides"
+    )
+    right_overrides = _coerce_json_object(
+        dict(right.inputs.overrides), field_name="right overrides"
+    )
     if left_overrides != right_overrides:
         input_differences.append(
             WorldlineInputDifference(
@@ -311,7 +314,9 @@ def diff_worldlines(
                     left_value=left_raw,
                     left_status="absent" if left_value is None else left_value.status,
                     right_value=right_raw,
-                    right_status="absent" if right_value is None else right_value.status,
+                    right_status="absent"
+                    if right_value is None
+                    else right_value.status,
                 )
             )
 
@@ -369,8 +374,13 @@ def build_worldline_revision_dict(
 ) -> dict[str, JsonValue] | None:
     if options.operation is None:
         return None
-    if options.operation in {"expand", "revise", "iterated_revise"} and options.atom is None:
-        raise WorldlineValidationError(f"revision atom is required for {options.operation}")
+    if (
+        options.operation in {"expand", "revise", "iterated_revise"}
+        and options.atom is None
+    ):
+        raise WorldlineValidationError(
+            f"revision atom is required for {options.operation}"
+        )
     if options.operation == "contract" and options.target is None:
         raise WorldlineValidationError("revision target is required for contract")
     if options.operation == "iterated_revise" and options.operator is None:
@@ -385,8 +395,7 @@ def build_worldline_revision_dict(
         revision["target"] = options.target
     if options.conflicts:
         revision["conflicts"] = {
-            atom_id: list(targets)
-            for atom_id, targets in options.conflicts.items()
+            atom_id: list(targets) for atom_id, targets in options.conflicts.items()
         }
     if options.operator is not None:
         revision["operator"] = options.operator
@@ -488,7 +497,9 @@ def build_worldline_journal(
             journal = capture_journal(
                 bound,
                 (definition.revision,),
-                policy_payload=policy_profile_from_render_policy(definition.policy).to_dict(),
+                policy_payload=policy_profile_from_render_policy(
+                    definition.policy
+                ).to_dict(),
             )
         except ValueError as exc:
             raise WorldlineValidationError(str(exc)) from exc
@@ -510,7 +521,9 @@ def worldline_at_step(
 ) -> WorldlineAtStepReport:
     definition = load_worldline_definition(repo, request.name)
     if definition.journal is None:
-        raise WorldlineValidationError("worldline has no journal; run 'pks worldline build-journal' first")
+        raise WorldlineValidationError(
+            "worldline has no journal; run 'pks worldline build-journal' first"
+        )
     if request.step < 0:
         raise WorldlineValidationError("journal step must be non-negative")
 

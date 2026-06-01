@@ -3,7 +3,11 @@ from __future__ import annotations
 from dataclasses import replace
 
 from propstore.support_revision.dispatch import dispatch
-from propstore.support_revision.history import JournalOperator, TransitionJournal, TransitionOperation
+from propstore.support_revision.history import (
+    JournalOperator,
+    TransitionJournal,
+    TransitionOperation,
+)
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from tests.support_revision.formal_realization_helpers import revise_via_formal_decision

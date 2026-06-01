@@ -10,7 +10,9 @@ from propstore.core.graph_types import label_from_dict, label_to_dict
 from propstore.core.labels import Label
 
 
-def _pairs_from_iterable(metadata: tuple[tuple[str, object], ...]) -> list[tuple[str, object]]:
+def _pairs_from_iterable(
+    metadata: tuple[tuple[str, object], ...],
+) -> list[tuple[str, object]]:
     pairs: list[tuple[str, object]] = []
     for key, value in metadata:
         pairs.append((str(key), value))
@@ -42,9 +44,15 @@ class ExtensionResult:
     undecided_claim_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_claim_ids", _normalize_strings(self.accepted_claim_ids))
-        object.__setattr__(self, "rejected_claim_ids", _normalize_strings(self.rejected_claim_ids))
-        object.__setattr__(self, "undecided_claim_ids", _normalize_strings(self.undecided_claim_ids))
+        object.__setattr__(
+            self, "accepted_claim_ids", _normalize_strings(self.accepted_claim_ids)
+        )
+        object.__setattr__(
+            self, "rejected_claim_ids", _normalize_strings(self.rejected_claim_ids)
+        )
+        object.__setattr__(
+            self, "undecided_claim_ids", _normalize_strings(self.undecided_claim_ids)
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -71,9 +79,15 @@ class ClaimProjection:
     witness_claim_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target_claim_ids", _normalize_strings(self.target_claim_ids))
-        object.__setattr__(self, "survivor_claim_ids", _normalize_strings(self.survivor_claim_ids))
-        object.__setattr__(self, "witness_claim_ids", _normalize_strings(self.witness_claim_ids))
+        object.__setattr__(
+            self, "target_claim_ids", _normalize_strings(self.target_claim_ids)
+        )
+        object.__setattr__(
+            self, "survivor_claim_ids", _normalize_strings(self.survivor_claim_ids)
+        )
+        object.__setattr__(
+            self, "witness_claim_ids", _normalize_strings(self.witness_claim_ids)
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {

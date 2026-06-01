@@ -15,7 +15,9 @@ from propstore.repository import Repository
 from propstore.source import init_source_branch
 
 
-def _source(repo: Repository, name: str, metadata: dict[str, object] | None = None) -> None:
+def _source(
+    repo: Repository, name: str, metadata: dict[str, object] | None = None
+) -> None:
     init_source_branch(
         repo,
         name,
@@ -31,7 +33,9 @@ def _source(repo: Repository, name: str, metadata: dict[str, object] | None = No
         )
 
 
-def test_calibrate_source_trust_uses_stubbed_argumentation_rules(tmp_path: Path) -> None:
+def test_calibrate_source_trust_uses_stubbed_argumentation_rules(
+    tmp_path: Path,
+) -> None:
     from propstore.source_trust_argumentation import (
         RuleFiring,
         SourceTrustResult,
@@ -83,8 +87,12 @@ def test_calibrate_source_trust_uses_stubbed_argumentation_rules(tmp_path: Path)
     domain=st.sampled_from(["psychology", "medicine", "economics"]),
     replication=st.sampled_from(["direct", "conceptual"]),
     effect=st.sampled_from(["support", "attack"]),
-    weight=st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False),
-    base_rate=st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False),
+    weight=st.floats(
+        min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False
+    ),
+    base_rate=st.floats(
+        min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False
+    ),
 )
 @settings(max_examples=32)
 def test_generated_source_trust_rules_emit_provenanced_argumentation_output(

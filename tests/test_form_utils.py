@@ -320,10 +320,14 @@ class TestFormCacheClearing:
         forms_b.mkdir(parents=True)
 
         (forms_a / "frequency.yaml").write_text(
-            yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"})
+            yaml.dump(
+                {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"}
+            )
         )
         (forms_b / "frequency.yaml").write_text(
-            yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "kHz"})
+            yaml.dump(
+                {"name": "frequency", "dimensionless": False, "unit_symbol": "kHz"}
+            )
         )
 
         fd_a = load_form_path(FilesystemKnowledgePath(forms_a), "frequency")

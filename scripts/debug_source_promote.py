@@ -36,26 +36,46 @@ def main() -> None:
 
     commands = [
         [
-            "-C", str(repo.root),
-            "source", "init", "demo",
-            "--kind", "academic_paper",
-            "--origin-type", "manual", "--origin-value", "demo",
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            "demo",
         ],
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--name", "test_concept",
-            "--definition", "A test concept",
-            "--form", "category",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "test_concept",
+            "--definition",
+            "A test concept",
+            "--form",
+            "category",
         ],
         [
-            "-C", str(repo.root),
-            "source", "add-claim", "demo",
-            "--batch", str(claims_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
         ],
         [
-            "-C", str(repo.root),
-            "source", "promote", "demo",
+            "-C",
+            str(repo.root),
+            "source",
+            "promote",
+            "demo",
         ],
     ]
     for command in commands:
@@ -68,7 +88,11 @@ def main() -> None:
     print("branch tip:", tip)
     if tip is not None:
         try:
-            print(repo.git.read_file("merge/finalize/demo.yaml", commit=tip).decode("utf-8"))
+            print(
+                repo.git.read_file("merge/finalize/demo.yaml", commit=tip).decode(
+                    "utf-8"
+                )
+            )
         except FileNotFoundError:
             print("finalize report missing")
 

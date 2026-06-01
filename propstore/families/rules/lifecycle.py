@@ -91,7 +91,8 @@ def plan_rule_proposal_promotion(
                 source_paper=ref.source_paper,
                 rule_id=ref.rule_id,
                 source_relpath=f"{proposal_branch}:{proposal_path}",
-                target_path=repo.root / repo.families.rules.address(canonical_ref).require_path(),
+                target_path=repo.root
+                / repo.families.rules.address(canonical_ref).require_path(),
                 filename=f"{ref.rule_id}.yaml",
             )
         )
@@ -126,17 +127,18 @@ def apply_rule_proposal_promotion(
         ),
     )
     writes = tuple(
-        write
-        for item_result in batch_result.items
-        for write in item_result.plan.writes
+        write for item_result in batch_result.items for write in item_result.plan.writes
     )
 
     git = repo.git
     if git is None:
         raise ValueError("rule proposal promotion requires a git-backed repository")
-    with _RULE_MUTATION_LOCK, git.head_bound_transaction(
-        repo.require_git().primary_branch_name(),
-    ) as head_txn:
+    with (
+        _RULE_MUTATION_LOCK,
+        git.head_bound_transaction(
+            repo.require_git().primary_branch_name(),
+        ) as head_txn,
+    ):
         for write in writes:
             reject_rule_document_conflicts(
                 repo,

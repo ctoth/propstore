@@ -15,9 +15,7 @@ CONDITION_Z3_IMPORTERS = {
 
 def _production_python_files() -> tuple[Path, ...]:
     return tuple(
-        path
-        for path in sorted(PRODUCTION_ROOT.rglob("*.py"))
-        if path.exists()
+        path for path in sorted(PRODUCTION_ROOT.rglob("*.py")) if path.exists()
     )
 
 

@@ -36,7 +36,9 @@ class SemanticNeighborhoodAppError(Exception):
 
 class SemanticNeighborhoodUnsupportedFocusError(SemanticNeighborhoodAppError):
     def __init__(self, focus_kind: str) -> None:
-        super().__init__(f"Semantic neighborhoods for {focus_kind!r} are not implemented.")
+        super().__init__(
+            f"Semantic neighborhoods for {focus_kind!r} are not implemented."
+        )
         self.focus_kind = focus_kind
 
 
@@ -44,8 +46,12 @@ class SemanticNeighborhoodUnsupportedFocusError(SemanticNeighborhoodAppError):
 class SemanticNeighborhoodRequest:
     focus_kind: SemanticFocusKind
     focus_id: str
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
     limit: int = 50
 
 
@@ -191,7 +197,9 @@ def _moves(
     shared_concept_ids: tuple[str, ...],
 ) -> tuple[SemanticMove, ...]:
     conditions_cel = _claim_conditions_cel(claim)
-    has_provenance = bool(claim.source_paper or claim.source_slug or claim.provenance_json)
+    has_provenance = bool(
+        claim.source_paper or claim.source_slug or claim.provenance_json
+    )
     condition_state: SemanticState = "known" if conditions_cel else "vacuous"
     provenance_state: SemanticState = "known" if has_provenance else "unknown"
     provenance_count = 1 if has_provenance else 0
@@ -297,9 +305,13 @@ def _edges(world, stances, focus_id: str, limit: int) -> tuple[SemanticEdge, ...
         stance_type = stance.stance_type.value
         relation = _stance_sentence_verb(stance.stance_type)
         if target_id == focus_id:
-            sentence = f"Claim {source_display} {relation} the focus claim {target_display}."
+            sentence = (
+                f"Claim {source_display} {relation} the focus claim {target_display}."
+            )
         elif source_id == focus_id:
-            sentence = f"Focus claim {source_display} {relation} claim {target_display}."
+            sentence = (
+                f"Focus claim {source_display} {relation} claim {target_display}."
+            )
         else:
             sentence = f"Claim {source_display} {relation} claim {target_display}."
         edges.append(
@@ -361,7 +373,9 @@ def _rows(
             ),
         )
     )
-    has_provenance = bool(claim.source_paper or claim.source_slug or claim.provenance_json)
+    has_provenance = bool(
+        claim.source_paper or claim.source_slug or claim.provenance_json
+    )
     provenance_state: SemanticState = "known" if has_provenance else "unknown"
     rows.append(
         SemanticNeighborhoodRow(

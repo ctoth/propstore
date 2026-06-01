@@ -204,10 +204,10 @@ def _filter_preference_sensitive_stance_attacks(
             continue
 
         attacker_literal = conc(attack.attacker)
-        if (
-            (target_literal, attacker_literal) in directed_pairs
-            and (attacker_literal, target_literal) not in directed_pairs
-        ):
+        if (target_literal, attacker_literal) in directed_pairs and (
+            attacker_literal,
+            target_literal,
+        ) not in directed_pairs:
             continue
         filtered.add(attack)
 
@@ -302,7 +302,9 @@ def build_bridge_csaf(
         pref=compiled.pref,
         directed_pairs=directed_pairs,
     )
-    defeat_pairs = frozenset((attack.attacker, attack.target) for attack in defeat_attacks)
+    defeat_pairs = frozenset(
+        (attack.attacker, attack.target) for attack in defeat_attacks
+    )
 
     sorted_args = sorted(arguments, key=repr)
     arg_to_id: dict[Argument, str] = {}

@@ -147,7 +147,9 @@ def evaluate_parameterization(
             if output_sym is None:
                 output_sym = Symbol(output_concept_id)
 
-            subs_pairs = [(symbols[k], v) for k, v in effective_inputs.items() if k in symbols]
+            subs_pairs = [
+                (symbols[k], v) for k, v in effective_inputs.items() if k in symbols
+            ]
             substituted = parsed_expr.subs(subs_pairs)
             missing_symbols = substituted.free_symbols - {output_sym}
             if missing_symbols:
@@ -158,15 +160,21 @@ def evaluate_parameterization(
             solutions = solve(substituted, output_sym)
             if solutions:
                 return _numeric_result(solutions[0])
-            return ParameterizationEvaluation(ParameterizationEvaluationStatus.NO_SOLUTION)
+            return ParameterizationEvaluation(
+                ParameterizationEvaluationStatus.NO_SOLUTION
+            )
         else:
             # Bare expression — direct substitution
-            subs_pairs = [(symbols[k], v) for k, v in effective_inputs.items() if k in symbols]
+            subs_pairs = [
+                (symbols[k], v) for k, v in effective_inputs.items() if k in symbols
+            ]
             result = parsed_expr.subs(subs_pairs)
             if result.free_symbols:
                 return ParameterizationEvaluation(
                     ParameterizationEvaluationStatus.MISSING_INPUT,
-                    detail=", ".join(sorted(str(symbol) for symbol in result.free_symbols)),
+                    detail=", ".join(
+                        sorted(str(symbol) for symbol in result.free_symbols)
+                    ),
                 )
             return _numeric_result(result)
     except (TypeError, ValueError, ZeroDivisionError, AttributeError) as exc:

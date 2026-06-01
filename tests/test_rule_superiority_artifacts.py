@@ -29,10 +29,34 @@ def _declare_predicates(repo: Repository) -> None:
 
 def _declare_rules(repo: Repository) -> None:
     _declare_predicates(repo)
-    add_rule(repo, RuleAddRequest(file="test", paper="Paper", rule_id="r_a", kind="defeasible", head="a"))
-    add_rule(repo, RuleAddRequest(file="test", paper="Paper", rule_id="r_b", kind="defeasible", head="b"))
-    add_rule(repo, RuleAddRequest(file="test", paper="Paper", rule_id="r_c", kind="blocking_defeater", head="c"))
-    add_rule(repo, RuleAddRequest(file="test", paper="Paper", rule_id="r_strict", kind="strict", head="a"))
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="test", paper="Paper", rule_id="r_a", kind="defeasible", head="a"
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="test", paper="Paper", rule_id="r_b", kind="defeasible", head="b"
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="test",
+            paper="Paper",
+            rule_id="r_c",
+            kind="blocking_defeater",
+            head="c",
+        ),
+    )
+    add_rule(
+        repo,
+        RuleAddRequest(
+            file="test", paper="Paper", rule_id="r_strict", kind="strict", head="a"
+        ),
+    )
 
 
 def test_add_rule_superiority_writes_one_artifact(tmp_path) -> None:
@@ -50,7 +74,9 @@ def test_add_rule_superiority_writes_one_artifact(tmp_path) -> None:
 
     assert report.superior_rule_id == "r_b"
     assert report.inferior_rule_id == "r_a"
-    document = repo.families.rule_superiority.require(RuleSuperiorityRef("r_b__gt__r_a"))
+    document = repo.families.rule_superiority.require(
+        RuleSuperiorityRef("r_b__gt__r_a")
+    )
     assert document.superior_rule_id == "r_b"
     assert document.inferior_rule_id == "r_a"
     assert document.authoring_group == "paper-group"
@@ -62,18 +88,26 @@ def test_list_and_remove_rule_superiority_operate_on_artifacts(tmp_path) -> None
     _declare_rules(repo)
     add_rule_superiority(
         repo,
-        RuleSuperiorityAddRequest(file=None, superior_rule_id="r_c", inferior_rule_id="r_a"),
+        RuleSuperiorityAddRequest(
+            file=None, superior_rule_id="r_c", inferior_rule_id="r_a"
+        ),
     )
 
     items = list_rule_superiority(repo)
-    assert [(item.superior_rule_id, item.inferior_rule_id) for item in items] == [("r_c", "r_a")]
+    assert [(item.superior_rule_id, item.inferior_rule_id) for item in items] == [
+        ("r_c", "r_a")
+    ]
 
     report = remove_rule_superiority(
         repo,
-        RuleSuperiorityRemoveRequest(file=None, superior_rule_id="r_c", inferior_rule_id="r_a"),
+        RuleSuperiorityRemoveRequest(
+            file=None, superior_rule_id="r_c", inferior_rule_id="r_a"
+        ),
     )
     assert report.superior_rule_id == "r_c"
-    assert repo.families.rule_superiority.load(RuleSuperiorityRef("r_c__gt__r_a")) is None
+    assert (
+        repo.families.rule_superiority.load(RuleSuperiorityRef("r_c__gt__r_a")) is None
+    )
 
 
 def test_rule_superiority_rejects_unknown_and_strict_rules(tmp_path) -> None:
@@ -106,17 +140,23 @@ def test_rule_superiority_rejects_cycles_across_artifacts(tmp_path) -> None:
     _declare_rules(repo)
     add_rule_superiority(
         repo,
-        RuleSuperiorityAddRequest(file=None, superior_rule_id="r_b", inferior_rule_id="r_a"),
+        RuleSuperiorityAddRequest(
+            file=None, superior_rule_id="r_b", inferior_rule_id="r_a"
+        ),
     )
     add_rule_superiority(
         repo,
-        RuleSuperiorityAddRequest(file=None, superior_rule_id="r_c", inferior_rule_id="r_b"),
+        RuleSuperiorityAddRequest(
+            file=None, superior_rule_id="r_c", inferior_rule_id="r_b"
+        ),
     )
 
     try:
         add_rule_superiority(
             repo,
-            RuleSuperiorityAddRequest(file=None, superior_rule_id="r_a", inferior_rule_id="r_c"),
+            RuleSuperiorityAddRequest(
+                file=None, superior_rule_id="r_a", inferior_rule_id="r_c"
+            ),
         )
     except RuleWorkflowError as exc:
         assert "acyclic" in str(exc)
@@ -166,7 +206,9 @@ def test_rule_superiority_cli_add_list_remove(tmp_path) -> None:
     assert "r_b" in listed.output
     assert "r_a" in listed.output
     assert removed.exit_code == 0, removed.output
-    assert repo.families.rule_superiority.load(RuleSuperiorityRef("r_b__gt__r_a")) is None
+    assert (
+        repo.families.rule_superiority.load(RuleSuperiorityRef("r_b__gt__r_a")) is None
+    )
 
 
 def test_translate_to_theory_consumes_rule_superiority_artifacts() -> None:
@@ -189,7 +231,9 @@ def test_translate_to_theory_consumes_rule_superiority_artifacts() -> None:
         inferior_rule_id="r1",
     )
 
-    theory = translate_to_theory((generic, specific), (), PredicateRegistry(()), superiority=(superiority,))
+    theory = translate_to_theory(
+        (generic, specific), (), PredicateRegistry(()), superiority=(superiority,)
+    )
 
     assert theory.superiority == (("r2", "r1"),)
 
@@ -201,11 +245,13 @@ def test_grounding_inputs_load_rule_superiority_artifacts(tmp_path) -> None:
     _declare_rules(repo)
     add_rule_superiority(
         repo,
-        RuleSuperiorityAddRequest(file=None, superior_rule_id="r_b", inferior_rule_id="r_a"),
+        RuleSuperiorityAddRequest(
+            file=None, superior_rule_id="r_b", inferior_rule_id="r_a"
+        ),
     )
 
     inputs = load_grounding_inputs(repo)
 
-    assert [(item.superior_rule_id, item.inferior_rule_id) for item in inputs.superiority] == [
-        ("r_b", "r_a")
-    ]
+    assert [
+        (item.superior_rule_id, item.inferior_rule_id) for item in inputs.superiority
+    ] == [("r_b", "r_a")]

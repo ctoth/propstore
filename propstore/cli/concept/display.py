@@ -58,6 +58,7 @@ def search(obj: dict, query: str, fmt: str) -> None:
 
 # ── concept list ─────────────────────────────────────────────────────
 
+
 @concept.command("list")
 @click.option("--domain", default=None, help="Filter by domain")
 @click.option("--status", default=None, help="Filter by status")
@@ -124,6 +125,7 @@ def categories(obj: dict, as_json: bool, fmt: str) -> None:
 
 
 # ── concept show ─────────────────────────────────────────────────────
+
 
 @concept.command()
 @click.argument("concept_id_or_name")

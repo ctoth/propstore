@@ -76,9 +76,7 @@ def commit_merge(
     if git is None:
         raise ValueError("merge commit report requires a git-backed repository")
     claim_paths = sorted(
-        path
-        for path in git.flat_tree_entries(commit_sha)
-        if path.startswith("claims/")
+        path for path in git.flat_tree_entries(commit_sha) if path.startswith("claims/")
     )
     return MergeCommitReport(
         payload={
@@ -92,8 +90,6 @@ def commit_merge(
                 MergeManifestRef(),
             ).require_path(),
             "commit_sha": commit_sha,
-            "semantic_candidate_count": len(
-                manifest.merge.semantic_candidate_details
-            ),
+            "semantic_candidate_count": len(manifest.merge.semantic_candidate_details),
         }
     )

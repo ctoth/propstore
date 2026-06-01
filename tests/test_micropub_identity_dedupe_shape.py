@@ -74,9 +74,7 @@ def test_micropublication_compiler_dedupes_only_matching_payload_ids() -> None:
         first.artifact_id,
         changed.artifact_id,
     }
-    assert {
-        (link.micropublication_id, link.claim_id) for link in claim_links
-    } == {
+    assert {(link.micropublication_id, link.claim_id) for link in claim_links} == {
         (first.artifact_id, "ps:claim:alpha"),
         (changed.artifact_id, "ps:claim:alpha"),
     }

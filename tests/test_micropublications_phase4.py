@@ -93,38 +93,44 @@ def _init_source_with_claim(tmp_path: Path) -> Repository:
         encoding="utf-8",
     )
 
-    assert runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "init",
-            "demo",
-            "--kind",
-            "academic_paper",
-            "--origin-type",
-            "manual",
-            "--origin-value",
-            "demo",
-        ],
-    ).exit_code == 0
-    assert runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "propose-concept",
-            "demo",
-            "--concept-name",
-            "test_concept",
-            "--definition",
-            "A test concept",
-            "--form",
-            "structural",
-        ],
-    ).exit_code == 0
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "init",
+                "demo",
+                "--kind",
+                "academic_paper",
+                "--origin-type",
+                "manual",
+                "--origin-value",
+                "demo",
+            ],
+        ).exit_code
+        == 0
+    )
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "propose-concept",
+                "demo",
+                "--concept-name",
+                "test_concept",
+                "--definition",
+                "A test concept",
+                "--form",
+                "structural",
+            ],
+        ).exit_code
+        == 0
+    )
     result = runner.invoke(
         cli,
         [
@@ -147,7 +153,9 @@ def test_source_finalize_composes_claims_into_micropubs(tmp_path: Path) -> None:
     branch_tip = repo.git.branch_sha("source/demo")
     assert branch_tip is not None
     micropubs = yaml.safe_load(repo.git.read_file("micropubs.yaml", commit=branch_tip))
-    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
+    report = yaml.safe_load(
+        repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip)
+    )
 
     assert report["micropub_status"] == "complete"
     assert len(micropubs["micropublications"]) == 1
@@ -219,12 +227,16 @@ def test_micropub_cli_show_and_lift(tmp_path: Path) -> None:
         branch="master",
     )
     runner = CliRunner()
-    promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
+    promote_result = runner.invoke(
+        cli, ["-C", str(repo.root), "source", "promote", "demo"]
+    )
     assert promote_result.exit_code == 0, promote_result.output
 
     micropub_id = _single_promoted_micropub(repo).document.artifact_id
 
-    show_result = runner.invoke(cli, ["-C", str(repo.root), "micropub", "show", micropub_id])
+    show_result = runner.invoke(
+        cli, ["-C", str(repo.root), "micropub", "show", micropub_id]
+    )
     assert show_result.exit_code == 0, show_result.output
     assert "ctx_test" in show_result.output
     assert "ps:claim:" in show_result.output
@@ -263,7 +275,9 @@ def test_promoted_micropub_builds_as_atms_node(tmp_path: Path) -> None:
         branch="master",
     )
     runner = CliRunner()
-    promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
+    promote_result = runner.invoke(
+        cli, ["-C", str(repo.root), "source", "promote", "demo"]
+    )
     assert promote_result.exit_code == 0, promote_result.output
 
     micropub_id = _single_promoted_micropub(repo).document.artifact_id

@@ -24,7 +24,10 @@ def _imports_belief_set(path: Path) -> bool:
     tree = ast.parse(text, filename=str(path))
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            if any(alias.name == "belief_set" or alias.name.startswith("belief_set.") for alias in node.names):
+            if any(
+                alias.name == "belief_set" or alias.name.startswith("belief_set.")
+                for alias in node.names
+            ):
                 return True
         elif isinstance(node, ast.ImportFrom) and node.module is not None:
             if node.module == "belief_set" or node.module.startswith("belief_set."):

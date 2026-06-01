@@ -21,9 +21,7 @@ def main():
         return
 
     # Collect all existing tag directory names
-    existing_tags = sorted(
-        d.name for d in TAGGED_DIR.iterdir() if d.is_dir()
-    )
+    existing_tags = sorted(d.name for d in TAGGED_DIR.iterdir() if d.is_dir())
     print(f"Found {len(existing_tags)} existing tags")
 
     # Build canonical tag registry
@@ -50,11 +48,13 @@ def main():
     output = {"tags": tags}
     tags_path = PAPERS_DIR / "tags.yaml"
     with open(tags_path, "w", encoding="utf-8") as f:
-        yaml.dump(output, f, default_flow_style=False, sort_keys=True, allow_unicode=True)
+        yaml.dump(
+            output, f, default_flow_style=False, sort_keys=True, allow_unicode=True
+        )
 
     print(f"\nWrote {tags_path}")
     print(f"  {len(tags)} canonical tags")
-    alias_count = sum(len(v.get('aliases', [])) for v in tags.values())
+    alias_count = sum(len(v.get("aliases", [])) for v in tags.values())
     print(f"  {alias_count} aliases")
 
 

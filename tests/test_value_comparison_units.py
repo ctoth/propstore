@@ -30,7 +30,8 @@ def test_values_compatible_different_units_same_value():
     claim_b = {"value": 0.2, "unit": "kHz"}
 
     result = values_compatible(
-        None, None,
+        None,
+        None,
         claim_a=claim_a,
         claim_b=claim_b,
         forms=forms,
@@ -46,7 +47,8 @@ def test_values_compatible_different_units_different_value():
     claim_b = {"value": 0.3, "unit": "kHz"}
 
     result = values_compatible(
-        None, None,
+        None,
+        None,
         claim_a=claim_a,
         claim_b=claim_b,
         forms=forms,
@@ -62,7 +64,8 @@ def test_values_compatible_no_forms_fallback():
 
     # No forms parameter — falls back to raw numeric comparison
     result = values_compatible(
-        None, None,
+        None,
+        None,
         claim_a=claim_a,
         claim_b=claim_b,
     )

@@ -147,8 +147,7 @@ def test_relation_concept_ref_is_not_a_string_alias() -> None:
             and node.value.func.id == "NewType"
         )
         assert not (
-            isinstance(node.value, ast.Name)
-            and node.value.id in {"str", "String"}
+            isinstance(node.value, ast.Name) and node.value.id in {"str", "String"}
         )
 
 
@@ -173,10 +172,7 @@ def test_context_lifting_does_not_define_or_export_context_reference() -> None:
     tree = _context_lifting_tree()
 
     for node in ast.walk(tree):
-        assert not (
-            isinstance(node, ast.ClassDef)
-            and node.name == "ContextReference"
-        )
+        assert not (isinstance(node, ast.ClassDef) and node.name == "ContextReference")
         assert not (
             isinstance(node, ast.ImportFrom)
             and node.module == "propstore.core.assertions"
@@ -250,7 +246,9 @@ def test_checked_condition_does_not_store_old_ast_or_backend_surfaces() -> None:
     assert observed.isdisjoint(FORBIDDEN_CHECKED_CONDITION_NAMES)
 
 
-def test_provenance_named_graph_carrier_has_no_anonymous_or_assertion_identity_surface() -> None:
+def test_provenance_named_graph_carrier_has_no_anonymous_or_assertion_identity_surface() -> (
+    None
+):
     tree = _provenance_carrier_tree()
     observed: set[str] = set()
 
@@ -273,7 +271,9 @@ def test_provenance_records_do_not_store_loose_event_payload_fields() -> None:
     tree = _provenance_records_tree()
     observed_fields: set[str] = set()
 
-    for class_node in (node for node in ast.walk(tree) if isinstance(node, ast.ClassDef)):
+    for class_node in (
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
+    ):
         for node in class_node.body:
             if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
                 observed_fields.add(node.target.id)

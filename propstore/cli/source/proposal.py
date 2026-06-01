@@ -32,8 +32,17 @@ def _parse_comma_values(raw: str | None) -> tuple[str, ...]:
 @click.option("--concept-name", required=True)
 @click.option("--definition", required=True)
 @click.option("--form", "form_name", required=True)
-@click.option("--values", default=None, help="Comma-separated values (required for category concepts)")
-@click.option("--closed", is_flag=True, default=False, help="Declare category value set as exhaustive (extensible: false)")
+@click.option(
+    "--values",
+    default=None,
+    help="Comma-separated values (required for category concepts)",
+)
+@click.option(
+    "--closed",
+    is_flag=True,
+    default=False,
+    help="Declare category value set as exhaustive (extensible: false)",
+)
 @click.pass_obj
 def propose_concept(
     obj: dict,
@@ -62,9 +71,13 @@ def propose_concept(
     if report.status == "linked":
         canonical = report.linked_canonical_name or concept_name
         artifact_id = report.linked_artifact_id or ""
-        emit_success(f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})")
+        emit_success(
+            f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})"
+        )
     else:
-        emit_success(f"Proposed new concept '{concept_name}' (form: {report.form_name})")
+        emit_success(
+            f"Proposed new concept '{concept_name}' (form: {report.form_name})"
+        )
 
 
 @source.command("propose-claim")

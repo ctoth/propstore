@@ -1,4 +1,5 @@
 """Reasoning-oriented ``pks world`` command adapters."""
+
 from __future__ import annotations
 
 import json
@@ -110,38 +111,84 @@ def world_derive(
 @world.command("resolve")
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
-@click.option("--strategy", required=True,
-              type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
-@click.option("--override", "override_id", default=None, help="Claim ID for override strategy")
-@click.option("--semantics", default="grounded",
-              type=click.Choice(["grounded", "preferred", "stable"]),
-              help="Argumentation semantics (default: grounded)")
-@click.option("--set-comparison", "set_comparison", default="elitist",
-              type=click.Choice(["elitist", "democratic"]),
-              help="Set comparison for preference ordering (default: elitist)")
-@click.option("--decision-criterion", "decision_criterion", default="pignistic",
-              type=click.Choice([
-                  "pignistic",
-                  "projected_probability",
-                  "lower_bound",
-                  "upper_bound",
-                  "hurwicz",
-              ]),
-              help="Decision criterion for opinion interpretation (default: pignistic)")
-@click.option("--pessimism-index", "pessimism_index", default=0.5,
-              type=float, help="Hurwicz pessimism index α ∈ [0,1] (default: 0.5)")
-@click.option("--reasoning-backend", "reasoning_backend", default="claim_graph",
-              type=click.Choice(["claim_graph", "aspic", "atms", "praf"]),
-              help="Argumentation backend (default: claim_graph)")
-@click.option("--praf-strategy", "praf_strategy", default="auto",
-              type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
-              help="PrAF computation strategy (default: auto)")
-@click.option("--praf-epsilon", "praf_epsilon", default=0.01,
-              type=float, help="PrAF MC error tolerance (default: 0.01)")
-@click.option("--praf-confidence", "praf_confidence", default=0.95,
-              type=float, help="PrAF MC confidence level (default: 0.95)")
-@click.option("--praf-seed", "praf_seed", default=None,
-              type=int, help="PrAF MC RNG seed (default: random)")
+@click.option(
+    "--strategy",
+    required=True,
+    type=click.Choice(["recency", "sample_size", "argumentation", "override"]),
+)
+@click.option(
+    "--override", "override_id", default=None, help="Claim ID for override strategy"
+)
+@click.option(
+    "--semantics",
+    default="grounded",
+    type=click.Choice(["grounded", "preferred", "stable"]),
+    help="Argumentation semantics (default: grounded)",
+)
+@click.option(
+    "--set-comparison",
+    "set_comparison",
+    default="elitist",
+    type=click.Choice(["elitist", "democratic"]),
+    help="Set comparison for preference ordering (default: elitist)",
+)
+@click.option(
+    "--decision-criterion",
+    "decision_criterion",
+    default="pignistic",
+    type=click.Choice(
+        [
+            "pignistic",
+            "projected_probability",
+            "lower_bound",
+            "upper_bound",
+            "hurwicz",
+        ]
+    ),
+    help="Decision criterion for opinion interpretation (default: pignistic)",
+)
+@click.option(
+    "--pessimism-index",
+    "pessimism_index",
+    default=0.5,
+    type=float,
+    help="Hurwicz pessimism index α ∈ [0,1] (default: 0.5)",
+)
+@click.option(
+    "--reasoning-backend",
+    "reasoning_backend",
+    default="claim_graph",
+    type=click.Choice(["claim_graph", "aspic", "atms", "praf"]),
+    help="Argumentation backend (default: claim_graph)",
+)
+@click.option(
+    "--praf-strategy",
+    "praf_strategy",
+    default="auto",
+    type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
+    help="PrAF computation strategy (default: auto)",
+)
+@click.option(
+    "--praf-epsilon",
+    "praf_epsilon",
+    default=0.01,
+    type=float,
+    help="PrAF MC error tolerance (default: 0.01)",
+)
+@click.option(
+    "--praf-confidence",
+    "praf_confidence",
+    default=0.95,
+    type=float,
+    help="PrAF MC confidence level (default: 0.95)",
+)
+@click.option(
+    "--praf-seed",
+    "praf_seed",
+    default=None,
+    type=int,
+    help="PrAF MC RNG seed (default: random)",
+)
 @click.option(
     "--include-drafts",
     is_flag=True,
@@ -165,20 +212,26 @@ def world_derive(
 )
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
-                  strategy: str, override_id: str | None,
-                  semantics: str, set_comparison: str,
-                  decision_criterion: str,
-                  pessimism_index: float,
-                  reasoning_backend: str,
-                  praf_strategy: str,
-                  praf_epsilon: float,
-                  praf_confidence: float,
-                  praf_seed: int | None,
-                  include_drafts: bool,
-                  include_blocked: bool,
-                  show_quarantined: bool,
-                  fmt: str) -> None:
+def world_resolve(
+    obj: dict,
+    concept_id: str,
+    args: tuple[str, ...],
+    strategy: str,
+    override_id: str | None,
+    semantics: str,
+    set_comparison: str,
+    decision_criterion: str,
+    pessimism_index: float,
+    reasoning_backend: str,
+    praf_strategy: str,
+    praf_epsilon: float,
+    praf_confidence: float,
+    praf_seed: int | None,
+    include_drafts: bool,
+    include_blocked: bool,
+    show_quarantined: bool,
+    fmt: str,
+) -> None:
     """Resolve a conflicted concept using a strategy.
 
     Lifecycle-visibility flags (``--include-drafts``,
@@ -244,35 +297,70 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 
 @world.command("extensions")
 @click.argument("args", nargs=-1)
-@click.option("--backend", "backend_name", default="claim_graph",
-              type=click.Choice(["claim_graph", "aspic", "atms", "praf"]),
-              help="Argumentation backend (default: claim_graph)")
-@click.option("--semantics", default="grounded",
-              type=click.Choice(["grounded", "preferred", "stable"]),
-              help="Argumentation semantics (default: grounded)")
-@click.option("--set-comparison", "set_comparison", default="elitist",
-              type=click.Choice(["elitist", "democratic"]),
-              help="Set comparison for preference ordering (default: elitist)")
+@click.option(
+    "--backend",
+    "backend_name",
+    default="claim_graph",
+    type=click.Choice(["claim_graph", "aspic", "atms", "praf"]),
+    help="Argumentation backend (default: claim_graph)",
+)
+@click.option(
+    "--semantics",
+    default="grounded",
+    type=click.Choice(["grounded", "preferred", "stable"]),
+    help="Argumentation semantics (default: grounded)",
+)
+@click.option(
+    "--set-comparison",
+    "set_comparison",
+    default="elitist",
+    type=click.Choice(["elitist", "democratic"]),
+    help="Set comparison for preference ordering (default: elitist)",
+)
 @click.option("--context", default=None, help="Context to scope the argumentation")
-@click.option("--praf-strategy", "praf_strategy", default="auto",
-              type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
-              help="PrAF computation strategy (default: auto)")
-@click.option("--praf-epsilon", "praf_epsilon", default=0.01,
-              type=float, help="PrAF MC error tolerance (default: 0.01)")
-@click.option("--praf-confidence", "praf_confidence", default=0.95,
-              type=float, help="PrAF MC confidence level (default: 0.95)")
-@click.option("--praf-seed", "praf_seed", default=None,
-              type=int, help="PrAF MC RNG seed (default: random)")
+@click.option(
+    "--praf-strategy",
+    "praf_strategy",
+    default="auto",
+    type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
+    help="PrAF computation strategy (default: auto)",
+)
+@click.option(
+    "--praf-epsilon",
+    "praf_epsilon",
+    default=0.01,
+    type=float,
+    help="PrAF MC error tolerance (default: 0.01)",
+)
+@click.option(
+    "--praf-confidence",
+    "praf_confidence",
+    default=0.95,
+    type=float,
+    help="PrAF MC confidence level (default: 0.95)",
+)
+@click.option(
+    "--praf-seed",
+    "praf_seed",
+    default=None,
+    type=int,
+    help="PrAF MC RNG seed (default: random)",
+)
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_extensions(obj: dict, args: tuple[str, ...],
-                     backend_name: str, semantics: str, set_comparison: str,
-                     context: str | None,
-                     praf_strategy: str,
-                     praf_epsilon: float,
-                     praf_confidence: float,
-                     praf_seed: int | None,
-                     fmt: str) -> None:
+def world_extensions(
+    obj: dict,
+    args: tuple[str, ...],
+    backend_name: str,
+    semantics: str,
+    set_comparison: str,
+    context: str | None,
+    praf_strategy: str,
+    praf_epsilon: float,
+    praf_confidence: float,
+    praf_seed: int | None,
+    fmt: str,
+) -> None:
     """Show argumentation extensions — all claims that survive scrutiny.
 
     Usage: pks world extensions domain=example --semantics grounded

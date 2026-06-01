@@ -43,12 +43,11 @@ class RevisionArgumentationStore:
         self._backing_store = backing_store
         for claim in active_claims:
             if not isinstance(claim, Claim):
-                raise TypeError("RevisionArgumentationStore requires typed Claim objects")
+                raise TypeError(
+                    "RevisionArgumentationStore requires typed Claim objects"
+                )
         self._active_claims = tuple(active_claims)
-        self._claims_by_id = {
-            str(claim.id): claim
-            for claim in self._active_claims
-        }
+        self._claims_by_id = {str(claim.id): claim for claim in self._active_claims}
         self._active_claim_ids = frozenset(self._claims_by_id)
 
     def get_claim(self, claim_id: str):
@@ -133,7 +132,9 @@ def project_epistemic_state_argumentation_view(
         if atom_id not in accepted_set:
             continue
         for support_set in support_sets:
-            accepted_assumption_atom_ids.extend(str(assumption_id) for assumption_id in support_set)
+            accepted_assumption_atom_ids.extend(
+                str(assumption_id) for assumption_id in support_set
+            )
 
     active_claims.sort(key=lambda claim: str(claim.id))
     overlay = RevisionArgumentationStore(backing_store, tuple(active_claims))
@@ -143,7 +144,9 @@ def project_epistemic_state_argumentation_view(
         active_claims=tuple(active_claims),
         support_metadata=support_metadata,
         unmapped_atom_ids=tuple(sorted(unmapped_atom_ids)),
-        accepted_assumption_atom_ids=tuple(sorted(dict.fromkeys(accepted_assumption_atom_ids))),
+        accepted_assumption_atom_ids=tuple(
+            sorted(dict.fromkeys(accepted_assumption_atom_ids))
+        ),
         revision_event_hashes=_revision_event_hashes(state),
     )
 

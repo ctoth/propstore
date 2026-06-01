@@ -23,6 +23,7 @@ from quire.documents import convert_document_value
 if TYPE_CHECKING:
     from propstore.repository import Repository
 
+
 class FormNotFoundError(Exception):
     def __init__(self, name: str) -> None:
         super().__init__(f"Form '{name}' not found")
@@ -261,7 +262,9 @@ def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
     return data
 
 
-def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> FormAddReport:
+def add_form(
+    repo: Repository, request: FormAddRequest, *, dry_run: bool
+) -> FormAddReport:
     ref = FormRef(request.name)
     relpath = repo.families.forms.address(ref).require_path()
     path = repo.root / relpath
@@ -322,7 +325,9 @@ def remove_form(
     return FormRemoveReport(path=path, removed=True, references=references)
 
 
-def validate_forms(repo: Repository, name: str | None = None) -> FormValidationReport | None:
+def validate_forms(
+    repo: Repository, name: str | None = None
+) -> FormValidationReport | None:
     form_handles = list(repo.families.forms.iter_handles())
     if not form_handles:
         return None

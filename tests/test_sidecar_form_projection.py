@@ -41,7 +41,9 @@ def test_form_models_are_typed_and_round_trip_dimensions(tmp_path) -> None:
             session.add_all(rows.form_rows)
             session.commit()
             stored = session.execute(
-                select(schema.model("form")).where(schema.model("form").name == "length")
+                select(schema.model("form")).where(
+                    schema.model("form").name == "length"
+                )
             ).scalar_one()
     finally:
         engine.dispose()

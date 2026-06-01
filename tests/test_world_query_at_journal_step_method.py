@@ -209,7 +209,9 @@ def test_world_query_historical_query_builds_temp_sidecar_for_commit(
             ),
             conflict_pairs=((historical_claim_a, historical_claim_b),),
         )
-        return _derived_store_for_path(sidecar_path, commit=str(kwargs["commit_hash"])), True
+        return _derived_store_for_path(
+            sidecar_path, commit=str(kwargs["commit_hash"])
+        ), True
 
     import propstore.compiler.workflows as sidecar_build
 
@@ -226,7 +228,9 @@ def test_world_query_historical_query_builds_temp_sidecar_for_commit(
     try:
         with world.historical_query(commit_sha) as historical:
             assert requested_commits == [commit_sha]
-            assert set(historical.claims_by_ids({historical_claim_a, historical_claim_b})) == {
+            assert set(
+                historical.claims_by_ids({historical_claim_a, historical_claim_b})
+            ) == {
                 historical_claim_a,
                 historical_claim_b,
             }

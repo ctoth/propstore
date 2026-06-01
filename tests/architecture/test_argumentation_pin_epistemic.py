@@ -31,16 +31,24 @@ def test_argumentation_pin_exposes_epistemic_language_and_belief_distribution() 
     )
 
     assert term_probability(parse_term("a & b"), distribution) == pytest.approx(0.4)
-    assert induced_probability_labelling(distribution) == pytest.approx({"a": 0.6, "b": 0.7})
+    assert induced_probability_labelling(distribution) == pytest.approx(
+        {"a": 0.6, "b": 0.7}
+    )
     assert parse_epistemic_formula("p(a & b) - p(b) < 0") is not None
 
 
 def test_argumentation_pin_exposes_labelled_epistemic_graphs() -> None:
     graph = LabelledEpistemicGraph(
         arguments=frozenset({"a", "b"}),
-        arcs=frozenset({
-            LabelledArc("a", "b", frozenset({EpistemicLabel.POSITIVE, EpistemicLabel.DEPENDENT})),
-        }),
+        arcs=frozenset(
+            {
+                LabelledArc(
+                    "a",
+                    "b",
+                    frozenset({EpistemicLabel.POSITIVE, EpistemicLabel.DEPENDENT}),
+                ),
+            }
+        ),
     )
 
     assert graph.parents_by_label("b", EpistemicLabel.POSITIVE) == frozenset({"a"})

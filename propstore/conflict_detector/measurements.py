@@ -70,15 +70,17 @@ def detect_measurement_conflicts(
                         solver=solver,
                     )
                 )
-                records.append(ConflictRecord(
-                    concept_id=target_concept,
-                    claim_a_id=claim_a.claim_id,
-                    claim_b_id=claim_b.claim_id,
-                    warning_class=warning_class,
-                    conditions_a=conditions_a,
-                    conditions_b=conditions_b,
-                    value_a=_value_str(None, claim=claim_a),
-                    value_b=_value_str(None, claim=claim_b),
-                ))
+                records.append(
+                    ConflictRecord(
+                        concept_id=target_concept,
+                        claim_a_id=claim_a.claim_id,
+                        claim_b_id=claim_b.claim_id,
+                        warning_class=warning_class,
+                        conditions_a=conditions_a,
+                        conditions_b=conditions_b,
+                        value_a=_value_str(None, claim=claim_a),
+                        value_b=_value_str(None, claim=claim_b),
+                    )
+                )
 
     return records

@@ -93,7 +93,9 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
     assert replay.checked_entry_hashes == (entry.content_hash,)
 
 
-def test_semantic_diff_applies_assertion_warrant_ranking_provenance_and_dependency_deltas() -> None:
+def test_semantic_diff_applies_assertion_warrant_ranking_provenance_and_dependency_deltas() -> (
+    None
+):
     from propstore.support_revision.history import (
         apply_epistemic_diff,
         diff_epistemic_snapshots,
@@ -144,7 +146,9 @@ def test_semantic_diff_apply_roundtrips_generated_tiny_assertion_languages(
     source = EpistemicSnapshot.from_state(source_state)
     target = EpistemicSnapshot.from_state(target_state)
 
-    assert apply_epistemic_diff(source, diff_epistemic_snapshots(source, target)) == target
+    assert (
+        apply_epistemic_diff(source, diff_epistemic_snapshots(source, target)) == target
+    )
 
 
 def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicState:
@@ -181,8 +185,12 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
             legacy_id: ("assumption:left_path",),
         },
     )
-    accepted = tuple(atom_id for atom_id in state.accepted_atom_ids if atom_id != legacy_id)
-    ranked = (legacy_id,) + tuple(atom_id for atom_id in state.ranked_atom_ids if atom_id != legacy_id)
+    accepted = tuple(
+        atom_id for atom_id in state.accepted_atom_ids if atom_id != legacy_id
+    )
+    ranked = (legacy_id,) + tuple(
+        atom_id for atom_id in state.ranked_atom_ids if atom_id != legacy_id
+    )
     return replace(
         state,
         base=changed_base,

@@ -260,7 +260,7 @@ def test_roundtrip_categorical_to_expectation():
     )
     assert isinstance(op, Opinion)
     # r=85, s=15 -> b=85/102, d=15/102, u=2/102
-        # expectation = b + a*u = 85/102 + 0.5 * 2/102
+    # expectation = b + a*u = 85/102 + 0.5 * 2/102
     # The empirical prob is 85/100 = 0.85
     # With W=2 and no explicit CategoryPrior, expectation = (85 + 0.5*2) / 102.
     expected_emp = (85 + 0.5 * 2) / 102
@@ -288,9 +288,7 @@ class TestCorpusCalibrationEvidenceModel:
         distance=st.floats(min_value=0.0, max_value=1.0),
     )
     @settings()
-    def test_large_corpus_does_not_produce_near_dogmatic_opinion(
-        self, distance: float
-    ):
+    def test_large_corpus_does_not_produce_near_dogmatic_opinion(self, distance: float):
         """A 10,000-element corpus calibrator must NOT produce near-dogmatic
         opinions (u < 0.01). Corpus size is evidence for the calibration of
         the distance metric, not evidence for the truth of any claim.
@@ -372,7 +370,7 @@ class TestCorpusCalibrationEvidenceModel:
             assert uncertainties[i] > uncertainties[i + 1], (
                 f"Uncertainty not monotonically decreasing: "
                 f"u({sizes[i]})={uncertainties[i]:.6f} <= "
-                f"u({sizes[i+1]})={uncertainties[i+1]:.6f}"
+                f"u({sizes[i + 1]})={uncertainties[i + 1]:.6f}"
             )
 
 
@@ -391,7 +389,11 @@ class TestCalibrationCountsInfrastructure:
         Per Josang 2001 (p.20-21, Def 12): evidence maps to opinion with
         u = 2/(r+s+2). With 80/100 accuracy, u = 2/102 ~ 0.02.
         """
-        from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+        from quire.sqlalchemy_store import (
+            create_sqlalchemy_store,
+            readonly_session,
+            writable_session,
+        )
         from propstore.families.calibration.declaration import (
             CalibrationCount,
             calibration_counts_by_key,
@@ -521,8 +523,22 @@ class TestOpinionInvariants:
         """A NULL opinion (no opinion attached) is accepted by the schema."""
         conn = sqlite3.connect(":memory:")
         create_argumentation_schema(conn)
-        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
-        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+        insert_claim(
+            conn,
+            "c1",
+            claim_type="parameter",
+            concept_id="concept1",
+            value=1.0,
+            source_paper="paper1",
+        )
+        insert_claim(
+            conn,
+            "c2",
+            claim_type="parameter",
+            concept_id="concept1",
+            value=2.0,
+            source_paper="paper1",
+        )
 
         insert_stance(conn, "c1", "c2", "supports", confidence=0.8, opinion=None)
 
@@ -533,11 +549,28 @@ class TestOpinionInvariants:
         """
         conn = sqlite3.connect(":memory:")
         create_argumentation_schema(conn)
-        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
-        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+        insert_claim(
+            conn,
+            "c1",
+            claim_type="parameter",
+            concept_id="concept1",
+            value=1.0,
+            source_paper="paper1",
+        )
+        insert_claim(
+            conn,
+            "c2",
+            claim_type="parameter",
+            concept_id="concept1",
+            value=2.0,
+            source_paper="paper1",
+        )
 
         insert_stance(
-            conn, "c1", "c2", "supports",
+            conn,
+            "c1",
+            "c2",
+            "supports",
             confidence=0.8,
             opinion=Opinion(0.3, 0.2, 0.5, 0.5),
         )

@@ -21,7 +21,9 @@ def _registry() -> dict[str, ConceptInfo]:
 
 def _condition_set(*sources: str):
     registry = _registry()
-    return checked_condition_set(check_condition_ir(source, registry) for source in sources)
+    return checked_condition_set(
+        check_condition_ir(source, registry) for source in sources
+    )
 
 
 def test_condition_solver_applies_timepoint_interval_ordering_to_satisfaction() -> None:

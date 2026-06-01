@@ -4,7 +4,10 @@ from propstore.grounding.complement import ComplementEncoder
 from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
 
 from .build import build_bridge_csaf
-from .grounding import GroundedAspicProjection, project_grounded_rules as _project_grounded_rules
+from .grounding import (
+    GroundedAspicProjection,
+    project_grounded_rules as _project_grounded_rules,
+)
 from .lifting_projection import (
     LiftingProjection,
     LiftingProjectionRecord,

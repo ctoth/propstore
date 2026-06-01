@@ -76,6 +76,7 @@ def __getattr__(name: str):
         }[name]
     raise AttributeError(name)
 
+
 __all__ = [
     "CheckedCondition",
     "CheckedConditionSet",

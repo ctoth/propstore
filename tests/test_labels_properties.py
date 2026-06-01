@@ -30,15 +30,15 @@ from propstore.core.labels import combine_labels, merge_labels
 
 
 _ASSUMPTION_IDS = st.text(alphabet="abcdef", min_size=1, max_size=3)
-_CONTEXT_IDS = st.text(alphabet="xyz", min_size=1, max_size=3).map(lambda text: f"ctx_{text}")
+_CONTEXT_IDS = st.text(alphabet="xyz", min_size=1, max_size=3).map(
+    lambda text: f"ctx_{text}"
+)
 
 
 @st.composite
 def environment_keys(draw, max_assumptions: int = 4):
     """Generate an EnvironmentKey with 0..max_assumptions assumptions."""
-    ids = draw(
-        st.frozensets(_ASSUMPTION_IDS, min_size=0, max_size=max_assumptions)
-    )
+    ids = draw(st.frozensets(_ASSUMPTION_IDS, min_size=0, max_size=max_assumptions))
     return EnvironmentKey(tuple(ids))
 
 
@@ -102,9 +102,7 @@ class TestLabelMinimality:
         seen = set()
         for env in label.environments:
             identity = (env.assumption_ids, env.context_ids)
-            assert identity not in seen, (
-                f"Duplicate environment {env} in label"
-            )
+            assert identity not in seen, f"Duplicate environment {env} in label"
             seen.add(identity)
 
 
@@ -272,9 +270,9 @@ class TestMergeLabels:
         # Every env in the input should be represented
         # (either directly or subsumed by a more general env in result)
         for env in label.environments:
-            assert any(
-                existing.subsumes(env) for existing in result.environments
-            ), f"Lost environment {env} after merge"
+            assert any(existing.subsumes(env) for existing in result.environments), (
+                f"Lost environment {env} after merge"
+            )
 
     @pytest.mark.property
     @given(labels(), labels(), nogood_sets())

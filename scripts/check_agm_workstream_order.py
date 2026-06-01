@@ -5,14 +5,20 @@ import sys
 from pathlib import Path
 
 
-WORKSTREAM = Path("reviews/2026-05-05-agm-proposal/workstreams/WS-AGM-propstore-belief-set-cutover.md")
+WORKSTREAM = Path(
+    "reviews/2026-05-05-agm-proposal/workstreams/WS-AGM-propstore-belief-set-cutover.md"
+)
 PHASE_RE = re.compile(r"^### Phase (?P<number>\d+) ")
 
 
 def main(argv: list[str]) -> int:
     path = Path(argv[1]) if len(argv) > 1 else WORKSTREAM
     text = path.read_text(encoding="utf-8")
-    phases = [int(match.group("number")) for line in text.splitlines() if (match := PHASE_RE.match(line))]
+    phases = [
+        int(match.group("number"))
+        for line in text.splitlines()
+        if (match := PHASE_RE.match(line))
+    ]
     expected = list(range(0, 14))
     if phases != expected:
         print(f"AGM workstream phases are not linear 0..13: {phases}", file=sys.stderr)
@@ -38,7 +44,9 @@ def main(argv: list[str]) -> int:
     for phase, prereqs in dependencies.items():
         for prereq in prereqs:
             if phase_positions[prereq] > phase_positions[phase]:
-                violations.append(f"Phase {phase} appears before prerequisite Phase {prereq}")
+                violations.append(
+                    f"Phase {phase} appears before prerequisite Phase {prereq}"
+                )
     if violations:
         print("\n".join(violations), file=sys.stderr)
         return 1

@@ -68,9 +68,7 @@ from hypothesis import strategies as st
 # ``propstore.grounding.facts``.
 
 
-_CONCEPT_NAMES = st.sampled_from(
-    ["tweety", "opus", "polly", "rocky", "sammy"]
-)
+_CONCEPT_NAMES = st.sampled_from(["tweety", "opus", "polly", "rocky", "sammy"])
 _RELATION_NAMES = st.sampled_from(["is_a", "part_of", "kind_of"])
 _TARGET_NAMES = st.sampled_from(["Bird", "Penguin", "Mammal"])
 
@@ -229,9 +227,7 @@ def predicate_registries_with_is_a_derivations() -> st.SearchStrategy:
 
     @st.composite
     def _build(draw):
-        targets = draw(
-            st.lists(_TARGET_NAMES, min_size=1, max_size=3, unique=True)
-        )
+        targets = draw(st.lists(_TARGET_NAMES, min_size=1, max_size=3, unique=True))
         docs = []
         for index, target in enumerate(targets):
             predicate_id = f"{target.lower()}_{index}"
@@ -315,9 +311,7 @@ def test_extracted_facts_match_registry_arity(graph, registry) -> None:
     registry=st.deferred(predicate_registries_with_is_a_derivations),
 )
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_extracted_facts_reference_registered_predicates(
-    graph, registry
-) -> None:
+def test_extracted_facts_reference_registered_predicates(graph, registry) -> None:
     """Every emitted ``GroundAtom``'s predicate name is in the registry.
 
     Diller et al. 2025 §3-§4: the extractor only materialises ground

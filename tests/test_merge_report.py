@@ -1,4 +1,5 @@
 """Tests for repo-facing merge query/report helpers."""
+
 from __future__ import annotations
 
 import yaml
@@ -16,26 +17,32 @@ from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_payloads(
+    kr: GitStore, claims: list[dict], paper: str = "test_paper"
+) -> dict[str, bytes]:
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return claim_artifact_commit_payloads(
         Repository(kr.root),
         doc,
@@ -64,15 +71,19 @@ def _param_claim(
     return claim
 
 
-def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_paper") -> bytes:
-    normalized = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_yaml_with_explicit_identities(
+    claims: list[dict], paper: str = "test_paper"
+) -> bytes:
+    normalized = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     rewritten_claims: list[dict] = []
     for original, normalized_claim in zip(claims, normalized["claims"], strict=True):
         merged = dict(normalized_claim)
@@ -195,4 +206,7 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
     for assertion_id in report["credulous"]:
         assert report["statuses"][assertion_id]["credulously_accepted"] is True
         assert detail_by_id[assertion_id]["credulously_accepted"] is True
-        assert detail_by_id[assertion_id]["provenance"]["branch_origin"] in detail_by_id[assertion_id]["branch_origins"]
+        assert (
+            detail_by_id[assertion_id]["provenance"]["branch_origin"]
+            in detail_by_id[assertion_id]["branch_origins"]
+        )

@@ -19,7 +19,10 @@ from propstore.families.forms.models import (
 )
 from propstore.propagation import rewrite_parameterization_symbols
 from quire.documents import decode_document_path
-from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
+from quire.tree_path import (
+    TreePath as KnowledgePath,
+    coerce_tree_path as coerce_knowledge_path,
+)
 
 if TYPE_CHECKING:
     from propstore.families.concepts.stages import LoadedConcept
@@ -160,7 +163,9 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
     )
 
 
-def load_form(forms_dir: Path | KnowledgePath, form_name: str | None) -> FormDefinition | None:
+def load_form(
+    forms_dir: Path | KnowledgePath, form_name: str | None
+) -> FormDefinition | None:
     if not isinstance(form_name, str) or not form_name:
         return None
     forms_root = coerce_knowledge_path(forms_dir)
@@ -180,7 +185,9 @@ def load_form(forms_dir: Path | KnowledgePath, form_name: str | None) -> FormDef
     return result
 
 
-def load_form_path(forms_dir: KnowledgePath, form_name: str | None) -> FormDefinition | None:
+def load_form_path(
+    forms_dir: KnowledgePath, form_name: str | None
+) -> FormDefinition | None:
     return load_form(forms_dir, form_name)
 
 
@@ -283,10 +290,7 @@ def compile_form_algebra(
                     },
                     symbol_targets={
                         concept_id: output_form,
-                        **{
-                            input_id: id_to_form[input_id]
-                            for input_id in inputs
-                        },
+                        **{input_id: id_to_form[input_id] for input_id in inputs},
                     },
                 )
             if not operation:
@@ -295,8 +299,12 @@ def compile_form_algebra(
             dim_verified = 1
             if sympy_str and operation:
                 output_fd = form_registry.get(output_form)
-                input_fd_list = [form_registry.get(form_name) for form_name in input_forms]
-                if output_fd is not None and all(fd is not None for fd in input_fd_list):
+                input_fd_list = [
+                    form_registry.get(form_name) for form_name in input_forms
+                ]
+                if output_fd is not None and all(
+                    fd is not None for fd in input_fd_list
+                ):
                     if not form_dimensions.verify_form_algebra_dimensions(
                         output_fd,
                         input_fd_list,  # type: ignore[arg-type]

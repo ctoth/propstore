@@ -5,7 +5,10 @@ from pathlib import Path
 import yaml
 
 from propstore.repository import Repository
-from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+from propstore.importing.repository_import import (
+    commit_repository_import,
+    plan_repository_import,
+)
 
 
 def test_imported_concept_without_status_defaults_to_proposed(tmp_path: Path) -> None:
@@ -24,7 +27,7 @@ def test_imported_concept_without_status_defaults_to_proposed(tmp_path: Path) ->
                     "form": "structural",
                 },
                 sort_keys=False,
-            ).encode("utf-8")
+            ).encode("utf-8"),
         },
         "Seed source concept",
     )

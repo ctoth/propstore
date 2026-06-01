@@ -10,8 +10,14 @@ from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.realization import stabilize_belief_base
 from propstore.support_revision.state import BeliefBase, RevisionScope
-from tests.support_revision.formal_realization_helpers import expand_via_formal_decision, revise_via_formal_decision
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
+from tests.support_revision.formal_realization_helpers import (
+    expand_via_formal_decision,
+    revise_via_formal_decision,
+)
+from tests.support_revision.revision_assertion_helpers import (
+    make_assertion_atom,
+    make_assumption_atom,
+)
 
 
 _ident = st.text(
@@ -38,8 +44,7 @@ def bounded_revision_bases(draw):
         atoms=assumptions + claims,
         support_sets=support_sets,
         essential_support={
-            atom_id: support[0]
-            for atom_id, support in support_sets.items()
+            atom_id: support[0] for atom_id, support in support_sets.items()
         },
     )
     entrenchment = EntrenchmentReport(

@@ -167,8 +167,12 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     )
     assert promote.exit_code == 0, promote.output
 
-    promoted_claims = [handle.document for handle in repo.families.claims.iter_handles()]
-    promoted_statements = {claim.statement for claim in promoted_claims if claim.statement}
+    promoted_claims = [
+        handle.document for handle in repo.families.claims.iter_handles()
+    ]
+    promoted_statements = {
+        claim.statement for claim in promoted_claims if claim.statement
+    }
     assert promoted_statements == {"Known concept observation."}
     assert promoted_claims[0].concepts == (known_artifact_id,)
 

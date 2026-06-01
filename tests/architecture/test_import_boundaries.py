@@ -32,9 +32,7 @@ FORBIDDEN_IMPORT_PREFIXES = (
     "propstore.world",
     "propstore.z3_conditions",
 )
-FORBIDDEN_CONDITION_IR_IMPORT_PREFIXES = FORBIDDEN_IMPORT_PREFIXES + (
-    "ast",
-)
+FORBIDDEN_CONDITION_IR_IMPORT_PREFIXES = FORBIDDEN_IMPORT_PREFIXES + ("ast",)
 FORBIDDEN_CONDITION_FRONTEND_IMPORT_PREFIXES = FORBIDDEN_IMPORT_PREFIXES + ("ast",)
 FORBIDDEN_CONDITION_BACKEND_IMPORT_PREFIXES = FORBIDDEN_IMPORT_PREFIXES
 
@@ -90,7 +88,9 @@ def test_relations_public_surface_includes_claim_link_roles() -> None:
 
 def test_rule_predicate_bucket_document_symbols_are_not_public() -> None:
     rule_documents = importlib.import_module("propstore.families.rules.declaration")
-    predicate_documents = importlib.import_module("propstore.families.predicates.declaration")
+    predicate_documents = importlib.import_module(
+        "propstore.families.predicates.declaration"
+    )
 
     assert "RulesFileDocument" not in vars(rule_documents)
     assert "PredicatesFileDocument" not in vars(predicate_documents)

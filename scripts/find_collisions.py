@@ -1,4 +1,5 @@
 """Find collision groups among concept names using token overlap similarity."""
+
 import json
 from pathlib import Path
 from collections import defaultdict
@@ -14,7 +15,7 @@ print(f"Total concepts: {len(concepts)}")
 prefix_groups = []
 seen_in_prefix = set()
 for i, a in enumerate(concepts):
-    for b in concepts[i+1:]:
+    for b in concepts[i + 1 :]:
         # Check if one is a substring of the other (not just prefix)
         if a in b or b in a:
             # Only flag if they share significant overlap
@@ -29,28 +30,30 @@ for i, a in enumerate(concepts):
 # === Strategy 2: Singular/plural variants ===
 plural_groups = []
 for c in concepts:
-    if c.endswith('s') and c[:-1] in inventory:
+    if c.endswith("s") and c[:-1] in inventory:
         plural_groups.append((c[:-1], c))
     # Also check _ies -> _y
-    if c.endswith('ies'):
-        singular = c[:-3] + 'y'
+    if c.endswith("ies"):
+        singular = c[:-3] + "y"
         if singular in inventory:
             plural_groups.append((singular, c))
 
+
 # === Strategy 3: Token overlap similarity ===
 def token_sim(a, b):
-    ta = set(a.split('_'))
-    tb = set(b.split('_'))
+    ta = set(a.split("_"))
+    tb = set(b.split("_"))
     if not ta or not tb:
         return 0.0
     intersection = ta & tb
     union = ta | tb
     return len(intersection) / len(union)
 
+
 # Only check pairs with at least one shared token (optimization)
 token_to_concepts = defaultdict(list)
 for c in concepts:
-    for tok in c.split('_'):
+    for tok in c.split("_"):
         if len(tok) > 2:  # skip very short tokens
             token_to_concepts[tok].append(c)
 
@@ -60,8 +63,8 @@ for tok, members in token_to_concepts.items():
     if len(members) > 50:  # skip extremely common tokens
         continue
     for i, a in enumerate(members):
-        for b in members[i+1:]:
-            pair = (min(a,b), max(a,b))
+        for b in members[i + 1 :]:
+            pair = (min(a, b), max(a, b))
             if pair in checked:
                 continue
             checked.add(pair)
@@ -88,15 +91,20 @@ cross_paper_candidates.sort(key=lambda x: -x[2])
 # === Build unified collision groups ===
 # Use union-find
 parent = {c: c for c in concepts}
+
+
 def find(x):
     while parent[x] != x:
         parent[x] = parent[parent[x]]
         x = parent[x]
     return x
+
+
 def union(a, b):
     ra, rb = find(a), find(b)
     if ra != rb:
         parent[ra] = rb
+
 
 # Only merge pairs that are very likely duplicates (sim >= 0.75 or substring)
 print("\n=== PLURAL PAIRS ===")
@@ -128,7 +136,9 @@ for a, b, sim in high_sim_pairs:
 
 print("\n=== CROSS-PAPER CANDIDATES (single->multi, sim >= 0.6) ===")
 for sc, mc, sim in cross_paper_candidates[:30]:
-    print(f"  {sc} ({inventory[sc]['papers']}) <-> {mc} ({inventory[mc]['papers']}) sim={sim:.2f}")
+    print(
+        f"  {sc} ({inventory[sc]['papers']}) <-> {mc} ({inventory[mc]['papers']}) sim={sim:.2f}"
+    )
 
 # Summary stats
 groups = defaultdict(list)

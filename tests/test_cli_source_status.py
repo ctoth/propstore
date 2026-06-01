@@ -30,7 +30,11 @@ from propstore.source import (
     inspect_source_status,
     promote_source_branch,
 )
-from tests.conftest import TEST_CONTEXT_ID, make_test_context_commit_entry, normalize_concept_payloads
+from tests.conftest import (
+    TEST_CONTEXT_ID,
+    make_test_context_commit_entry,
+    normalize_concept_payloads,
+)
 from tests.family_helpers import materialized_world_store
 
 
@@ -200,7 +204,7 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
 
 
 def test_source_status_report_lists_blocked_promotion_rows(
-    promoted_partial: tuple[Repository, str]
+    promoted_partial: tuple[Repository, str],
 ) -> None:
     repo, source_name = promoted_partial
 
@@ -235,7 +239,7 @@ def test_source_status_report_materializes_empty_store(tmp_path: Path) -> None:
 
 
 def test_source_status_lists_blocked_promotion_rows(
-    promoted_partial: tuple[Repository, str]
+    promoted_partial: tuple[Repository, str],
 ) -> None:
     """``pks source status <name>`` surfaces the promotion-blocked
     claim with its diagnostic message."""
@@ -267,7 +271,7 @@ def test_source_status_lists_blocked_promotion_rows(
 
 
 def test_source_status_excludes_promoted_claims(
-    promoted_partial: tuple[Repository, str]
+    promoted_partial: tuple[Repository, str],
 ) -> None:
     """``pks source status <name>`` is scoped to the source branch; the
     two successfully-promoted claims (now on master) must NOT appear."""

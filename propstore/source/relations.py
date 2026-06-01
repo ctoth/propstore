@@ -33,22 +33,26 @@ from .reference_indexes import (
     source_claim_index as build_source_claim_index,
 )
 
-_ALLOWED_JUSTIFICATION_RULE_KINDS = frozenset({
-    "causal_explanation",
-    "comparison_based_inference",
-    "definition_application",
-    "empirical_support",
-    "explains",
-    "methodological_inference",
-    "reported_claim",
-    "scope_limitation",
-    "statistical_inference",
-    "supports",
-})
-_ALLOWED_JUSTIFICATION_RULE_STRENGTHS = frozenset({
-    "strict",
-    "defeasible",
-})
+_ALLOWED_JUSTIFICATION_RULE_KINDS = frozenset(
+    {
+        "causal_explanation",
+        "comparison_based_inference",
+        "definition_application",
+        "empirical_support",
+        "explains",
+        "methodological_inference",
+        "reported_claim",
+        "scope_limitation",
+        "statistical_inference",
+        "supports",
+    }
+)
+_ALLOWED_JUSTIFICATION_RULE_STRENGTHS = frozenset(
+    {
+        "strict",
+        "defeasible",
+    }
+)
 
 
 def _validate_justification_rule_fields(
@@ -86,9 +90,9 @@ def commit_source_justifications_batch(
     )
     if reader is not None:
         provenance = ExtractionProvenanceDocument(
-                reader=reader,
-                method=method,
-                timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            reader=reader,
+            method=method,
+            timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
         raw = tuple(
             convert_document_value(
@@ -132,9 +136,9 @@ def commit_source_stances_batch(
     )
     if reader is not None:
         provenance = ExtractionProvenanceDocument(
-                reader=reader,
-                method=method,
-                timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            reader=reader,
+            method=method,
+            timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
         raw = tuple(
             convert_document_value(
@@ -177,7 +181,9 @@ def commit_source_justification_proposal(
     attack_target_justification_id: str | None = None,
     attack_target_premise_index: int | None = None,
 ) -> SourceJustificationDocument:
-    branch = repo.families.source_justifications.address(SourceRef(source_name)).require_branch()
+    branch = repo.families.source_justifications.address(
+        SourceRef(source_name)
+    ).require_branch()
     _validate_justification_rule_fields(
         rule_kind=rule_kind,
         rule_strength=rule_strength,
@@ -186,7 +192,9 @@ def commit_source_justification_proposal(
     def update(expected_head: str | None) -> tuple[SourceJustificationDocument, ...]:
         claim_index = build_source_claim_index(repo, source_name)
         primary_claim_index = build_primary_claim_index(repo)
-        existing = repo.families.source_justifications.load(SourceRef(source_name)) or ()
+        existing = (
+            repo.families.source_justifications.load(SourceRef(source_name)) or ()
+        )
         justifications = [entry for entry in existing if entry.id != just_id]
 
         justification = SourceJustificationDocument(
@@ -196,7 +204,10 @@ def commit_source_justification_proposal(
             rule_kind=rule_kind,
             rule_strength=rule_strength,
         )
-        if any(value is not None for value in (page, section, quote_fragment, table, figure)):
+        if any(
+            value is not None
+            for value in (page, section, quote_fragment, table, figure)
+        ):
             justification = convert_document_value(
                 {
                     **cast(dict[str, Any], document_to_payload(justification)),
@@ -264,7 +275,9 @@ def commit_source_stance_proposal(
     strength: str | None = None,
     note: str | None = None,
 ) -> SourceStanceEntryDocument:
-    branch = repo.families.source_stances.address(SourceRef(source_name)).require_branch()
+    branch = repo.families.source_stances.address(
+        SourceRef(source_name)
+    ).require_branch()
     normalized_stance_type = coerce_stance_type(stance_type)
     assert normalized_stance_type is not None
 
@@ -281,7 +294,10 @@ def commit_source_stance_proposal(
         )
         if strength is not None:
             stance = convert_document_value(
-                {**cast(dict[str, Any], document_to_payload(stance)), "strength": strength},
+                {
+                    **cast(dict[str, Any], document_to_payload(stance)),
+                    "strength": strength,
+                },
                 SourceStanceEntryDocument,
                 source=f"{branch}:stances proposal",
             )

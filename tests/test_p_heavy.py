@@ -173,7 +173,9 @@ def test_p_heavy_2_heavy_surfaces_stances_minimal_does_not() -> None:
     assert heavy.conflicts == (fake_conflict,)
 
 
-def test_p_heavy_2b_unregistered_commit_derives_typed_rows_from_world_query_surface() -> None:
+def test_p_heavy_2b_unregistered_commit_derives_typed_rows_from_world_query_surface() -> (
+    None
+):
     """Heavy returns production stance/conflict rows for the accepted claim set."""
     atom = make_assertion_atom(
         relation_local="r",

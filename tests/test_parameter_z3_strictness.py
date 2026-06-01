@@ -39,9 +39,27 @@ def test_z3_partition_failure_raises() -> None:
     solver = ConditionSolver(cel_registry)
     claims = _make_claims(
         [
-            {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
-            {"id": "p2", "type": "parameter", "concept": "freq", "body": "200", "conditions": ["freq > 50"]},
-            {"id": "p3", "type": "parameter", "concept": "freq", "body": "300", "conditions": ["freq > 50"]},
+            {
+                "id": "p1",
+                "type": "parameter",
+                "concept": "freq",
+                "body": "100",
+                "conditions": ["freq > 50"],
+            },
+            {
+                "id": "p2",
+                "type": "parameter",
+                "concept": "freq",
+                "body": "200",
+                "conditions": ["freq > 50"],
+            },
+            {
+                "id": "p3",
+                "type": "parameter",
+                "concept": "freq",
+                "body": "300",
+                "conditions": ["freq > 50"],
+            },
         ]
     )
 

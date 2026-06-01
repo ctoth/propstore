@@ -11,7 +11,9 @@ from propstore.repository import Repository
 
 
 _SAFE_NAME = st.text(
-    alphabet=st.characters(whitelist_categories=("Ll", "Lu", "Nd"), min_codepoint=48, max_codepoint=122),
+    alphabet=st.characters(
+        whitelist_categories=("Ll", "Lu", "Nd"), min_codepoint=48, max_codepoint=122
+    ),
     min_size=1,
     max_size=12,
 )
@@ -29,7 +31,9 @@ def test_ws_q_generated_stale_expected_heads_fail_before_mutation(
         _assert_stale_expected_head_fails(repo, name=name, payload=payload)
 
 
-def _assert_stale_expected_head_fails(repo: Repository, *, name: str, payload: bytes) -> None:
+def _assert_stale_expected_head_fails(
+    repo: Repository, *, name: str, payload: bytes
+) -> None:
     path = f"contexts/{name}.yaml"
 
     git = repo.git
@@ -63,7 +67,9 @@ def test_ws_q_generated_serialized_operations_both_commit(
     assume(first != second)
     with tempfile.TemporaryDirectory() as tmp_dir:
         repo = Repository.init(Path(tmp_dir) / "knowledge")
-        _assert_serialized_writers_both_commit(repo, first=first, second=second, payload=payload)
+        _assert_serialized_writers_both_commit(
+            repo, first=first, second=second, payload=payload
+        )
 
 
 def _assert_serialized_writers_both_commit(

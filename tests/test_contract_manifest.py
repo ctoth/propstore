@@ -111,7 +111,9 @@ def test_claim_and_concept_family_contracts_include_identity_policy() -> None:
         "propstore.families.identity.claims.normalize_canonical_claim_payload"
     )
     assert claim_policy["logical_id_fields"] == ["logical_ids"]
-    assert claim_policy["version_excluded_fields"] == list(CLAIM_VERSION_ID_EXCLUDED_FIELDS)
+    assert claim_policy["version_excluded_fields"] == list(
+        CLAIM_VERSION_ID_EXCLUDED_FIELDS
+    )
     assert claim_policy["source_local_fields"] == list(CLAIM_SOURCE_LOCAL_FIELDS)
 
     concept_policy = entries["family:concepts"].body["identity_policy"]
@@ -128,7 +130,9 @@ def test_claim_and_concept_family_contracts_include_identity_policy() -> None:
         "propstore.families.identity.concepts.normalize_canonical_concept_payload"
     )
     assert concept_policy["logical_id_fields"] == ["logical_ids"]
-    assert concept_policy["version_excluded_fields"] == list(CONCEPT_VERSION_ID_EXCLUDED_FIELDS)
+    assert concept_policy["version_excluded_fields"] == list(
+        CONCEPT_VERSION_ID_EXCLUDED_FIELDS
+    )
     assert concept_policy["source_local_fields"] == []
 
 
@@ -157,7 +161,9 @@ def test_contract_manifest_changes_require_version_bumps_against_head() -> None:
     try:
         previous = ContractManifest.from_yaml(result.stdout)
     except ValueError as exc:
-        pytest.skip(f"HEAD contract manifest predates current Quire manifest invariants: {exc}")
+        pytest.skip(
+            f"HEAD contract manifest predates current Quire manifest invariants: {exc}"
+        )
     current = build_propstore_contract_manifest()
 
     check_contract_manifest(previous, current)

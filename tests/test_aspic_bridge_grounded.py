@@ -140,10 +140,7 @@ def _rule_doc(rule_id: str, kind: str, head, body=()):
         id=rule_id,
         kind=kind,  # type: ignore[arg-type]
         head=head,
-        body=tuple(
-            BodyLiteralDocument(kind="positive", atom=atom)
-            for atom in body
-        ),
+        body=tuple(BodyLiteralDocument(kind="positive", atom=atom) for atom in body),
     )
 
 
@@ -571,9 +568,7 @@ def test_nullary_predicate_rule_produces_one_instance() -> None:
     assert len(projection.defeasible_rules) == 1
     emitted = next(iter(projection.defeasible_rules))
     assert emitted.consequent == Literal(atom=GroundAtom("p", ()), negated=False)
-    assert emitted.antecedents == (
-        Literal(atom=GroundAtom("q", ()), negated=False),
-    )
+    assert emitted.antecedents == (Literal(atom=GroundAtom("q", ()), negated=False),)
 
 
 def test_output_literals_include_grounded_atoms() -> None:
@@ -738,4 +733,7 @@ def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
         atom=GroundAtom(target_rule.name),
         negated=True,
     )
-    assert projection.literals[ground_key(GroundAtom(target_rule.name), True)] == defeater_rule.consequent
+    assert (
+        projection.literals[ground_key(GroundAtom(target_rule.name), True)]
+        == defeater_rule.consequent
+    )

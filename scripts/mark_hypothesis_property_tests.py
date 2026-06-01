@@ -7,7 +7,9 @@ TESTS_DIR = Path("tests")
 
 
 def _has_property_marker(lines: list[str], given_index: int) -> bool:
-    indent = lines[given_index][: len(lines[given_index]) - len(lines[given_index].lstrip())]
+    indent = lines[given_index][
+        : len(lines[given_index]) - len(lines[given_index].lstrip())
+    ]
     index = given_index - 1
     while index >= 0:
         stripped = lines[index].strip()
@@ -30,15 +32,15 @@ def _insert_pytest_import(lines: list[str]) -> list[str]:
         None,
     )
     import_indexes = [
-        index for index, line in enumerate(lines) if line.rstrip("\r\n") == "import pytest"
+        index
+        for index, line in enumerate(lines)
+        if line.rstrip("\r\n") == "import pytest"
     ]
     if import_indexes and (first_marker is None or min(import_indexes) < first_marker):
         return lines
 
     lines = [
-        line
-        for index, line in enumerate(lines)
-        if index not in set(import_indexes)
+        line for index, line in enumerate(lines) if index not in set(import_indexes)
     ]
 
     insertion_index = 0

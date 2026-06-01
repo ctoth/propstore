@@ -88,7 +88,9 @@ def _seed_import_source(tmp_path: Path) -> Path:
 
 def _advance_branch(repo: Repository, branch: str) -> str:
     return repo.git.commit_batch(
-        adds={f"contexts/ws_q_cas_{branch.replace('/', '_')}.yaml": b"id: race\nname: Race\n"},
+        adds={
+            f"contexts/ws_q_cas_{branch.replace('/', '_')}.yaml": b"id: race\nname: Race\n"
+        },
         deletes=(),
         message="Concurrent writer",
         branch=branch,
@@ -126,7 +128,12 @@ def _materialize_runner(repo: Repository) -> None:
             lambda repo, _source_name: None,
             lambda tmp: _repository_import_runner(_seed_import_source(tmp)),
         ),
-        ("materialize", "master", lambda repo, _source_name: None, lambda _tmp: _materialize_runner),
+        (
+            "materialize",
+            "master",
+            lambda repo, _source_name: None,
+            lambda _tmp: _materialize_runner,
+        ),
     ],
 )
 def test_concurrent_writer_loses_cleanly(
@@ -157,7 +164,9 @@ def test_concurrent_writer_loses_cleanly(
     else:
         original_commit_batch = type(repo.git).commit_batch
 
-        def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):
+        def stale_commit_batch(
+            self, adds, deletes, message, *, branch=None, expected_head=None
+        ):
             if branch == path_name_branch and expected_head == head_at_start:
                 raise HeadMismatchError(
                     branch=branch,

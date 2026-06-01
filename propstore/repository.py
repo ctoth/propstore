@@ -1,4 +1,5 @@
 """Repository — locates and provides paths within a propstore knowledge/ directory."""
+
 from __future__ import annotations
 
 import json
@@ -12,7 +13,11 @@ from quire import ContractManifest, check_contract_manifest
 from quire.derived_store import DerivedStoreManager
 from quire.git_store import GitStore, HeadMismatchError
 from quire.refs import RefName
-from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
+from quire.tree_path import (
+    FilesystemTreePath as FilesystemKnowledgePath,
+    GitTreePath as GitKnowledgePath,
+    TreePath as KnowledgePath,
+)
 from propstore.contracts import build_propstore_contract_manifest
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
@@ -73,7 +78,9 @@ class Repository:
         """Return a read-only semantic tree rooted at this repository."""
         if self.git is None:
             if commit is not None:
-                raise ValueError("Repository.tree(commit=...) requires a git-backed repository")
+                raise ValueError(
+                    "Repository.tree(commit=...) requires a git-backed repository"
+                )
             return FilesystemKnowledgePath.from_filesystem_path(self._root)
         return GitKnowledgePath(self.git, commit=commit)
 
@@ -116,7 +123,10 @@ class Repository:
         """Return whether *root* is a git store with propstore bootstrap state."""
         if not GitStore.is_repo(root):
             return False
-        return _read_bootstrap_manifest(GitStore.open(root, policy=PROPSTORE_GIT_POLICY)) is not None
+        return (
+            _read_bootstrap_manifest(GitStore.open(root, policy=PROPSTORE_GIT_POLICY))
+            is not None
+        )
 
     def write_bootstrap_manifest(
         self,
@@ -219,7 +229,9 @@ def retry_live_branch_update(
     if attempts < 1:
         raise ValueError("attempts must be at least 1")
     for attempt in range(attempts):
-        expected_head = None if repo.git is None else repo.require_git().branch_sha(branch)
+        expected_head = (
+            None if repo.git is None else repo.require_git().branch_sha(branch)
+        )
         try:
             return update(expected_head)
         except HeadMismatchError:
@@ -271,7 +283,9 @@ def _bootstrap_manifest(
 ) -> dict[str, object]:
     manifest: dict[str, object] = {
         "repository_format_version": PROPSTORE_REPOSITORY_FORMAT_VERSION,
-        "family_registry_contract_version": str(PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION),
+        "family_registry_contract_version": str(
+            PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION
+        ),
         "seed_bundle_version": "packaged-defaults",
         "seed_commit": seed_commit,
         "primary_branch": "master",

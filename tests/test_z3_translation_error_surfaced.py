@@ -20,4 +20,7 @@ def test_z3_translation_error_is_not_relabelled_as_phi_node(monkeypatch) -> None
         param_claim("right", "concept_x", 2.0, conditions=["T >= 100"]),
     )
 
-    assert merge_classifier._classify_pair(left, right) is merge_classifier._DiffKind.UNTRANSLATABLE
+    assert (
+        merge_classifier._classify_pair(left, right)
+        is merge_classifier._DiffKind.UNTRANSLATABLE
+    )

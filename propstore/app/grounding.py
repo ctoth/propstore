@@ -38,7 +38,9 @@ def grounding_show(repo: Repository) -> GroundingShowReport:
     return inspect_grounding_show(repo)
 
 
-def grounding_query(repo: Repository, request: GroundingQueryRequest) -> GroundingQueryReport:
+def grounding_query(
+    repo: Repository, request: GroundingQueryRequest
+) -> GroundingQueryReport:
     return inspect_grounding_query(repo, request.atom)
 
 

@@ -35,7 +35,9 @@ def test_neighborhood_hides_blocked_stance_endpoints(tmp_path) -> None:
     payload = response.json()
     serialized = response.text
     assert fixture.focus_claim_id not in serialized
-    assert all(fixture.focus_claim_id not in move["target_ids"] for move in payload["moves"])
+    assert all(
+        fixture.focus_claim_id not in move["target_ids"] for move in payload["moves"]
+    )
     assert all(node["node_id"] != fixture.focus_claim_id for node in payload["nodes"])
     assert all(edge["source_id"] != fixture.focus_claim_id for edge in payload["edges"])
     assert all(edge["target_id"] != fixture.focus_claim_id for edge in payload["edges"])

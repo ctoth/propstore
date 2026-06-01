@@ -12,13 +12,16 @@ from propstore.cli.concept import (
 
 # ── concept embed ────────────────────────────────────────────────────
 
+
 @concept.command()
 @click.argument("concept_id", required=False, default=None)
 @click.option("--all", "embed_all", is_flag=True, help="Embed all concepts")
 @click.option("--model", required=True, help="litellm model string, or 'all'")
 @click.option("--batch-size", default=64, type=int, help="Concepts per API call")
 @click.pass_obj
-def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
+def embed(
+    obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_size: int
+) -> None:
     """Generate embeddings for concepts via litellm."""
     from propstore.app.concepts import (
         ConceptEmbedRequest,
@@ -49,7 +52,11 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
         )
     except ConceptSidecarMissingError as exc:
         fail(exc)
-    except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
+    except (
+        ConceptEmbeddingModelError,
+        ConceptWorkflowError,
+        UnknownConceptError,
+    ) as exc:
         fail(exc)
 
     if model == "all":
@@ -72,14 +79,26 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
 
 # ── concept similar ──────────────────────────────────────────────────
 
+
 @concept.command()
 @click.argument("concept_id")
-@click.option("--model", default=None, help="litellm model string (default: first available)")
+@click.option(
+    "--model", default=None, help="litellm model string (default: first available)"
+)
 @click.option("--top-k", default=10, type=int, help="Number of results")
 @click.option("--agree", is_flag=True, help="Similar under ALL stored models")
-@click.option("--disagree", is_flag=True, help="Similar under some models but not others")
+@click.option(
+    "--disagree", is_flag=True, help="Similar under some models but not others"
+)
 @click.pass_obj
-def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bool, disagree: bool) -> None:
+def similar(
+    obj: dict,
+    concept_id: str,
+    model: str | None,
+    top_k: int,
+    agree: bool,
+    disagree: bool,
+) -> None:
     """Find similar concepts by embedding distance."""
     from propstore.app.concepts import (
         ConceptEmbeddingModelError,
@@ -103,7 +122,11 @@ def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bo
         )
     except ConceptSidecarMissingError as exc:
         fail(exc)
-    except (ConceptEmbeddingModelError, ConceptWorkflowError, UnknownConceptError) as exc:
+    except (
+        ConceptEmbeddingModelError,
+        ConceptWorkflowError,
+        UnknownConceptError,
+    ) as exc:
         fail(exc)
 
     if not report.hits:

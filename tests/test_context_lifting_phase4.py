@@ -6,7 +6,11 @@ from hypothesis import strategies as st
 
 from propstore.families.claims.declaration import ClaimDocument, IstPropositionDocument
 from propstore.families.contexts.declaration import ContextDocument
-from quire.documents import DocumentSchemaError, convert_document_value, document_to_payload
+from quire.documents import (
+    DocumentSchemaError,
+    convert_document_value,
+    document_to_payload,
+)
 
 
 def test_context_document_rejects_visibility_inheritance_fields() -> None:
@@ -125,8 +129,14 @@ def test_claim_document_parses_nested_ist_proposition() -> None:
 
 
 @pytest.mark.property
-@given(st.lists(st.sampled_from(["ctx_a", "ctx_b", "ctx_c", "ctx_d"]), min_size=1, max_size=4))
-def test_nested_ist_proposition_round_trips_context_stack(context_ids: list[str]) -> None:
+@given(
+    st.lists(
+        st.sampled_from(["ctx_a", "ctx_b", "ctx_c", "ctx_d"]), min_size=1, max_size=4
+    )
+)
+def test_nested_ist_proposition_round_trips_context_stack(
+    context_ids: list[str],
+) -> None:
     proposition: dict[str, object] = {
         "kind": "atomic",
         "type": "observation",
@@ -204,10 +214,15 @@ def test_lifting_system_is_explicit_rule_based() -> None:
         LiftingDecisionStatus.UNKNOWN,
     )
     assert reverse_decisions == ()
-    assert system.materialize_lifted_assertions((
-        IstProposition(
-            context=ContextReference("ctx_source"),
-            proposition_id="claim_source",
-        ),
-    )) == ()
+    assert (
+        system.materialize_lifted_assertions(
+            (
+                IstProposition(
+                    context=ContextReference("ctx_source"),
+                    proposition_id="claim_source",
+                ),
+            )
+        )
+        == ()
+    )
     assert system.effective_assumptions("ctx_target") == ()

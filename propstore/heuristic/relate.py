@@ -8,6 +8,7 @@ not interchangeable with B's distance to A. ``dedup_pairs`` keeps one unordered
 pair for LLM cost control, but preserves the two directed distances separately
 instead of collapsing them to ``min(forward, reverse)``.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,6 +27,7 @@ def _run_async(coro):
         return asyncio.run(coro)
     # Already in an event loop (Jupyter, async CLI, etc.)
     import concurrent.futures
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         return pool.submit(asyncio.run, coro).result()
 
@@ -115,7 +117,10 @@ async def relate_claim_async(
 
     tasks = [
         classify_stance_async(
-            claim_a, claim_b, model_name, semaphore,
+            claim_a,
+            claim_b,
+            model_name,
+            semaphore,
             embedding_model=embedding_model,
             embedding_distance=candidate_distances.get(claim_b["id"]),
             shared_concept_ids=_shared_concept_ids_from_pair(claim_a, claim_b),
@@ -200,7 +205,9 @@ async def relate_all_async(
         raw_candidates.append((claim_id, candidates))
         for c in candidates:
             candidate_id = str(c.claim_id)
-            concept_ids[candidate_id] = None if c.concept_id is None else str(c.concept_id)
+            concept_ids[candidate_id] = (
+                None if c.concept_id is None else str(c.concept_id)
+            )
             if candidate_id not in text_cache:
                 candidate_ids_needed.add(candidate_id)
 
@@ -236,7 +243,10 @@ async def relate_all_async(
     semaphore = asyncio.Semaphore(concurrency)
     tasks = [
         classify_stance_async(
-            a, b, model_name, semaphore,
+            a,
+            b,
+            model_name,
+            semaphore,
             embedding_model=embedding_model,
             embedding_distance=forward_dist,
             shared_concept_ids=_shared_concept_ids_from_pair(
@@ -255,8 +265,8 @@ async def relate_all_async(
 
     chunk_size = concurrency * 2
     for i in range(0, len(tasks), chunk_size):
-        chunk = tasks[i:i + chunk_size]
-        chunk_pairs = pairs[i:i + chunk_size]
+        chunk = tasks[i : i + chunk_size]
+        chunk_pairs = pairs[i : i + chunk_size]
         results = await asyncio.gather(*chunk)
 
         for (claim_a, claim_b, _forward_dist, _reverse_dist), stance_pair in zip(

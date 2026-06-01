@@ -34,7 +34,9 @@ def _init_repo(root: Path) -> Repository:
     return Repository.init(root / "knowledge")
 
 
-def _copy_claim_file(repo: Repository, *, source_path: Path, target_name: str | None = None) -> None:
+def _copy_claim_file(
+    repo: Repository, *, source_path: Path, target_name: str | None = None
+) -> None:
     target = repo.root / "claims" / (target_name or source_path.name)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source_path, target)
@@ -73,9 +75,7 @@ def _branch_claim_stats(repo: Repository, branch: str) -> dict[str, Any]:
                 raw_ids.append(claim_id)
 
     duplicates = {
-        claim_id: count
-        for claim_id, count in Counter(raw_ids).items()
-        if count > 1
+        claim_id: count for claim_id, count in Counter(raw_ids).items() if count > 1
     }
     return {
         "branch": branch,
@@ -137,7 +137,9 @@ def _toy_doc(paper: str, claims: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _commit_doc(repo: Repository, relative_path: str, payload: dict[str, Any], message: str) -> None:
+def _commit_doc(
+    repo: Repository, relative_path: str, payload: dict[str, Any], message: str
+) -> None:
     data = yaml.safe_dump(payload, sort_keys=False).encode("utf-8")
     path = repo.root / relative_path
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -202,7 +204,9 @@ def experiment_toy_unique_ids(base: Path) -> dict[str, Any]:
     result_b = commit_repo_import(hub, plan_b)
 
     assert hub.git is not None
-    merge = build_merge_framework(hub.git, result_a.target_branch, result_b.target_branch)
+    merge = build_merge_framework(
+        hub.git, result_a.target_branch, result_b.target_branch
+    )
     merge_sha = create_merge_commit(
         hub.git,
         result_a.target_branch,
@@ -219,7 +223,9 @@ def experiment_toy_unique_ids(base: Path) -> dict[str, Any]:
                 for argument in merge.arguments
                 if argument.canonical_claim_id == claim_id
             )
-            for claim_id in sorted({argument.canonical_claim_id for argument in merge.arguments})
+            for claim_id in sorted(
+                {argument.canonical_claim_id for argument in merge.arguments}
+            )
         },
         "attack_count": len(merge.framework.attacks),
         "ignorance_count": len(merge.framework.ignorance),
@@ -244,8 +250,18 @@ def experiment_toy_same_semantics_different_ids(base: Path) -> dict[str, Any]:
         concept="drug_x_effect",
         value=0.8,
     )
-    _commit_doc(researcher_a, "claims/paper.yaml", _toy_doc("shared-paper", [shared_a]), "seed A")
-    _commit_doc(researcher_b, "claims/paper.yaml", _toy_doc("shared-paper", [shared_b]), "seed B")
+    _commit_doc(
+        researcher_a,
+        "claims/paper.yaml",
+        _toy_doc("shared-paper", [shared_a]),
+        "seed A",
+    )
+    _commit_doc(
+        researcher_b,
+        "claims/paper.yaml",
+        _toy_doc("shared-paper", [shared_b]),
+        "seed B",
+    )
 
     plan_a = plan_repo_import(hub, researcher_a.root.parent)
     result_a = commit_repo_import(hub, plan_a)
@@ -253,12 +269,16 @@ def experiment_toy_same_semantics_different_ids(base: Path) -> dict[str, Any]:
     result_b = commit_repo_import(hub, plan_b)
 
     assert hub.git is not None
-    merge = build_merge_framework(hub.git, result_a.target_branch, result_b.target_branch)
+    merge = build_merge_framework(
+        hub.git, result_a.target_branch, result_b.target_branch
+    )
     return {
         "branch_a": result_a.target_branch,
         "branch_b": result_b.target_branch,
         "emitted_argument_ids": [argument.claim_id for argument in merge.arguments],
-        "canonical_claim_ids": [argument.canonical_claim_id for argument in merge.arguments],
+        "canonical_claim_ids": [
+            argument.canonical_claim_id for argument in merge.arguments
+        ],
         "branch_origins": {
             argument.claim_id: list(argument.branch_origins)
             for argument in merge.arguments
@@ -305,7 +325,9 @@ def experiment_toy_structured_merge(base: Path) -> dict[str, Any]:
     )
 
     summary_a = build_branch_structured_summary(hub.git, "researcher/a")
-    candidates = build_structured_merge_candidates(hub.git, "researcher/a", "researcher/b")
+    candidates = build_structured_merge_candidates(
+        hub.git, "researcher/a", "researcher/b"
+    )
     return {
         "summary_claim_ids": list(summary_a.claim_ids),
         "projection_attack_count": len(summary_a.projection.framework.attacks),
@@ -342,7 +364,9 @@ def experiment_actual_four_papers(base: Path) -> dict[str, Any]:
     assert hub.git is not None
     stats_a = _branch_claim_stats(hub, result_a.target_branch)
     stats_b = _branch_claim_stats(hub, result_b.target_branch)
-    merge = build_merge_framework(hub.git, result_a.target_branch, result_b.target_branch)
+    merge = build_merge_framework(
+        hub.git, result_a.target_branch, result_b.target_branch
+    )
     merge_sha = create_merge_commit(
         hub.git,
         result_a.target_branch,
@@ -357,8 +381,12 @@ def experiment_actual_four_papers(base: Path) -> dict[str, Any]:
         "researcher_a_branch_stats": stats_a,
         "researcher_b_branch_stats": stats_b,
         "emitted_argument_count": len(merge.arguments),
-        "emitted_argument_ids_head": [argument.claim_id for argument in merge.arguments[:10]],
-        "canonical_claim_ids_head": [argument.canonical_claim_id for argument in merge.arguments[:10]],
+        "emitted_argument_ids_head": [
+            argument.claim_id for argument in merge.arguments[:10]
+        ],
+        "canonical_claim_ids_head": [
+            argument.canonical_claim_id for argument in merge.arguments[:10]
+        ],
         "attack_count": len(merge.framework.attacks),
         "ignorance_count": len(merge.framework.ignorance),
         "merged_claim_count": len(merged_ids),
@@ -374,7 +402,9 @@ def experiment_fork_then_diverge(base: Path) -> dict[str, Any]:
     base_doc = _toy_doc(
         "shared-paper",
         [
-            _toy_claim("shared.paper.claim", "Shared base claim.", concept="shared", value=1.0),
+            _toy_claim(
+                "shared.paper.claim", "Shared base claim.", concept="shared", value=1.0
+            ),
         ],
     )
     _commit_doc(hub, "claims/shared.yaml", base_doc, "seed shared base")
@@ -387,17 +417,35 @@ def experiment_fork_then_diverge(base: Path) -> dict[str, Any]:
     a_doc = _toy_doc(
         "researcher-a-paper",
         [
-            _toy_claim("shared.paper.claim", "Shared base claim.", concept="shared", value=1.0),
-            _toy_claim("new.same", "A and B both add this same claim.", concept="overlap", value=2.0),
-            _toy_claim("a.unique", "Researcher A unique claim.", concept="a_unique", value=3.0),
+            _toy_claim(
+                "shared.paper.claim", "Shared base claim.", concept="shared", value=1.0
+            ),
+            _toy_claim(
+                "new.same",
+                "A and B both add this same claim.",
+                concept="overlap",
+                value=2.0,
+            ),
+            _toy_claim(
+                "a.unique", "Researcher A unique claim.", concept="a_unique", value=3.0
+            ),
         ],
     )
     b_doc = _toy_doc(
         "researcher-b-paper",
         [
-            _toy_claim("shared.paper.claim", "Shared base claim.", concept="shared", value=1.0),
-            _toy_claim("new.same", "A and B both add this same claim.", concept="overlap", value=2.0),
-            _toy_claim("b.unique", "Researcher B unique claim.", concept="b_unique", value=4.0),
+            _toy_claim(
+                "shared.paper.claim", "Shared base claim.", concept="shared", value=1.0
+            ),
+            _toy_claim(
+                "new.same",
+                "A and B both add this same claim.",
+                concept="overlap",
+                value=2.0,
+            ),
+            _toy_claim(
+                "b.unique", "Researcher B unique claim.", concept="b_unique", value=4.0
+            ),
         ],
     )
 
@@ -429,7 +477,9 @@ def main() -> None:
         base = Path(tempdir)
         results = {
             "toy_unique_ids": experiment_toy_unique_ids(base),
-            "toy_same_semantics_different_ids": experiment_toy_same_semantics_different_ids(base),
+            "toy_same_semantics_different_ids": experiment_toy_same_semantics_different_ids(
+                base
+            ),
             "toy_structured_merge": experiment_toy_structured_merge(base),
             "actual_four_papers": experiment_actual_four_papers(base),
             "fork_then_diverge": experiment_fork_then_diverge(base),

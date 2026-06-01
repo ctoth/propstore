@@ -55,7 +55,10 @@ def test_add_predicate_writes_one_artifact_per_predicate(tmp_path) -> None:
     assert first_data["id"] == "aspirin_user"
     assert first_data["authoring_group"] == "ikeda_2014"
     assert second_data["id"] == "reduces_mi"
-    assert repo.families.predicates.require(PredicateRef("aspirin_user")).id == "aspirin_user"
+    assert (
+        repo.families.predicates.require(PredicateRef("aspirin_user")).id
+        == "aspirin_user"
+    )
 
 
 def test_add_predicate_rejects_arity_mismatch(tmp_path) -> None:
@@ -180,7 +183,9 @@ def test_predicate_owner_list_and_show(tmp_path) -> None:
     items = list_predicates(repo)
     shown = show_predicate(repo, "p1")
 
-    assert [(item.authoring_group, item.predicate_id) for item in items] == [("ikeda_2014", "p1")]
+    assert [(item.authoring_group, item.predicate_id) for item in items] == [
+        ("ikeda_2014", "p1")
+    ]
     assert "id: p1" in shown.rendered
 
     try:
@@ -247,7 +252,9 @@ def test_remove_predicate_removes_and_preserves_others(tmp_path) -> None:
     )
     add_predicate(
         repo,
-        PredicateAddRequest(file="ikeda_2014", predicate_id="p2", arity=1, arg_types=("thing",)),
+        PredicateAddRequest(
+            file="ikeda_2014", predicate_id="p2", arity=1, arg_types=("thing",)
+        ),
     )
 
     report = remove_predicate(

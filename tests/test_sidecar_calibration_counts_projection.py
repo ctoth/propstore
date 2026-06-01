@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from propstore.families.calibration.declaration import calibration_counts_by_key
 from propstore.families.calibration.declaration import CalibrationCount
 from propstore.families.registry import world_schema

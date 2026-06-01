@@ -5,7 +5,9 @@ from tests.git_store_helpers import init_store
 from tests.ws_l_merge_helpers import claim_payloads, param_claim, snapshot
 
 
-def test_regime_split_same_value_claims_remain_distinct_with_ignorance(tmp_path) -> None:
+def test_regime_split_same_value_claims_remain_distinct_with_ignorance(
+    tmp_path,
+) -> None:
     kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/regime-right"

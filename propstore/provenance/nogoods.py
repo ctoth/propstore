@@ -27,7 +27,9 @@ class ProvenanceNogood:
     provenance: Provenance
 
     def __post_init__(self) -> None:
-        variables = frozenset(SourceVariableId(str(variable)) for variable in self.variables)
+        variables = frozenset(
+            SourceVariableId(str(variable)) for variable in self.variables
+        )
         object.__setattr__(self, "variables", variables)
 
 

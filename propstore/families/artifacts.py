@@ -227,7 +227,7 @@ def stamp_source_artifacts(
 
     justification_codes_by_conclusion: dict[str, list[str]] = defaultdict(list)
     rewritten_justifications: list[SourceJustificationDocument] = []
-    for justification in (() if justifications_doc is None else justifications_doc):
+    for justification in () if justifications_doc is None else justifications_doc:
         artifact_code = justification_artifact_code(justification)
         rewritten = _stamp_document(
             justification,
@@ -242,7 +242,7 @@ def stamp_source_artifacts(
 
     stance_codes_by_source: dict[str, list[str]] = defaultdict(list)
     rewritten_stances: list[SourceStanceEntryDocument] = []
-    for stance in (() if stances_doc is None else stances_doc):
+    for stance in () if stances_doc is None else stances_doc:
         artifact_code = stance_artifact_code(stance)
         rewritten = _stamp_document(
             stance,
@@ -256,12 +256,14 @@ def stamp_source_artifacts(
         rewritten_stances.append(rewritten)
 
     rewritten_claims: list[SourceClaimDocument] = []
-    for claim in (() if claims_doc is None else claims_doc):
+    for claim in () if claims_doc is None else claims_doc:
         claim_id = claim.artifact_id
         artifact_code = claim_artifact_code(
             claim,
             source_code=source_code,
-            justification_codes=justification_codes_by_conclusion.get(str(claim_id), []),
+            justification_codes=justification_codes_by_conclusion.get(
+                str(claim_id), []
+            ),
             stance_codes=stance_codes_by_source.get(str(claim_id), []),
         )
         rewritten_claims.append(
@@ -364,13 +366,9 @@ def build_artifact_verification_index(
             claim,
             source_code=source_code,
             justification_codes=[
-                str(records[ref].actual or "")
-                for ref in justification_refs
+                str(records[ref].actual or "") for ref in justification_refs
             ],
-            stance_codes=[
-                str(records[ref].actual or "")
-                for ref in stance_refs
-            ],
+            stance_codes=[str(records[ref].actual or "") for ref in stance_refs],
         )
         claim_ref = ArtifactReference("claim", claim_id)
         records[claim_ref] = ArtifactVerificationRecord(
@@ -392,4 +390,3 @@ def build_artifact_verification_index(
         claim_lookup=claim_lookup,
         source_by_claim=source_by_claim,
     )
-

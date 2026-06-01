@@ -115,14 +115,16 @@ def _unary_op(op: ConditionUnaryOp) -> ast.unaryop:
 
 
 _BOOLEAN_OPS = frozenset((ConditionBinaryOp.AND, ConditionBinaryOp.OR))
-_COMPARISON_OPS = frozenset((
-    ConditionBinaryOp.EQUAL,
-    ConditionBinaryOp.NOT_EQUAL,
-    ConditionBinaryOp.LESS_THAN,
-    ConditionBinaryOp.LESS_THAN_OR_EQUAL,
-    ConditionBinaryOp.GREATER_THAN,
-    ConditionBinaryOp.GREATER_THAN_OR_EQUAL,
-))
+_COMPARISON_OPS = frozenset(
+    (
+        ConditionBinaryOp.EQUAL,
+        ConditionBinaryOp.NOT_EQUAL,
+        ConditionBinaryOp.LESS_THAN,
+        ConditionBinaryOp.LESS_THAN_OR_EQUAL,
+        ConditionBinaryOp.GREATER_THAN,
+        ConditionBinaryOp.GREATER_THAN_OR_EQUAL,
+    )
+)
 
 
 def _bool_op(op: ConditionBinaryOp) -> ast.boolop:

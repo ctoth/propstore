@@ -1,4 +1,5 @@
 """Tests for branch-local structured projection into merge summaries."""
+
 from __future__ import annotations
 
 import pytest
@@ -23,26 +24,32 @@ from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_payloads(
+    kr: GitStore, claims: list[dict], paper: str = "test_paper"
+) -> dict[str, bytes]:
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return claim_artifact_commit_payloads(
         Repository(kr.root),
         doc,
@@ -85,10 +92,13 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
     kr = init_store(tmp_path / "knowledge")
     kr.commit_files(
         {
-            **_claim_payloads(kr, [
-                _obs_claim("claim_a", "A"),
-                _obs_claim("claim_b", "B"),
-            ]),
+            **_claim_payloads(
+                kr,
+                [
+                    _obs_claim("claim_a", "A"),
+                    _obs_claim("claim_b", "B"),
+                ],
+            ),
             **_stance_files(
                 _artifact_id("claim_a"),
                 [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
@@ -101,7 +111,10 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
 
     assert not hasattr(summary, "claim_ids")
     assert len(summary.assertion_ids) == 2
-    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in summary.assertion_ids)
+    assert all(
+        assertion_id.startswith("ps:assertion:")
+        for assertion_id in summary.assertion_ids
+    )
     assert summary.claim_provenance[_artifact_id("claim_a")]["paper"] == "test_paper"
     assert summary.claim_provenance[_artifact_id("claim_b")]["paper"] == "test_paper"
     assert summary.relation_surface == {
@@ -135,10 +148,13 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
     kr.create_branch(branch_name, source_commit=base_sha)
 
     adds: dict[str | Path, bytes] = {
-        **_claim_payloads(kr, [
-            _obs_claim("claim_a", "A"),
-            _obs_claim("claim_b", "B"),
-        ]),
+        **_claim_payloads(
+            kr,
+            [
+                _obs_claim("claim_a", "A"),
+                _obs_claim("claim_b", "B"),
+            ],
+        ),
         **_stance_files(
             _artifact_id("claim_a"),
             [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
@@ -149,7 +165,9 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
 
     summary = build_branch_structured_summary(_snapshot(kr), "master")
     branch_summary = build_branch_structured_summary(_snapshot(kr), branch_name)
-    candidates = build_structured_merge_candidates(_snapshot(kr), "master", branch_name, operator="sum")
+    candidates = build_structured_merge_candidates(
+        _snapshot(kr), "master", branch_name, operator="sum"
+    )
 
     assert summary.content_signature == branch_summary.content_signature
     assert candidates == [summary.projection.framework]
@@ -159,10 +177,13 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
     kr = init_store(tmp_path / "knowledge")
     kr.commit_files(
         {
-            **_claim_payloads(kr, [
-                _obs_claim("claim_a", "A"),
-                _obs_claim("claim_b", "B"),
-            ]),
+            **_claim_payloads(
+                kr,
+                [
+                    _obs_claim("claim_a", "A"),
+                    _obs_claim("claim_b", "B"),
+                ],
+            ),
             **_stance_files(
                 _artifact_id("claim_a"),
                 [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
@@ -192,10 +213,13 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
     )
     kr.commit_files(
         {
-            **_claim_payloads(kr, [
-                _obs_claim("claim_a", "A"),
-                _obs_claim("claim_b", "B"),
-            ]),
+            **_claim_payloads(
+                kr,
+                [
+                    _obs_claim("claim_a", "A"),
+                    _obs_claim("claim_b", "B"),
+                ],
+            ),
             **_stance_files(
                 _artifact_id("claim_a"),
                 [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
@@ -209,17 +233,22 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
 
     assert len(summary.assertion_ids) == 1
     assert summary.assertion_ids[0].startswith("ps:assertion:")
-    assert set(summary.projection.argument_to_claim_id.values()) == {_artifact_id("claim_a")}
+    assert set(summary.projection.argument_to_claim_id.values()) == {
+        _artifact_id("claim_a")
+    }
     assert summary.projection.framework.attacks == frozenset()
 
 
 def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_path):
     kr = init_store(tmp_path / "knowledge")
     kr.commit_files(
-        _claim_payloads(kr, [
-            _obs_claim("claim_a", "A"),
-            _obs_claim("claim_b", "B"),
-        ]),
+        _claim_payloads(
+            kr,
+            [
+                _obs_claim("claim_a", "A"),
+                _obs_claim("claim_b", "B"),
+            ],
+        ),
         "seed structured branch",
     )
 
@@ -258,8 +287,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
             _obs_claim("claim_b", "B"),
         ]
         extra_stances = [
-            {"target": target, "type": "rebuts"}
-            for target in extra_targets
+            {"target": target, "type": "rebuts"} for target in extra_targets
         ]
 
         kr.commit_files(
@@ -277,7 +305,8 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
                 **_claim_payloads(kr, base_claims),
                 **_stance_files(
                     _artifact_id("claim_a"),
-                    [{"target": _artifact_id("claim_b"), "type": "rebuts"}] + extra_stances,
+                    [{"target": _artifact_id("claim_b"), "type": "rebuts"}]
+                    + extra_stances,
                 ),
             },
             "right",
@@ -320,10 +349,15 @@ def test_branch_structured_summary_is_order_invariant(
 
         kr.commit_files(
             {
-                **_claim_payloads(kr, [claims_by_id[claim_id] for claim_id in claim_order]),
+                **_claim_payloads(
+                    kr, [claims_by_id[claim_id] for claim_id in claim_order]
+                ),
                 **_stance_files(
                     _artifact_id("claim_a"),
-                    [{"target": _artifact_id(target), "type": "rebuts"} for target in stance_order],
+                    [
+                        {"target": _artifact_id(target), "type": "rebuts"}
+                        for target in stance_order
+                    ],
                 ),
             },
             "left",
@@ -332,7 +366,11 @@ def test_branch_structured_summary_is_order_invariant(
             {
                 **_claim_payloads(
                     kr,
-                    [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]],
+                    [
+                        claims_by_id["claim_c"],
+                        claims_by_id["claim_a"],
+                        claims_by_id["claim_b"],
+                    ],
                 ),
                 **_stance_files(
                     _artifact_id("claim_a"),

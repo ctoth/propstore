@@ -23,15 +23,11 @@ def test_world_commands_live_outside_compiler_cmds() -> None:
 
 
 def test_world_command_families_live_outside_group_module() -> None:
-    query_cmds = Path("propstore/cli/world/query.py").read_text(
-        encoding="utf-8"
-    )
+    query_cmds = Path("propstore/cli/world/query.py").read_text(encoding="utf-8")
     reasoning_cmds = Path("propstore/cli/world/reasoning.py").read_text(
         encoding="utf-8"
     )
-    analysis_cmds = Path("propstore/cli/world/analysis.py").read_text(
-        encoding="utf-8"
-    )
+    analysis_cmds = Path("propstore/cli/world/analysis.py").read_text(encoding="utf-8")
 
     assert '@world.command("status")' in query_cmds
     assert '@world.command("resolve")' in reasoning_cmds
@@ -51,9 +47,7 @@ def test_world_atms_commands_live_outside_world_group_module() -> None:
 
 def test_world_revision_commands_live_outside_world_group_module() -> None:
     world_cmds = Path("propstore/cli/world/__init__.py").read_text(encoding="utf-8")
-    revision_cmds = Path("propstore/cli/world/revision.py").read_text(
-        encoding="utf-8"
-    )
+    revision_cmds = Path("propstore/cli/world/revision.py").read_text(encoding="utf-8")
 
     assert '@world.command("revision-' not in world_cmds
     assert '@world.command("expand")' not in world_cmds
@@ -224,26 +218,22 @@ def test_cli_only_world_arg_parsers_live_in_cli_layer() -> None:
 
 
 def test_worldline_commands_live_outside_group_module() -> None:
-    group_module = Path("propstore/cli/worldline/__init__.py").read_text(encoding="utf-8")
+    group_module = Path("propstore/cli/worldline/__init__.py").read_text(
+        encoding="utf-8"
+    )
     materialize = Path("propstore/cli/worldline/materialize.py").read_text(
         encoding="utf-8"
     )
-    journal = Path("propstore/cli/worldline/journal.py").read_text(
-        encoding="utf-8"
-    )
-    display = Path("propstore/cli/worldline/display.py").read_text(
-        encoding="utf-8"
-    )
-    mutation = Path("propstore/cli/worldline/mutation.py").read_text(
-        encoding="utf-8"
-    )
+    journal = Path("propstore/cli/worldline/journal.py").read_text(encoding="utf-8")
+    display = Path("propstore/cli/worldline/display.py").read_text(encoding="utf-8")
+    mutation = Path("propstore/cli/worldline/mutation.py").read_text(encoding="utf-8")
 
     assert "@worldline.command" not in group_module
     assert "def worldline_create(" in materialize
     assert "def worldline_run(" in materialize
     assert "def worldline_refresh(" in materialize
-    assert 'def worldline_build_journal(' in journal
-    assert 'def worldline_at_step(' in journal
+    assert "def worldline_build_journal(" in journal
+    assert "def worldline_at_step(" in journal
     assert "def worldline_show(" in display
     assert "def worldline_list(" in display
     assert "def worldline_diff(" in display
@@ -267,18 +257,10 @@ def test_worldline_staleness_status_output_is_ascii() -> None:
 
 def test_concept_commands_live_outside_group_module() -> None:
     group_module = Path("propstore/cli/concept/__init__.py").read_text(encoding="utf-8")
-    mutation = Path("propstore/cli/concept/mutation.py").read_text(
-        encoding="utf-8"
-    )
-    display = Path("propstore/cli/concept/display.py").read_text(
-        encoding="utf-8"
-    )
-    alignment = Path("propstore/cli/concept/alignment.py").read_text(
-        encoding="utf-8"
-    )
-    embedding = Path("propstore/cli/concept/embedding.py").read_text(
-        encoding="utf-8"
-    )
+    mutation = Path("propstore/cli/concept/mutation.py").read_text(encoding="utf-8")
+    display = Path("propstore/cli/concept/display.py").read_text(encoding="utf-8")
+    alignment = Path("propstore/cli/concept/alignment.py").read_text(encoding="utf-8")
+    embedding = Path("propstore/cli/concept/embedding.py").read_text(encoding="utf-8")
 
     assert "@concept.command" not in group_module
     assert "def concept(" in group_module
@@ -331,7 +313,9 @@ def test_claim_commands_live_outside_group_module() -> None:
 
 
 def test_predicate_commands_live_outside_group_module() -> None:
-    group_module = Path("propstore/cli/predicate/__init__.py").read_text(encoding="utf-8")
+    group_module = Path("propstore/cli/predicate/__init__.py").read_text(
+        encoding="utf-8"
+    )
     display = Path("propstore/cli/predicate/display.py").read_text(encoding="utf-8")
     mutation = Path("propstore/cli/predicate/mutation.py").read_text(encoding="utf-8")
 
@@ -400,9 +384,7 @@ def test_claim_embed_progress_uses_named_callback_helper() -> None:
 
 
 def test_compiler_commands_return_after_validation_exit() -> None:
-    compiler_source = Path("propstore/cli/compiler_cmds.py").read_text(
-        encoding="utf-8"
-    )
+    compiler_source = Path("propstore/cli/compiler_cmds.py").read_text(encoding="utf-8")
     lines = compiler_source.splitlines()
 
     for index, line in enumerate(lines):

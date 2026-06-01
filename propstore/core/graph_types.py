@@ -53,7 +53,9 @@ def _require_claim_type(value: object) -> ClaimType:
     return ClaimType(value)
 
 
-def _pairs_from_iterable(value: tuple[tuple[str, object], ...]) -> list[tuple[str, object]]:
+def _pairs_from_iterable(
+    value: tuple[tuple[str, object], ...],
+) -> list[tuple[str, object]]:
     pairs: list[tuple[str, object]] = []
     for key, item in value:
         pairs.append((str(key), item))
@@ -82,9 +84,7 @@ def _normalize_pairs(
         if isinstance(value, Mapping)
         else _pairs_from_iterable(value)
     )
-    return tuple(
-        sorted((key, _freeze_value(item)) for key, item in pairs)
-    )
+    return tuple(sorted((key, _freeze_value(item)) for key, item in pairs))
 
 
 def label_to_dict(label: Label | None) -> list[list[str]] | None:
@@ -96,7 +96,12 @@ def label_to_dict(label: Label | None) -> list[list[str]] | None:
 def label_from_dict(data: list[list[str]] | None) -> Label | None:
     if data is None:
         return None
-    return Label(tuple(EnvironmentKey(tuple(AssumptionId(value) for value in environment)) for environment in data))
+    return Label(
+        tuple(
+            EnvironmentKey(tuple(AssumptionId(value) for value in environment))
+            for environment in data
+        )
+    )
 
 
 def _condition_to_dict(condition: CheckedCondition) -> dict[str, Any]:
@@ -283,7 +288,9 @@ class ConceptNode:
             canonical_name=str(data["canonical_name"]),
             status=(None if data.get("status") is None else str(data["status"])),
             form=(None if data.get("form") is None else str(data["form"])),
-            kind_type=(None if data.get("kind_type") is None else str(data["kind_type"])),
+            kind_type=(
+                None if data.get("kind_type") is None else str(data["kind_type"])
+            ),
             attributes=data.get("attributes") or (),
         )
 
@@ -312,8 +319,12 @@ class ProvenanceRecord:
             if key not in known and value is not None
         }
         return cls(
-            source_table=(None if data.get("source_table") is None else str(data["source_table"])),
-            source_id=(None if data.get("source_id") is None else str(data["source_id"])),
+            source_table=(
+                None if data.get("source_table") is None else str(data["source_table"])
+            ),
+            source_id=(
+                None if data.get("source_id") is None else str(data["source_id"])
+            ),
             paper=(None if data.get("paper") is None else str(data["paper"])),
             page=(None if data.get("page") is None else int(data["page"])),
             extras=tuple(extras.items()),
@@ -370,7 +381,9 @@ class ClaimNode:
         object.__setattr__(
             self,
             "source_assertion_ids",
-            tuple(sorted(dict.fromkeys(str(value) for value in self.source_assertion_ids))),
+            tuple(
+                sorted(dict.fromkeys(str(value) for value in self.source_assertion_ids))
+            ),
         )
         object.__setattr__(self, "attributes", _normalize_pairs(self.attributes))
 
@@ -440,9 +453,15 @@ class ClaimNode:
             ),
             claim_type=_require_claim_type(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
-            context_id=(None if data.get("context_id") is None else str(data["context_id"])),
-            source_slug=(None if data.get("source_slug") is None else str(data["source_slug"])),
-            source_paper=(None if data.get("source_paper") is None else str(data["source_paper"])),
+            context_id=(
+                None if data.get("context_id") is None else str(data["context_id"])
+            ),
+            source_slug=(
+                None if data.get("source_slug") is None else str(data["source_slug"])
+            ),
+            source_paper=(
+                None if data.get("source_paper") is None else str(data["source_paper"])
+            ),
             lower_bound=data.get("lower_bound"),
             upper_bound=data.get("upper_bound"),
             uncertainty=data.get("uncertainty"),
@@ -459,7 +478,9 @@ class ClaimNode:
             claim_probability=data.get("claim_probability"),
             effective_sample_size=data.get("effective_sample_size"),
             source_prior_opinion=_opinion_from_dict(data.get("source_prior_opinion")),
-            source_quality_opinion=_opinion_from_dict(data.get("source_quality_opinion")),
+            source_quality_opinion=_opinion_from_dict(
+                data.get("source_quality_opinion")
+            ),
             unit=(None if data.get("unit") is None else str(data["unit"])),
             value_si=data.get("value_si"),
             lower_bound_si=data.get("lower_bound_si"),
@@ -583,7 +604,9 @@ class ParameterizationEdge:
         provenance_data = data.get("provenance")
         return cls(
             output_concept_id=ConceptId(data["output_concept_id"]),
-            input_concept_ids=tuple(ConceptId(value) for value in data.get("input_concept_ids") or ()),
+            input_concept_ids=tuple(
+                ConceptId(value) for value in data.get("input_concept_ids") or ()
+            ),
             formula=(None if data.get("formula") is None else str(data["formula"])),
             sympy=(None if data.get("sympy") is None else str(data["sympy"])),
             exactness=coerce_exactness(data.get("exactness")),
@@ -642,7 +665,9 @@ class CompiledWorldGraph:
         object.__setattr__(self, "concepts", tuple(sorted(self.concepts)))
         object.__setattr__(self, "claims", tuple(sorted(self.claims)))
         object.__setattr__(self, "relations", tuple(sorted(self.relations)))
-        object.__setattr__(self, "parameterizations", tuple(sorted(self.parameterizations)))
+        object.__setattr__(
+            self, "parameterizations", tuple(sorted(self.parameterizations))
+        )
         object.__setattr__(self, "conflicts", tuple(sorted(self.conflicts)))
 
     def to_dict(self) -> dict[str, Any]:
@@ -657,14 +682,22 @@ class CompiledWorldGraph:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> CompiledWorldGraph:
         return cls(
-            concepts=tuple(ConceptNode.from_dict(item) for item in data.get("concepts") or ()),
-            claims=tuple(ClaimNode.from_dict(item) for item in data.get("claims") or ()),
-            relations=tuple(RelationEdge.from_dict(item) for item in data.get("relations") or ()),
+            concepts=tuple(
+                ConceptNode.from_dict(item) for item in data.get("concepts") or ()
+            ),
+            claims=tuple(
+                ClaimNode.from_dict(item) for item in data.get("claims") or ()
+            ),
+            relations=tuple(
+                RelationEdge.from_dict(item) for item in data.get("relations") or ()
+            ),
             parameterizations=tuple(
                 ParameterizationEdge.from_dict(item)
                 for item in data.get("parameterizations") or ()
             ),
-            conflicts=tuple(ConflictWitness.from_dict(item) for item in data.get("conflicts") or ()),
+            conflicts=tuple(
+                ConflictWitness.from_dict(item) for item in data.get("conflicts") or ()
+            ),
         )
 
 
@@ -678,7 +711,13 @@ class GraphDelta:
         object.__setattr__(
             self,
             "remove_claim_ids",
-            tuple(sorted(dict.fromkeys(tuple(ClaimId(value) for value in self.remove_claim_ids)))),
+            tuple(
+                sorted(
+                    dict.fromkeys(
+                        tuple(ClaimId(value) for value in self.remove_claim_ids)
+                    )
+                )
+            ),
         )
 
     @property
@@ -697,8 +736,12 @@ class GraphDelta:
         original_claim_ids = {claim.claim_id for claim in graph.claims}
 
         def _relation_is_valid(edge: RelationEdge) -> bool:
-            source_is_claim = edge.source_id in original_claim_ids or edge.source_id in claim_ids
-            target_is_claim = edge.target_id in original_claim_ids or edge.target_id in claim_ids
+            source_is_claim = (
+                edge.source_id in original_claim_ids or edge.source_id in claim_ids
+            )
+            target_is_claim = (
+                edge.target_id in original_claim_ids or edge.target_id in claim_ids
+            )
             if source_is_claim or target_is_claim:
                 return edge.source_id in claim_ids and edge.target_id in claim_ids
             return True
@@ -706,12 +749,15 @@ class GraphDelta:
         return CompiledWorldGraph(
             concepts=graph.concepts,
             claims=tuple(claims.values()),
-            relations=tuple(edge for edge in graph.relations if _relation_is_valid(edge)),
+            relations=tuple(
+                edge for edge in graph.relations if _relation_is_valid(edge)
+            ),
             parameterizations=graph.parameterizations,
             conflicts=tuple(
                 conflict
                 for conflict in graph.conflicts
-                if conflict.left_claim_id in claim_ids and conflict.right_claim_id in claim_ids
+                if conflict.left_claim_id in claim_ids
+                and conflict.right_claim_id in claim_ids
             ),
         )
 
@@ -721,8 +767,10 @@ class GraphDelta:
                 claim
                 for claim in self.apply(CompiledWorldGraph()).claims
                 if claim.claim_id not in other.remove_claim_ids
-            ) + other.add_claims,
-            remove_claim_ids=tuple(self.remove_claim_ids) + tuple(other.remove_claim_ids),
+            )
+            + other.add_claims,
+            remove_claim_ids=tuple(self.remove_claim_ids)
+            + tuple(other.remove_claim_ids),
         )
 
 
@@ -737,12 +785,24 @@ class WorldActivationGraph:
         object.__setattr__(
             self,
             "active_claim_ids",
-            tuple(sorted(dict.fromkeys(tuple(ClaimId(value) for value in self.active_claim_ids)))),
+            tuple(
+                sorted(
+                    dict.fromkeys(
+                        tuple(ClaimId(value) for value in self.active_claim_ids)
+                    )
+                )
+            ),
         )
         object.__setattr__(
             self,
             "inactive_claim_ids",
-            tuple(sorted(dict.fromkeys(tuple(ClaimId(value) for value in self.inactive_claim_ids)))),
+            tuple(
+                sorted(
+                    dict.fromkeys(
+                        tuple(ClaimId(value) for value in self.inactive_claim_ids)
+                    )
+                )
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -760,6 +820,10 @@ class WorldActivationGraph:
                 _optional_mapping(data.get("compiled"), "compiled")
             ),
             environment=Environment.from_dict(data.get("environment")),
-            active_claim_ids=tuple(ClaimId(value) for value in data.get("active_claim_ids") or ()),
-            inactive_claim_ids=tuple(ClaimId(value) for value in data.get("inactive_claim_ids") or ()),
+            active_claim_ids=tuple(
+                ClaimId(value) for value in data.get("active_claim_ids") or ()
+            ),
+            inactive_claim_ids=tuple(
+                ClaimId(value) for value in data.get("inactive_claim_ids") or ()
+            ),
         )

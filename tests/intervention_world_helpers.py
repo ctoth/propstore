@@ -27,8 +27,12 @@ def simple_chain_scm() -> StructuralCausalModel:
         exogenous=frozenset({"X"}),
         endogenous=frozenset({"Y", "Z"}),
         equations={
-            "Y": equation("Y", ("X",), lambda values: values["X"] + 1, domain=(1, 6, 99)),
-            "Z": equation("Z", ("Y",), lambda values: values["Y"] + 1, domain=(2, 7, 100)),
+            "Y": equation(
+                "Y", ("X",), lambda values: values["X"] + 1, domain=(1, 6, 99)
+            ),
+            "Z": equation(
+                "Z", ("Y",), lambda values: values["Y"] + 1, domain=(2, 7, 100)
+            ),
         },
         exogenous_assignment={"X": 0},
         domains={"X": (0, 5), "Y": (1, 6, 99), "Z": (2, 7, 100)},

@@ -1,4 +1,5 @@
 """Branch-local structured projection and exact merge candidates."""
+
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +14,11 @@ from propstore.core.id_types import (
     ClaimId,
     JustificationId,
 )
-from propstore.compiler.ir import ClaimCompilationBundle, SemanticClaim, SemanticClaimFile
+from propstore.compiler.ir import (
+    ClaimCompilationBundle,
+    SemanticClaim,
+    SemanticClaimFile,
+)
 from propstore.families.claims.declaration import Claim, compile_claim_models
 from propstore.families.relations.declaration import Stance
 from propstore.stances import coerce_stance_type
@@ -81,11 +86,11 @@ def argumentation_evidence_from_projection(
         accepted_argument_ids = justified
         skeptical_argument_ids = justified
     else:
-        accepted_argument_ids = frozenset().union(*justified) if justified else frozenset()
+        accepted_argument_ids = (
+            frozenset().union(*justified) if justified else frozenset()
+        )
         skeptical_argument_ids = (
-            frozenset.intersection(*justified)
-            if justified
-            else frozenset()
+            frozenset.intersection(*justified) if justified else frozenset()
         )
     accepted_assertion_ids: list[str] = []
     skeptical_assertion_ids: list[str] = []
@@ -94,14 +99,20 @@ def argumentation_evidence_from_projection(
         claim_id = projection.argument_to_claim_id.get(argument_id)
         if claim_id is None:
             continue
-        accepted_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+        accepted_assertion_ids.extend(
+            str(value) for value in claim_assertion_ids.get(claim_id, ())
+        )
     for argument_id in sorted(skeptical_argument_ids):
         claim_id = projection.argument_to_claim_id.get(argument_id)
         if claim_id is None:
             continue
-        skeptical_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+        skeptical_assertion_ids.extend(
+            str(value) for value in claim_assertion_ids.get(claim_id, ())
+        )
     for claim_id in sorted(projection.claim_to_argument_ids):
-        witness_assertion_ids.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+        witness_assertion_ids.extend(
+            str(value) for value in claim_assertion_ids.get(claim_id, ())
+        )
     return BranchArgumentationEvidence(
         branch=branch,
         backend="argumentation",
@@ -211,13 +222,17 @@ def _summary_assertion_ids(active_claims: list[MergeClaim]) -> tuple[str, ...]:
     return tuple(sorted(str(claim.assertion_id) for claim in active_claims))
 
 
-def _summary_claim_provenance(active_claims: list[MergeClaim]) -> dict[str, dict[str, Any]]:
+def _summary_claim_provenance(
+    active_claims: list[MergeClaim],
+) -> dict[str, dict[str, Any]]:
     provenance: dict[str, dict[str, Any]] = {}
     for claim in active_claims:
         raw_provenance = claim.provenance_payload()
         provenance[claim.artifact_id] = {
-                str(key): _normalize_for_signature(value)
-                for key, value in sorted(raw_provenance.items(), key=lambda item: str(item[0]))
+            str(key): _normalize_for_signature(value)
+            for key, value in sorted(
+                raw_provenance.items(), key=lambda item: str(item[0])
+            )
         }
     return provenance
 
@@ -229,9 +244,7 @@ def _summary_content_signature(
     claims_payload = []
     for claim in active_claims:
         claims_payload.append(_normalize_for_signature(claim.to_payload()))
-    claims_payload.sort(
-        key=lambda payload: str(payload.get("artifact_id", ""))
-    )
+    claims_payload.sort(key=lambda payload: str(payload.get("artifact_id", "")))
 
     stances_payload = [
         {
@@ -239,7 +252,9 @@ def _summary_content_signature(
             "target_claim_id": str(row.target_claim_id),
             "stance_type": row.stance_type,
             "target_justification_id": (
-                None if row.target_justification_id is None else str(row.target_justification_id)
+                None
+                if row.target_justification_id is None
+                else str(row.target_justification_id)
             ),
             "attributes": _normalize_for_signature(row.attribute_mapping()),
         }
@@ -286,28 +301,32 @@ def _canonical_stance_rows(
     active_claims: list[MergeClaim],
     stance_rows: list[Stance],
 ) -> list[Stance]:
-    in_scope_claim_ids = {
-        ClaimId(claim.artifact_id)
-        for claim in active_claims
-    }
+    in_scope_claim_ids = {ClaimId(claim.artifact_id) for claim in active_claims}
     canonical_rows = [
         row
         for row in stance_rows
-        if row.claim_id in in_scope_claim_ids and row.target_claim_id in in_scope_claim_ids
+        if row.claim_id in in_scope_claim_ids
+        and row.target_claim_id in in_scope_claim_ids
     ]
     canonical_rows.sort(
         key=lambda row: (
             str(row.claim_id),
             str(row.target_claim_id),
             row.stance_type,
-            "" if row.target_justification_id is None else str(row.target_justification_id),
-            json.dumps(_normalize_for_signature(row.attribute_mapping()), sort_keys=True),
+            ""
+            if row.target_justification_id is None
+            else str(row.target_justification_id),
+            json.dumps(
+                _normalize_for_signature(row.attribute_mapping()), sort_keys=True
+            ),
         )
     )
     return canonical_rows
 
 
-def _load_branch_claims(snapshot: RepositorySnapshot, commit: str | None) -> list[MergeClaim]:
+def _load_branch_claims(
+    snapshot: RepositorySnapshot, commit: str | None
+) -> list[MergeClaim]:
     active_claims: list[MergeClaim] = []
     for claim_file in snapshot.repo.families.claims.iter_handles(commit=commit):
         merge_claim = MergeClaim.from_document(claim_file.document)
@@ -358,7 +377,10 @@ def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[Stance]:
     rows: list[Stance] = []
     for claim in active_claims:
         for stance in claim.document.stances:
-            row = _stance_row_from_mapping(ClaimId(claim.artifact_id), cast(dict[str, Any], document_to_payload(stance)))
+            row = _stance_row_from_mapping(
+                ClaimId(claim.artifact_id),
+                cast(dict[str, Any], document_to_payload(stance)),
+            )
             if row is not None:
                 rows.append(row)
     return rows
@@ -375,16 +397,22 @@ def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[
         )
         if source_claim is None:
             continue
-        row = _stance_row_from_mapping(ClaimId(source_claim), cast(dict[str, Any], document_to_payload(data)))
+        row = _stance_row_from_mapping(
+            ClaimId(source_claim), cast(dict[str, Any], document_to_payload(data))
+        )
         if row is not None:
             rows.append(row)
     return rows
 
 
-def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -> BranchStructuredSummary:
+def build_branch_structured_summary(
+    snapshot: RepositorySnapshot, branch: str
+) -> BranchStructuredSummary:
     commit = snapshot.git.branch_sha(branch)
     active_claims = _load_branch_claims(snapshot, commit)
-    raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(snapshot, commit)
+    raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(
+        snapshot, commit
+    )
     stance_rows = _canonical_stance_rows(active_claims, raw_stance_rows)
     assertion_ids = _summary_assertion_ids(active_claims)
     claim_provenance = _summary_claim_provenance(active_claims)
@@ -438,8 +466,7 @@ def build_structured_merge_candidates(
         branch_b: build_branch_structured_summary(snapshot, branch_b),
     }
     profile = {
-        branch: summary.projection.framework
-        for branch, summary in summaries.items()
+        branch: summary.projection.framework for branch, summary in summaries.items()
     }
     if operator == "sum":
         return require_candidates(sum_merge_frameworks(profile))

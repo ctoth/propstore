@@ -42,8 +42,11 @@ def test_compose_provenance_is_order_sensitive_for_distinct_chains() -> None:
     left = _record("left", ("read-left",))
     right = _record("right", ("read-right",))
 
-    assert compose_provenance(left, right, operation="merge").operations != compose_provenance(
-        right,
-        left,
-        operation="merge",
-    ).operations
+    assert (
+        compose_provenance(left, right, operation="merge").operations
+        != compose_provenance(
+            right,
+            left,
+            operation="merge",
+        ).operations
+    )

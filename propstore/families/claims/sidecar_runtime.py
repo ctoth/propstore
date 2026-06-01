@@ -116,10 +116,7 @@ def all_claim_ids(derived_store: DerivedStoreHandle) -> tuple[str, ...]:
     schema = world_schema()
     claim = schema.model(CLAIM_CORE_CHARTER.family.name)
     with derived_store.readonly_session(schema) as derived:
-        return tuple(
-            str(row[0])
-            for row in derived.execute(select(claim.id)).all()
-        )
+        return tuple(str(row[0]) for row in derived.execute(select(claim.id)).all())
 
 
 def relate_claim_from_sidecar(

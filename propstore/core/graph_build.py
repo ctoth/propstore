@@ -8,7 +8,10 @@ from typing import Any
 
 from propstore.conflict_detector import ConflictClass
 from propstore.cel_types import to_cel_exprs
-from propstore.core.conditions import CheckedConditionSet, checked_condition_set_from_json
+from propstore.core.conditions import (
+    CheckedConditionSet,
+    checked_condition_set_from_json,
+)
 from propstore.core.environment import (
     ClaimCatalogStore,
     ClaimStanceInventoryStore,
@@ -163,13 +166,19 @@ def _parse_json_concept_ids(value: Any) -> tuple[ConceptId, ...]:
     return tuple(ConceptId(value) for value in _parse_json_list(value))
 
 
-def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) -> CompiledWorldGraph:
+def build_compiled_world_graph(
+    store, *, prefer_logical_claim_ids: bool = True
+) -> CompiledWorldGraph:
     if not isinstance(store, ConceptCatalogStore):
         raise TypeError("build_compiled_world_graph requires all_concepts()")
     if not isinstance(store, ClaimCatalogStore):
         raise TypeError("build_compiled_world_graph requires claims_for()")
-    if not isinstance(store, ParameterizationCatalogStore) and not isinstance(store, ParameterizationLookupStore):
-        raise TypeError("build_compiled_world_graph requires all_parameterizations() or parameterizations_for()")
+    if not isinstance(store, ParameterizationCatalogStore) and not isinstance(
+        store, ParameterizationLookupStore
+    ):
+        raise TypeError(
+            "build_compiled_world_graph requires all_parameterizations() or parameterizations_for()"
+        )
     if not isinstance(store, ConflictStore):
         raise TypeError("build_compiled_world_graph requires conflicts()")
 
@@ -178,7 +187,11 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     for row in claim_rows:
         if not isinstance(row, Claim):
             raise TypeError("claims_for() must return typed Claim objects")
-    relationship_rows = list(store.all_relationships()) if isinstance(store, RelationshipCatalogStore) else []
+    relationship_rows = (
+        list(store.all_relationships())
+        if isinstance(store, RelationshipCatalogStore)
+        else []
+    )
     if isinstance(store, ParameterizationCatalogStore):
         parameterization_rows = list(store.all_parameterizations())
     else:
@@ -203,10 +216,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     if isinstance(store, ClaimStanceInventoryStore):
         claim_stance_rows = list(store.all_claim_stances())
     elif isinstance(store, StanceStore):
-        claim_ids = {
-            str(row.id)
-            for row in claim_rows
-        }
+        claim_ids = {str(row.id) for row in claim_rows}
         claim_stance_rows = list(store.stances_between(claim_ids))
     else:
         raise TypeError(
@@ -225,10 +235,8 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         for row in concept_rows
     )
     claim_display_ids = {
-            str(row.id): (
-                _display_claim_id_from_row(row)
-            if prefer_logical_claim_ids
-            else str(row.id)
+        str(row.id): (
+            _display_claim_id_from_row(row) if prefer_logical_claim_ids else str(row.id)
         )
         for row in claim_rows
     }
@@ -320,7 +328,9 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             (
                 ParameterizationEdge(
                     output_concept_id=parameterization.output_concept_id,
-                    input_concept_ids=_parse_json_concept_ids(parameterization.concept_ids),
+                    input_concept_ids=_parse_json_concept_ids(
+                        parameterization.concept_ids
+                    ),
                     formula=parameterization.formula,
                     sympy=parameterization.sympy,
                     exactness=parameterization.exactness,
@@ -379,7 +389,9 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     kind=(
                         warning_class.value
                         if isinstance(
-                            warning_class := (conflict.warning_class or conflict.conflict_class),
+                            warning_class := (
+                                conflict.warning_class or conflict.conflict_class
+                            ),
                             ConflictClass,
                         )
                         else str(warning_class or "conflict")

@@ -1,4 +1,5 @@
 """Tests for propose-claim, propose-justification, propose-stance CLI commands."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,11 +17,17 @@ def _init_source(runner: CliRunner, repo: Repository, name: str = "demo"):
     return runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "init", name,
-            "--kind", "academic_paper",
-            "--origin-type", "manual",
-            "--origin-value", name,
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            name,
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            name,
         ],
     )
 
@@ -48,7 +55,10 @@ def _seed_forms(repo: Repository, form_names: list[str]) -> None:
             allow_unicode=True,
         ).encode("utf-8")
     repo.git.commit_batch(
-        adds=adds, deletes=[], message="Seed forms", branch="master",
+        adds=adds,
+        deletes=[],
+        message="Seed forms",
+        branch="master",
     )
 
 
@@ -71,7 +81,9 @@ def _seed_context(repo: Repository, context_id: str = "ctx_test") -> None:
     )
 
 
-def _add_concepts(runner: CliRunner, repo: Repository, name: str, concepts: list[dict]) -> None:
+def _add_concepts(
+    runner: CliRunner, repo: Repository, name: str, concepts: list[dict]
+) -> None:
     """Helper: add concepts via batch file."""
     concepts_file = repo.root.parent / "concepts_batch.yaml"
     concepts_file.write_text(
@@ -81,9 +93,13 @@ def _add_concepts(runner: CliRunner, repo: Repository, name: str, concepts: list
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "add-concepts", name,
-            "--batch", str(concepts_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-concepts",
+            name,
+            "--batch",
+            str(concepts_file),
         ],
     )
     assert result.exit_code == 0, result.output
@@ -118,21 +134,39 @@ def test_propose_claim_observation(tmp_path: Path) -> None:
     )
     assert init_result.exit_code == 0, init_result.output
 
-    _add_concepts(runner, repo, "demo", [
-        {"local_name": "test_concept", "definition": "A test concept.", "form": "structural"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "demo",
+        [
+            {
+                "local_name": "test_concept",
+                "definition": "A test concept.",
+                "form": "structural",
+            },
+        ],
+    )
 
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "demo",
-            "--id", "claim1",
-            "--type", "observation",
-            "--statement", "Water boils at 100C.",
-            "--context", "ctx_test",
-            "--concept-ref", "test_concept",
-            "--page", "5",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "claim1",
+            "--type",
+            "observation",
+            "--statement",
+            "Water boils at 100C.",
+            "--context",
+            "ctx_test",
+            "--concept-ref",
+            "test_concept",
+            "--page",
+            "5",
         ],
     )
 
@@ -184,21 +218,39 @@ def test_propose_claim_parameter(tmp_path: Path) -> None:
     init_result = _init_source(runner, repo)
     assert init_result.exit_code == 0, init_result.output
 
-    _add_concepts(runner, repo, "demo", [
-        {"local_name": "boiling_point", "definition": "Temperature at which water boils.", "form": "scalar"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "demo",
+        [
+            {
+                "local_name": "boiling_point",
+                "definition": "Temperature at which water boils.",
+                "form": "scalar",
+            },
+        ],
+    )
 
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "demo",
-            "--id", "param1",
-            "--type", "parameter",
-            "--concept", "boiling_point",
-            "--value", "100.0",
-            "--unit", "celsius",
-            "--context", "ctx_test",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "param1",
+            "--type",
+            "parameter",
+            "--concept",
+            "boiling_point",
+            "--value",
+            "100.0",
+            "--unit",
+            "celsius",
+            "--context",
+            "ctx_test",
         ],
     )
 
@@ -232,13 +284,21 @@ def test_propose_claim_validates_unknown_concepts(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "demo",
-            "--id", "claim1",
-            "--type", "observation",
-            "--statement", "A claim referencing a missing concept.",
-            "--concept-ref", "missing_concept",
-            "--context", "ctx_test",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "claim1",
+            "--type",
+            "observation",
+            "--statement",
+            "A claim referencing a missing concept.",
+            "--concept-ref",
+            "missing_concept",
+            "--context",
+            "ctx_test",
         ],
     )
 
@@ -249,7 +309,9 @@ def test_propose_claim_validates_unknown_concepts(tmp_path: Path) -> None:
         repo.git.read_file("claims.yaml", commit=branch_tip)
 
 
-def test_propose_concept_retries_stale_source_branch_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_propose_concept_retries_stale_source_branch_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Concurrent source-local proposals should merge instead of losing one proposal."""
     from propstore.source import concepts as source_concepts
 
@@ -278,7 +340,9 @@ def test_propose_concept_retries_stale_source_branch_write(tmp_path: Path, monke
             )
         return normalized
 
-    monkeypatch.setattr(source_concepts, "normalize_source_concepts_document", racing_normalize)
+    monkeypatch.setattr(
+        source_concepts, "normalize_source_concepts_document", racing_normalize
+    )
 
     source_concepts.commit_source_concept_proposal(
         repo,
@@ -289,7 +353,9 @@ def test_propose_concept_retries_stale_source_branch_write(tmp_path: Path, monke
     )
 
     branch_tip = repo.git.branch_sha("source/demo")
-    concepts_doc = yaml.safe_load(repo.git.read_file("concepts.yaml", commit=branch_tip))
+    concepts_doc = yaml.safe_load(
+        repo.git.read_file("concepts.yaml", commit=branch_tip)
+    )
     names = {entry["local_name"] for entry in concepts_doc["concepts"]}
     assert names == {"first_concept", "second_concept"}
 
@@ -303,20 +369,32 @@ def test_propose_claim_dedup(tmp_path: Path) -> None:
     init_result = _init_source(runner, repo)
     assert init_result.exit_code == 0, init_result.output
 
-    _add_concepts(runner, repo, "demo", [
-        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "demo",
+        [
+            {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+        ],
+    )
 
     # First proposal
     result1 = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "demo",
-            "--id", "claim1",
-            "--type", "observation",
-            "--statement", "First version.",
-            "--context", "ctx_test",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "claim1",
+            "--type",
+            "observation",
+            "--statement",
+            "First version.",
+            "--context",
+            "ctx_test",
         ],
     )
     assert result1.exit_code == 0, result1.output
@@ -325,12 +403,19 @@ def test_propose_claim_dedup(tmp_path: Path) -> None:
     result2 = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "demo",
-            "--id", "claim1",
-            "--type", "observation",
-            "--statement", "Updated version.",
-            "--context", "ctx_test",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "claim1",
+            "--type",
+            "observation",
+            "--statement",
+            "Updated version.",
+            "--context",
+            "ctx_test",
         ],
     )
     assert result2.exit_code == 0, result2.output
@@ -355,21 +440,33 @@ def test_propose_justification(tmp_path: Path) -> None:
     init_result = _init_source(runner, repo)
     assert init_result.exit_code == 0, init_result.output
 
-    _add_concepts(runner, repo, "demo", [
-        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "demo",
+        [
+            {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+        ],
+    )
 
     # Add two claims first
     for claim_id, statement in [("c1", "Premise claim."), ("c2", "Conclusion claim.")]:
         r = runner.invoke(
             cli,
             [
-                "-C", str(repo.root),
-                "source", "propose-claim", "demo",
-                "--id", claim_id,
-                "--type", "observation",
-                "--statement", statement,
-                "--context", "ctx_test",
+                "-C",
+                str(repo.root),
+                "source",
+                "propose-claim",
+                "demo",
+                "--id",
+                claim_id,
+                "--type",
+                "observation",
+                "--statement",
+                statement,
+                "--context",
+                "ctx_test",
             ],
         )
         assert r.exit_code == 0, r.output
@@ -378,19 +475,33 @@ def test_propose_justification(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-justification", "demo",
-            "--id", "just1",
-            "--conclusion", "c2",
-            "--premises", "c1",
-            "--rule-kind", "supports",
-            "--rule-strength", "defeasible",
-            "--page", "3",
-            "--section", "Results",
-            "--quote-fragment", "Premise supports conclusion.",
-            "--attack-target-claim", "c1",
-            "--attack-target-justification-id", "other_just",
-            "--attack-target-premise-index", "0",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-justification",
+            "demo",
+            "--id",
+            "just1",
+            "--conclusion",
+            "c2",
+            "--premises",
+            "c1",
+            "--rule-kind",
+            "supports",
+            "--rule-strength",
+            "defeasible",
+            "--page",
+            "3",
+            "--section",
+            "Results",
+            "--quote-fragment",
+            "Premise supports conclusion.",
+            "--attack-target-claim",
+            "c1",
+            "--attack-target-justification-id",
+            "other_just",
+            "--attack-target-premise-index",
+            "0",
         ],
     )
 
@@ -400,7 +511,9 @@ def test_propose_justification(tmp_path: Path) -> None:
 
     # Verify stored justification has resolved artifact ids
     branch_tip = repo.git.branch_sha("source/demo")
-    just_doc = yaml.safe_load(repo.git.read_file("justifications.yaml", commit=branch_tip))
+    just_doc = yaml.safe_load(
+        repo.git.read_file("justifications.yaml", commit=branch_tip)
+    )
     justs = just_doc["justifications"]
     assert len(justs) == 1
     j = justs[0]
@@ -428,12 +541,19 @@ def test_propose_justification_bad_ref(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-justification", "demo",
-            "--id", "just1",
-            "--conclusion", "nonexistent",
-            "--premises", "also_nonexistent",
-            "--rule-kind", "empirical_support",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-justification",
+            "demo",
+            "--id",
+            "just1",
+            "--conclusion",
+            "nonexistent",
+            "--premises",
+            "also_nonexistent",
+            "--rule-kind",
+            "empirical_support",
         ],
     )
 
@@ -450,21 +570,33 @@ def test_propose_stance_local(tmp_path: Path) -> None:
     init_result = _init_source(runner, repo)
     assert init_result.exit_code == 0, init_result.output
 
-    _add_concepts(runner, repo, "demo", [
-        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "demo",
+        [
+            {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+        ],
+    )
 
     # Add two claims
     for claim_id, statement in [("c1", "First claim."), ("c2", "Second claim.")]:
         r = runner.invoke(
             cli,
             [
-                "-C", str(repo.root),
-                "source", "propose-claim", "demo",
-                "--id", claim_id,
-                "--type", "observation",
-                "--statement", statement,
-                "--context", "ctx_test",
+                "-C",
+                str(repo.root),
+                "source",
+                "propose-claim",
+                "demo",
+                "--id",
+                claim_id,
+                "--type",
+                "observation",
+                "--statement",
+                statement,
+                "--context",
+                "ctx_test",
             ],
         )
         assert r.exit_code == 0, r.output
@@ -472,13 +604,21 @@ def test_propose_stance_local(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-stance", "demo",
-            "--source-claim", "c1",
-            "--target", "c2",
-            "--type", "supports",
-            "--strength", "strong",
-            "--note", "Supporting evidence.",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-stance",
+            "demo",
+            "--source-claim",
+            "c1",
+            "--target",
+            "c2",
+            "--type",
+            "supports",
+            "--strength",
+            "strong",
+            "--note",
+            "Supporting evidence.",
         ],
     )
 
@@ -505,20 +645,32 @@ def test_propose_stance_rejects_unresolved_cross_source_target(tmp_path: Path) -
     init_result = _init_source(runner, repo)
     assert init_result.exit_code == 0, init_result.output
 
-    _add_concepts(runner, repo, "demo", [
-        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "demo",
+        [
+            {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+        ],
+    )
 
     # Add one claim
     r = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "demo",
-            "--id", "c1",
-            "--type", "observation",
-            "--statement", "A claim.",
-            "--context", "ctx_test",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "c1",
+            "--type",
+            "observation",
+            "--statement",
+            "A claim.",
+            "--context",
+            "ctx_test",
         ],
     )
     assert r.exit_code == 0, r.output
@@ -526,11 +678,17 @@ def test_propose_stance_rejects_unresolved_cross_source_target(tmp_path: Path) -
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-stance", "demo",
-            "--source-claim", "c1",
-            "--target", "other_source:claim9",
-            "--type", "rebuts",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-stance",
+            "demo",
+            "--source-claim",
+            "c1",
+            "--target",
+            "other_source:claim9",
+            "--type",
+            "rebuts",
         ],
     )
 
@@ -548,50 +706,83 @@ def test_propose_stance_resolves_cross_source_target_to_artifact_id(
     _seed_context(repo)
 
     assert _init_source(runner, repo, "other").exit_code == 0
-    _add_concepts(runner, repo, "other", [
-        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "other",
+        [
+            {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+        ],
+    )
     r = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "other",
-            "--id", "claim1",
-            "--type", "observation",
-            "--statement", "Other claim.",
-            "--concept-ref", "tc",
-            "--context", "ctx_test",
-            "--page", "1",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "other",
+            "--id",
+            "claim1",
+            "--type",
+            "observation",
+            "--statement",
+            "Other claim.",
+            "--concept-ref",
+            "tc",
+            "--context",
+            "ctx_test",
+            "--page",
+            "1",
         ],
     )
     assert r.exit_code == 0, r.output
-    assert runner.invoke(
-        cli,
-        ["-C", str(repo.root), "source", "finalize", "other"],
-    ).exit_code == 0
+    assert (
+        runner.invoke(
+            cli,
+            ["-C", str(repo.root), "source", "finalize", "other"],
+        ).exit_code
+        == 0
+    )
     promote = runner.invoke(
         cli,
         ["-C", str(repo.root), "source", "promote", "other"],
     )
     assert promote.exit_code == 0, promote.output
-    other_claim = next(handle.document for handle in repo.families.claims.iter_handles())
+    other_claim = next(
+        handle.document for handle in repo.families.claims.iter_handles()
+    )
     assert isinstance(other_claim.artifact_id, str)
 
     assert _init_source(runner, repo, "demo").exit_code == 0
-    _add_concepts(runner, repo, "demo", [
-        {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
-    ])
+    _add_concepts(
+        runner,
+        repo,
+        "demo",
+        [
+            {"local_name": "tc", "definition": "Test concept.", "form": "structural"},
+        ],
+    )
     r = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-claim", "demo",
-            "--id", "c1",
-            "--type", "observation",
-            "--statement", "A claim.",
-            "--concept-ref", "tc",
-            "--context", "ctx_test",
-            "--page", "1",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-claim",
+            "demo",
+            "--id",
+            "c1",
+            "--type",
+            "observation",
+            "--statement",
+            "A claim.",
+            "--concept-ref",
+            "tc",
+            "--context",
+            "ctx_test",
+            "--page",
+            "1",
         ],
     )
     assert r.exit_code == 0, r.output
@@ -599,11 +790,17 @@ def test_propose_stance_resolves_cross_source_target_to_artifact_id(
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-stance", "demo",
-            "--source-claim", "c1",
-            "--target", "other:claim1",
-            "--type", "supports",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-stance",
+            "demo",
+            "--source-claim",
+            "c1",
+            "--target",
+            "other:claim1",
+            "--type",
+            "supports",
         ],
     )
 

@@ -9,11 +9,21 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.family_helpers import claim_artifact_commit_payloads
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
+from tests.conftest import (
+    normalize_claims_payload,
+    normalize_concept_payloads,
+    write_test_context,
+)
 
 
-def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
-                  form: str = "frequency", **extra: object) -> dict:
+def _make_concept(
+    name: str,
+    cid: str,
+    domain: str,
+    status: str = "accepted",
+    form: str = "frequency",
+    **extra: object,
+) -> dict:
     data: dict = {
         "canonical_name": name,
         "status": status,
@@ -79,29 +89,37 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
         "fundamental_frequency", "concept1", "speech", form="frequency"
     )
     _write_concept(concepts, "fundamental_frequency", frequency_concept)
-    _write_concept(concepts, "speaker_sex", _make_concept(
+    _write_concept(
+        concepts,
         "speaker_sex",
-        "concept2",
-        "speech",
-        form="category",
-        form_parameters={"values": ["male", "female"], "extensible": True},
-    ))
+        _make_concept(
+            "speaker_sex",
+            "concept2",
+            "speech",
+            form="category",
+            form_parameters={"values": ["male", "female"], "extensible": True},
+        ),
+    )
     _write_counter(concepts, 3)
 
-    _write_claim_file(repo, "freq_paper.yaml", {
-        "source": {"paper": "freq_paper"},
-        "claims": [
-            {
-                "id": "freq_claim1",
-                "type": "parameter",
-                "concept": frequency_concept["artifact_id"],
-                "value": 0.2,
-                "unit": "kHz",
-                "conditions": ["speaker_sex == 'male'"],
-                "provenance": {"paper": "freq_paper", "page": 1},
-            }
-        ],
-    })
+    _write_claim_file(
+        repo,
+        "freq_paper.yaml",
+        {
+            "source": {"paper": "freq_paper"},
+            "claims": [
+                {
+                    "id": "freq_claim1",
+                    "type": "parameter",
+                    "concept": frequency_concept["artifact_id"],
+                    "value": 0.2,
+                    "unit": "kHz",
+                    "conditions": ["speaker_sex == 'male'"],
+                    "provenance": {"paper": "freq_paper", "page": 1},
+                }
+            ],
+        },
+    )
 
     adds = {
         path.relative_to(knowledge).as_posix(): path.read_bytes()
@@ -117,7 +135,9 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
     return tmp_path
 
 
-def test_world_revision_base_shows_exact_claim_atoms_and_assumptions(revision_cli_workspace: Path) -> None:
+def test_world_revision_base_shows_exact_claim_atoms_and_assumptions(
+    revision_cli_workspace: Path,
+) -> None:
     runner = CliRunner()
 
     result = runner.invoke(
@@ -130,12 +150,21 @@ def test_world_revision_base_shows_exact_claim_atoms_and_assumptions(revision_cl
     assert "speaker_sex == 'male'" in result.output
 
 
-def test_world_revision_entrenchment_shows_ranked_atoms(revision_cli_workspace: Path) -> None:
+def test_world_revision_entrenchment_shows_ranked_atoms(
+    revision_cli_workspace: Path,
+) -> None:
     runner = CliRunner()
 
     result = runner.invoke(
         cli,
-        ["world", "revision", "entrenchment", "--context", "ctx_test", "speaker_sex=male"],
+        [
+            "world",
+            "revision",
+            "entrenchment",
+            "--context",
+            "ctx_test",
+            "speaker_sex=male",
+        ],
     )
 
     assert result.exit_code == 0, result.output

@@ -247,7 +247,9 @@ def propose_rules_for_paper(
         )
 
     refs = [RuleProposalRef(source_paper, proposal.rule_id) for proposal in proposals]
-    relpaths = tuple(repo.families.proposal_rules.address(ref).require_path() for ref in refs)
+    relpaths = tuple(
+        repo.families.proposal_rules.address(ref).require_path() for ref in refs
+    )
     if dry_run or not proposals:
         return RuleProposalResult(
             commit_sha=None,

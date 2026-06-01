@@ -75,10 +75,7 @@ def _make_rule_document(
         id=rule_id,
         kind="defeasible",
         head=head,
-        body=tuple(
-            BodyLiteralDocument(kind="positive", atom=atom)
-            for atom in body
-        ),
+        body=tuple(BodyLiteralDocument(kind="positive", atom=atom) for atom in body),
     )
 
 
@@ -157,7 +154,9 @@ def test_query_claim_accepts_ground_atom_goal_without_string_recovery() -> None:
     assert result.arguments_for
 
 
-def test_query_claim_treats_strongly_negated_fact_as_argument_against_ground_goal() -> None:
+def test_query_claim_treats_strongly_negated_fact_as_argument_against_ground_goal() -> (
+    None
+):
     bundle = _make_grounded_bundle(
         rules=(
             _make_rule_document(
@@ -182,7 +181,10 @@ def test_query_claim_treats_strongly_negated_fact_as_argument_against_ground_goa
 
     assert result.arguments_for
     against_conclusions = {conc(arg) for arg in result.arguments_against}
-    assert Literal(atom=GroundAtom("fly", ("tweety",)), negated=True) in against_conclusions
+    assert (
+        Literal(atom=GroundAtom("fly", ("tweety",)), negated=True)
+        in against_conclusions
+    )
 
 
 def test_query_claim_matches_strongly_negated_body_atoms_from_bundle_sections() -> None:
@@ -208,7 +210,10 @@ def test_query_claim_matches_strongly_negated_body_atoms_from_bundle_sections() 
     )
 
     conclusions_for = {conc(arg) for arg in result.arguments_for}
-    assert Literal(atom=GroundAtom("blocked", ("tweety",)), negated=False) in conclusions_for
+    assert (
+        Literal(atom=GroundAtom("blocked", ("tweety",)), negated=False)
+        in conclusions_for
+    )
 
 
 def test_canonical_substitution_key_distinguishes_delimiter_collisions() -> None:
@@ -316,8 +321,14 @@ def test_csaf_to_projection_keeps_grounded_arguments_and_subarguments() -> None:
     projected_ids = {argument.arg_id for argument in projection.arguments}
     assert projection.framework.arguments == frozenset(projected_ids)
     assert any(argument.claim_id is None for argument in projection.arguments)
-    assert any(argument.projection.backend_atom == GroundAtom("fly", ("tweety",)) for argument in projection.arguments)
-    assert any(argument.projection.backend_atom == GroundAtom("bird", ("tweety",)) for argument in projection.arguments)
+    assert any(
+        argument.projection.backend_atom == GroundAtom("fly", ("tweety",))
+        for argument in projection.arguments
+    )
+    assert any(
+        argument.projection.backend_atom == GroundAtom("bird", ("tweety",))
+        for argument in projection.arguments
+    )
     for argument in projection.arguments:
         assert set(argument.subargument_ids) <= projected_ids
 

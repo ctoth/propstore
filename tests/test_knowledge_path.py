@@ -3,7 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.repository import Repository
-from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
+from quire.tree_path import (
+    FilesystemTreePath as FilesystemKnowledgePath,
+    GitTreePath as GitKnowledgePath,
+)
 from quire.git_store import GitStore
 from tests.git_store_helpers import init_store
 
@@ -71,12 +74,10 @@ def test_knowledge_path_parity_between_git_and_filesystem(tmp_path: Path) -> Non
     fs_tree = FilesystemKnowledgePath(root)
 
     git_entries = sorted(
-        (child.name, child.read_bytes())
-        for child in (git_tree / "concepts").iterdir()
+        (child.name, child.read_bytes()) for child in (git_tree / "concepts").iterdir()
     )
     fs_entries = sorted(
-        (child.name, child.read_bytes())
-        for child in (fs_tree / "concepts").iterdir()
+        (child.name, child.read_bytes()) for child in (fs_tree / "concepts").iterdir()
     )
 
     assert git_entries == fs_entries
@@ -102,7 +103,9 @@ def test_repository_tree_uses_git_head_for_git_backed_repos(tmp_path: Path) -> N
     assert (old_tree / "concepts" / "alpha.yaml").read_text() == "id: concept1\n"
 
 
-def test_repository_tree_ignores_uncommitted_worktree_edits_for_git_backed_repos(tmp_path: Path) -> None:
+def test_repository_tree_ignores_uncommitted_worktree_edits_for_git_backed_repos(
+    tmp_path: Path,
+) -> None:
     root = tmp_path / "knowledge"
     repo = init_store(root)
     repository = Repository(root)

@@ -39,7 +39,10 @@ from propstore.core.store_results import (
 from propstore.families.claims.declaration import (
     Claim,
 )
-from propstore.families.claims.graph import claim_node_from_claim, synthetic_claim_to_claim
+from propstore.families.claims.graph import (
+    claim_node_from_claim,
+    synthetic_claim_to_claim,
+)
 from propstore.families.micropublications.declaration import Micropublication
 from propstore.families.relations.declaration import (
     ConceptRelation,
@@ -82,7 +85,11 @@ def _conflict_witness_from_model(row: RelationConflictWitness) -> ConflictWitnes
         details=tuple(
             entry
             for entry in (
-                (("concept_id", conflict.concept_id) if conflict.concept_id is not None else None),
+                (
+                    ("concept_id", conflict.concept_id)
+                    if conflict.concept_id is not None
+                    else None
+                ),
                 *tuple(conflict.attribute_mapping().items()),
             )
             if entry is not None
@@ -143,7 +150,10 @@ class _GraphOverlayStore:
         if not hasattr(self._base, "all_concepts"):
             return None
         for concept in self._base.all_concepts():
-            if str(concept.concept_id) == concept_id or concept.canonical_name == concept_id:
+            if (
+                str(concept.concept_id) == concept_id
+                or concept.canonical_name == concept_id
+            ):
                 return concept
         return None
 
@@ -255,7 +265,9 @@ class _GraphOverlayStore:
 
     def compiled_graph(self) -> CompiledWorldGraph:
         if self._compiled is None:
-            raise TypeError("compiled_graph() is unavailable for semantic-only overlays")
+            raise TypeError(
+                "compiled_graph() is unavailable for semantic-only overlays"
+            )
         return CompiledWorldGraph.from_dict(self._compiled.to_dict())
 
     def condition_solver(self):
@@ -300,10 +312,7 @@ class OverlayWorld(BeliefSpace):
             claim = base_store.get_claim(claim_id)
             return str(claim.id) if claim is not None else claim_id
 
-        self._removed_ids = {
-            store_claim_id(claim_id)
-            for claim_id in (remove or [])
-        }
+        self._removed_ids = {store_claim_id(claim_id) for claim_id in (remove or [])}
 
         def resolve_synthetic_claim_id(claim_id: str) -> str:
             return store_claim_id(claim_id)
@@ -325,10 +334,7 @@ class OverlayWorld(BeliefSpace):
 
         cel_registry = base_store.condition_solver().registry
         base_claims = list(base_store.claims_for(None))
-        base_claims_by_id = {
-            str(claim.id): claim
-            for claim in base_claims
-        }
+        base_claims_by_id = {str(claim.id): claim for claim in base_claims}
         synthetic_claims_by_id = {
             synthetic.id: synthetic_claim_to_claim(
                 synthetic,
@@ -371,25 +377,16 @@ class OverlayWorld(BeliefSpace):
                 continue
             overlay_claims.append(synthetic_claims_by_id[synthetic.id])
 
-        overlay_claim_ids = {
-            str(claim.id)
-            for claim in overlay_claims
-        }
+        overlay_claim_ids = {str(claim.id) for claim in overlay_claims}
         overlay_stances = (
-            [
-                stance
-                for stance in base_store.stances_between(overlay_claim_ids)
-            ]
+            [stance for stance in base_store.stances_between(overlay_claim_ids)]
             if isinstance(base_store, StanceStore)
             else []
         )
 
         overlay_conflicts = [
             conflict
-            for conflict in (
-                conflict
-                for conflict in base_store.conflicts()
-            )
+            for conflict in (conflict for conflict in base_store.conflicts())
             if conflict.claim_a_id in overlay_claim_ids
             and conflict.claim_b_id in overlay_claim_ids
         ]
@@ -413,7 +410,9 @@ class OverlayWorld(BeliefSpace):
                 claims=self._compiled_graph.claims,
                 relations=self._compiled_graph.relations,
                 parameterizations=self._compiled_graph.parameterizations,
-                conflicts=tuple(_conflict_witness_from_model(row) for row in overlay_conflicts),
+                conflicts=tuple(
+                    _conflict_witness_from_model(row) for row in overlay_conflicts
+                ),
             )
         self._overlay_store = _GraphOverlayStore(
             base_store,
@@ -511,10 +510,9 @@ class OverlayWorld(BeliefSpace):
         for concept_id in affected:
             base_result = self._base.value_of(concept_id)
             hypothetical_result = self.value_of(concept_id)
-            if (
-                base_result.status != hypothetical_result.status
-                or _value_set(base_result) != _value_set(hypothetical_result)
-            ):
+            if base_result.status != hypothetical_result.status or _value_set(
+                base_result
+            ) != _value_set(hypothetical_result):
                 result[concept_id] = (base_result, hypothetical_result)
         return result
 

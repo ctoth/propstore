@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import json
 
-from propstore.world import BoundWorld, Environment, OverlayWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
+from propstore.world import (
+    BoundWorld,
+    Environment,
+    OverlayWorld,
+    RenderPolicy,
+    ResolutionStrategy,
+    SyntheticClaim,
+)
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import compile_environment_assumptions
 from propstore.families.concepts.declaration import Concept, Parameterization
@@ -30,11 +37,7 @@ class _Store:
                 }
             ]
         }
-        all_rows = claims + [
-            row
-            for rows in parameterizations.values()
-            for row in rows
-        ]
+        all_rows = claims + [row for rows in parameterizations.values() for row in rows]
         self._condition_registry = condition_registry_for_rows(all_rows)
         self._claims = [
             claim_from_test_payload(row)
@@ -88,11 +91,17 @@ class _Store:
         return [claim for claim in self._claims if claim.value_concept_id == concept_id]
 
     def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if str(claim.id) == claim_id), None)
+        return next(
+            (claim for claim in self._claims if str(claim.id) == claim_id), None
+        )
 
     def all_concepts(self) -> list[dict]:
         concept_ids = sorted(
-            {str(claim.value_concept_id) for claim in self._claims if claim.value_concept_id is not None}
+            {
+                str(claim.value_concept_id)
+                for claim in self._claims
+                if claim.value_concept_id is not None
+            }
             | {"concept3"}
         )
         return [
@@ -151,12 +160,16 @@ def test_binding_order_does_not_change_active_or_resolved_semantics() -> None:
     forward = _make_bound(bindings={"x": 1, "y": 2})
     reverse = _make_bound(bindings={"y": 2, "x": 1})
 
-    assert _runtime_claim_ids(forward.active_claims()) == _runtime_claim_ids(reverse.active_claims())
+    assert _runtime_claim_ids(forward.active_claims()) == _runtime_claim_ids(
+        reverse.active_claims()
+    )
 
     forward_value = forward.value_of("concept1")
     reverse_value = reverse.value_of("concept1")
     assert forward_value.status == reverse_value.status == "conflicted"
-    assert _runtime_claim_ids(forward_value.claims) == _runtime_claim_ids(reverse_value.claims)
+    assert _runtime_claim_ids(forward_value.claims) == _runtime_claim_ids(
+        reverse_value.claims
+    )
 
     forward_derived = forward.derived_value("concept3")
     reverse_derived = reverse.derived_value("concept3")
@@ -166,7 +179,11 @@ def test_binding_order_does_not_change_active_or_resolved_semantics() -> None:
     forward_resolved = forward.resolved_value("concept1")
     reverse_resolved = reverse.resolved_value("concept1")
     assert forward_resolved.status == reverse_resolved.status == "resolved"
-    assert forward_resolved.winning_claim_id == reverse_resolved.winning_claim_id == "claim_high"
+    assert (
+        forward_resolved.winning_claim_id
+        == reverse_resolved.winning_claim_id
+        == "claim_high"
+    )
     assert forward_resolved.value == reverse_resolved.value == 20.0
 
 
@@ -174,7 +191,9 @@ def test_empty_hypothetical_overlay_is_identity_transform() -> None:
     bound = _make_bound(bindings={"x": 1, "y": 2})
     hypothetical = OverlayWorld(bound)
 
-    assert _runtime_claim_ids(hypothetical.active_claims()) == _runtime_claim_ids(bound.active_claims())
+    assert _runtime_claim_ids(hypothetical.active_claims()) == _runtime_claim_ids(
+        bound.active_claims()
+    )
     assert hypothetical.value_of("concept1") == bound.value_of("concept1")
     assert hypothetical.derived_value("concept3") == bound.derived_value("concept3")
     assert hypothetical.resolved_value("concept1") == bound.resolved_value("concept1")
@@ -200,6 +219,8 @@ def test_remove_and_add_inverse_overlay_returns_same_semantic_state() -> None:
     bound_value = bound.value_of("concept2")
     assert inverse_value.concept_id == bound_value.concept_id
     assert inverse_value.status == bound_value.status
-    assert _runtime_claim_ids(inverse_value.claims) == _runtime_claim_ids(bound_value.claims)
+    assert _runtime_claim_ids(inverse_value.claims) == _runtime_claim_ids(
+        bound_value.claims
+    )
     assert inverse_value.label == bound_value.label
     assert inverse.derived_value("concept3") == bound.derived_value("concept3")

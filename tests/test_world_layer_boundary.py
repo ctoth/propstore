@@ -7,6 +7,7 @@ propstore.storage, which is the git-backed source-of-truth storage layer.
 This test walks every .py file under propstore/world/ and asserts zero
 `from propstore.storage...` or `import propstore.storage...` statements.
 """
+
 from __future__ import annotations
 
 import ast
@@ -26,18 +27,20 @@ def test_world_package_does_not_import_from_storage() -> None:
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module:
-                if node.module == "propstore.repo" or node.module.startswith(
-                    "propstore.repo."
-                ) or node.module == "propstore.storage" or node.module.startswith(
-                    "propstore.storage."
+                if (
+                    node.module == "propstore.repo"
+                    or node.module.startswith("propstore.repo.")
+                    or node.module == "propstore.storage"
+                    or node.module.startswith("propstore.storage.")
                 ):
                     offenders.append((str(py_file), node.lineno, node.module))
             elif isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "propstore.repo" or alias.name.startswith(
-                        "propstore.repo."
-                    ) or alias.name == "propstore.storage" or alias.name.startswith(
-                        "propstore.storage."
+                    if (
+                        alias.name == "propstore.repo"
+                        or alias.name.startswith("propstore.repo.")
+                        or alias.name == "propstore.storage"
+                        or alias.name.startswith("propstore.storage.")
                     ):
                         offenders.append((str(py_file), node.lineno, alias.name))
 

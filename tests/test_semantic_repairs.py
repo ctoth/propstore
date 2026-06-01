@@ -9,7 +9,11 @@ from tests.family_helpers import materialized_world_store_path
 from propstore.world import ResolutionStrategy, WorldQuery, resolve
 from propstore.world.queries import world_claim_display_id
 from propstore.world.value_resolver import ClaimValueResolver
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
+from tests.conftest import (
+    normalize_claims_payload,
+    normalize_concept_payloads,
+    write_test_context,
+)
 from tests.claim_model_helpers import make_claim
 
 
@@ -84,34 +88,36 @@ def argumentation_world(tmp_path):
             "form_parameters": {"values": ["speech"], "extensible": False},
         },
     ]
-    claim_docs = [{
-        "source": {"paper": "semantic_argumentation"},
-        "claims": [
-            {
-                "id": "target_a",
-                "type": "parameter",
-                "concept": "concept1",
-                "value": 1.0,
-                "conditions": ["task == 'speech'"],
-            },
-            {
-                "id": "target_b",
-                "type": "parameter",
-                "concept": "concept1",
-                "value": 2.0,
-                "conditions": ["task == 'speech'"],
-                "stances": [{"type": "supersedes", "target": "target_a"}],
-            },
-            {
-                "id": "external_c",
-                "type": "observation",
-                "statement": "External evidence defeats target_b.",
-                "concepts": ["concept2"],
-                "conditions": ["task == 'speech'"],
-                "stances": [{"type": "supersedes", "target": "target_b"}],
-            },
-        ],
-    }]
+    claim_docs = [
+        {
+            "source": {"paper": "semantic_argumentation"},
+            "claims": [
+                {
+                    "id": "target_a",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 1.0,
+                    "conditions": ["task == 'speech'"],
+                },
+                {
+                    "id": "target_b",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 2.0,
+                    "conditions": ["task == 'speech'"],
+                    "stances": [{"type": "supersedes", "target": "target_a"}],
+                },
+                {
+                    "id": "external_c",
+                    "type": "observation",
+                    "statement": "External evidence defeats target_b.",
+                    "concepts": ["concept2"],
+                    "conditions": ["task == 'speech'"],
+                    "stances": [{"type": "supersedes", "target": "target_b"}],
+                },
+            ],
+        }
+    ]
 
     world = _build_world(tmp_path, concepts, claim_docs)
     try:
@@ -193,46 +199,48 @@ def derivation_world(tmp_path):
             "form_parameters": {"values": ["speech"], "extensible": False},
         },
     ]
-    claim_docs = [{
-        "source": {"paper": "semantic_derivation"},
-        "claims": [
-            {
-                "id": "a_value",
-                "type": "parameter",
-                "concept": "concept1",
-                "value": 10.0,
-                "conditions": ["task == 'speech'"],
-            },
-            {
-                "id": "b_value_1",
-                "type": "parameter",
-                "concept": "concept2",
-                "value": 1.0,
-                "conditions": ["task == 'speech'"],
-            },
-            {
-                "id": "b_value_2",
-                "type": "parameter",
-                "concept": "concept2",
-                "value": 2.0,
-                "conditions": ["task == 'speech'"],
-            },
-            {
-                "id": "c_value",
-                "type": "parameter",
-                "concept": "concept3",
-                "value": 3.0,
-                "conditions": ["task == 'speech'"],
-            },
-            {
-                "id": "d_value",
-                "type": "parameter",
-                "concept": "concept4",
-                "value": 4.0,
-                "conditions": ["task == 'speech'"],
-            },
-        ],
-    }]
+    claim_docs = [
+        {
+            "source": {"paper": "semantic_derivation"},
+            "claims": [
+                {
+                    "id": "a_value",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 10.0,
+                    "conditions": ["task == 'speech'"],
+                },
+                {
+                    "id": "b_value_1",
+                    "type": "parameter",
+                    "concept": "concept2",
+                    "value": 1.0,
+                    "conditions": ["task == 'speech'"],
+                },
+                {
+                    "id": "b_value_2",
+                    "type": "parameter",
+                    "concept": "concept2",
+                    "value": 2.0,
+                    "conditions": ["task == 'speech'"],
+                },
+                {
+                    "id": "c_value",
+                    "type": "parameter",
+                    "concept": "concept3",
+                    "value": 3.0,
+                    "conditions": ["task == 'speech'"],
+                },
+                {
+                    "id": "d_value",
+                    "type": "parameter",
+                    "concept": "concept4",
+                    "value": 4.0,
+                    "conditions": ["task == 'speech'"],
+                },
+            ],
+        }
+    ]
 
     world = _build_world(tmp_path, concepts, claim_docs)
     try:
@@ -244,7 +252,9 @@ def derivation_world(tmp_path):
 def test_argumentation_resolution_uses_whole_active_belief_space(argumentation_world):
     bound = argumentation_world.bind(task="speech")
 
-    local_only = compute_claim_graph_justified_claims(argumentation_world, {"target_a", "target_b"})
+    local_only = compute_claim_graph_justified_claims(
+        argumentation_world, {"target_a", "target_b"}
+    )
     assert local_only == frozenset({"target_b"})
 
     result = resolve(
@@ -303,4 +313,3 @@ def test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence():
     result = resolver.value_of_from_active(active, "target")
 
     assert result.status == "determined"
-

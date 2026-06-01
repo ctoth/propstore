@@ -35,11 +35,15 @@ def _commit_yaml(
 ) -> str:
     payload = data
     if normalize:
-        payload, _ = normalize_claim_file_payload(data, default_namespace=default_namespace)
+        payload, _ = normalize_claim_file_payload(
+            data, default_namespace=default_namespace
+        )
     content = _dump_yaml(payload)
     assert repo.git is not None
     effective_branch = "master" if branch is None else branch
-    return repo.git.commit_files({relative_path: content}, message, branch=effective_branch)
+    return repo.git.commit_files(
+        {relative_path: content}, message, branch=effective_branch
+    )
 
 
 def _toy_claim(
@@ -76,7 +80,9 @@ def _merge_summary(repo: Repository, branch_a: str, branch_b: str) -> dict[str, 
     return {
         "argument_count": len(merge.arguments),
         "argument_ids": [argument.claim_id for argument in merge.arguments],
-        "canonical_claim_ids": [argument.canonical_claim_id for argument in merge.arguments],
+        "canonical_claim_ids": [
+            argument.canonical_claim_id for argument in merge.arguments
+        ],
         "branch_origins": {
             argument.claim_id: list(argument.branch_origins)
             for argument in merge.arguments
@@ -104,7 +110,14 @@ def experiment_raw_branch_merge_without_identity(base: Path) -> dict[str, Any]:
         paper="SharedPaper",
     )
     _commit_yaml(repo, "claims/shared.yaml", left, "left raw", normalize=False)
-    _commit_yaml(repo, "claims/shared.yaml", right, "right raw", branch=branch_name, normalize=False)
+    _commit_yaml(
+        repo,
+        "claims/shared.yaml",
+        right,
+        "right raw",
+        branch=branch_name,
+        normalize=False,
+    )
 
     return _merge_summary(repo, "master", branch_name)
 
@@ -117,14 +130,20 @@ def experiment_imported_same_paper_same_ids_conflict(base: Path) -> dict[str, An
     _commit_yaml(
         researcher_a,
         "claims/shared.yaml",
-        _doc([_toy_claim("claim1", "Shared result.", concept="drug_x", value=0.8)], paper="SharedPaper"),
+        _doc(
+            [_toy_claim("claim1", "Shared result.", concept="drug_x", value=0.8)],
+            paper="SharedPaper",
+        ),
         "seed a",
         normalize=False,
     )
     _commit_yaml(
         researcher_b,
         "claims/shared.yaml",
-        _doc([_toy_claim("claim1", "Shared result.", concept="drug_x", value=0.2)], paper="SharedPaper"),
+        _doc(
+            [_toy_claim("claim1", "Shared result.", concept="drug_x", value=0.2)],
+            paper="SharedPaper",
+        ),
         "seed b",
         normalize=False,
     )
@@ -177,7 +196,9 @@ def experiment_normalized_fork_then_diverge(base: Path) -> dict[str, Any]:
     left_doc = _doc(
         [
             _toy_claim("base.claim", "Shared base claim.", concept="base", value=1.0),
-            _toy_claim("new.same", "Both researchers add this.", concept="overlap", value=2.0),
+            _toy_claim(
+                "new.same", "Both researchers add this.", concept="overlap", value=2.0
+            ),
             _toy_claim("left.only", "Left only.", concept="left", value=3.0),
         ],
         paper="SharedPaper",
@@ -185,7 +206,9 @@ def experiment_normalized_fork_then_diverge(base: Path) -> dict[str, Any]:
     right_doc = _doc(
         [
             _toy_claim("base.claim", "Shared base claim.", concept="base", value=1.0),
-            _toy_claim("new.same", "Both researchers add this.", concept="overlap", value=2.0),
+            _toy_claim(
+                "new.same", "Both researchers add this.", concept="overlap", value=2.0
+            ),
             _toy_claim("right.only", "Right only.", concept="right", value=4.0),
         ],
         paper="SharedPaper",
@@ -208,10 +231,18 @@ def main() -> None:
     with TemporaryDirectory(prefix="propstore-mergeability-extended-") as tempdir:
         base = Path(tempdir)
         results = {
-            "raw_branch_merge_without_identity": experiment_raw_branch_merge_without_identity(base),
-            "imported_same_paper_same_ids_conflict": experiment_imported_same_paper_same_ids_conflict(base),
-            "imported_missing_source_namespace": experiment_imported_missing_source_namespace(base),
-            "normalized_fork_then_diverge": experiment_normalized_fork_then_diverge(base),
+            "raw_branch_merge_without_identity": experiment_raw_branch_merge_without_identity(
+                base
+            ),
+            "imported_same_paper_same_ids_conflict": experiment_imported_same_paper_same_ids_conflict(
+                base
+            ),
+            "imported_missing_source_namespace": experiment_imported_missing_source_namespace(
+                base
+            ),
+            "normalized_fork_then_diverge": experiment_normalized_fork_then_diverge(
+                base
+            ),
         }
         print(json.dumps(results, indent=2, sort_keys=False))
 

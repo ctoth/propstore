@@ -49,6 +49,7 @@ def detect_transitive_conflicts(
         forms=forms,
     )
 
+
 __all__ = [
     "ConflictClass",
     "ConflictConceptRegistry",

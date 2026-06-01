@@ -7,10 +7,7 @@ from tests.intervention_world_helpers import bool_scm, equation
 
 
 def _voting_world(yes_count: int, no_count: int) -> InterventionWorld:
-    voters = {
-        f"V{i}"
-        for i in range(1, yes_count + no_count + 1)
-    }
+    voters = {f"V{i}" for i in range(1, yes_count + no_count + 1)}
     equations = {
         voter: equation(
             voter,
@@ -25,8 +22,7 @@ def _voting_world(yes_count: int, no_count: int) -> InterventionWorld:
         lambda values: sum(1 for voter in voters if values[voter]) > len(voters) / 2,
     )
     exogenous_assignment = {
-        f"U_V{i}": i <= yes_count
-        for i in range(1, yes_count + no_count + 1)
+        f"U_V{i}": i <= yes_count for i in range(1, yes_count + no_count + 1)
     }
     scm = bool_scm(
         endogenous={*voters, "WIN"},

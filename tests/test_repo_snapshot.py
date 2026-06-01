@@ -6,7 +6,10 @@ from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document
-from propstore.families.sources.declaration import SourceDocument, source_document_payload
+from propstore.families.sources.declaration import (
+    SourceDocument,
+    source_document_payload,
+)
 from propstore.storage.snapshot import MaterializeConflictError
 
 
@@ -61,7 +64,9 @@ def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:
     assert "source.yaml" in relpaths
 
 
-def test_snapshot_materialize_writes_commit_files_and_refuses_conflicts(tmp_path: Path) -> None:
+def test_snapshot_materialize_writes_commit_files_and_refuses_conflicts(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     git = repo.git
     git.commit_files({"concepts/example.yaml": b"name: example\n"}, "seed concept")
@@ -86,7 +91,9 @@ def test_snapshot_materialize_writes_commit_files_and_refuses_conflicts(tmp_path
     assert (repo.root / "concepts" / "example.yaml").read_bytes() == b"name: example\n"
 
 
-def test_snapshot_materialize_clean_preserves_ignored_runtime_outputs(tmp_path: Path) -> None:
+def test_snapshot_materialize_clean_preserves_ignored_runtime_outputs(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_files({"concepts/example.yaml": b"name: example\n"}, "seed concept")
     repo.snapshot.materialize()

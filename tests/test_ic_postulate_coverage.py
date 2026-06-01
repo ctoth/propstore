@@ -35,7 +35,9 @@ def test_integrity_constraint_prunes_forbidden_artifact_ids(tmp_path) -> None:
         snapshot(kr),
         "master",
         branch_name,
-        integrity_constraint=IntegrityConstraint(forbidden_artifact_ids=frozenset({forbidden})),
+        integrity_constraint=IntegrityConstraint(
+            forbidden_artifact_ids=frozenset({forbidden})
+        ),
     )
 
     assert {argument.artifact_id for argument in merge.arguments} == {

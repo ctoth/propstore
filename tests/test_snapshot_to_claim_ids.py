@@ -35,7 +35,9 @@ pytestmark = pytest.mark.property
 
 
 @st.composite
-def st_assertion_atom(draw, *, n_source_claims_min: int = 0, n_source_claims_max: int = 4):
+def st_assertion_atom(
+    draw, *, n_source_claims_min: int = 0, n_source_claims_max: int = 4
+):
     """Hypothesis strategy producing real ``AssertionAtom`` instances."""
     rel = draw(st.text(alphabet="abcdefghijklmnop", min_size=3, max_size=10))
     subj = draw(st.text(alphabet="abcdefghijklmnop", min_size=3, max_size=10))

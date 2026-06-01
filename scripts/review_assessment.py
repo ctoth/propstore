@@ -14,13 +14,19 @@ print("=" * 60)
 # Basic stats
 concepts = conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
 claims = conn.execute("SELECT COUNT(*) FROM claim").fetchone()[0]
-stances = conn.execute("SELECT COUNT(*) FROM claim_stance WHERE stance_type != 'none'").fetchone()[0]
+stances = conn.execute(
+    "SELECT COUNT(*) FROM claim_stance WHERE stance_type != 'none'"
+).fetchone()[0]
 conflicts = conn.execute("SELECT COUNT(*) FROM conflicts").fetchone()[0]
-print(f"\nKnowledge base: {concepts} concepts, {claims} claims, {stances} stances, {conflicts} conflicts")
+print(
+    f"\nKnowledge base: {concepts} concepts, {claims} claims, {stances} stances, {conflicts} conflicts"
+)
 
 # Claim type distribution
 print("\n--- Claim types ---")
-for row in conn.execute("SELECT type, COUNT(*) n FROM claim GROUP BY type ORDER BY n DESC"):
+for row in conn.execute(
+    "SELECT type, COUNT(*) n FROM claim GROUP BY type ORDER BY n DESC"
+):
     print(f"  {row['type']}: {row['n']}")
 
 # Cross-paper stances
@@ -34,7 +40,7 @@ rows = conn.execute("""
     AND cs.stance_type != 'none'
     GROUP BY cs.stance_type ORDER BY n DESC
 """).fetchall()
-total_cross = sum(r['n'] for r in rows)
+total_cross = sum(r["n"] for r in rows)
 for row in rows:
     print(f"  {row['stance_type']}: {row['n']}")
 print(f"  TOTAL cross-paper: {total_cross}")
@@ -49,7 +55,7 @@ rows2 = conn.execute("""
     AND cs.stance_type != 'none'
     GROUP BY cs.stance_type ORDER BY n DESC
 """).fetchall()
-total_within = sum(r['n'] for r in rows2)
+total_within = sum(r["n"] for r in rows2)
 print(f"  TOTAL within-paper: {total_within}")
 
 # Concepts referenced by most papers
@@ -63,7 +69,9 @@ for row in conn.execute("""
     print(f"  {row['concept_id']}: {row['papers']} papers, {row['claims']} claims")
 
 # Observation claims that share concepts across papers
-print("\n--- Observation overlap: concepts appearing in observations from 2+ papers ---")
+print(
+    "\n--- Observation overlap: concepts appearing in observations from 2+ papers ---"
+)
 for row in conn.execute("""
     SELECT concept_id, COUNT(DISTINCT source_paper) papers
     FROM claim
@@ -86,8 +94,8 @@ for row in conn.execute("""
     ORDER BY cs.confidence DESC
     LIMIT 10
 """):
-    src = row['src'].split('_')[0] + ' ' + row['src'].split('_')[1]
-    tgt = row['tgt'].split('_')[0] + ' ' + row['tgt'].split('_')[1]
+    src = row["src"].split("_")[0] + " " + row["src"].split("_")[1]
+    tgt = row["tgt"].split("_")[0] + " " + row["tgt"].split("_")[1]
     print(f"  {row['stance_type']}: {src} -> {tgt}")
     print(f"    {row['note'][:120]}")
 
@@ -95,18 +103,25 @@ for row in conn.execute("""
 print("\n--- Highest similarity cross-paper claim pairs ---")
 try:
     from propstore.embed import find_similar, _load_vec_extension, get_registered_models
+
     _load_vec_extension(conn)
     models = get_registered_models(conn)
     if models:
-        model = models[0]['model_name']
+        model = models[0]["model_name"]
         # Sample a few claims and find cross-paper similar
-        sample = conn.execute("SELECT id, source_paper FROM claim ORDER BY RANDOM() LIMIT 5").fetchall()
+        sample = conn.execute(
+            "SELECT id, source_paper FROM claim ORDER BY RANDOM() LIMIT 5"
+        ).fetchall()
         for s in sample:
-            similar = find_similar(conn, s['id'], model, top_k=3)
+            similar = find_similar(conn, s["id"], model, top_k=3)
             for sim in similar:
-                sim_paper = conn.execute("SELECT source_paper FROM claim WHERE id = ?", (sim['id'],)).fetchone()
-                if sim_paper and sim_paper['source_paper'] != s['source_paper']:
-                    print(f"  {s['id'][:40]} <-> {sim['id'][:40]} (dist={sim['distance']:.3f})")
+                sim_paper = conn.execute(
+                    "SELECT source_paper FROM claim WHERE id = ?", (sim["id"],)
+                ).fetchone()
+                if sim_paper and sim_paper["source_paper"] != s["source_paper"]:
+                    print(
+                        f"  {s['id'][:40]} <-> {sim['id'][:40]} (dist={sim['distance']:.3f})"
+                    )
 except Exception as e:
     print(f"  (embedding search unavailable: {e})")
 

@@ -48,13 +48,23 @@ def iter_claim_concept_refs(claim: SourceClaimDocument) -> list[str]:
     refs.extend(claim.concepts)
     variables = claim.variables
     if isinstance(variables, tuple):
-        refs.extend(variable.concept for variable in variables if isinstance(variable.concept, str))
+        refs.extend(
+            variable.concept
+            for variable in variables
+            if isinstance(variable.concept, str)
+        )
     parameters = claim.parameters
-    refs.extend(parameter.concept for parameter in parameters if isinstance(parameter.concept, str))
+    refs.extend(
+        parameter.concept
+        for parameter in parameters
+        if isinstance(parameter.concept, str)
+    )
     return refs
 
 
-def validate_source_claim_concepts(repo: Repository, source_name: str, data: tuple[SourceClaimDocument, ...]) -> None:
+def validate_source_claim_concepts(
+    repo: Repository, source_name: str, data: tuple[SourceClaimDocument, ...]
+) -> None:
     known_handles = source_concept_handles(repo, source_name)
     unknown: set[str] = set()
     for claim in data:
@@ -147,16 +157,16 @@ def validate_source_claim_cel_expressions(
         # by canonical_name, so filter out any proposal whose name is
         # already in master to preserve the authored kind.
         non_overlapping = [
-            info for info in source_concepts if info.canonical_name not in master_registry
+            info
+            for info in source_concepts
+            if info.canonical_name not in master_registry
         ]
         layered = with_synthetic_concepts(master_registry, non_overlapping)
         # If master was empty, the standard runtime synthetic bindings
         # ("source", "domain", ...) were never applied — apply them now
         # so source-only validation matches the master-present semantics.
         registry = (
-            layered
-            if master_registry
-            else with_standard_synthetic_bindings(layered)
+            layered if master_registry else with_standard_synthetic_bindings(layered)
         )
     else:
         registry = dict(master_registry) if master_registry else {}
@@ -219,7 +229,9 @@ def _form_bearing_concept_for_claim(claim: SourceClaimDocument) -> str | None:
     """
     claim_type = claim.type.value if claim.type is not None else None
     if claim_type == "parameter":
-        return claim.concept if isinstance(claim.concept, str) and claim.concept else None
+        return (
+            claim.concept if isinstance(claim.concept, str) and claim.concept else None
+        )
     if claim_type == "measurement":
         return (
             claim.target_concept
@@ -229,7 +241,9 @@ def _form_bearing_concept_for_claim(claim: SourceClaimDocument) -> str | None:
     return None
 
 
-def _value_fields_for_claim(claim: SourceClaimDocument) -> list[tuple[str, float | int]]:
+def _value_fields_for_claim(
+    claim: SourceClaimDocument,
+) -> list[tuple[str, float | int]]:
     """Numeric fields on a value-bearing claim that bounds must constrain."""
     fields: list[tuple[str, float | int]] = []
     if claim.value is not None:
@@ -365,7 +379,9 @@ def commit_source_claims_batch(
         for claim in raw:
             payload = cast(dict[str, Any], document_to_payload(claim))
             payload["produced_by"] = document_to_payload(produced_by)
-            stamped.append(convert_document_value(payload, SourceClaimDocument, source=source_name))
+            stamped.append(
+                convert_document_value(payload, SourceClaimDocument, source=source_name)
+            )
         raw = tuple(stamped)
     validate_source_claim_concepts(repo, source_name, raw)
     validate_source_claim_cel_expressions(repo, source_name, raw)
@@ -406,7 +422,9 @@ def commit_source_claim_proposal(
     table: str | None = None,
     figure: str | None = None,
 ) -> SourceClaimDocument:
-    branch = repo.families.source_claims.address(SourceRef(source_name)).require_branch()
+    branch = repo.families.source_claims.address(
+        SourceRef(source_name)
+    ).require_branch()
     source_doc = repo.families.source_documents.require(SourceRef(source_name))
     normalized_claim_type = ClaimType(claim_type)
 
@@ -421,7 +439,9 @@ def commit_source_claim_proposal(
                 continue
             restored_claim = {
                 key: value
-                for key, value in cast(dict[str, Any], document_to_payload(claim)).items()
+                for key, value in cast(
+                    dict[str, Any], document_to_payload(claim)
+                ).items()
                 if key not in norm_keys
             }
             local_id = claim.source_local_id
@@ -466,7 +486,10 @@ def commit_source_claim_proposal(
             claim_payload["uncertainty"] = uncertainty
         if uncertainty_type is not None:
             claim_payload["uncertainty_type"] = uncertainty_type
-        if any(value is not None for value in (page, section, quote_fragment, table, figure)):
+        if any(
+            value is not None
+            for value in (page, section, quote_fragment, table, figure)
+        ):
             claim_payload["provenance"] = SourceProvenanceDocument(
                 paper=normalize_source_slug(source_name),
                 page=page,

@@ -108,7 +108,9 @@ class LiftingDecisionProvenance:
         object.__setattr__(self, "rule_id", str(self.rule_id))
         object.__setattr__(self, "source_context_id", ContextId(self.source_context_id))
         object.__setattr__(self, "target_context_id", ContextId(self.target_context_id))
-        object.__setattr__(self, "source_proposition_id", str(self.source_proposition_id))
+        object.__setattr__(
+            self, "source_proposition_id", str(self.source_proposition_id)
+        )
         object.__setattr__(self, "status", LiftingDecisionStatus(self.status))
         if self.justification is not None:
             object.__setattr__(self, "justification", str(self.justification))
@@ -163,8 +165,12 @@ class LiftingDecision:
         if not isinstance(self.support, SupportEvidence):
             raise TypeError("LiftingDecision support must be SupportEvidence")
         if not isinstance(self.provenance, LiftingDecisionProvenance):
-            raise TypeError("LiftingDecision provenance must be LiftingDecisionProvenance")
-        if self.exception is not None and not isinstance(self.exception, ExceptionDefeat):
+            raise TypeError(
+                "LiftingDecision provenance must be LiftingDecisionProvenance"
+            )
+        if self.exception is not None and not isinstance(
+            self.exception, ExceptionDefeat
+        ):
             raise TypeError("LiftingDecision exception must be ExceptionDefeat")
 
 
@@ -420,7 +426,9 @@ class LiftingSystem:
 
 def _support_for_source(kind: str, source_id: str) -> SupportEvidence:
     return SupportEvidence(
-        ProvenancePolynomial.variable(SourceVariableId(f"ps:source:{kind}:{source_id}")),
+        ProvenancePolynomial.variable(
+            SourceVariableId(f"ps:source:{kind}:{source_id}")
+        ),
         SupportQuality.EXACT,
     )
 

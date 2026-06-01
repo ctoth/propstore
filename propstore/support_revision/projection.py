@@ -5,7 +5,11 @@ import json
 from typing import TYPE_CHECKING
 
 import rfc8785
-from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
+from propstore.core.assertions.refs import (
+    ConditionRef,
+    ContextReference,
+    ProvenanceGraphRef,
+)
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import (
     AssumptionId,
@@ -14,7 +18,12 @@ from propstore.core.id_types import (
     ProvenanceGraphId,
 )
 from propstore.core.labels import SupportQuality
-from propstore.core.relations import ClaimConceptLinkRole, RelationConceptRef, RoleBinding, RoleBindingSet
+from propstore.core.relations import (
+    ClaimConceptLinkRole,
+    RelationConceptRef,
+    RoleBinding,
+    RoleBindingSet,
+)
 from propstore.families.claims.declaration import Claim
 from propstore.json_types import JsonValue
 
@@ -87,8 +96,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
             for environment in label.environments:
                 supporting_assumption_ids.update(environment.assumption_ids)
             support_sets.setdefault(atom_id, set()).update(
-                tuple(environment.assumption_ids)
-                for environment in label.environments
+                tuple(environment.assumption_ids) for environment in label.environments
             )
         else:
             support_sets.setdefault(atom_id, set())
@@ -103,7 +111,9 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
         atoms_by_id[atom_id] = AssertionAtom(
             atom_id=atom_id,
             assertion=assertion,
-            source_claims=((claim,) if existing is None else existing.source_claims + (claim,)),
+            source_claims=(
+                (claim,) if existing is None else existing.source_claims + (claim,)
+            ),
             label=label if existing is None else existing.label,
         )
 
@@ -122,8 +132,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
         atoms=tuple(atoms_by_id[atom_id] for atom_id in sorted(atoms_by_id)),
         assumptions=assumptions,
         support_sets={
-            atom_id: tuple(sorted(support))
-            for atom_id, support in support_sets.items()
+            atom_id: tuple(sorted(support)) for atom_id, support in support_sets.items()
         },
         essential_support={
             atom_id: tuple(sorted(support))
@@ -223,11 +232,7 @@ def _claim_content(claim: Claim) -> str:
             "name": variable.name,
         }
         variables.append(
-            {
-                key: value
-                for key, value in variable_content.items()
-                if value is not None
-            }
+            {key: value for key, value in variable_content.items() if value is not None}
         )
     if variables:
         content["variables"] = variables

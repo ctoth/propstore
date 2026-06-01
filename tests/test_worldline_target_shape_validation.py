@@ -9,7 +9,9 @@ from propstore.worldline.definition import WorldlineRevisionTargetValidationErro
 
 
 def test_ws_j_worldline_revision_target_rejects_unprefixed_concept_names() -> None:
-    with pytest.raises(WorldlineRevisionTargetValidationError, match="some-concept-name"):
+    with pytest.raises(
+        WorldlineRevisionTargetValidationError, match="some-concept-name"
+    ):
         WorldlineDefinition.from_dict(
             {
                 "id": "bad_revision_target",

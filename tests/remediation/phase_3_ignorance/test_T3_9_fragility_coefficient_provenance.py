@@ -33,10 +33,7 @@ def _rule_doc(rule_id: str, kind: str, head: AtomDocument, *, body=()) -> RuleDo
         id=rule_id,
         kind=kind,
         head=head,
-        body=tuple(
-            BodyLiteralDocument(kind="positive", atom=atom)
-            for atom in body
-        ),
+        body=tuple(BodyLiteralDocument(kind="positive", atom=atom) for atom in body),
     )
 
 

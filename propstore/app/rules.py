@@ -221,9 +221,14 @@ def _rule_document_payload(request: RuleAddRequest) -> dict[str, object]:
     return data
 
 
-def _predicate_registry_at_head(repo: Repository, commit: str | None) -> PredicateRegistry:
+def _predicate_registry_at_head(
+    repo: Repository, commit: str | None
+) -> PredicateRegistry:
     return PredicateRegistry.from_documents(
-        tuple(handle.document for handle in repo.families.predicates.iter_handles(commit=commit))
+        tuple(
+            handle.document
+            for handle in repo.families.predicates.iter_handles(commit=commit)
+        )
     )
 
 
@@ -292,9 +297,12 @@ def add_rule(
     git = repo.git
     if git is None:
         raise ValueError("rule authoring requires a git-backed repository")
-    with _RULE_MUTATION_LOCK, git.head_bound_transaction(
-        repo.require_git().primary_branch_name(),
-    ) as head_txn:
+    with (
+        _RULE_MUTATION_LOCK,
+        git.head_bound_transaction(
+            repo.require_git().primary_branch_name(),
+        ) as head_txn,
+    ):
         document = convert_document_value(
             _rule_document_payload(request),
             RuleDocument,
@@ -371,7 +379,9 @@ def _load_rule_for_superiority(repo: Repository, rule_id: str) -> RuleDocument:
     if document is None:
         raise RuleWorkflowError(f"rule {rule_id!r} not found")
     if document.kind == "strict":
-        raise RuleWorkflowError(f"strict rule {rule_id!r} cannot participate in superiority")
+        raise RuleWorkflowError(
+            f"strict rule {rule_id!r} cannot participate in superiority"
+        )
     return document
 
 
@@ -416,7 +426,9 @@ def add_rule_superiority(
         raise RuleWorkflowError("rule superiority relation must remain acyclic")
 
     ref = RuleSuperiorityRef(
-        _rule_superiority_artifact_id(request.superior_rule_id, request.inferior_rule_id)
+        _rule_superiority_artifact_id(
+            request.superior_rule_id, request.inferior_rule_id
+        )
     )
     filepath = repo.root / repo.families.rule_superiority.address(ref).require_path()
 
@@ -458,7 +470,9 @@ def remove_rule_superiority(
     request: RuleSuperiorityRemoveRequest,
 ) -> RuleSuperiorityReport:
     ref = RuleSuperiorityRef(
-        _rule_superiority_artifact_id(request.superior_rule_id, request.inferior_rule_id)
+        _rule_superiority_artifact_id(
+            request.superior_rule_id, request.inferior_rule_id
+        )
     )
     with _RULE_MUTATION_LOCK, repo.mutation_guard():
         existing = repo.families.rule_superiority.load(ref)
@@ -467,7 +481,9 @@ def remove_rule_superiority(
                 f"rule superiority {request.superior_rule_id!r} > "
                 f"{request.inferior_rule_id!r} not found"
             )
-        filepath = repo.root / repo.families.rule_superiority.address(ref).require_path()
+        filepath = (
+            repo.root / repo.families.rule_superiority.address(ref).require_path()
+        )
         repo.families.rule_superiority.delete(
             ref,
             message=(

@@ -18,22 +18,22 @@ class WorldMeta(FamilyModel):
 
 
 WORLD_META_CHARTER: FamilyCharter = FamilyCharter(
-        family=FamilyDefinition(
-            key="meta",
-            name="meta",
+    family=FamilyDefinition(
+        key="meta",
+        name="meta",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-meta",
             contract_version=_WORLD_CONTRACT_VERSION,
-            artifact_family=ArtifactFamily(
-                name="propstore-world-meta",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                doc_type=WorldMeta,
-                placement=FlatYamlPlacement(".derived/meta", str),
-            ),
-            identity_field="key",
+            doc_type=WorldMeta,
+            placement=FlatYamlPlacement(".derived/meta", str),
         ),
-        model=WorldMeta,
-        fields=(
-            CharterField("key", str, primary_key=True, nullable=False),
-            CharterField("schema_version", int, nullable=False),
-        ),
-        semantic_metadata={"semantic": "propstore.world"},
-    )
+        identity_field="key",
+    ),
+    model=WorldMeta,
+    fields=(
+        CharterField("key", str, primary_key=True, nullable=False),
+        CharterField("schema_version", int, nullable=False),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)

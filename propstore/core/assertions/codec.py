@@ -147,7 +147,9 @@ def _graph_ref(value: object) -> ProvenanceGraphRef:
     if not isinstance(value, Mapping):
         raise TypeError("provenance graph reference must be a mapping")
     return ProvenanceGraphRef(
-        ProvenanceGraphId(_text(_required(value, "graph_name"), "provenance graph name"))
+        ProvenanceGraphId(
+            _text(_required(value, "graph_name"), "provenance graph name")
+        )
     )
 
 

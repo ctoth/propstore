@@ -39,7 +39,9 @@ class AssertionAtom:
         claim_ids = tuple(str(claim_id) for claim_id in self.source_claim_ids)
         for claim in self.source_claims:
             if not isinstance(claim, Claim):
-                raise TypeError("AssertionAtom.source_claims must contain typed Claim objects")
+                raise TypeError(
+                    "AssertionAtom.source_claims must contain typed Claim objects"
+                )
         source_claim_ids = tuple(str(claim.id) for claim in self.source_claims)
         if claim_ids and source_claim_ids and claim_ids != source_claim_ids:
             raise ValueError("AssertionAtom source_claim_ids must match source_claims")
@@ -94,7 +96,9 @@ class RevisionScope:
             "context_id",
             None if self.context_id is None else ContextId(self.context_id),
         )
-        object.__setattr__(self, "merge_parent_commits", tuple(self.merge_parent_commits))
+        object.__setattr__(
+            self, "merge_parent_commits", tuple(self.merge_parent_commits)
+        )
 
 
 @dataclass(frozen=True)
@@ -102,8 +106,12 @@ class BeliefBase:
     scope: RevisionScope
     atoms: tuple[BeliefAtom, ...]
     assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
-    support_sets: Mapping[str, tuple[tuple[AssumptionId, ...], ...]] = field(default_factory=dict)
-    essential_support: Mapping[str, tuple[AssumptionId, ...]] = field(default_factory=dict)
+    support_sets: Mapping[str, tuple[tuple[AssumptionId, ...], ...]] = field(
+        default_factory=dict
+    )
+    essential_support: Mapping[str, tuple[AssumptionId, ...]] = field(
+        default_factory=dict
+    )
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "atoms", tuple(self.atoms))
@@ -112,7 +120,10 @@ class BeliefBase:
             self,
             "support_sets",
             {
-                str(atom_id): tuple(tuple(AssumptionId(value) for value in support_set) for support_set in support_sets)
+                str(atom_id): tuple(
+                    tuple(AssumptionId(value) for value in support_set)
+                    for support_set in support_sets
+                )
                 for atom_id, support_sets in self.support_sets.items()
             },
         )
@@ -138,19 +149,39 @@ class FormalRevisionDecisionReport:
     trace: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "input_formula_ids", tuple(str(item) for item in self.input_formula_ids))
-        object.__setattr__(self, "accepted_formula_ids", tuple(str(item) for item in self.accepted_formula_ids))
-        object.__setattr__(self, "rejected_formula_ids", tuple(str(item) for item in self.rejected_formula_ids))
+        object.__setattr__(
+            self,
+            "input_formula_ids",
+            tuple(str(item) for item in self.input_formula_ids),
+        )
+        object.__setattr__(
+            self,
+            "accepted_formula_ids",
+            tuple(str(item) for item in self.accepted_formula_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_formula_ids",
+            tuple(str(item) for item in self.rejected_formula_ids),
+        )
         object.__setattr__(self, "trace", dict(self.trace))
 
     @classmethod
-    def from_json_payload(cls, payload: Mapping[str, Any]) -> FormalRevisionDecisionReport:
+    def from_json_payload(
+        cls, payload: Mapping[str, Any]
+    ) -> FormalRevisionDecisionReport:
         return cls(
             operation=str(payload.get("operation") or ""),
             policy=str(payload.get("policy") or ""),
-            input_formula_ids=tuple(str(item) for item in (payload.get("input_formula_ids") or ())),
-            accepted_formula_ids=tuple(str(item) for item in (payload.get("accepted_formula_ids") or ())),
-            rejected_formula_ids=tuple(str(item) for item in (payload.get("rejected_formula_ids") or ())),
+            input_formula_ids=tuple(
+                str(item) for item in (payload.get("input_formula_ids") or ())
+            ),
+            accepted_formula_ids=tuple(
+                str(item) for item in (payload.get("accepted_formula_ids") or ())
+            ),
+            rejected_formula_ids=tuple(
+                str(item) for item in (payload.get("rejected_formula_ids") or ())
+            ),
             epistemic_state_hash=(
                 None
                 if payload.get("epistemic_state_hash") is None
@@ -192,10 +223,24 @@ class SupportRevisionRealization:
     replay_status: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
-        object.__setattr__(self, "source_claim_ids", tuple(str(claim_id) for claim_id in self.source_claim_ids))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
+        object.__setattr__(
+            self,
+            "source_claim_ids",
+            tuple(str(claim_id) for claim_id in self.source_claim_ids),
+        )
         object.__setattr__(
             self,
             "reasons",
@@ -207,22 +252,36 @@ class SupportRevisionRealization:
         object.__setattr__(self, "journal_metadata", dict(self.journal_metadata))
 
     @classmethod
-    def from_json_payload(cls, payload: Mapping[str, Any]) -> SupportRevisionRealization:
+    def from_json_payload(
+        cls, payload: Mapping[str, Any]
+    ) -> SupportRevisionRealization:
         reasons_payload = payload.get("reasons") or {}
         if not isinstance(reasons_payload, Mapping):
             raise ValueError("support revision realization requires mapping 'reasons'")
         return cls(
-            accepted_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())),
-            rejected_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())),
-            incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
-            source_claim_ids=tuple(str(claim_id) for claim_id in (payload.get("source_claim_ids") or ())),
+            accepted_atom_ids=tuple(
+                str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())
+            ),
+            rejected_atom_ids=tuple(
+                str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())
+            ),
+            incision_set=tuple(
+                str(atom_id) for atom_id in (payload.get("incision_set") or ())
+            ),
+            source_claim_ids=tuple(
+                str(claim_id) for claim_id in (payload.get("source_claim_ids") or ())
+            ),
             reasons={
                 str(atom_id): coerce_revision_atom_detail(detail)
                 for atom_id, detail in reasons_payload.items()
             },
-            snapshot_hash=None if payload.get("snapshot_hash") is None else str(payload.get("snapshot_hash")),
+            snapshot_hash=None
+            if payload.get("snapshot_hash") is None
+            else str(payload.get("snapshot_hash")),
             journal_metadata=dict(payload.get("journal_metadata") or {}),
-            replay_status=None if payload.get("replay_status") is None else str(payload.get("replay_status")),
+            replay_status=None
+            if payload.get("replay_status") is None
+            else str(payload.get("replay_status")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -232,8 +291,7 @@ class SupportRevisionRealization:
             "incision_set": list(self.incision_set),
             "source_claim_ids": list(self.source_claim_ids),
             "reasons": {
-                atom_id: detail.to_dict()
-                for atom_id, detail in self.reasons.items()
+                atom_id: detail.to_dict() for atom_id, detail in self.reasons.items()
             },
             "journal_metadata": dict(self.journal_metadata),
         }
@@ -255,9 +313,19 @@ class RevisionResult:
     realization: SupportRevisionRealization | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(
             self,
             "explanation",
@@ -294,7 +362,11 @@ class RevisionEvent:
     def __post_init__(self) -> None:
         object.__setattr__(self, "operation", str(self.operation))
         object.__setattr__(self, "pre_state_hash", str(self.pre_state_hash))
-        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
+        object.__setattr__(
+            self,
+            "target_atom_ids",
+            tuple(str(atom_id) for atom_id in self.target_atom_ids),
+        )
         object.__setattr__(
             self,
             "policy_snapshot",
@@ -307,7 +379,9 @@ class RevisionEvent:
         realization_payload = payload.get("realization")
         if decision_payload is not None and not isinstance(decision_payload, Mapping):
             raise ValueError("revision event requires mapping 'decision'")
-        if realization_payload is not None and not isinstance(realization_payload, Mapping):
+        if realization_payload is not None and not isinstance(
+            realization_payload, Mapping
+        ):
             raise ValueError("revision event requires mapping 'realization'")
         policy_payload = payload.get("policy_snapshot") or {}
         if not isinstance(policy_payload, Mapping):
@@ -315,8 +389,12 @@ class RevisionEvent:
         event = cls(
             operation=str(payload.get("operation") or ""),
             pre_state_hash=str(payload.get("pre_state_hash") or ""),
-            input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
-            target_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())),
+            input_atom_id=None
+            if payload.get("input_atom_id") is None
+            else str(payload.get("input_atom_id")),
+            target_atom_ids=tuple(
+                str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())
+            ),
             decision=(
                 None
                 if decision_payload is None
@@ -327,8 +405,12 @@ class RevisionEvent:
                 if realization_payload is None
                 else SupportRevisionRealization.from_json_payload(realization_payload)
             ),
-            policy_snapshot={str(key): str(value) for key, value in policy_payload.items()},
-            replay_status=None if payload.get("replay_status") is None else str(payload.get("replay_status")),
+            policy_snapshot={
+                str(key): str(value) for key, value in policy_payload.items()
+            },
+            replay_status=None
+            if payload.get("replay_status") is None
+            else str(payload.get("replay_status")),
             realization_failure=(
                 None
                 if payload.get("realization_failure") is None
@@ -390,11 +472,21 @@ class RevisionMergeRequiredFailure(ValueError):
         self.reason = str(reason)
         self.parent_commits = tuple(str(commit) for commit in parent_commits)
         self.decision_report = decision_report
-        self.profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in profile_atom_ids)
-        self.integrity_constraint = None if integrity_constraint is None else dict(integrity_constraint)
-        self.selected_worlds_hash = None if selected_worlds_hash is None else str(selected_worlds_hash)
+        self.profile_atom_ids = tuple(
+            tuple(str(atom_id) for atom_id in profile) for profile in profile_atom_ids
+        )
+        self.integrity_constraint = (
+            None if integrity_constraint is None else dict(integrity_constraint)
+        )
+        self.selected_worlds_hash = (
+            None if selected_worlds_hash is None else str(selected_worlds_hash)
+        )
         self.event = event
-        message = "merge point requires IC merge" if self.reason == "merge_required" else self.reason
+        message = (
+            "merge point requires IC merge"
+            if self.reason == "merge_required"
+            else self.reason
+        )
         if self.parent_commits:
             message += f": {', '.join(self.parent_commits)}"
         super().__init__(message)
@@ -412,10 +504,24 @@ class RevisionEpisode:
     event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "target_atom_ids",
+            tuple(str(atom_id) for atom_id in self.target_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(
             self,
             "explanation",
@@ -437,8 +543,16 @@ class EpistemicState:
     history: tuple[RevisionEpisode, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "ranked_atom_ids", tuple(str(atom_id) for atom_id in self.ranked_atom_ids))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "ranked_atom_ids",
+            tuple(str(atom_id) for atom_id in self.ranked_atom_ids),
+        )
         object.__setattr__(
             self,
             "ranking",

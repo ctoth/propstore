@@ -98,7 +98,9 @@ def _lint_claim_files(
     for claim_file in claim_files:
         filename = claim_file_filename(claim_file)
         for claim in claim_file_claims(claim_file):
-            claim_id = claim.artifact_id or claim.primary_logical_id or claim.id or filename
+            claim_id = (
+                claim.artifact_id or claim.primary_logical_id or claim.id or filename
+            )
             provenance = claim.provenance
             if (
                 provenance is not None
@@ -160,8 +162,7 @@ def _lint_stance(
                 filename=filename,
                 artifact_id=artifact_id,
                 message=(
-                    f"undercut stance {artifact_id!r} has no "
-                    "target_justification_id"
+                    f"undercut stance {artifact_id!r} has no target_justification_id"
                 ),
             )
         )

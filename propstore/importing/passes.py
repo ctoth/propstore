@@ -92,7 +92,9 @@ def _planned_claim_document_write(
 ) -> PlannedSemanticWrite:
     artifact_id = getattr(document, "artifact_id", None)
     if not isinstance(artifact_id, str) or not artifact_id:
-        raise ValueError(f"Imported claim {source!r} is missing artifact_id after normalization")
+        raise ValueError(
+            f"Imported claim {source!r} is missing artifact_id after normalization"
+        )
     family = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CLAIMS).artifact_family
     ref = ClaimRef(artifact_id)
     address = store.address(cast(Any, family), ref)
@@ -134,13 +136,20 @@ def _rewrite_concept_payload_refs(
 ) -> dict[str, Any]:
     rewritten = dict(data)
     if "replaced_by" in rewritten:
-        rewritten["replaced_by"] = _rewrite_reference(rewritten.get("replaced_by"), concept_ref_map)
+        rewritten["replaced_by"] = _rewrite_reference(
+            rewritten.get("replaced_by"), concept_ref_map
+        )
 
     relationships = rewritten.get("relationships")
     if isinstance(relationships, list):
         rewritten["relationships"] = [
             (
-                {**relationship, "target": _rewrite_reference(relationship.get("target"), concept_ref_map)}
+                {
+                    **relationship,
+                    "target": _rewrite_reference(
+                        relationship.get("target"), concept_ref_map
+                    ),
+                }
                 if isinstance(relationship, dict)
                 else relationship
             )
@@ -157,7 +166,9 @@ def _rewrite_concept_payload_refs(
             copied = dict(parameterization)
             inputs = copied.get("inputs")
             if isinstance(inputs, list):
-                copied["inputs"] = [_rewrite_reference(input_id, concept_ref_map) for input_id in inputs]
+                copied["inputs"] = [
+                    _rewrite_reference(input_id, concept_ref_map) for input_id in inputs
+                ]
             updated_parameterizations.append(copied)
         rewritten["parameterization_relationships"] = updated_parameterizations
 
@@ -191,18 +202,26 @@ def _normalize_concept_batch(
         payload = _decode_yaml(writes[path], path=path)
         canonical_name = payload.get("canonical_name")
         raw_id = payload.get("id")
-        effective_name = canonical_name if isinstance(canonical_name, str) and canonical_name else str(raw_id or Path(path).stem or "concept")
+        effective_name = (
+            canonical_name
+            if isinstance(canonical_name, str) and canonical_name
+            else str(raw_id or Path(path).stem or "concept")
+        )
         payload.setdefault("canonical_name", effective_name)
         payload.setdefault("status", "proposed")
         payload.setdefault("definition", effective_name)
         payload.setdefault("form", "structural")
 
-        normalized_payload, reference_keys = _normalize_concept_payload(payload, default_domain=state.repository_name)
+        normalized_payload, reference_keys = _normalize_concept_payload(
+            payload, default_domain=state.repository_name
+        )
         concept_write = _planned_write(store, path, normalized_payload)
         seeded[path] = concept_write
         artifact_id = getattr(concept_write.document, "artifact_id", None)
         if not isinstance(artifact_id, str) or not artifact_id:
-            raise ValueError(f"Imported concept {path!r} is missing artifact_id after normalization")
+            raise ValueError(
+                f"Imported concept {path!r} is missing artifact_id after normalization"
+            )
         for reference_key in reference_keys:
             state.concept_ref_map[str(reference_key)] = artifact_id
 
@@ -210,11 +229,15 @@ def _normalize_concept_batch(
     for path, concept_write in seeded.items():
         payload = _document_payload(store, concept_write)
         if not isinstance(payload, dict):
-            raise TypeError(f"Imported concept {path!r} did not render to a mapping payload")
+            raise TypeError(
+                f"Imported concept {path!r} did not render to a mapping payload"
+            )
         normalized[path] = _planned_write(
             store,
             path,
-            _rewrite_concept_payload_refs(payload, concept_ref_map=state.concept_ref_map),
+            _rewrite_concept_payload_refs(
+                payload, concept_ref_map=state.concept_ref_map
+            ),
         )
     return normalized
 
@@ -240,7 +263,9 @@ def _normalize_claim_batch(
             concept_map=state.concept_ref_map,
             source=path,
         )
-        planned_write = _planned_claim_document_write(store, normalized_claim.document, source=path)
+        planned_write = _planned_claim_document_write(
+            store, normalized_claim.document, source=path
+        )
         normalized[planned_write.relpath] = planned_write
         for local_id, artifact_id in normalized_claim.local_handle_map.items():
             state.imported_claim_handles.append(
@@ -335,7 +360,9 @@ def _normalize_semantic_import_writes(
         ]
         if not family_paths:
             continue
-        normalizer = _SEMANTIC_IMPORT_NORMALIZERS.get(cast(PropstoreFamily, family.key), _normalize_passthrough_batch)
+        normalizer = _SEMANTIC_IMPORT_NORMALIZERS.get(
+            cast(PropstoreFamily, family.key), _normalize_passthrough_batch
+        )
         normalized.update(normalizer(store, family_paths, writes, state))
         if family.key is PropstoreFamily.CLAIMS:
             _record_imported_claim_handle_ambiguities(state)

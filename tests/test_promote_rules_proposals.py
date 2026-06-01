@@ -140,7 +140,9 @@ def _seed_direct_rule_proposal(
     return commit_sha
 
 
-def test_apply_rule_proposal_promotion_selective_and_idempotent(monkeypatch, tmp_path) -> None:
+def test_apply_rule_proposal_promotion_selective_and_idempotent(
+    monkeypatch, tmp_path
+) -> None:
     from propstore.families.rules.lifecycle import (
         apply_rule_proposal_promotion,
         plan_rule_proposal_promotion,
@@ -149,7 +151,9 @@ def test_apply_rule_proposal_promotion_selective_and_idempotent(monkeypatch, tmp
     repo = Repository.init(tmp_path / "knowledge")
     proposal_sha = _seed_rule_proposals(monkeypatch, repo)
 
-    plan = plan_rule_proposal_promotion(repo, source_paper=PAPER, rule_ids=("rule-001",))
+    plan = plan_rule_proposal_promotion(
+        repo, source_paper=PAPER, rule_ids=("rule-001",)
+    )
     result = apply_rule_proposal_promotion(repo, plan)
 
     assert result.moved == 1
@@ -160,7 +164,9 @@ def test_apply_rule_proposal_promotion_selective_and_idempotent(monkeypatch, tmp
     assert promoted.promoted_from_sha == proposal_sha
     assert repo.families.rules.load(RuleRef("rule-003")) is None
 
-    second = plan_rule_proposal_promotion(repo, source_paper=PAPER, rule_ids=("rule-001",))
+    second = plan_rule_proposal_promotion(
+        repo, source_paper=PAPER, rule_ids=("rule-001",)
+    )
     assert second.items == ()
 
 
@@ -171,7 +177,9 @@ def test_plan_rule_proposal_unknown_id_raises(monkeypatch, tmp_path) -> None:
     _seed_rule_proposals(monkeypatch, repo)
 
     with pytest.raises(UnknownProposalPath, match="does-not-exist"):
-        plan_rule_proposal_promotion(repo, source_paper=PAPER, rule_ids=("does-not-exist",))
+        plan_rule_proposal_promotion(
+            repo, source_paper=PAPER, rule_ids=("does-not-exist",)
+        )
 
 
 @pytest.mark.property
@@ -198,7 +206,9 @@ def test_generated_rule_proposal_promotion_rejects_undeclared_predicates(
             predicate_id=predicate_id,
         )
 
-        plan = plan_rule_proposal_promotion(repo, source_paper=paper, rule_ids=(rule_id,))
+        plan = plan_rule_proposal_promotion(
+            repo, source_paper=paper, rule_ids=(rule_id,)
+        )
         with pytest.raises(RuleWorkflowError, match="undeclared predicate"):
             apply_rule_proposal_promotion(repo, plan)
 

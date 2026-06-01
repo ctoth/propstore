@@ -156,7 +156,9 @@ def classify_stance_from_llm_output(raw: dict) -> ClassifiedStance:
         if isinstance(opinion, BaseRateUnresolved):
             return ClassifiedStance(
                 stance_type=StanceType.ABSTAIN,
-                opinion=_vacuous_classifier_opinion("stance_classification_missing_base_rate"),
+                opinion=_vacuous_classifier_opinion(
+                    "stance_classification_missing_base_rate"
+                ),
                 note=str(raw.get("note", "")),
                 conditions_differ=raw.get("conditions_differ"),
             )
@@ -182,7 +184,9 @@ def build_enrichment_context(
     parts = [f"These claims are highly similar by embedding distance ({distance:.4f})."]
     if shared_concept_ids:
         parts.append(f"Shared concepts: {', '.join(shared_concept_ids)}")
-    parts.append("Look specifically for subtle relationships that might not be obvious at first glance.")
+    parts.append(
+        "Look specifically for subtle relationships that might not be obvious at first glance."
+    )
     return " ".join(parts)
 
 
@@ -315,10 +319,18 @@ def _build_stance_dict(
         else:
             opinion = category_opinion
 
-        if opinion is not None and reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
+        if (
+            opinion is not None
+            and reference_distances is not None
+            and embedding_distance is not None
+            and len(reference_distances) > 0
+        ):
             from propstore.heuristic.calibrate import CorpusCalibrator
             from propstore.opinion import Opinion
-            corpus_cal = CorpusCalibrator(reference_distances, corpus_base_rate=opinion.a)
+
+            corpus_cal = CorpusCalibrator(
+                reference_distances, corpus_base_rate=opinion.a
+            )
             corpus_opinion = corpus_cal.to_opinion(embedding_distance)
             opinion = Opinion.fuse(opinion, corpus_opinion)
 
@@ -524,7 +536,9 @@ async def classify_stance_async(
 
     if not enrichment_context and shared_concept_ids is not None:
         enrichment_context = build_enrichment_context(
-            embedding_distance, enrichment_threshold, shared_concept_ids,
+            embedding_distance,
+            enrichment_threshold,
+            shared_concept_ids,
         )
 
     forward, reverse = await asyncio.gather(
@@ -571,4 +585,5 @@ def classify_stance(
     """Classify the epistemic relationship between two claims via LLM (sync wrapper)."""
     sem = asyncio.Semaphore(1)
     from propstore.heuristic.relate import _run_async
+
     return _run_async(classify_stance_async(claim_a, claim_b, model_name, sem))

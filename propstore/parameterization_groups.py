@@ -33,7 +33,12 @@ def _concept_candidates(concept: ConceptRecord | Mapping[str, Any]) -> set[str]:
             continue
         namespace = logical_id.get("namespace")
         value = logical_id.get("value")
-        if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+        if (
+            isinstance(namespace, str)
+            and isinstance(value, str)
+            and namespace
+            and value
+        ):
             candidates.add(f"{namespace}:{value}")
             candidates.add(value)
     for alias in concept.get("aliases", []) or []:
@@ -54,7 +59,9 @@ def _concept_artifact_id(concept: ConceptRecord | Mapping[str, Any]) -> str | No
     return None
 
 
-def _parameterization_inputs(concept: ConceptRecord | Mapping[str, Any]) -> tuple[str, ...]:
+def _parameterization_inputs(
+    concept: ConceptRecord | Mapping[str, Any],
+) -> tuple[str, ...]:
     if isinstance(concept, ConceptRecord):
         inputs: list[str] = []
         for parameterization in concept.parameterizations:
@@ -68,11 +75,7 @@ def _parameterization_inputs(concept: ConceptRecord | Mapping[str, Any]) -> tupl
         raw_inputs = parameterization.get("inputs")
         if not isinstance(raw_inputs, Sequence) or isinstance(raw_inputs, str):
             continue
-        inputs.extend(
-            value
-            for value in raw_inputs
-            if isinstance(value, str) and value
-        )
+        inputs.extend(value for value in raw_inputs if isinstance(value, str) and value)
     return tuple(inputs)
 
 

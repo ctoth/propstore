@@ -54,9 +54,9 @@ def _make_definition(
 @dataclass
 class _FakeValueResult:
     status: str = "determined"
-    claims: list[dict[str, Any]] = field(default_factory=lambda: [
-        {"id": "claim-1", "value": 42.0}
-    ])
+    claims: list[dict[str, Any]] = field(
+        default_factory=lambda: [{"id": "claim-1", "value": 42.0}]
+    )
 
 
 @dataclass
@@ -64,9 +64,12 @@ class _FakeDerivedResult:
     status: str = "derived"
     value: float = 42.0
     formula: str = "x * y"
-    input_values: dict[str, float] = field(default_factory=lambda: {
-        "input_a": 6.0, "input_b": 7.0,
-    })
+    input_values: dict[str, float] = field(
+        default_factory=lambda: {
+            "input_a": 6.0,
+            "input_b": 7.0,
+        }
+    )
 
 
 class _FakeWorld:
@@ -149,7 +152,9 @@ class TestSensitivityErrorVisibility:
         world._bound = fake_bound
 
         with (
-            patch("propstore.worldline.runner._resolve_target", return_value=derived_entry),
+            patch(
+                "propstore.worldline.runner._resolve_target", return_value=derived_entry
+            ),
             patch(
                 "propstore.sensitivity.analyze_sensitivity",
                 side_effect=RuntimeError("boom — sensitivity engine crashed"),
@@ -165,8 +170,7 @@ class TestSensitivityErrorVisibility:
             "(F1.4: sensitivity failure was swallowed)"
         )
         assert any(
-            outcome.error is not None
-            for outcome in result.sensitivity.targets.values()
+            outcome.error is not None for outcome in result.sensitivity.targets.values()
         ), "sensitivity report exists but contains no error indicator"
 
 

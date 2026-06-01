@@ -1,4 +1,5 @@
 """World-bound support revision workflow APIs."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -41,9 +42,7 @@ def _bind_revision_world(
         Environment(
             bindings=dict(request.bindings),
             context_id=(
-                None
-                if request.context_id is None
-                else ContextId(request.context_id)
+                None if request.context_id is None else ContextId(request.context_id)
             ),
         )
     )

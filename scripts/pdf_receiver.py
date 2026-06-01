@@ -1,9 +1,11 @@
 """Tiny HTTP server that receives a PDF POST and saves it."""
+
 import http.server
 import sys
 import os
 
 OUTPUT_PATH = sys.argv[1] if len(sys.argv) > 1 else "paper.pdf"
+
 
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
@@ -25,6 +27,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
+
 
 server = http.server.HTTPServer(("127.0.0.1", 18923), Handler)
 print(f"Listening on http://127.0.0.1:18923 — will save to {OUTPUT_PATH}")

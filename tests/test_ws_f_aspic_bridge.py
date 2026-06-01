@@ -40,7 +40,11 @@ from propstore.families.contexts.lifting import (
 )
 from propstore.argumentation import SharedAnalyzerInput, analyze_praf
 from propstore.core.assertions.refs import ContextReference
-from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
+from propstore.core.graph_types import (
+    WorldActivationGraph,
+    ClaimNode,
+    CompiledWorldGraph,
+)
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -108,17 +112,21 @@ def _support(
 
 
 def _stance(source: str, target: str, stance_type: str) -> object:
-    return stance_from_payload({
-        "claim_id": source,
-        "target_claim_id": target,
-        "stance_type": stance_type,
-    })
+    return stance_from_payload(
+        {
+            "claim_id": source,
+            "target_claim_id": target,
+            "stance_type": stance_type,
+        }
+    )
 
 
 def test_stances_asymmetric_contrary_for_directional_relations() -> None:
     claims = [_claim("a"), _claim("b")]
     literals = claims_to_literals(claims)
-    _strict, defeasible = justifications_to_rules([_reported("a"), _reported("b")], literals)
+    _strict, defeasible = justifications_to_rules(
+        [_reported("a"), _reported("b")], literals
+    )
 
     supersedes = stances_to_contrariness(
         [_stance("a", "b", "supersedes")],
@@ -132,7 +140,9 @@ def test_stances_asymmetric_contrary_for_directional_relations() -> None:
     assert not supersedes.is_contrary(b, a)
     assert not supersedes.is_contradictory(b, a)
 
-    rebuts = stances_to_contrariness([_stance("a", "b", "rebuts")], literals, defeasible)
+    rebuts = stances_to_contrariness(
+        [_stance("a", "b", "rebuts")], literals, defeasible
+    )
     assert rebuts.is_contradictory(a, b)
     assert rebuts.is_contradictory(b, a)
 
@@ -167,11 +177,16 @@ def test_compile_bridge_uses_full_contrariness_transposition_language() -> None:
     not_c = c.contrary
     a = compiled.literals[claim_key("a")]
     not_a = a.contrary
-    assert Rule(antecedents=(not_c,), consequent=not_a, kind="strict") in compiled.system.strict_rules
+    assert (
+        Rule(antecedents=(not_c,), consequent=not_a, kind="strict")
+        in compiled.system.strict_rules
+    )
     assert {b, not_b, c, not_c, a, not_a} <= compiled.system.language
 
 
-def test_premise_order_respects_democratic_comparison_for_incomparable_vectors() -> None:
+def test_premise_order_respects_democratic_comparison_for_incomparable_vectors() -> (
+    None
+):
     claims = [
         _claim("sample", sample_size=1000, uncertainty=0.9, confidence=0.2),
         _claim("certain", sample_size=10, uncertainty=0.1, confidence=0.9),
@@ -204,10 +219,14 @@ def test_query_no_private_argumentation_imports() -> None:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("argumentation"):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+                "argumentation"
+            ):
                 imported = {alias.name for alias in node.names}
                 private = sorted(name for name in imported if name.startswith("_"))
-                assert not private, f"{path} imports private argumentation names {private}"
+                assert not private, (
+                    f"{path} imports private argumentation names {private}"
+                )
 
 
 def test_aspic_grounded_is_attack_conflict_free() -> None:
@@ -263,9 +282,13 @@ def test_lifted_bridge_decision_projects_target_ist_argument() -> None:
         bundle=GroundedRulesBundle.empty(),
         lifting_decisions=decisions,
     )
-    target_literal = compiled.literals[claim_key("claim_alpha", context_id="ctx_target")]
+    target_literal = compiled.literals[
+        claim_key("claim_alpha", context_id="ctx_target")
+    ]
 
-    assert any(rule.consequent == target_literal for rule in compiled.system.strict_rules)
+    assert any(
+        rule.consequent == target_literal for rule in compiled.system.strict_rules
+    )
     assert any(conc(argument) == target_literal for argument in csaf.arguments)
     assert compiled.lifting_projection.records[0].rule_id == "lift-source-target"
     assert compiled.lifting_projection.records[0].status is LiftingDecisionStatus.LIFTED
@@ -306,7 +329,9 @@ def test_blocked_lifting_decision_does_not_project_target_argument() -> None:
 def test_advertised_aspic_semantics_are_executable() -> None:
     projection = StructuredProjection(
         arguments=(),
-        framework=ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset()),
+        framework=ArgumentationFramework(
+            arguments=frozenset({"a"}), defeats=frozenset()
+        ),
         claim_to_argument_ids={},
         argument_to_claim_id={},
     )
@@ -328,7 +353,9 @@ def test_advertised_aspic_semantics_are_executable() -> None:
     ) == frozenset({"a"})
 
 
-def test_projection_preserves_attack_without_defeat_and_rejects_unprojected_attack() -> None:
+def test_projection_preserves_attack_without_defeat_and_rejects_unprojected_attack() -> (
+    None
+):
     claims = [
         _claim("weak", sample_size=1, uncertainty=0.9, confidence=0.1),
         _claim("strong", sample_size=100, uncertainty=0.1, confidence=0.9),
@@ -349,7 +376,16 @@ def test_projection_preserves_attack_without_defeat_and_rejects_unprojected_atta
     malformed = replace(
         csaf,
         attacks=csaf.attacks
-        | frozenset({Attack(attacker=external, target=known, target_sub=known, kind="undermining")}),
+        | frozenset(
+            {
+                Attack(
+                    attacker=external,
+                    target=known,
+                    target_sub=known,
+                    kind="undermining",
+                )
+            }
+        ),
     )
     with pytest.raises(ValueError, match="outside projected argument domain"):
         csaf_to_projection(malformed, claims)
@@ -423,7 +459,12 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
 
 
 def test_arguments_against_includes_undermine_and_undercut_attackers() -> None:
-    claims = [_claim("premise"), _claim("goal"), _claim("anti_premise"), _claim("rule_attack")]
+    claims = [
+        _claim("premise"),
+        _claim("goal"),
+        _claim("anti_premise"),
+        _claim("rule_attack"),
+    ]
     justifications = [
         _reported("premise"),
         _reported("anti_premise"),
@@ -436,12 +477,14 @@ def test_arguments_against_includes_undermine_and_undercut_attackers() -> None:
         justifications,
         [
             _stance("anti_premise", "premise", "undermines"),
-            stance_from_payload({
-                "claim_id": "rule_attack",
-                "target_claim_id": "goal",
-                "stance_type": "undercuts",
-                "target_justification_id": "support:premise-to-goal",
-            }),
+            stance_from_payload(
+                {
+                    "claim_id": "rule_attack",
+                    "target_claim_id": "goal",
+                    "stance_type": "undercuts",
+                    "target_justification_id": "support:premise-to-goal",
+                }
+            ),
         ],
         bundle=GroundedRulesBundle.empty(),
     )
@@ -499,9 +542,7 @@ def _minimal_praf_shared_input() -> SharedAnalyzerInput:
         ),
     )
     active_graph = WorldActivationGraph(
-        compiled=CompiledWorldGraph(
-            claims=(claim_a,)
-        ),
+        compiled=CompiledWorldGraph(claims=(claim_a,)),
         active_claim_ids=("claim_a",),
     )
     return SharedAnalyzerInput(
@@ -550,12 +591,20 @@ def test_praf_paper_td_complete_routes_core_analyzer_to_extension_probability() 
     assert result.projection.survivor_claim_ids == ("claim_a",)
 
 
-def test_praf_paper_td_complete_routes_app_report_to_extension_probability(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_praf_paper_td_complete_routes_app_report_to_extension_probability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls: list[dict[str, object]] = []
 
-    def fake_build_praf(world: object, claim_ids: set[str], *, comparison: str) -> SimpleNamespace:
+    def fake_build_praf(
+        world: object, claim_ids: set[str], *, comparison: str
+    ) -> SimpleNamespace:
         del world, comparison
-        return SimpleNamespace(kernel=SimpleNamespace(framework=SimpleNamespace(arguments=frozenset(claim_ids))))
+        return SimpleNamespace(
+            kernel=SimpleNamespace(
+                framework=SimpleNamespace(arguments=frozenset(claim_ids))
+            )
+        )
 
     def fake_compute(kernel: object, **kwargs: object) -> PrAFResult:
         del kernel
@@ -571,7 +620,9 @@ def test_praf_paper_td_complete_routes_app_report_to_extension_probability(monke
         )
 
     monkeypatch.setattr("propstore.praf.build_praf", fake_build_praf)
-    monkeypatch.setattr("argumentation.probabilistic.compute_probabilistic_acceptance", fake_compute)
+    monkeypatch.setattr(
+        "argumentation.probabilistic.compute_probabilistic_acceptance", fake_compute
+    )
 
     report = _praf_extensions(
         world=object(),
@@ -613,7 +664,9 @@ def test_praf_paper_td_complete_routes_app_report_to_extension_probability(monke
 @pytest.mark.property
 @given(st.integers(min_value=1, max_value=4))
 @settings(deadline=None, max_examples=20)
-def test_strict_rule_closure_is_monotone_when_strict_rules_are_added(rule_count: int) -> None:
+def test_strict_rule_closure_is_monotone_when_strict_rules_are_added(
+    rule_count: int,
+) -> None:
     claims = [_claim(f"c{i}") for i in range(rule_count + 2)]
     base_justifications = [_reported("c0")] + [
         _support(f"strict:c{i}-to-c{i + 1}", f"c{i + 1}", (f"c{i}",), strength="strict")
@@ -648,10 +701,18 @@ def test_strict_rule_closure_is_monotone_when_strict_rules_are_added(rule_count:
 @given(
     weak_sample_size=st.integers(min_value=1, max_value=10),
     strong_sample_size=st.integers(min_value=100, max_value=1000),
-    weak_uncertainty=st.floats(min_value=0.7, max_value=0.95, allow_nan=False, allow_infinity=False),
-    strong_uncertainty=st.floats(min_value=0.05, max_value=0.3, allow_nan=False, allow_infinity=False),
-    weak_confidence=st.floats(min_value=0.05, max_value=0.3, allow_nan=False, allow_infinity=False),
-    strong_confidence=st.floats(min_value=0.7, max_value=0.95, allow_nan=False, allow_infinity=False),
+    weak_uncertainty=st.floats(
+        min_value=0.7, max_value=0.95, allow_nan=False, allow_infinity=False
+    ),
+    strong_uncertainty=st.floats(
+        min_value=0.05, max_value=0.3, allow_nan=False, allow_infinity=False
+    ),
+    weak_confidence=st.floats(
+        min_value=0.05, max_value=0.3, allow_nan=False, allow_infinity=False
+    ),
+    strong_confidence=st.floats(
+        min_value=0.7, max_value=0.95, allow_nan=False, allow_infinity=False
+    ),
 )
 @settings(deadline=None, max_examples=30)
 def test_generated_preference_cases_can_have_attack_without_defeat(

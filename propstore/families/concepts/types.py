@@ -27,6 +27,5 @@ class ConceptRelationshipType(StrEnum):
 
 
 VALID_CONCEPT_RELATIONSHIP_TYPES = frozenset(
-    relationship_type.value
-    for relationship_type in ConceptRelationshipType
+    relationship_type.value for relationship_type in ConceptRelationshipType
 )

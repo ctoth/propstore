@@ -4,6 +4,7 @@ The repository layer no longer emits claim-bucket classifications as its
 public merge result. Instead it produces a provenance-bearing partial
 argumentation framework over the claim alternatives that survive the merge.
 """
+
 from __future__ import annotations
 
 import json
@@ -178,7 +179,9 @@ def _canonical_claim_groups(
         for artifact_id, claim in index.items():
             claims_by_artifact_id.setdefault(artifact_id, claim)
             for logical_id in claim.logical_ids:
-                artifact_ids_by_logical_id.setdefault(logical_id, set()).add(artifact_id)
+                artifact_ids_by_logical_id.setdefault(logical_id, set()).add(
+                    artifact_id
+                )
 
     logical_id_counts = Counter(
         {
@@ -209,13 +212,9 @@ def _classify_pair(
     )
     from propstore.conflict_detector.collectors import conflict_claim_from_payload
 
-    comparison_source = (
-        left_claim.provenance_payload().get("paper")
-    )
+    comparison_source = left_claim.provenance_payload().get("paper")
     if not isinstance(comparison_source, str) or not comparison_source:
-        comparison_source = (
-            right_claim.provenance_payload().get("paper")
-        )
+        comparison_source = right_claim.provenance_payload().get("paper")
     if not isinstance(comparison_source, str) or not comparison_source:
         raise MergeComparisonProvenanceError(
             "cannot classify merge pair without source-paper provenance"
@@ -323,7 +322,9 @@ def build_merge_framework(
     }
     canonical_groups = _canonical_claim_groups(base_idx, *branch_indexes.values())
 
-    all_ids = sorted(set(base_idx).union(*(set(index) for index in branch_indexes.values())))
+    all_ids = sorted(
+        set(base_idx).union(*(set(index) for index in branch_indexes.values()))
+    )
     emitted: list[MergeArgument] = []
     attacks: set[tuple[str, str]] = set()
     ignorance: set[tuple[str, str]] = set()
@@ -357,7 +358,10 @@ def build_merge_framework(
             continue
 
         first_claim = branch_claims[0][1]
-        if all(_claims_equal(first_claim.claim, indexed.claim) for _, indexed in branch_claims[1:]):
+        if all(
+            _claims_equal(first_claim.claim, indexed.claim)
+            for _, indexed in branch_claims[1:]
+        ):
             _emit_argument(
                 emitted,
                 claim=first_claim,
@@ -390,19 +394,21 @@ def build_merge_framework(
                     claim=first_claim,
                     canonical_claim_id=canonical_claim_id,
                     concept_id=concept_id,
-                    branch_origins=tuple(branch_name for branch_name, _ in branch_claims),
+                    branch_origins=tuple(
+                        branch_name for branch_name, _ in branch_claims
+                    ),
                 )
                 continue
 
         emitted_for_artifact: list[tuple[str, str, _IndexedClaim]] = []
         for branch_name, indexed_claim in changed_claims:
             assertion_id = _emit_argument(
-                    emitted,
-                    claim=indexed_claim,
-                    canonical_claim_id=canonical_claim_id,
-                    concept_id=concept_id,
-                    branch_origins=(branch_name,),
-                    annotate_branch_origin=branch_name,
+                emitted,
+                claim=indexed_claim,
+                canonical_claim_id=canonical_claim_id,
+                concept_id=concept_id,
+                branch_origins=(branch_name,),
+                annotate_branch_origin=branch_name,
             )
             emitted_for_artifact.append((branch_name, assertion_id, indexed_claim))
         for left, right in product(emitted_for_artifact, emitted_for_artifact):
@@ -414,19 +420,23 @@ def build_merge_framework(
             if diff_kind == _DiffKind.CONFLICT:
                 attacks.add(pair)
                 attacks.add(reverse_pair)
-            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN, _DiffKind.UNTRANSLATABLE):
+            elif diff_kind in (
+                _DiffKind.PHI_NODE,
+                _DiffKind.UNKNOWN,
+                _DiffKind.UNTRANSLATABLE,
+            ):
                 ignorance.add(pair)
                 ignorance.add(reverse_pair)
 
     emitted = _deduplicate_arguments(emitted)
     if integrity_constraint is not None:
         emitted = [
-            argument
-            for argument in emitted
-            if integrity_constraint.accepts(argument)
+            argument for argument in emitted if integrity_constraint.accepts(argument)
         ]
         integrity_constraint.assert_satisfied(emitted)
-    emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.assertion_id))
+    emitted.sort(
+        key=lambda argument: (argument.canonical_claim_id, argument.assertion_id)
+    )
     argument_index = {argument.assertion_id: argument for argument in emitted}
 
     emitted_groups: dict[str, list[MergeArgument]] = {}
@@ -437,19 +447,20 @@ def build_merge_framework(
         if len(arguments) < 2:
             continue
         left_arguments = [
-            argument
-            for argument in arguments
-            if argument.branch_origins == (branch_a,)
+            argument for argument in arguments if argument.branch_origins == (branch_a,)
         ]
         right_arguments = [
-            argument
-            for argument in arguments
-            if argument.branch_origins == (branch_b,)
+            argument for argument in arguments if argument.branch_origins == (branch_b,)
         ]
         for left_argument, right_argument in product(left_arguments, right_arguments):
             pair = (left_argument.assertion_id, right_argument.assertion_id)
             reverse_pair = (right_argument.assertion_id, left_argument.assertion_id)
-            if pair in attacks or pair in ignorance or reverse_pair in attacks or reverse_pair in ignorance:
+            if (
+                pair in attacks
+                or pair in ignorance
+                or reverse_pair in attacks
+                or reverse_pair in ignorance
+            ):
                 continue
             if _claims_equal(left_argument.claim, right_argument.claim):
                 continue
@@ -457,14 +468,20 @@ def build_merge_framework(
             if diff_kind == _DiffKind.CONFLICT:
                 attacks.add(pair)
                 attacks.add(reverse_pair)
-            elif diff_kind in (_DiffKind.PHI_NODE, _DiffKind.UNKNOWN, _DiffKind.UNTRANSLATABLE):
+            elif diff_kind in (
+                _DiffKind.PHI_NODE,
+                _DiffKind.UNKNOWN,
+                _DiffKind.UNTRANSLATABLE,
+            ):
                 ignorance.add(pair)
                 ignorance.add(reverse_pair)
 
     semantic_candidate_map: dict[str, list[str]] = {}
     for argument in emitted:
         semantic_key = json.dumps(_claim_candidate_key(argument.claim), sort_keys=True)
-        semantic_candidate_map.setdefault(semantic_key, []).append(argument.assertion_id)
+        semantic_candidate_map.setdefault(semantic_key, []).append(
+            argument.assertion_id
+        )
     semantic_candidates = tuple(
         tuple(sorted(claim_ids))
         for claim_ids in sorted(
@@ -472,7 +489,8 @@ def build_merge_framework(
             key=lambda claim_ids: tuple(sorted(claim_ids)),
         )
         if len(claim_ids) > 1
-        and len({argument_index[claim_id].canonical_claim_id for claim_id in claim_ids}) > 1
+        and len({argument_index[claim_id].canonical_claim_id for claim_id in claim_ids})
+        > 1
     )
 
     argument_ids = frozenset(argument.assertion_id for argument in emitted)
@@ -501,7 +519,9 @@ def _deduplicate_arguments(arguments: list[MergeArgument]) -> list[MergeArgument
             continue
         by_assertion_id[argument.assertion_id] = replace(
             existing,
-            branch_origins=tuple(sorted(set(existing.branch_origins) | set(argument.branch_origins))),
+            branch_origins=tuple(
+                sorted(set(existing.branch_origins) | set(argument.branch_origins))
+            ),
             witness_basis=tuple(
                 {
                     witness: None

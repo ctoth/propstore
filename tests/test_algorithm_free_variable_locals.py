@@ -21,4 +21,6 @@ def test_algorithm_local_assignments_are_not_reported_as_unbound_names() -> None
         diagnostics,
     )
 
-    assert all("name 'y' not declared" not in diagnostic.message for diagnostic in diagnostics)
+    assert all(
+        "name 'y' not declared" not in diagnostic.message for diagnostic in diagnostics
+    )

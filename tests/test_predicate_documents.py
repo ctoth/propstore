@@ -119,13 +119,17 @@ def predicate_documents() -> st.SearchStrategy:
         salt = draw(st.integers(min_value=0, max_value=999))
         predicate_id = _make_predicate_id(namespace, head, salt)
         arity = draw(st.integers(min_value=0, max_value=5))
-        arg_types = tuple(draw(st.lists(_ARG_TYPE_NAMES, min_size=arity, max_size=arity)))
+        arg_types = tuple(
+            draw(st.lists(_ARG_TYPE_NAMES, min_size=arity, max_size=arity))
+        )
         derived_from = draw(_DERIVED_FROM_FORMS)
         description = draw(
             st.one_of(
                 st.none(),
                 st.text(
-                    alphabet=st.characters(whitelist_categories=("Ll", "Lu", "Nd", "Zs")),
+                    alphabet=st.characters(
+                        whitelist_categories=("Ll", "Lu", "Nd", "Zs")
+                    ),
                     min_size=0,
                     max_size=20,
                 ),

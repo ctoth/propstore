@@ -16,7 +16,12 @@ from propstore.families.registry import (
 )
 from propstore.cli import cli
 from propstore.repository import Repository
-from quire.documents import convert_document_value, decode_document_batch_bytes, document_to_payload, encode_yaml_value
+from quire.documents import (
+    convert_document_value,
+    decode_document_batch_bytes,
+    document_to_payload,
+    encode_yaml_value,
+)
 from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.concepts.declaration import SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.identity.concepts import (
@@ -52,7 +57,12 @@ def _promoted_claims(repo: Repository):
     return [handle.document for handle in repo.families.claims.iter_handles()]
 
 
-def _save_source(repo: Repository, source_name: str, concepts_payload: dict, claims_payload: dict | None = None) -> None:
+def _save_source(
+    repo: Repository,
+    source_name: str,
+    concepts_payload: dict,
+    claims_payload: dict | None = None,
+) -> None:
     branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     repo.git.create_branch(branch)
     for concept in concepts_payload.get("concepts", ()):
@@ -173,7 +183,9 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     )
     assert document_to_payload(stored) == document_to_payload(artifact)
 
-    decided = decide_alignment(repo, artifact.id, accept=[artifact.arguments[0].id], reject=[])
+    decided = decide_alignment(
+        repo, artifact.id, accept=[artifact.arguments[0].id], reject=[]
+    )
     assert decided.decision.status == "decided"
 
     promoted = promote_alignment(repo, artifact.id)
@@ -187,7 +199,9 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     assert reloaded_alignment.decision.status == "promoted"
 
 
-def test_promote_source_branch_does_not_expose_native_git_deletions(tmp_path: Path) -> None:
+def test_promote_source_branch_does_not_expose_native_git_deletions(
+    tmp_path: Path,
+) -> None:
     """After `pks source promote`, native git must not see phantom deletes."""
     repo = Repository.init(tmp_path / "knowledge")
 
@@ -237,7 +251,9 @@ def test_promote_source_branch_does_not_expose_native_git_deletions(tmp_path: Pa
     )
 
 
-def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path) -> None:
+def test_promote_source_branch_writes_canonical_artifact_families(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     _save_source(
@@ -281,8 +297,12 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
     )
 
     assert canonical_source.metadata is not None
-    assert promoted_claims[0].output_concept == derive_concept_artifact_id("propstore", "gravity")
-    assert concept_file.artifact_id == derive_concept_artifact_id("propstore", "gravity")
+    assert promoted_claims[0].output_concept == derive_concept_artifact_id(
+        "propstore", "gravity"
+    )
+    assert concept_file.artifact_id == derive_concept_artifact_id(
+        "propstore", "gravity"
+    )
 
 
 def test_source_promotion_dict_conveyor_variables_are_deleted() -> None:
@@ -501,7 +521,8 @@ def _seed_form_via_git(repo: Repository, name: str) -> None:
             f"forms/{name}.yaml": yaml.safe_dump(
                 {
                     "name": name,
-                    "dimensionless": name in {"boolean", "category", "scalar", "structural"},
+                    "dimensionless": name
+                    in {"boolean", "category", "scalar", "structural"},
                 },
                 sort_keys=False,
             ).encode("utf-8")
@@ -556,27 +577,27 @@ def _setup_source_with_partial_validity(
             {
                 "source": {"paper": source_name},
                 "claims": [
-                        {
-                            "id": "valid_a",
-                            "type": "observation",
-                            "context": "ctx_test",
-                            "statement": "First valid observation.",
+                    {
+                        "id": "valid_a",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "First valid observation.",
                         "concepts": ["shared_concept"],
                         "provenance": {"page": 1},
                     },
-                        {
-                            "id": "valid_b",
-                            "type": "observation",
-                            "context": "ctx_test",
-                            "statement": "Second valid observation.",
+                    {
+                        "id": "valid_b",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "Second valid observation.",
                         "concepts": ["shared_concept"],
                         "provenance": {"page": 2},
                     },
-                        {
-                            "id": "broken_source",
-                            "type": "observation",
-                            "context": "ctx_test",
-                            "statement": "Claim whose stance targets a missing ref.",
+                    {
+                        "id": "broken_source",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "Claim whose stance targets a missing ref.",
                         "concepts": ["shared_concept"],
                         "provenance": {"page": 3},
                     },
@@ -670,7 +691,9 @@ def test_promote_source_branch_does_not_block_claim_for_invalid_stance(
         conn.close()
 
 
-def test_promote_source_branch_strict_flag_ignores_stance_only_errors(tmp_path: Path) -> None:
+def test_promote_source_branch_strict_flag_ignores_stance_only_errors(
+    tmp_path: Path,
+) -> None:
     """Strict promotion should not treat invalid stance metadata as a claim error."""
 
     source_name = "mixed_strict"
@@ -746,7 +769,7 @@ def test_source_paper_slug_matches_source_branch_stem_for_unicode_name(
 
     branch = SOURCE_BRANCH.branch_name(object(), SourceRef(unicode_name))
     assert branch.startswith("source/"), branch
-    branch_stem = branch[len("source/"):]
+    branch_stem = branch[len("source/") :]
 
     paper_slug = source_paper_slug(unicode_name)
     assert paper_slug == branch_stem, (
@@ -804,7 +827,7 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
 
     branch = repo.families.source_documents.address(SourceRef(unicode_name)).branch
     assert branch.startswith("source/"), branch
-    branch_stem = branch[len("source/"):]
+    branch_stem = branch[len("source/") :]
 
     promoted_claim_refs = sorted(ref.artifact_id for ref in repo.families.claims.iter())
     assert len(promoted_claim_refs) == 1, (
@@ -828,27 +851,27 @@ def test_promote_source_branch_materializes_blocked_rows_from_source_state(
     branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     raw_claims = decode_document_batch_bytes(
         encode_yaml_value(
-        {
-            "source": {"paper": source_name},
-            "claims": [
-                {
-                    "id": "valid_a",
-                    "type": "observation",
-                    "context": "ctx_test",
-                    "statement": "First valid observation.",
-                    "concepts": ["shared_concept"],
-                    "provenance": {"page": 1},
-                },
-                {
-                    "id": "broken_source",
-                    "type": "observation",
-                    "context": "ctx_test",
-                    "statement": "Claim whose concept mapping is missing.",
-                    "concepts": ["missing_concept"],
-                    "provenance": {"page": 3},
-                },
-            ],
-        },
+            {
+                "source": {"paper": source_name},
+                "claims": [
+                    {
+                        "id": "valid_a",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "First valid observation.",
+                        "concepts": ["shared_concept"],
+                        "provenance": {"page": 1},
+                    },
+                    {
+                        "id": "broken_source",
+                        "type": "observation",
+                        "context": "ctx_test",
+                        "statement": "Claim whose concept mapping is missing.",
+                        "concepts": ["missing_concept"],
+                        "provenance": {"page": 3},
+                    },
+                ],
+            },
         ),
         SOURCE_CLAIM_BATCH_SPEC,
         source=f"{branch}:claims.yaml",

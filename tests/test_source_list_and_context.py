@@ -105,8 +105,6 @@ def test_source_add_claim_context_flag_injects_default(tmp_path) -> None:
     branch_tip = repo.git.branch_sha("source/Demo_2026")
     assert branch_tip is not None
     stored = yaml.safe_load(repo.git.read_file("claims.yaml", commit=branch_tip))
-    by_local_id = {
-        claim.get("source_local_id"): claim for claim in stored["claims"]
-    }
+    by_local_id = {claim.get("source_local_id"): claim for claim in stored["claims"]}
     assert by_local_id["c_with_context"]["context"] == "ctx_inline"
     assert by_local_id["c_without_context"]["context"] == "ctx_default"

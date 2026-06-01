@@ -149,9 +149,7 @@ class ConditionSolver:
         conditions_a: Sequence[CheckedCondition] | CheckedConditionSet,
         conditions_b: Sequence[CheckedCondition] | CheckedConditionSet,
     ) -> bool:
-        result = _require_decided(
-            self.are_disjoint_result(conditions_a, conditions_b)
-        )
+        result = _require_decided(self.are_disjoint_result(conditions_a, conditions_b))
         return isinstance(result, SolverUnsat)
 
     def are_disjoint_result(

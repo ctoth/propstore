@@ -19,7 +19,12 @@ from propstore.cli.source import source
 
 @source.command("write-notes")
 @click.argument("name")
-@click.option("--file", "file_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--file",
+    "file_path",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
 @click.pass_obj
 def write_notes(obj: dict, name: str, file_path: Path) -> None:
     repo: Repository = obj["repo"]
@@ -32,7 +37,12 @@ def write_notes(obj: dict, name: str, file_path: Path) -> None:
 
 @source.command("write-metadata")
 @click.argument("name")
-@click.option("--file", "file_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--file",
+    "file_path",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
 @click.pass_obj
 def write_metadata(obj: dict, name: str, file_path: Path) -> None:
     repo: Repository = obj["repo"]

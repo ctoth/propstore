@@ -73,7 +73,9 @@ class _JustificationStore:
         return _ExactMatchSolver()
 
 
-def test_claim_justifications_from_active_graph_preserves_reported_and_support_edges() -> None:
+def test_claim_justifications_from_active_graph_preserves_reported_and_support_edges() -> (
+    None
+):
     store = _JustificationStore()
     environment = Environment(
         assumptions=compile_environment_assumptions(bindings={}),
@@ -94,7 +96,9 @@ def test_claim_justifications_from_active_graph_preserves_reported_and_support_e
     assert by_id["explains:claim_b->claim_c"].premise_claim_ids == ("claim_b",)
 
 
-def test_claim_justifications_from_active_graph_is_deterministic_under_relation_order_changes() -> None:
+def test_claim_justifications_from_active_graph_is_deterministic_under_relation_order_changes() -> (
+    None
+):
     store = _JustificationStore()
     reversed_store = _JustificationStore()
     reversed_store._claims = list(reversed(reversed_store._claims))

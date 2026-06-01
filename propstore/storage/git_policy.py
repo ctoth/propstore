@@ -1,4 +1,5 @@
 """Propstore git-store policy."""
+
 from __future__ import annotations
 
 from quire.git_store import GitStorePolicy

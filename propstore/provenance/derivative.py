@@ -23,9 +23,13 @@ def partial_derivative(
             if power.variable == normalized:
                 multiplier = power.exponent
                 if power.exponent > 1:
-                    next_powers.append(VariablePower(power.variable, power.exponent - 1))
+                    next_powers.append(
+                        VariablePower(power.variable, power.exponent - 1)
+                    )
             else:
                 next_powers.append(power)
         if multiplier:
-            terms.append(PolynomialTerm(term.coefficient * multiplier, tuple(next_powers)))
+            terms.append(
+                PolynomialTerm(term.coefficient * multiplier, tuple(next_powers))
+            )
     return ProvenancePolynomial(tuple(terms))

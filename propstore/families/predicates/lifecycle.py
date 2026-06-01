@@ -143,17 +143,20 @@ def apply_predicate_proposal_promotion(
         ),
     )
     writes = tuple(
-        write
-        for item_result in batch_result.items
-        for write in item_result.plan.writes
+        write for item_result in batch_result.items for write in item_result.plan.writes
     )
 
     git = repo.git
     if git is None:
-        raise ValueError("predicate proposal promotion requires a git-backed repository")
-    with _PREDICATE_MUTATION_LOCK, git.head_bound_transaction(
-        repo.require_git().primary_branch_name(),
-    ) as head_txn:
+        raise ValueError(
+            "predicate proposal promotion requires a git-backed repository"
+        )
+    with (
+        _PREDICATE_MUTATION_LOCK,
+        git.head_bound_transaction(
+            repo.require_git().primary_branch_name(),
+        ) as head_txn,
+    ):
         for write in writes:
             reject_predicate_document_conflicts(
                 repo,

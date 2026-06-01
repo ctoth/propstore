@@ -123,7 +123,9 @@ def test_concurrent_context_add_duplicate_name_loses_cleanly(tmp_path: Path) -> 
     assert repo.families.contexts.require(ContextRef("race")).id == "race"
 
 
-def test_concurrent_predicate_adds_to_same_authoring_group_both_commit(tmp_path: Path) -> None:
+def test_concurrent_predicate_adds_to_same_authoring_group_both_commit(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     start = threading.Barrier(3)
     failures: list[BaseException] = []
@@ -158,7 +160,9 @@ def test_concurrent_predicate_adds_to_same_authoring_group_both_commit(tmp_path:
     assert repo.families.predicates.require(PredicateRef("p_second")).id == "p_second"
 
 
-def test_concurrent_rule_adds_to_same_authoring_group_both_commit(tmp_path: Path) -> None:
+def test_concurrent_rule_adds_to_same_authoring_group_both_commit(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     add_predicate(
         repo,
@@ -221,7 +225,9 @@ def test_sidecar_build_serializes_with_source_promote(
         create_sqlalchemy_store(target, world_schema())
         release_build.wait(timeout=5)
 
-    monkeypatch.setattr(build_module, "_write_repository_world_store_file", locked_build)
+    monkeypatch.setattr(
+        build_module, "_write_repository_world_store_file", locked_build
+    )
 
     def run_build() -> None:
         try:

@@ -14,7 +14,10 @@ from propstore.core.id_types import ConceptId
 
 
 def test_condition_ir_codec_round_trips_all_metadata() -> None:
-    from propstore.core.conditions.codec import condition_ir_from_json, condition_ir_to_json
+    from propstore.core.conditions.codec import (
+        condition_ir_from_json,
+        condition_ir_to_json,
+    )
 
     timepoint_kind = getattr(ConditionValueKind, "TIMEPOINT")
     condition = ConditionBinary(
@@ -40,7 +43,10 @@ def test_condition_ir_codec_round_trips_all_metadata() -> None:
 
 
 def test_condition_ir_codec_preserves_category_metadata() -> None:
-    from propstore.core.conditions.codec import condition_ir_from_json, condition_ir_to_json
+    from propstore.core.conditions.codec import (
+        condition_ir_from_json,
+        condition_ir_to_json,
+    )
 
     condition = ConditionReference(
         concept_id=ConceptId("ps:concept:task"),
@@ -67,11 +73,29 @@ def test_condition_ir_codec_preserves_category_metadata() -> None:
             "version": 1,
             "node": "binary",
             "op": "not-an-op",
-            "left": {"version": 1, "node": "literal", "value": True, "value_kind": "boolean", "span": [0, 4]},
-            "right": {"version": 1, "node": "literal", "value": True, "value_kind": "boolean", "span": [0, 4]},
+            "left": {
+                "version": 1,
+                "node": "literal",
+                "value": True,
+                "value_kind": "boolean",
+                "span": [0, 4],
+            },
+            "right": {
+                "version": 1,
+                "node": "literal",
+                "value": True,
+                "value_kind": "boolean",
+                "span": [0, 4],
+            },
             "span": [0, 4],
         },
-        {"version": 1, "node": "literal", "value": 1, "value_kind": "not-a-kind", "span": [0, 1]},
+        {
+            "version": 1,
+            "node": "literal",
+            "value": 1,
+            "value_kind": "not-a-kind",
+            "span": [0, 1],
+        },
     ],
 )
 def test_condition_ir_codec_rejects_unknown_tags(payload: dict[str, object]) -> None:

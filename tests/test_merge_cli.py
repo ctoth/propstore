@@ -1,4 +1,5 @@
 """CLI tests for formal merge inspection and execution."""
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -18,38 +19,48 @@ from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claim_payloads(repo: Repository, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_payloads(
+    repo: Repository, claims: list[dict], paper: str = "test_paper"
+) -> dict[str, bytes]:
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return claim_artifact_commit_payloads(repo, doc, source=f"claims/{paper}.yaml")
 
 
-def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_yaml_with_explicit_identities(
+    claims: list[dict], paper: str = "test_paper"
+) -> bytes:
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     rewritten_claims: list[dict] = []
     for original, normalized_claim in zip(claims, doc["claims"], strict=True):
         merged = deepcopy(normalized_claim)
@@ -69,14 +80,16 @@ def _claim_payloads_with_explicit_identities(
     claims: list[dict],
     paper: str = "test_paper",
 ) -> dict[str, bytes]:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     rewritten_claims: list[dict] = []
     for original, normalized_claim in zip(claims, doc["claims"], strict=True):
         merged = deepcopy(normalized_claim)
@@ -129,11 +142,17 @@ def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
     branch_name = "paper/phi"
     git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
-        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]),
+        _claim_payloads(
+            repo,
+            [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])],
+        ),
         "left",
     )
     git.commit_files(
-        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]),
+        _claim_payloads(
+            repo,
+            [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])],
+        ),
         "right",
         branch=branch_name,
     )
@@ -174,11 +193,17 @@ def test_merge_inspect_cli_matches_report_helper_output(tmp_path, semantics):
     branch_name = "paper/differential"
     git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
-        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]),
+        _claim_payloads(
+            repo,
+            [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])],
+        ),
         "left",
     )
     git.commit_files(
-        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]),
+        _claim_payloads(
+            repo,
+            [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])],
+        ),
         "right",
         branch=branch_name,
     )
@@ -248,7 +273,9 @@ def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
     assert "completion_count" not in payload
 
 
-def test_merge_inspect_cli_collapses_duplicate_assertions_without_candidate_bucket(tmp_path):
+def test_merge_inspect_cli_collapses_duplicate_assertions_without_candidate_bucket(
+    tmp_path,
+):
     repo = Repository.init(tmp_path / "knowledge")
     git = repo.git
     assert git is not None
@@ -277,11 +304,15 @@ def test_merge_inspect_cli_collapses_duplicate_assertions_without_candidate_buck
     }
 
     git.commit_files(
-        _claim_payloads_with_explicit_identities(repo, [left_claim], paper="left_paper"),
+        _claim_payloads_with_explicit_identities(
+            repo, [left_claim], paper="left_paper"
+        ),
         "left",
     )
     git.commit_files(
-        _claim_payloads_with_explicit_identities(repo, [right_claim], paper="right_paper"),
+        _claim_payloads_with_explicit_identities(
+            repo, [right_claim], paper="right_paper"
+        ),
         "right",
         branch=branch_name,
     )
@@ -295,7 +326,9 @@ def test_merge_inspect_cli_collapses_duplicate_assertions_without_candidate_buck
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
     assert len(payload["arguments"]) == 2
-    assert all(argument.startswith("ps:assertion:") for argument in payload["arguments"])
+    assert all(
+        argument.startswith("ps:assertion:") for argument in payload["arguments"]
+    )
     assert len(payload["semantic_candidates"]) == 1
     assert len(payload["semantic_candidate_details"]) == 1
 
@@ -329,11 +362,15 @@ def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
     }
 
     git.commit_files(
-        _claim_payloads_with_explicit_identities(repo, [left_claim], paper="left_paper"),
+        _claim_payloads_with_explicit_identities(
+            repo, [left_claim], paper="left_paper"
+        ),
         "left",
     )
     git.commit_files(
-        _claim_payloads_with_explicit_identities(repo, [right_claim], paper="right_paper"),
+        _claim_payloads_with_explicit_identities(
+            repo, [right_claim], paper="right_paper"
+        ),
         "right",
         branch=branch_name,
     )
@@ -397,9 +434,7 @@ def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
     assert manifest["merge"]["branch_a"] == "master"
     assert manifest["merge"]["branch_b"] == branch_name
     materialized_count = sum(
-        1
-        for argument in manifest["merge"]["arguments"]
-        if argument["materialized"]
+        1 for argument in manifest["merge"]["arguments"] if argument["materialized"]
     )
     assert len(merged_claims) == materialized_count
     assert payload["semantic_candidate_count"] == len(

@@ -36,7 +36,9 @@ def test_parameterization_group_models_are_typed_and_round_trip(tmp_path) -> Non
         with Session(engine) as session:
             session.add_all(rows.parameterization_group_rows)
             session.commit()
-            stored = session.execute(select(schema.model("parameterization_group"))).scalar_one()
+            stored = session.execute(
+                select(schema.model("parameterization_group"))
+            ).scalar_one()
     finally:
         engine.dispose()
 

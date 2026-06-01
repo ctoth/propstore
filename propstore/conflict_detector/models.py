@@ -23,7 +23,9 @@ class ConflictClaimVariable:
             return None
         return cls(
             concept_id=concept_id,
-            symbol=None if payload.get("symbol") is None else str(payload.get("symbol")),
+            symbol=None
+            if payload.get("symbol") is None
+            else str(payload.get("symbol")),
             role=None if payload.get("role") is None else str(payload.get("role")),
             name=None if payload.get("name") is None else str(payload.get("name")),
         )
@@ -72,7 +74,9 @@ class ConflictClaim:
             for raw_entry in cast(list[object], raw_variables):
                 if not isinstance(raw_entry, dict):
                     continue
-                variable = ConflictClaimVariable.from_payload(cast(dict[str, Any], raw_entry))
+                variable = ConflictClaimVariable.from_payload(
+                    cast(dict[str, Any], raw_entry)
+                )
                 if variable is not None:
                     parsed_variables.append(variable)
             variables = tuple(parsed_variables)
@@ -92,22 +96,32 @@ class ConflictClaim:
             context_id = raw_context_id
         return cls(
             claim_id=claim_id,
-            claim_type=None if payload.get("type") is None else str(payload.get("type")),
-            artifact_id=None if payload.get("artifact_id") is None else str(payload.get("artifact_id")),
+            claim_type=None
+            if payload.get("type") is None
+            else str(payload.get("type")),
+            artifact_id=None
+            if payload.get("artifact_id") is None
+            else str(payload.get("artifact_id")),
             output_concept_id=(
                 None
                 if payload.get("output_concept") is None
                 else str(payload.get("output_concept"))
             ),
             target_concept_id=(
-                None if payload.get("target_concept") is None else str(payload.get("target_concept"))
+                None
+                if payload.get("target_concept") is None
+                else str(payload.get("target_concept"))
             ),
-            measure=None if payload.get("measure") is None else str(payload.get("measure")),
+            measure=None
+            if payload.get("measure") is None
+            else str(payload.get("measure")),
             value=payload.get("value"),
             lower_bound=payload.get("lower_bound"),
             upper_bound=payload.get("upper_bound"),
             unit=None if payload.get("unit") is None else str(payload.get("unit")),
-            expression=None if payload.get("expression") is None else str(payload.get("expression")),
+            expression=None
+            if payload.get("expression") is None
+            else str(payload.get("expression")),
             sympy=None if payload.get("sympy") is None else str(payload.get("sympy")),
             body=None if payload.get("body") is None else str(payload.get("body")),
             listener_population=(
@@ -115,7 +129,9 @@ class ConflictClaim:
                 if payload.get("listener_population") is None
                 else str(payload.get("listener_population"))
             ),
-            source_paper=None if payload.get("source_paper") is None else str(payload.get("source_paper")),
+            source_paper=None
+            if payload.get("source_paper") is None
+            else str(payload.get("source_paper")),
             context_id=None if context_id is None else str(context_id),
             conditions=conditions,
             variables=variables,
@@ -127,7 +143,9 @@ class ConflictClaim:
         source_cond = f"source == '{self.source_paper}'"
         if source_cond in self.conditions:
             return self
-        return replace(self, conditions=tuple((*self.conditions, to_cel_expr(source_cond))))
+        return replace(
+            self, conditions=tuple((*self.conditions, to_cel_expr(source_cond)))
+        )
 
 
 @dataclass(frozen=True)

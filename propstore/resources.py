@@ -5,6 +5,7 @@ direct Path access for development (source tree).
 
 Resources live in propstore/_resources/.
 """
+
 from __future__ import annotations
 
 import json

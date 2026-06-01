@@ -7,7 +7,12 @@ from types import MethodType
 from typing import Any
 
 from hypothesis import settings
-from hypothesis.stateful import RuleBasedStateMachine, invariant, rule, run_state_machine_as_test
+from hypothesis.stateful import (
+    RuleBasedStateMachine,
+    invariant,
+    rule,
+    run_state_machine_as_test,
+)
 from quire.git_store import GitStore, HeadMismatchError
 from quire.refs import RefName
 from quire.sqlalchemy_store import readonly_session
@@ -80,7 +85,9 @@ class FullRaceMachine(RuleBasedStateMachine):
             commit_barrier.wait(timeout=5)
             return original_commit_flat_tree(*args, **kwargs)
 
-        snapshot_git.commit_flat_tree = MethodType(racing_commit_flat_tree, snapshot_git)  # type: ignore[method-assign]
+        snapshot_git.commit_flat_tree = MethodType(
+            racing_commit_flat_tree, snapshot_git
+        )  # type: ignore[method-assign]
 
         successes: list[str] = []
         errors: list[BaseException] = []

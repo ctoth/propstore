@@ -134,7 +134,9 @@ def _detect_pairwise_parameter_conflicts(
                 claim_a=claim_a,
                 claim_b=claim_b,
                 forms=forms,
-                concept_form=None if concept_forms is None else concept_forms.get(concept_id),
+                concept_form=None
+                if concept_forms is None
+                else concept_forms.get(concept_id),
             ):
                 continue
             if _append_context_classified_record(
@@ -151,21 +153,23 @@ def _detect_pairwise_parameter_conflicts(
                 lifting_system=lifting_system,
             ):
                 continue
-            records.append(ConflictRecord(
-                concept_id=concept_id,
-                claim_a_id=claim_a.claim_id,
-                claim_b_id=claim_b.claim_id,
-                warning_class=_classify_conditions(
-                    all_conditions[i],
-                    all_conditions[j],
-                    cel_registry,
-                    solver=solver,
-                ),
-                conditions_a=all_conditions[i],
-                conditions_b=all_conditions[j],
-                value_a=_value_str(value_a, claim=claim_a),
-                value_b=_value_str(value_b, claim=claim_b),
-            ))
+            records.append(
+                ConflictRecord(
+                    concept_id=concept_id,
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
+                    warning_class=_classify_conditions(
+                        all_conditions[i],
+                        all_conditions[j],
+                        cel_registry,
+                        solver=solver,
+                    ),
+                    conditions_a=all_conditions[i],
+                    conditions_b=all_conditions[j],
+                    value_a=_value_str(value_a, claim=claim_a),
+                    value_b=_value_str(value_b, claim=claim_b),
+                )
+            )
 
 
 def _detect_equivalent_parameter_conflicts(
@@ -193,7 +197,9 @@ def _detect_equivalent_parameter_conflicts(
                     claim_a=claim_a,
                     claim_b=claim_b,
                     forms=forms,
-                    concept_form=None if concept_forms is None else concept_forms.get(concept_id),
+                    concept_form=None
+                    if concept_forms is None
+                    else concept_forms.get(concept_id),
                 ):
                     continue
                 if _append_context_classified_record(
@@ -210,16 +216,18 @@ def _detect_equivalent_parameter_conflicts(
                     lifting_system=lifting_system,
                 ):
                     continue
-                records.append(ConflictRecord(
-                    concept_id=concept_id,
-                    claim_a_id=claim_a.claim_id,
-                    claim_b_id=claim_b.claim_id,
-                    warning_class=ConflictClass.CONFLICT,
-                    conditions_a=all_conditions[idx_a],
-                    conditions_b=all_conditions[idx_b],
-                    value_a=_value_str(value_a, claim=claim_a),
-                    value_b=_value_str(value_b, claim=claim_b),
-                ))
+                records.append(
+                    ConflictRecord(
+                        concept_id=concept_id,
+                        claim_a_id=claim_a.claim_id,
+                        claim_b_id=claim_b.claim_id,
+                        warning_class=ConflictClass.CONFLICT,
+                        conditions_a=all_conditions[idx_a],
+                        conditions_b=all_conditions[idx_b],
+                        value_a=_value_str(value_a, claim=claim_a),
+                        value_b=_value_str(value_b, claim=claim_b),
+                    )
+                )
 
 
 def _detect_cross_class_parameter_conflicts(
@@ -255,7 +263,9 @@ def _detect_cross_class_parameter_conflicts(
             elif isinstance(disjointness, SolverSat):
                 cross_class = ConflictClass.OVERLAP
             else:
-                raise TypeError(f"Unexpected solver result: {type(disjointness).__name__}")
+                raise TypeError(
+                    f"Unexpected solver result: {type(disjointness).__name__}"
+                )
 
             for idx_a in group_i:
                 for idx_b in group_j:
@@ -269,7 +279,9 @@ def _detect_cross_class_parameter_conflicts(
                         claim_a=claim_a,
                         claim_b=claim_b,
                         forms=forms,
-                        concept_form=None if concept_forms is None else concept_forms.get(concept_id),
+                        concept_form=None
+                        if concept_forms is None
+                        else concept_forms.get(concept_id),
                     ):
                         continue
                     if _append_context_classified_record(
@@ -286,13 +298,15 @@ def _detect_cross_class_parameter_conflicts(
                         lifting_system=lifting_system,
                     ):
                         continue
-                    records.append(ConflictRecord(
-                        concept_id=concept_id,
-                        claim_a_id=claim_a.claim_id,
-                        claim_b_id=claim_b.claim_id,
-                        warning_class=cross_class,
-                        conditions_a=all_conditions[idx_a],
-                        conditions_b=all_conditions[idx_b],
-                        value_a=_value_str(value_a, claim=claim_a),
-                        value_b=_value_str(value_b, claim=claim_b),
-                    ))
+                    records.append(
+                        ConflictRecord(
+                            concept_id=concept_id,
+                            claim_a_id=claim_a.claim_id,
+                            claim_b_id=claim_b.claim_id,
+                            warning_class=cross_class,
+                            conditions_a=all_conditions[idx_a],
+                            conditions_b=all_conditions[idx_b],
+                            value_a=_value_str(value_a, claim=claim_a),
+                            value_b=_value_str(value_b, claim=claim_b),
+                        )
+                    )

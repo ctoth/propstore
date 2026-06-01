@@ -20,7 +20,11 @@ from propstore.world.types import (
     RenderPolicy,
 )
 from propstore.worldline.definition import WorldlineDefinition
-from propstore.worldline.interfaces import HasActiveGraph, WorldlineBoundView, WorldlineStore
+from propstore.worldline.interfaces import (
+    HasActiveGraph,
+    WorldlineBoundView,
+    WorldlineStore,
+)
 from propstore.worldline.result_types import WorldlineArgumentationState
 
 
@@ -98,9 +102,7 @@ def _capture_claim_graph(
             semantics=normalized_semantics,
         )
         extension_claim_sets = tuple(
-            frozenset(
-                ClaimId(claim_id) for claim_id in extension.accepted_claim_ids
-            )
+            frozenset(ClaimId(claim_id) for claim_id in extension.accepted_claim_ids)
             for extension in analyzer_result.extensions
         )
         if extension_claim_sets:
@@ -118,10 +120,7 @@ def _capture_claim_graph(
             comparison=policy.comparison,
         )
         if isinstance(current, frozenset):
-            justified_claims = frozenset(
-                ClaimId(claim_id)
-                for claim_id in current
-            )
+            justified_claims = frozenset(ClaimId(claim_id) for claim_id in current)
             extension_claim_sets = (justified_claims,)
 
     if justified_claims is None:
@@ -140,7 +139,11 @@ def _capture_claim_graph(
 
 
 def _worldline_inference_mode(normalized_semantics: ArgumentationSemantics) -> str:
-    return "grounded" if normalized_semantics is ArgumentationSemantics.GROUNDED else "credulous"
+    return (
+        "grounded"
+        if normalized_semantics is ArgumentationSemantics.GROUNDED
+        else "credulous"
+    )
 
 
 def _claims_for_inference_mode(
@@ -150,7 +153,9 @@ def _claims_for_inference_mode(
     if inference_mode == "grounded":
         return extensions[0]
     if inference_mode == "skeptical":
-        return frozenset(set.intersection(*(set(extension) for extension in extensions)))
+        return frozenset(
+            set.intersection(*(set(extension) for extension in extensions))
+        )
     return frozenset().union(*extensions)
 
 
@@ -287,9 +292,7 @@ def _capture_praf(
             rng_seed=praf_mc_seed,
         )
         acceptance_probs = (
-            {}
-            if result.acceptance_probs is None
-            else dict(result.acceptance_probs)
+            {} if result.acceptance_probs is None else dict(result.acceptance_probs)
         )
         strategy_used = result.strategy_used
         samples = result.samples

@@ -36,7 +36,9 @@ def _source_concept_projection_handles(
 
 
 def load_primary_branch_concepts(repo: Repository) -> dict[str, dict[str, Any]]:
-    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(
+        repo.require_git().primary_branch_name()
+    )
     if primary_tip is None:
         return {}
 
@@ -52,7 +54,9 @@ def load_primary_branch_concepts(repo: Repository) -> dict[str, dict[str, Any]]:
 
 
 def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
-    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(
+        repo.require_git().primary_branch_name()
+    )
     if primary_tip is None:
         return []
 
@@ -63,8 +67,12 @@ def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
     return docs
 
 
-def primary_branch_concept_match(repo: Repository, handle: str) -> dict[str, str] | None:
-    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
+def primary_branch_concept_match(
+    repo: Repository, handle: str
+) -> dict[str, str] | None:
+    primary_tip = repo.require_git().branch_sha(
+        repo.require_git().primary_branch_name()
+    )
     if primary_tip is None:
         return None
     concept_index = repo.families.concepts.reference_index(commit=primary_tip)
@@ -87,7 +95,9 @@ def projected_source_concepts(
     repo: Repository,
     concepts_doc: tuple[SourceConceptEntryDocument, ...] | None,
 ) -> tuple[list[dict[str, Any]], set[str]]:
-    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(
+        repo.require_git().primary_branch_name()
+    )
     primary_concept_index: FamilyReferenceIndex[ConceptDocument]
     if primary_tip is None:
         primary_concept_index = FamilyReferenceIndex.from_records(
@@ -96,7 +106,9 @@ def projected_source_concepts(
             artifact_id=lambda _record: None,
         )
     else:
-        primary_concept_index = repo.families.concepts.reference_index(commit=primary_tip)
+        primary_concept_index = repo.families.concepts.reference_index(
+            commit=primary_tip
+        )
     projected: list[dict[str, Any]] = []
     projected_reference_records: list[SourceConceptProjectionReference] = []
     parameterized_artifacts: set[str] = set()
@@ -201,7 +213,9 @@ def parameterization_group_merge_preview(
             continue
         if artifact_id in preview_by_artifact:
             merged = copy.deepcopy(preview_by_artifact[artifact_id])
-            existing_params = list(merged.get("parameterization_relationships", []) or [])
+            existing_params = list(
+                merged.get("parameterization_relationships", []) or []
+            )
             for param in concept.get("parameterization_relationships", []) or []:
                 if param not in existing_params:
                     existing_params.append(copy.deepcopy(param))
@@ -273,7 +287,6 @@ def _derived_concept_artifact_id(handle: str) -> str:
 
 def _safe_source_concept_handle(handle: str) -> str:
     cleaned = "".join(
-        ch if ch.isalnum() or ch in {"_", "-", "."} else "_"
-        for ch in handle.strip()
+        ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in handle.strip()
     )
     return cleaned.strip("._-") or "source"

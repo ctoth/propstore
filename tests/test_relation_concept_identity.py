@@ -18,23 +18,25 @@ from propstore.core.relations import (
 )
 
 
-EXPECTED_BOOTSTRAP_RELATIONS = frozenset({
-    "relation_concept",
-    "role",
-    "has_role",
-    "role_domain",
-    "role_range",
-    "subtype_of",
-    "instance_of",
-    "contextualizes",
-    "condition_applies",
-    "supports",
-    "undercuts",
-    "rebuts",
-    "base_rate_for",
-    "calibrates",
-    "published_in",
-})
+EXPECTED_BOOTSTRAP_RELATIONS = frozenset(
+    {
+        "relation_concept",
+        "role",
+        "has_role",
+        "role_domain",
+        "role_range",
+        "subtype_of",
+        "instance_of",
+        "contextualizes",
+        "condition_applies",
+        "supports",
+        "undercuts",
+        "rebuts",
+        "base_rate_for",
+        "calibrates",
+        "published_in",
+    }
+)
 
 
 def test_bootstrap_relation_vocabulary_matches_workstream() -> None:
@@ -153,11 +155,13 @@ def test_role_binding_validation_rejects_missing_required_role() -> None:
 def test_role_binding_validation_rejects_unknown_role() -> None:
     relation = RelationConceptRef(ConceptId("ps:concept:relation:published_in"))
     signature = _published_in_signature(relation)
-    bindings = RoleBindingSet((
-        RoleBinding("paper", "ps:concept:paper:cimiano-2016"),
-        RoleBinding("publisher", "ps:concept:publisher:w3c"),
-        RoleBinding("venue", "ps:concept:venue:w3c-community-report"),
-    ))
+    bindings = RoleBindingSet(
+        (
+            RoleBinding("paper", "ps:concept:paper:cimiano-2016"),
+            RoleBinding("publisher", "ps:concept:publisher:w3c"),
+            RoleBinding("venue", "ps:concept:venue:w3c-community-report"),
+        )
+    )
 
     with pytest.raises(ValueError, match="unknown role"):
         signature.validate_bindings(bindings)
@@ -165,10 +169,12 @@ def test_role_binding_validation_rejects_unknown_role() -> None:
 
 @pytest.mark.property
 @given(
-    st.permutations((
-        RoleBinding("paper", "ps:concept:paper:buitelaar-2011"),
-        RoleBinding("venue", "ps:concept:venue:tia-2011"),
-    )),
+    st.permutations(
+        (
+            RoleBinding("paper", "ps:concept:paper:buitelaar-2011"),
+            RoleBinding("venue", "ps:concept:venue:tia-2011"),
+        )
+    ),
 )
 def test_role_binding_set_canonicalizes_role_order(
     bindings: tuple[RoleBinding, ...],
@@ -216,12 +222,14 @@ def test_inverse_property_is_an_involution(left_id: str, right_id: str) -> None:
 
 def test_symmetric_relation_canonicalizes_binary_values() -> None:
     relation = RelationConceptRef(ConceptId("ps:concept:relation:co_occurs_with"))
-    properties = RelationPropertySet((
-        RelationPropertyAssertion(
-            relation=relation,
-            kind=RelationPropertyKind.SYMMETRIC,
-        ),
-    ))
+    properties = RelationPropertySet(
+        (
+            RelationPropertyAssertion(
+                relation=relation,
+                kind=RelationPropertyKind.SYMMETRIC,
+            ),
+        )
+    )
 
     assert properties.canonicalize_binary_values(relation, "zeta", "alpha") == (
         "alpha",
@@ -253,12 +261,14 @@ def test_transitive_closure_contains_authored_edges(
     edges: set[tuple[int, int]],
 ) -> None:
     relation = RelationConceptRef(ConceptId("ps:concept:relation:subtype_of"))
-    properties = RelationPropertySet((
-        RelationPropertyAssertion(
-            relation=relation,
-            kind=RelationPropertyKind.TRANSITIVE,
-        ),
-    ))
+    properties = RelationPropertySet(
+        (
+            RelationPropertyAssertion(
+                relation=relation,
+                kind=RelationPropertyKind.TRANSITIVE,
+            ),
+        )
+    )
 
     closure = properties.transitive_closure(
         relation,

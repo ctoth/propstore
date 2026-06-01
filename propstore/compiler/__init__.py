@@ -12,6 +12,7 @@ from propstore.compiler.ir import (
     SemanticClaimFile,
     SemanticStance,
 )
+
 __all__ = [
     "ClaimCompilationBundle",
     "CompilationContext",

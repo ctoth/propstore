@@ -34,5 +34,7 @@ def test_argumentation_pin_rejects_duplicate_defeasible_rule_names() -> None:
         encode_aspic_theory(
             system,
             KnowledgeBase(axioms=frozenset({p}), premises=frozenset()),
-            PreferenceConfig(frozenset(), frozenset(), comparison="elitist", link="last"),
+            PreferenceConfig(
+                frozenset(), frozenset(), comparison="elitist", link="last"
+            ),
         )

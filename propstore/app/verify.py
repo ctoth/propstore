@@ -52,7 +52,9 @@ def _serialize_label(label: Label | None) -> list[list[str]] | None:
     return [list(environment.assumption_ids) for environment in label.environments]
 
 
-def _verify_origin(repo: Repository, source_slug: str, source_doc: dict[str, Any]) -> dict[str, Any]:
+def _verify_origin(
+    repo: Repository, source_slug: str, source_doc: dict[str, Any]
+) -> dict[str, Any]:
     raw_origin = source_doc.get("origin")
     if raw_origin is None:
         origin: dict[str, Any] = {}
@@ -62,7 +64,12 @@ def _verify_origin(repo: Repository, source_slug: str, source_doc: dict[str, Any
         raise ValueError(f"source {source_slug}: origin must be a mapping")
     expected = origin.get("content_ref")
     if not isinstance(expected, str) or not expected:
-        return {"status": "unavailable", "path": None, "expected": expected, "actual": None}
+        return {
+            "status": "unavailable",
+            "path": None,
+            "expected": expected,
+            "actual": None,
+        }
 
     value = origin.get("value")
     candidates: list[Path] = []
@@ -86,7 +93,9 @@ def _verify_origin(repo: Repository, source_slug: str, source_doc: dict[str, Any
     return {"status": "unavailable", "path": None, "expected": expected, "actual": None}
 
 
-def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = None) -> dict[str, Any]:
+def verify_claim_tree(
+    repo: Repository, claim_ref: str, *, commit: str | None = None
+) -> dict[str, Any]:
     index = build_artifact_verification_index(repo, commit=commit)
     try:
         root_ref = index.require_claim(claim_ref)
@@ -194,7 +203,9 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
     if wm is not None:
         try:
             bound = wm.bind(Environment())
-            atms_label = _serialize_label(bound.atms_engine().claim_label(root_ref.identity))
+            atms_label = _serialize_label(
+                bound.atms_engine().claim_label(root_ref.identity)
+            )
         finally:
             wm.close()
 
@@ -216,7 +227,9 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
 
     return {
         "claim_id": root_ref.identity,
-        "status": overall_status if origin_verification["status"] != "mismatch" else "mismatch",
+        "status": overall_status
+        if origin_verification["status"] != "mismatch"
+        else "mismatch",
         "claim": claim_reports[0],
         "claims": claim_reports,
         "justifications": justification_reports,

@@ -43,7 +43,9 @@ def _operator_bound():
 
 def _atom_id_for_claim(bound, claim_id: str) -> str:
     for atom in bound.revision_base().atoms:
-        if any(str(claim.id) == claim_id for claim in getattr(atom, "source_claims", ())):
+        if any(
+            str(claim.id) == claim_id for claim in getattr(atom, "source_claims", ())
+        ):
             return atom.atom_id
     raise AssertionError(f"missing projected claim {claim_id}")
 

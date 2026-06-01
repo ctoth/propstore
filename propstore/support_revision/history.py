@@ -71,7 +71,9 @@ def _version_policy_snapshot(
     snapshot = {str(key): str(item) for key, item in value.items()}
     missing = sorted(required - set(snapshot))
     if missing:
-        raise ValueError(f"transition journal missing policy versions: {', '.join(missing)}")
+        raise ValueError(
+            f"transition journal missing policy versions: {', '.join(missing)}"
+        )
     return snapshot
 
 
@@ -84,7 +86,9 @@ class EpistemicSnapshot:
         if not isinstance(self.state, EpistemicStateSnapshot):
             raise TypeError("EpistemicSnapshot requires an EpistemicStateSnapshot")
         if self.schema_version != EPistemicSnapshotVersion:
-            raise ValueError(f"unsupported epistemic snapshot version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported epistemic snapshot version: {self.schema_version}"
+            )
 
     @classmethod
     def from_state(cls, state: EpistemicState) -> EpistemicSnapshot:
@@ -95,7 +99,9 @@ class EpistemicSnapshot:
         payload = _required_mapping(data, "snapshot")
         schema_version = str(payload.get("schema_version") or "")
         if schema_version != EPistemicSnapshotVersion:
-            raise ValueError(f"unsupported epistemic snapshot version: {schema_version}")
+            raise ValueError(
+                f"unsupported epistemic snapshot version: {schema_version}"
+            )
         state_payload = _required_mapping(payload.get("state"), "state")
         snapshot = cls(
             state=EpistemicStateSnapshot.from_json_payload(state_payload),
@@ -147,7 +153,9 @@ class TransitionOperation:
             "input_atom_id",
             None if self.input_atom_id is None else str(self.input_atom_id),
         )
-        object.__setattr__(self, "target_atom_ids", tuple(str(item) for item in self.target_atom_ids))
+        object.__setattr__(
+            self, "target_atom_ids", tuple(str(item) for item in self.target_atom_ids)
+        )
         object.__setattr__(self, "parameters", _to_plain_data(dict(self.parameters)))
 
     @classmethod
@@ -155,9 +163,15 @@ class TransitionOperation:
         payload = _required_mapping(data, "operation")
         return cls(
             name=str(payload.get("name") or ""),
-            input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
-            target_atom_ids=tuple(str(item) for item in (payload.get("target_atom_ids") or ())),
-            parameters=dict(_required_mapping(payload.get("parameters") or {}, "parameters")),
+            input_atom_id=None
+            if payload.get("input_atom_id") is None
+            else str(payload.get("input_atom_id")),
+            target_atom_ids=tuple(
+                str(item) for item in (payload.get("target_atom_ids") or ())
+            ),
+            parameters=dict(
+                _required_mapping(payload.get("parameters") or {}, "parameters")
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -188,22 +202,34 @@ class TransitionJournalEntry:
 
     def __post_init__(self) -> None:
         if self.schema_version != TransitionJournalVersion:
-            raise ValueError(f"unsupported transition journal version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported transition journal version: {self.schema_version}"
+            )
         object.__setattr__(self, "policy_id", str(self.policy_id))
         object.__setattr__(self, "operator", _journal_operator(self.operator))
-        object.__setattr__(self, "operator_input", _to_plain_data(dict(self.operator_input)))
+        object.__setattr__(
+            self, "operator_input", _to_plain_data(dict(self.operator_input))
+        )
         object.__setattr__(
             self,
             "version_policy_snapshot",
             _version_policy_snapshot(self.version_policy_snapshot),
         )
-        object.__setattr__(self, "normalized_state_in", _to_plain_data(dict(self.normalized_state_in)))
-        object.__setattr__(self, "normalized_state_out", _to_plain_data(dict(self.normalized_state_out)))
+        object.__setattr__(
+            self, "normalized_state_in", _to_plain_data(dict(self.normalized_state_in))
+        )
+        object.__setattr__(
+            self,
+            "normalized_state_out",
+            _to_plain_data(dict(self.normalized_state_out)),
+        )
         canonical_json_bytes(_to_plain_data(self.operator_input))
         canonical_json_bytes(_to_plain_data(self.version_policy_snapshot))
         canonical_json_bytes(_to_plain_data(self.normalized_state_in))
         canonical_json_bytes(_to_plain_data(self.normalized_state_out))
-        object.__setattr__(self, "policy_payload", _to_plain_data(dict(self.policy_payload)))
+        object.__setattr__(
+            self, "policy_payload", _to_plain_data(dict(self.policy_payload))
+        )
         object.__setattr__(
             self,
             "explanation",
@@ -250,8 +276,12 @@ class TransitionJournalEntry:
         payload = _required_mapping(data, "journal entry")
         schema_version = str(payload.get("schema_version") or "")
         if schema_version != TransitionJournalVersion:
-            raise ValueError(f"unsupported transition journal version: {schema_version}")
-        explanation_payload = _required_mapping(payload.get("explanation") or {}, "explanation")
+            raise ValueError(
+                f"unsupported transition journal version: {schema_version}"
+            )
+        explanation_payload = _required_mapping(
+            payload.get("explanation") or {}, "explanation"
+        )
         entry = cls(
             state_in=EpistemicSnapshot.from_json_payload(
                 _required_mapping(payload.get("state_in"), "state_in")
@@ -261,7 +291,9 @@ class TransitionJournalEntry:
             ),
             policy_id=str(payload.get("policy_id") or ""),
             operator=_journal_operator(str(payload.get("operator") or "")),
-            operator_input=_required_mapping(payload.get("operator_input"), "operator_input"),
+            operator_input=_required_mapping(
+                payload.get("operator_input"), "operator_input"
+            ),
             version_policy_snapshot=_version_policy_snapshot(
                 _required_mapping(
                     payload.get("version_policy_snapshot"),
@@ -288,7 +320,9 @@ class TransitionJournalEntry:
         )
         recorded_hash = payload.get("content_hash")
         if recorded_hash is not None and str(recorded_hash) != entry.content_hash:
-            raise ValueError("transition journal entry content_hash does not match payload")
+            raise ValueError(
+                "transition journal entry content_hash does not match payload"
+            )
         return entry
 
     @property
@@ -333,7 +367,10 @@ def _state_with_journal_event_policy(
     if latest.event is None:
         return state
     event = latest.event
-    if event.policy_snapshot == dict(version_policy_snapshot) and event.replay_status == "replayed":
+    if (
+        event.policy_snapshot == dict(version_policy_snapshot)
+        and event.replay_status == "replayed"
+    ):
         return state
     updated_event = replace(
         event,
@@ -362,7 +399,9 @@ class ReplayDivergence:
     def __post_init__(self) -> None:
         object.__setattr__(self, "entry_index", int(self.entry_index))
         object.__setattr__(self, "operator", _journal_operator(self.operator))
-        object.__setattr__(self, "operator_input", _to_plain_data(dict(self.operator_input)))
+        object.__setattr__(
+            self, "operator_input", _to_plain_data(dict(self.operator_input))
+        )
         object.__setattr__(self, "expected_state_hash", str(self.expected_state_hash))
         object.__setattr__(self, "actual_state_hash", str(self.actual_state_hash))
 
@@ -387,10 +426,14 @@ class TransitionJournal:
         payload = _required_mapping(data, "journal")
         schema_version = str(payload.get("schema_version") or "")
         if schema_version != TransitionJournalVersion:
-            raise ValueError(f"unsupported transition journal version: {schema_version}")
+            raise ValueError(
+                f"unsupported transition journal version: {schema_version}"
+            )
         return cls(
             entries=tuple(
-                TransitionJournalEntry.from_json_payload(_required_mapping(entry, "entries[]"))
+                TransitionJournalEntry.from_json_payload(
+                    _required_mapping(entry, "entries[]")
+                )
                 for entry in (payload.get("entries") or ())
             )
         )
@@ -412,7 +455,9 @@ class TransitionJournal:
             if entry.to_dict()["state_out_hash"] != entry.state_out.content_hash:
                 errors.append(f"entry {index} state_out hash mismatch")
             if previous_out is not None and previous_out != entry.state_in.content_hash:
-                errors.append(f"entry {index} state_in does not match previous state_out")
+                errors.append(
+                    f"entry {index} state_in does not match previous state_out"
+                )
             previous_out = entry.state_out.content_hash
         return ChainIntegrityReport(
             ok=not errors,
@@ -440,7 +485,9 @@ class TransitionJournal:
                     policy=entry.version_policy_snapshot,
                 )
             except Exception as exc:
-                errors.append(f"entry {index} replay failed for {entry.operator.value}: {exc}")
+                errors.append(
+                    f"entry {index} replay failed for {entry.operator.value}: {exc}"
+                )
                 continue
             replayed_snapshot = EpistemicSnapshot.from_state(replayed_state)
             if replayed_state.to_canonical_dict() != entry.normalized_state_out:
@@ -468,7 +515,9 @@ def _entry_event_policy_error(entry: TransitionJournalEntry) -> str | None:
     event = history[-1].event
     if event is None:
         return None
-    expected = {str(key): str(value) for key, value in entry.version_policy_snapshot.items()}
+    expected = {
+        str(key): str(value) for key, value in entry.version_policy_snapshot.items()
+    }
     if dict(event.policy_snapshot) != expected:
         return "policy snapshot mismatch between revision event and journal entry"
     return None
@@ -522,11 +571,39 @@ def diff_epistemic_snapshots(
     source_state = source.state.to_dict()
     target_state = target.state.to_dict()
     deltas: list[SemanticFieldDelta] = []
-    deltas.extend(_mapping_deltas("assertion_acceptance", _accepted_assertions(source_state), _accepted_assertions(target_state)))
-    deltas.extend(_mapping_deltas("warrant", source_state.get("entrenchment_reasons") or {}, target_state.get("entrenchment_reasons") or {}))
-    deltas.extend(_mapping_deltas("ranking", source_state.get("ranking") or {}, target_state.get("ranking") or {}))
-    deltas.extend(_mapping_deltas("provenance", _assertion_provenance(source_state), _assertion_provenance(target_state)))
-    deltas.extend(_mapping_deltas("dependency", _dependencies(source_state), _dependencies(target_state)))
+    deltas.extend(
+        _mapping_deltas(
+            "assertion_acceptance",
+            _accepted_assertions(source_state),
+            _accepted_assertions(target_state),
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "warrant",
+            source_state.get("entrenchment_reasons") or {},
+            target_state.get("entrenchment_reasons") or {},
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "ranking",
+            source_state.get("ranking") or {},
+            target_state.get("ranking") or {},
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "provenance",
+            _assertion_provenance(source_state),
+            _assertion_provenance(target_state),
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "dependency", _dependencies(source_state), _dependencies(target_state)
+        )
+    )
     return EpistemicSemanticDiff(
         source_hash=source.content_hash,
         target_hash=target.content_hash,
@@ -546,7 +623,9 @@ def apply_epistemic_diff(
         if delta.surface == "assertion_acceptance":
             _apply_acceptance_delta(state_payload, delta)
         elif delta.surface == "warrant":
-            _set_mapping_value(state_payload, "entrenchment_reasons", delta.key, delta.new_value)
+            _set_mapping_value(
+                state_payload, "entrenchment_reasons", delta.key, delta.new_value
+            )
         elif delta.surface == "ranking":
             _set_mapping_value(state_payload, "ranking", delta.key, delta.new_value)
             _refresh_ranked_atom_ids(state_payload)
@@ -556,10 +635,12 @@ def apply_epistemic_diff(
             _apply_dependency_delta(state_payload, delta)
         else:
             raise ValueError(f"unsupported semantic diff surface: {delta.surface}")
-    snapshot = EpistemicSnapshot.from_json_payload({
-        "schema_version": EPistemicSnapshotVersion,
-        "state": state_payload,
-    })
+    snapshot = EpistemicSnapshot.from_json_payload(
+        {
+            "schema_version": EPistemicSnapshotVersion,
+            "state": state_payload,
+        }
+    )
     if snapshot.content_hash != diff.target_hash:
         raise ValueError("semantic diff did not reproduce target snapshot")
     return snapshot
@@ -589,7 +670,7 @@ def _accepted_assertions(state_payload: Mapping[str, Any]) -> dict[str, bool]:
 
 def _assertion_provenance(state_payload: Mapping[str, Any]) -> dict[str, Any]:
     provenance: dict[str, Any] = {}
-    for atom in ((state_payload.get("base") or {}).get("atoms") or ()):
+    for atom in (state_payload.get("base") or {}).get("atoms") or ():
         if not isinstance(atom, Mapping):
             continue
         if atom.get("kind") != "assertion":
@@ -597,7 +678,9 @@ def _assertion_provenance(state_payload: Mapping[str, Any]) -> dict[str, Any]:
         payload = atom.get("payload")
         if not isinstance(payload, Mapping):
             continue
-        provenance[str(atom.get("atom_id"))] = _to_plain_data(payload.get("source_claim_ids") or ())
+        provenance[str(atom.get("atom_id"))] = _to_plain_data(
+            payload.get("source_claim_ids") or ()
+        )
     return provenance
 
 
@@ -615,7 +698,9 @@ def _dependencies(state_payload: Mapping[str, Any]) -> dict[str, Any]:
     return dependencies
 
 
-def _assert_current_value(state_payload: Mapping[str, Any], delta: SemanticFieldDelta) -> None:
+def _assert_current_value(
+    state_payload: Mapping[str, Any], delta: SemanticFieldDelta
+) -> None:
     current = None
     if delta.surface == "assertion_acceptance":
         current = _accepted_assertions(state_payload).get(delta.key)
@@ -628,11 +713,17 @@ def _assert_current_value(state_payload: Mapping[str, Any], delta: SemanticField
     elif delta.surface == "dependency":
         current = _dependencies(state_payload).get(delta.key)
     if _to_plain_data(current) != delta.old_value:
-        raise ValueError(f"semantic diff old value mismatch for {delta.surface}.{delta.key}")
+        raise ValueError(
+            f"semantic diff old value mismatch for {delta.surface}.{delta.key}"
+        )
 
 
-def _apply_acceptance_delta(state_payload: dict[str, Any], delta: SemanticFieldDelta) -> None:
-    accepted = [str(atom_id) for atom_id in (state_payload.get("accepted_atom_ids") or ())]
+def _apply_acceptance_delta(
+    state_payload: dict[str, Any], delta: SemanticFieldDelta
+) -> None:
+    accepted = [
+        str(atom_id) for atom_id in (state_payload.get("accepted_atom_ids") or ())
+    ]
     if delta.new_value is True and delta.key not in accepted:
         accepted.append(delta.key)
     if delta.new_value is not True:
@@ -660,11 +751,15 @@ def _refresh_ranked_atom_ids(state_payload: dict[str, Any]) -> None:
         return
     state_payload["ranked_atom_ids"] = [
         atom_id
-        for atom_id, _ in sorted(ranking.items(), key=lambda item: (int(item[1]), str(item[0])))
+        for atom_id, _ in sorted(
+            ranking.items(), key=lambda item: (int(item[1]), str(item[0]))
+        )
     ]
 
 
-def _set_atom_provenance(state_payload: dict[str, Any], atom_id: str, value: Any) -> None:
+def _set_atom_provenance(
+    state_payload: dict[str, Any], atom_id: str, value: Any
+) -> None:
     base = dict(state_payload.get("base") or {})
     atoms: list[Any] = []
     for atom in base.get("atoms") or ():
@@ -680,7 +775,9 @@ def _set_atom_provenance(state_payload: dict[str, Any], atom_id: str, value: Any
     state_payload["base"] = base
 
 
-def _apply_dependency_delta(state_payload: dict[str, Any], delta: SemanticFieldDelta) -> None:
+def _apply_dependency_delta(
+    state_payload: dict[str, Any], delta: SemanticFieldDelta
+) -> None:
     if "." not in delta.key:
         raise ValueError(f"dependency delta key must identify atom field: {delta.key}")
     atom_id, field_name = delta.key.rsplit(".", 1)

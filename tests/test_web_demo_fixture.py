@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from propstore.app.claim_views import ClaimViewBlockedError, ClaimViewRequest, build_claim_view
+from propstore.app.claim_views import (
+    ClaimViewBlockedError,
+    ClaimViewRequest,
+    build_claim_view,
+)
 from propstore.app.concept_views import ConceptViewRequest, build_concept_view
 from propstore.app.neighborhoods import (
     SemanticNeighborhoodRequest,
@@ -66,5 +70,11 @@ def test_web_demo_fixture_exercises_first_surface_states(tmp_path: Path) -> None
     assert moves["supporters"].target_ids == ()
     assert moves["attackers"].target_ids == ()
     assert neighborhood_report.status.state == "known"
-    assert all(fixture.focus_claim_id not in edge.source_id for edge in neighborhood_report.edges)
-    assert all(fixture.focus_claim_id not in edge.target_id for edge in neighborhood_report.edges)
+    assert all(
+        fixture.focus_claim_id not in edge.source_id
+        for edge in neighborhood_report.edges
+    )
+    assert all(
+        fixture.focus_claim_id not in edge.target_id
+        for edge in neighborhood_report.edges
+    )

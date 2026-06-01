@@ -76,7 +76,9 @@ def test_replication_rate_claims_materialize_as_base_rate_assertions(
         target_assertion_id=_aid(f"{paper_key}_published_claim_prior"),
     )
 
-    assert profile.profile_assertion_id == AssertionId(f"ps:assertion:{paper_key}:{claim['id']}")
+    assert profile.profile_assertion_id == AssertionId(
+        f"ps:assertion:{paper_key}:{claim['id']}"
+    )
     assert profile.value == claim["value"]
     assert profile.evidence_assertion_ids == (profile.profile_assertion_id,)
     assert profile.provenance.status == ProvenanceStatus.STATED
@@ -182,7 +184,15 @@ def test_recursive_base_rate_dependency_is_unresolved() -> None:
 
 
 @pytest.mark.property
-@given(st.lists(st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False), min_size=1, max_size=8))
+@given(
+    st.lists(
+        st.floats(
+            min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False
+        ),
+        min_size=1,
+        max_size=8,
+    )
+)
 def test_stratified_base_rate_chain_terminates(values: list[float]) -> None:
     profiles = tuple(
         BaseRateProfile(

@@ -27,7 +27,10 @@ def test_argumentation_pin_exposes_setaf_collective_attack_semantics() -> None:
     assert not conflict_free(framework, frozenset({"a", "b", "c"}))
     assert defends(framework, frozenset({"x"}), "c")
     assert frozenset({"b", "c", "x"}) in stable_extensions(framework)
-    assert all(extension in complete_extensions(framework) for extension in stable_extensions(framework))
+    assert all(
+        extension in complete_extensions(framework)
+        for extension in stable_extensions(framework)
+    )
 
 
 def test_argumentation_pin_exposes_aspartix_setaf_io() -> None:

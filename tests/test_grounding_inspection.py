@@ -91,6 +91,11 @@ def test_grounding_inspection_rejects_rules_without_predicates(tmp_path) -> None
     status = inspect_grounding_status(repo)
 
     assert status.surface_state == "invalid"
-    assert status.message == "Invalid grounding surface: rules/ has YAML files but predicates/ has none."
-    with pytest.raises(GroundingInspectionError, match="rules/ has YAML files but predicates/ has none"):
+    assert (
+        status.message
+        == "Invalid grounding surface: rules/ has YAML files but predicates/ has none."
+    )
+    with pytest.raises(
+        GroundingInspectionError, match="rules/ has YAML files but predicates/ has none"
+    ):
         inspect_grounding_show(repo)

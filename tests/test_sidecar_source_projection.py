@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.sources.declaration import (
     SourceOriginDocument,

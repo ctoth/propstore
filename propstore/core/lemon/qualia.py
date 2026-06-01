@@ -41,7 +41,9 @@ class CoercedReference:
     provenance: Provenance
 
 
-def qualia_references(qualia: QualiaStructure, role: QualiaRole) -> tuple[QualiaReference, ...]:
+def qualia_references(
+    qualia: QualiaStructure, role: QualiaRole
+) -> tuple[QualiaReference, ...]:
     return getattr(qualia, role.value)
 
 

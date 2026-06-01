@@ -34,7 +34,9 @@ class DescriptionTemporalAnchor(DocumentStruct):
 
     def __post_init__(self) -> None:
         if self.valid_from > self.valid_until:
-            raise ValueError("description temporal anchor requires valid_from <= valid_until")
+            raise ValueError(
+                "description temporal anchor requires valid_from <= valid_until"
+            )
 
 
 _RELATION_EXPRESSIONS: dict[AllenRelation, CelExpr] = {
@@ -45,9 +47,7 @@ _RELATION_EXPRESSIONS: dict[AllenRelation, CelExpr] = {
             "left_from < right_from && right_from < left_until && left_until < right_until"
         )
     ),
-    AllenRelation.DURING: CelExpr(
-        "right_from < left_from && left_until < right_until"
-    ),
+    AllenRelation.DURING: CelExpr("right_from < left_from && left_until < right_until"),
     AllenRelation.STARTS: CelExpr(
         "left_from == right_from && left_until < right_until"
     ),

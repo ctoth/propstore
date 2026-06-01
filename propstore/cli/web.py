@@ -9,7 +9,9 @@ import click
 
 
 @click.command("web")
-@click.option("--host", default="127.0.0.1", show_default=True, help="Host interface to bind.")
+@click.option(
+    "--host", default="127.0.0.1", show_default=True, help="Host interface to bind."
+)
 @click.option(
     "--insecure",
     is_flag=True,
@@ -22,7 +24,9 @@ import click
     type=click.IntRange(1, 65535),
     help="TCP port to bind.",
 )
-@click.option("--open", "open_browser", is_flag=True, help="Open the web UI in a browser.")
+@click.option(
+    "--open", "open_browser", is_flag=True, help="Open the web UI in a browser."
+)
 @click.pass_obj
 def web(
     obj: dict[str, Any],

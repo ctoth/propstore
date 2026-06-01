@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from argumentation.aspic import GroundAtom
 from propstore.claims import LoadedClaimsFile
 from propstore.families.rules.declaration import RuleDocument, RuleSuperiorityDocument
-from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
+from propstore.families.concepts.stages import (
+    LoadedConcept,
+    parse_concept_record_document,
+)
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import GroundingFactInputs, extract_facts
 from propstore.grounding.grounder import ground
@@ -36,8 +39,7 @@ def load_grounding_inputs(
         for handle in repo.families.predicates.iter_handles(commit=commit)
     )
     rules = tuple(
-        handle.document
-        for handle in repo.families.rules.iter_handles(commit=commit)
+        handle.document for handle in repo.families.rules.iter_handles(commit=commit)
     )
     superiority = tuple(
         handle.document
@@ -45,7 +47,9 @@ def load_grounding_inputs(
     )
 
     if not predicates:
-        return GroundingInputs(rules=rules, superiority=superiority, facts=(), registry=None)
+        return GroundingInputs(
+            rules=rules, superiority=superiority, facts=(), registry=None
+        )
 
     registry = PredicateRegistry.from_documents(predicates)
     concepts = [

@@ -38,7 +38,9 @@ class TestClaimStrengthConcrete:
     def test_higher_confidence_stronger(self) -> None:
         a = claim_strength(_claim(confidence=0.95, sample_size=100, uncertainty=0.2))
         b = claim_strength(_claim(confidence=0.55, sample_size=100, uncertainty=0.2))
-        assert sum(a.dimensions) / len(a.dimensions) > sum(b.dimensions) / len(b.dimensions)
+        assert sum(a.dimensions) / len(a.dimensions) > sum(b.dimensions) / len(
+            b.dimensions
+        )
 
     def test_empty_claim_is_vacuous(self) -> None:
         strength = claim_strength(_claim())
@@ -71,7 +73,9 @@ class TestClaimStrengthFixedLength:
 
 class TestClaimStrengthNormalization:
     def test_multi_signal_not_inflated(self) -> None:
-        dims_unc = claim_strength(_claim(sample_size=10, uncertainty=0.01, confidence=0.5))
+        dims_unc = claim_strength(
+            _claim(sample_size=10, uncertainty=0.01, confidence=0.5)
+        )
         dims_both = claim_strength(_claim(uncertainty=0.01, confidence=0.9))
         assert dims_unc.dimensions[1] == dims_both.dimensions[1]
         assert dims_both.dimensions[2] > dims_unc.dimensions[2]
@@ -79,7 +83,9 @@ class TestClaimStrengthNormalization:
     def test_same_signals_preserve_ordering(self) -> None:
         a = claim_strength(_claim(sample_size=1000, uncertainty=0.1, confidence=0.8))
         b = claim_strength(_claim(sample_size=100, uncertainty=0.5, confidence=0.8))
-        assert sum(a.dimensions) / len(a.dimensions) > sum(b.dimensions) / len(b.dimensions)
+        assert sum(a.dimensions) / len(a.dimensions) > sum(b.dimensions) / len(
+            b.dimensions
+        )
 
 
 class TestClaimStrengthProperties:

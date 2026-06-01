@@ -11,9 +11,16 @@ from argumentation.aspic import Rule, conc, top_rule
 from argumentation.datalog_grounding import GroundRuleOrigin
 from propstore.aspic_bridge.build import build_bridge_csaf, compile_bridge_context
 from propstore.aspic_bridge.extract import _extract_justifications, _extract_stance_rows
-from propstore.aspic_bridge.grounding import _decode_grounded_predicate, project_grounded_rules
+from propstore.aspic_bridge.grounding import (
+    _decode_grounded_predicate,
+    project_grounded_rules,
+)
 from propstore.families.concepts.declaration import Parameterization
-from propstore.fragility_scoring import FragilityWarning, score_conflict, support_derivative_fragility
+from propstore.fragility_scoring import (
+    FragilityWarning,
+    score_conflict,
+    support_derivative_fragility,
+)
 from propstore.fragility_types import (
     AssumptionTarget,
     BridgeUndercutTarget,
@@ -74,8 +81,12 @@ def _witness_support_polynomial(
         q_cels = getattr(witness, "queryable_cels", ())
         monomial = ProvenancePolynomial.one()
         for qcel in q_cels:
-            queryable = queryable_by_cel.get(str(qcel), QueryableAssumption.from_cel(str(qcel)))
-            monomial = monomial * ProvenancePolynomial.variable(_queryable_source_variable(queryable))
+            queryable = queryable_by_cel.get(
+                str(qcel), QueryableAssumption.from_cel(str(qcel))
+            )
+            monomial = monomial * ProvenancePolynomial.variable(
+                _queryable_source_variable(queryable)
+            )
         support = support + monomial
     return support
 
@@ -87,8 +98,12 @@ def _support_queryables(
     queryable_by_cel = {str(queryable.cel): queryable for queryable in queryables}
     for witness in witnesses:
         for qcel in getattr(witness, "queryable_cels", ()):
-            queryable_by_cel.setdefault(str(qcel), QueryableAssumption.from_cel(str(qcel)))
-    return tuple(sorted(queryable_by_cel.values(), key=lambda item: str(item.assumption_id)))
+            queryable_by_cel.setdefault(
+                str(qcel), QueryableAssumption.from_cel(str(qcel))
+            )
+    return tuple(
+        sorted(queryable_by_cel.values(), key=lambda item: str(item.assumption_id))
+    )
 
 
 def _typed_scalar_key(value: object) -> dict[str, object]:
@@ -124,7 +139,9 @@ def _in_extension(current_status: object) -> bool:
     try:
         normalized = ValueStatus(str(current_status))
     except ValueError as exc:
-        raise ValueError(f"Unknown value status for extension membership: {current_status!r}") from exc
+        raise ValueError(
+            f"Unknown value status for extension membership: {current_status!r}"
+        ) from exc
     return normalized in {
         ValueStatus.DETERMINED,
         ValueStatus.DERIVED,
@@ -152,8 +169,7 @@ def _parameterizations_to_queryables(
 def derive_scored_concepts(bound: FragilityWorld) -> list[str]:
     try:
         concepts: set[str] = {
-            str(row.output_concept_id)
-            for row in bound._store.all_parameterizations()
+            str(row.output_concept_id) for row in bound._store.all_parameterizations()
         }
         for claim in bound.active_claims():
             if hasattr(claim, "value_concept_id"):
@@ -161,7 +177,9 @@ def derive_scored_concepts(bound: FragilityWorld) -> list[str]:
                 if concept_id is not None:
                     concepts.add(str(concept_id))
             elif isinstance(claim, Mapping):
-                concept_id = claim.get("value_concept_id", claim.get("output_concept_id"))
+                concept_id = claim.get(
+                    "value_concept_id", claim.get("output_concept_id")
+                )
                 if concept_id is not None:
                     concepts.add(str(concept_id))
         return sorted(concepts)
@@ -194,7 +212,9 @@ def collect_assumption_interventions(
 
     for concept_id in concept_ids:
         try:
-            stability = engine.concept_stability(concept_id, normalized_queryables, limit=atms_limit)
+            stability = engine.concept_stability(
+                concept_id, normalized_queryables, limit=atms_limit
+            )
         except Exception as exc:
             warnings.warn(
                 f"ATMS fragility failed for {concept_id}: {exc}",
@@ -233,7 +253,9 @@ def collect_assumption_interventions(
             )
             entry.concepts.add(str(concept_id))
             entry.witness_count += derivative_count
-            entry.consistent_future_count = max(entry.consistent_future_count, consistent_future_count)
+            entry.consistent_future_count = max(
+                entry.consistent_future_count, consistent_future_count
+            )
             previous_score = entry.max_score
             entry.max_score = max(previous_score, local_score)
             if local_score > previous_score:
@@ -298,7 +320,9 @@ def collect_missing_measurement_interventions(
             if bound.active_claims(input_id):
                 continue
             downstream_by_input.setdefault(input_id, set()).add(output_concept_id)
-            parameterizations_by_input.setdefault(input_id, set()).add(output_concept_id)
+            parameterizations_by_input.setdefault(input_id, set()).add(
+                output_concept_id
+            )
 
     if not downstream_by_input:
         return ()
@@ -321,7 +345,9 @@ def collect_missing_measurement_interventions(
             ),
             payload=MissingMeasurementTarget(
                 concept_id=concept_id,
-                discovered_from_parameterizations=tuple(sorted(parameterizations_by_input[concept_id])),
+                discovered_from_parameterizations=tuple(
+                    sorted(parameterizations_by_input[concept_id])
+                ),
                 downstream_subjects=tuple(sorted(subjects)),
             ),
         )
@@ -348,7 +374,9 @@ def collect_conflict_interventions(
     from propstore.argumentation import shared_analyzer_input_from_active_graph
 
     try:
-        framework = shared_analyzer_input_from_active_graph(active_graph).argumentation_framework
+        framework = shared_analyzer_input_from_active_graph(
+            active_graph
+        ).argumentation_framework
     except Exception as exc:
         warnings.warn(
             f"Conflict fragility failed to build framework: {exc}",
@@ -363,7 +391,9 @@ def collect_conflict_interventions(
             claim_a_id = str(conflict.claim_a_id)
             claim_b_id = str(conflict.claim_b_id)
             pair = (min(claim_a_id, claim_b_id), max(claim_a_id, claim_b_id))
-            entry = aggregated.setdefault(pair, _ConflictContribution(concepts=set(), max_score=0.0))
+            entry = aggregated.setdefault(
+                pair, _ConflictContribution(concepts=set(), max_score=0.0)
+            )
             entry.concepts.add(str(conflict.concept_id or concept_id))
             entry.max_score = max(
                 entry.max_score,
@@ -436,7 +466,9 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
                 antecedent.negated,
                 tuple(antecedent.atom.arguments),
             )
-            dependency_counts[dependency_key] = dependency_counts.get(dependency_key, 0) + 1
+            dependency_counts[dependency_key] = (
+                dependency_counts.get(dependency_key, 0) + 1
+            )
 
     ranked: list[RankedIntervention] = []
     for section_name, section in sorted(bundle.sections.items()):
@@ -453,7 +485,8 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
                 )
                 local_fragility = min(
                     1.0,
-                    _SECTION_FRAGILITY.get(section_name, 0.5) + (0.1 * min(dependency_count, 3)),
+                    _SECTION_FRAGILITY.get(section_name, 0.5)
+                    + (0.1 * min(dependency_count, 3)),
                 )
                 target = InterventionTarget(
                     intervention_id=f"ground_fact:{section_name}:{predicate_id}:{row_key}",
@@ -506,10 +539,14 @@ def collect_grounded_rule_interventions(bundle) -> tuple[RankedIntervention, ...
     for _rule, origin in projection.origins.items():
         if origin.role != "undercut" or origin.target_rule is None:
             continue
-        undercut_counts[origin.target_rule] = undercut_counts.get(origin.target_rule, 0) + 1
+        undercut_counts[origin.target_rule] = (
+            undercut_counts.get(origin.target_rule, 0) + 1
+        )
 
     ranked: list[RankedIntervention] = []
-    for rule in sorted(projection.defeasible_rules, key=lambda candidate: candidate.name or ""):
+    for rule in sorted(
+        projection.defeasible_rules, key=lambda candidate: candidate.name or ""
+    ):
         if rule.name is None:
             continue
         origin = projection.origins.get(rule)
@@ -586,7 +623,8 @@ def collect_bridge_undercut_interventions(
         attacker_top = top_rule(attack.attacker)
         if (
             attacker_top is None
-            or origins.get(attacker_top, GroundRuleOrigin("", (), "ground")).role != "undercut"
+            or origins.get(attacker_top, GroundRuleOrigin("", (), "ground")).role
+            != "undercut"
         ):
             continue
         attack_counts[attacker_top] = attack_counts.get(attacker_top, 0) + 1
@@ -594,13 +632,16 @@ def collect_bridge_undercut_interventions(
         attacker_top = top_rule(attacker)
         if (
             attacker_top is None
-            or origins.get(attacker_top, GroundRuleOrigin("", (), "ground")).role != "undercut"
+            or origins.get(attacker_top, GroundRuleOrigin("", (), "ground")).role
+            != "undercut"
         ):
             continue
         defeat_counts[attacker_top] = defeat_counts.get(attacker_top, 0) + 1
 
     ranked: list[RankedIntervention] = []
-    for rule in sorted(compiled.system.defeasible_rules, key=lambda candidate: candidate.name or ""):
+    for rule in sorted(
+        compiled.system.defeasible_rules, key=lambda candidate: candidate.name or ""
+    ):
         if rule.name is None or not rule.consequent.negated:
             continue
         origin = origins.get(rule)
@@ -609,7 +650,9 @@ def collect_bridge_undercut_interventions(
         undercut_literal_key = str(rule.consequent.atom.predicate)
         attack_count = attack_counts.get(rule, 0)
         defeat_count = defeat_counts.get(rule, 0)
-        local_fragility = min(1.0, 0.3 + (0.25 * min(attack_count, 2)) + (0.35 * min(defeat_count, 2)))
+        local_fragility = min(
+            1.0, 0.3 + (0.25 * min(attack_count, 2)) + (0.35 * min(defeat_count, 2))
+        )
         target_origin = origins.get(origin.target_rule)
         source_ids = (origin.source_rule_id,)
         if target_origin is not None:
@@ -655,7 +698,9 @@ def build_bound_bridge_inputs(bound: FragilityWorld):
     active_claims = tuple(bound.active_claims())
     active_by_id = {str(claim.id): claim for claim in active_claims}
     active_graph = getattr(bound, "_active_graph", None)
-    stance_rows = _extract_stance_rows(bound._store, active_by_id, active_graph=active_graph)
+    stance_rows = _extract_stance_rows(
+        bound._store, active_by_id, active_graph=active_graph
+    )
     justifications = _extract_justifications(
         bound._store,
         active_by_id,

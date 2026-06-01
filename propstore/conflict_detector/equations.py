@@ -63,19 +63,25 @@ def detect_equation_conflicts(
 
                 conditions_a = sorted(claim_a.conditions)
                 conditions_b = sorted(claim_b.conditions)
-                value_a = claim_a.expression or claim_a.sympy or comparison.left.canonical
-                value_b = claim_b.expression or claim_b.sympy or comparison.right.canonical
+                value_a = (
+                    claim_a.expression or claim_a.sympy or comparison.left.canonical
+                )
+                value_b = (
+                    claim_b.expression or claim_b.sympy or comparison.right.canonical
+                )
                 if comparison.status == EquationComparisonStatus.UNKNOWN:
-                    records.append(ConflictRecord(
-                        concept_id=dependent_concept,
-                        claim_a_id=claim_a.claim_id,
-                        claim_b_id=claim_b.claim_id,
-                        warning_class=ConflictClass.UNKNOWN,
-                        conditions_a=conditions_a,
-                        conditions_b=conditions_b,
-                        value_a=value_a,
-                        value_b=value_b,
-                    ))
+                    records.append(
+                        ConflictRecord(
+                            concept_id=dependent_concept,
+                            claim_a_id=claim_a.claim_id,
+                            claim_b_id=claim_b.claim_id,
+                            warning_class=ConflictClass.UNKNOWN,
+                            conditions_a=conditions_a,
+                            conditions_b=conditions_b,
+                            value_a=value_a,
+                            value_b=value_b,
+                        )
+                    )
                     continue
 
                 if _append_context_classified_record(
@@ -92,21 +98,23 @@ def detect_equation_conflicts(
                     lifting_system=lifting_system,
                 ):
                     continue
-                records.append(ConflictRecord(
-                    concept_id=dependent_concept,
-                    claim_a_id=claim_a.claim_id,
-                    claim_b_id=claim_b.claim_id,
-                    warning_class=_classify_conditions(
-                        conditions_a,
-                        conditions_b,
-                        cel_registry,
-                        solver=solver,
-                    ),
-                    conditions_a=conditions_a,
-                    conditions_b=conditions_b,
-                    value_a=value_a,
-                    value_b=value_b,
-                ))
+                records.append(
+                    ConflictRecord(
+                        concept_id=dependent_concept,
+                        claim_a_id=claim_a.claim_id,
+                        claim_b_id=claim_b.claim_id,
+                        warning_class=_classify_conditions(
+                            conditions_a,
+                            conditions_b,
+                            cel_registry,
+                            solver=solver,
+                        ),
+                        conditions_a=conditions_a,
+                        conditions_b=conditions_b,
+                        value_a=value_a,
+                        value_b=value_b,
+                    )
+                )
 
     return records
 

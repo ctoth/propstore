@@ -1,4 +1,5 @@
 """Worldline display CLI commands."""
+
 from __future__ import annotations
 
 import click
@@ -32,7 +33,9 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     """Show a worldline's results."""
     repo: Repository = obj["repo"]
     try:
-        report = show_worldline(repo, WorldlineShowRequest(name=name, check_staleness=check))
+        report = show_worldline(
+            repo, WorldlineShowRequest(name=name, check_staleness=check)
+        )
     except WorldlineNotFoundError:
         fail(f"Worldline '{name}' not found")
     wl = report.definition
@@ -150,7 +153,9 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     emit(f"Comparing: {report.left_id} vs {report.right_id}")
 
     for difference in report.input_differences:
-        emit(f"  {difference.label}: {dict(difference.left)} vs {dict(difference.right)}")
+        emit(
+            f"  {difference.label}: {dict(difference.left)} vs {dict(difference.right)}"
+        )
 
     for difference in report.value_differences:
         emit(
@@ -165,4 +170,6 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     if report.only_left_dependencies:
         emit(f"  Only in {report.left_id}: {', '.join(report.only_left_dependencies)}")
     if report.only_right_dependencies:
-        emit(f"  Only in {report.right_id}: {', '.join(report.only_right_dependencies)}")
+        emit(
+            f"  Only in {report.right_id}: {', '.join(report.only_right_dependencies)}"
+        )

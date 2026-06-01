@@ -143,10 +143,7 @@ def translate_to_theory(
         schema_rule = gunray.Rule(
             id=rule_doc.id,
             head=_stringify_atom(rule_doc.head),
-            body=tuple(
-                _stringify_body_literal(literal)
-                for literal in rule_doc.body
-            ),
+            body=tuple(_stringify_body_literal(literal) for literal in rule_doc.body),
         )
         if rule_doc.kind == "strict":
             strict_rules.append(schema_rule)
@@ -218,13 +215,11 @@ def _normalise_superiority(
         if missing:
             missing_list = ", ".join(sorted(missing))
             raise ValueError(
-                "superiority references unknown or strict rule id(s): "
-                f"{missing_list}"
+                f"superiority references unknown or strict rule id(s): {missing_list}"
             )
 
     closed = strict_partial_order_closure(
-        (inferior, superior)
-        for superior, inferior in authored_pairs
+        (inferior, superior) for superior, inferior in authored_pairs
     )
     return tuple(
         (stronger, weaker)
@@ -315,16 +310,12 @@ def _stringify_term(term: TermDocument) -> str:
 
     if term.kind == "var":
         if term.name is None:
-            raise ValueError(
-                "variable TermDocument is missing its 'name' field"
-            )
+            raise ValueError("variable TermDocument is missing its 'name' field")
         return term.name
 
     # term.kind == "const"
     if term.value is None:
-        raise ValueError(
-            "constant TermDocument is missing its 'value' field"
-        )
+        raise ValueError("constant TermDocument is missing its 'value' field")
 
     value = term.value
     if isinstance(value, bool):

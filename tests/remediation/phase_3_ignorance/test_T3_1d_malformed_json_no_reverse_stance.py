@@ -37,4 +37,7 @@ def test_malformed_json_produces_independent_directional_errors() -> None:
     assert len(results) == 2
     assert [result["target"] for result in results] == ["claim-b", "claim-a"]
     assert [result["type"] for result in results] == ["error", "error"]
-    assert results[0]["resolution"]["llm_call_id"] != results[1]["resolution"]["llm_call_id"]
+    assert (
+        results[0]["resolution"]["llm_call_id"]
+        != results[1]["resolution"]["llm_call_id"]
+    )

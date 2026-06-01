@@ -14,7 +14,10 @@ import math
 import pytest
 
 from argumentation.dung import ArgumentationFramework, grounded_extension
-from argumentation.probabilistic import ProbabilisticAF, compute_probabilistic_acceptance
+from argumentation.probabilistic import (
+    ProbabilisticAF,
+    compute_probabilistic_acceptance,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -52,9 +55,7 @@ class TestTreewidthEstimation:
         """Empty graph has treewidth 0."""
         from argumentation.probabilistic_treedecomp import estimate_treewidth
 
-        af = ArgumentationFramework(
-            arguments=frozenset(), defeats=frozenset()
-        )
+        af = ArgumentationFramework(arguments=frozenset(), defeats=frozenset())
         assert estimate_treewidth(af) == 0
 
     # ---------------------------------------------------------------
@@ -183,9 +184,7 @@ class TestNiceTreeDecomposition:
         bags = [node.bag for node in ntd.nodes.values()]
         for src, tgt in af.defeats:
             found = any(src in bag and tgt in bag for bag in bags)
-            assert found, (
-                f"Edge ({src}, {tgt}) not covered by any bag"
-            )
+            assert found, f"Edge ({src}, {tgt}) not covered by any bag"
 
     def test_compute_tree_decomposition_rejects_disconnected_framework(self):
         """Public TD construction must not silently return a disconnected forest."""
@@ -201,7 +200,10 @@ class TestNiceTreeDecomposition:
 
     def test_validate_tree_decomposition_rejects_running_intersection_violation(self):
         """Validator must catch bags containing the same vertex in disconnected regions."""
-        from argumentation.probabilistic_treedecomp import TreeDecomposition, validate_tree_decomposition
+        from argumentation.probabilistic_treedecomp import (
+            TreeDecomposition,
+            validate_tree_decomposition,
+        )
 
         af = ArgumentationFramework(
             arguments=frozenset({"a", "b", "c"}),
@@ -235,14 +237,16 @@ class TestNiceTreeDecomposition:
 
         af = ArgumentationFramework(
             arguments=frozenset({"0", "1", "2", "3"}),
-            defeats=frozenset({
-                ("0", "0"),
-                ("0", "3"),
-                ("1", "1"),
-                ("1", "2"),
-                ("1", "3"),
-                ("2", "2"),
-            }),
+            defeats=frozenset(
+                {
+                    ("0", "0"),
+                    ("0", "3"),
+                    ("1", "1"),
+                    ("1", "2"),
+                    ("1", "3"),
+                    ("2", "2"),
+                }
+            ),
         )
 
         td = compute_tree_decomposition(af)
@@ -346,7 +350,9 @@ class TestDPAgreesBruteForce:
             {("a", "b"), ("b", "c"), ("c", "a")},
             p_defeat=0.6,
         )
-        with pytest.raises(ValueError, match="exact_dp only supports grounded semantics"):
+        with pytest.raises(
+            ValueError, match="exact_dp only supports grounded semantics"
+        ):
             self._cross_validate(praf, semantics="complete")
 
     def test_preferred_semantics(self):
@@ -356,7 +362,9 @@ class TestDPAgreesBruteForce:
             {("a", "b"), ("b", "c"), ("c", "a")},
             p_defeat=0.6,
         )
-        with pytest.raises(ValueError, match="exact_dp only supports grounded semantics"):
+        with pytest.raises(
+            ValueError, match="exact_dp only supports grounded semantics"
+        ):
             self._cross_validate(praf, semantics="preferred")
 
     def test_review_counterexample_matches_exact_enumeration(self):
@@ -578,7 +586,7 @@ class TestHybridDispatch:
 
         # Build a path graph with 20 nodes (treewidth 1)
         args = {f"a{i}" for i in range(20)}
-        defeats = {(f"a{i}", f"a{i+1}") for i in range(19)}
+        defeats = {(f"a{i}", f"a{i + 1}") for i in range(19)}
         praf = _make_praf(args, defeats, p_defeat=0.7)
 
         result = compute_probabilistic_acceptance(
@@ -631,7 +639,9 @@ class TestDPSemantics:
         gr_result = compute_probabilistic_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
-        with pytest.raises(ValueError, match="exact_dp only supports grounded semantics"):
+        with pytest.raises(
+            ValueError, match="exact_dp only supports grounded semantics"
+        ):
             compute_probabilistic_acceptance(
                 praf, semantics="preferred", strategy="exact_dp"
             )
@@ -643,7 +653,10 @@ class TestDPSemantics:
             praf, semantics="grounded", strategy="exact_enum"
         )
         for arg in praf.framework.arguments:
-            assert abs(gr_result.acceptance_probs[arg] - bf_gr.acceptance_probs[arg]) < 1e-6
+            assert (
+                abs(gr_result.acceptance_probs[arg] - bf_gr.acceptance_probs[arg])
+                < 1e-6
+            )
 
 
 # ===================================================================
@@ -795,4 +808,3 @@ class TestWitnessMechanism:
                         f"Topology {topo_name}, P_D={pd}, arg={arg}: "
                         f"DP={dp_p:.12f}, BF={bf_p:.12f}"
                     )
-

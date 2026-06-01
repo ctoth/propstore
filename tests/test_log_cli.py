@@ -15,7 +15,11 @@ from propstore.app.repository_history import (
 from propstore.repository import Repository
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
-from tests.conftest import make_test_context_commit_entry, normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import (
+    make_test_context_commit_entry,
+    normalize_claims_payload,
+    normalize_concept_payloads,
+)
 
 
 def _concept_payload(
@@ -43,7 +47,9 @@ def test_log_output(tmp_path: Path) -> None:
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
 
-    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    package_forms = (
+        Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    )
 
     git = repo.git
     assert git is not None
@@ -95,7 +101,9 @@ def test_log_branch_output(tmp_path: Path) -> None:
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["-C", str(root), "log", "--branch", "agent/demo", "-n", "1"])
+    result = runner.invoke(
+        cli, ["-C", str(root), "log", "--branch", "agent/demo", "-n", "1"]
+    )
     assert result.exit_code == 0, result.output
     assert "[agent/demo]" in result.output
     assert "concept.add" in result.output
@@ -140,7 +148,9 @@ def test_log_yaml_output(tmp_path: Path) -> None:
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["-C", str(root), "log", "-n", "1", "--format", "yaml", "--show-files"])
+    result = runner.invoke(
+        cli, ["-C", str(root), "log", "-n", "1", "--format", "yaml", "--show-files"]
+    )
     assert result.exit_code == 0, result.output
 
     payload = yaml.safe_load(result.output)
@@ -209,7 +219,9 @@ def test_log_merge_summary_output(tmp_path: Path) -> None:
     git = repo.git
     assert git is not None
 
-    base_sha = git.commit_files({"concepts/base.yaml": b"canonical_name: base\n"}, "seed")
+    base_sha = git.commit_files(
+        {"concepts/base.yaml": b"canonical_name: base\n"}, "seed"
+    )
     git.create_branch("agent/demo", source_commit=base_sha)
     git.commit_files(
         {"concepts/agent_demo.yaml": b"canonical_name: agent_demo\n"},
@@ -227,7 +239,9 @@ def test_log_merge_summary_output(tmp_path: Path) -> None:
     assert "merge: master + agent/demo;" in text_result.output
     assert "semantic_candidates=0" in text_result.output
 
-    yaml_result = runner.invoke(cli, ["-C", str(root), "log", "-n", "1", "--format", "yaml"])
+    yaml_result = runner.invoke(
+        cli, ["-C", str(root), "log", "-n", "1", "--format", "yaml"]
+    )
     assert yaml_result.exit_code == 0, yaml_result.output
     payload = yaml.safe_load(yaml_result.output)
     entry = payload["entries"][0]

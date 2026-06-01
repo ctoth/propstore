@@ -100,9 +100,7 @@ def condition_ir_from_json(payload: Mapping[str, Any]) -> ConditionIR:
             source_name=_required_str(payload, "source_name"),
             value_kind=_value_kind(payload.get("value_kind")),
             span=_span_from_json(payload.get("span")),
-            category_values=tuple(
-                _string_sequence(payload.get("category_values", ()))
-            ),
+            category_values=tuple(_string_sequence(payload.get("category_values", ()))),
             category_extensible=(
                 None
                 if "category_extensible" not in payload

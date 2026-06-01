@@ -56,14 +56,16 @@ def write_test_context(knowledge_root, context_id: str = TEST_CONTEXT_ID) -> Non
     )
 
 
-def make_test_context_commit_entry(context_id: str = TEST_CONTEXT_ID) -> tuple[str, bytes]:
+def make_test_context_commit_entry(
+    context_id: str = TEST_CONTEXT_ID,
+) -> tuple[str, bytes]:
     import yaml
 
     return (
         f"contexts/{context_id}.yaml",
-        yaml.dump({"id": context_id, "name": "Test context"}, default_flow_style=False).encode(
-            "utf-8"
-        ),
+        yaml.dump(
+            {"id": context_id, "name": "Test context"}, default_flow_style=False
+        ).encode("utf-8"),
     )
 
 
@@ -128,7 +130,9 @@ def make_concept_identity(
     primary_value = normalize_logical_value(canonical_name or local_id)
     logical_ids = [{"namespace": primary_namespace, "value": primary_value}]
     if local_id != primary_value or primary_namespace != "propstore":
-        logical_ids.append({"namespace": "propstore", "value": normalize_logical_value(local_id)})
+        logical_ids.append(
+            {"namespace": "propstore", "value": normalize_logical_value(local_id)}
+        )
     return {
         "artifact_id": derive_concept_artifact_id("propstore", local_id),
         "logical_ids": logical_ids,
@@ -152,7 +156,9 @@ def concept_artifact_to_record_payload(concept: dict) -> dict:
     return concept_document_to_record_payload(document)
 
 
-def normalize_claims_payload(data: dict, *, default_namespace: str | None = None) -> dict:
+def normalize_claims_payload(
+    data: dict, *, default_namespace: str | None = None
+) -> dict:
     """Return a claim-file payload with deterministic claim identities."""
     normalized_data = dict(data)
     source = normalized_data.get("source")
@@ -209,11 +215,17 @@ def _normalize_claim_concept_fields(claim: dict) -> None:
     singular_concept = claim.pop("concept", None)
     if singular_concept is not None:
         if claim_type in {"parameter", "algorithm"}:
-            claim.setdefault("output_concept", _canonical_concept_ref(str(singular_concept)))
+            claim.setdefault(
+                "output_concept", _canonical_concept_ref(str(singular_concept))
+            )
         elif claim_type == "measurement":
-            claim.setdefault("target_concept", _canonical_concept_ref(str(singular_concept)))
+            claim.setdefault(
+                "target_concept", _canonical_concept_ref(str(singular_concept))
+            )
         else:
-            claim.setdefault("concepts", [_canonical_concept_ref(str(singular_concept))])
+            claim.setdefault(
+                "concepts", [_canonical_concept_ref(str(singular_concept))]
+            )
 
     output_concept = claim.get("output_concept")
     if isinstance(output_concept, str):
@@ -270,7 +282,9 @@ def normalize_concept_payloads(
         rewritten = deepcopy(concept)
         replaced_by = rewritten.get("replaced_by")
         if isinstance(replaced_by, str):
-            rewritten["replaced_by"] = raw_to_artifact.get(replaced_by, _rewrite_concept_ref(replaced_by))
+            rewritten["replaced_by"] = raw_to_artifact.get(
+                replaced_by, _rewrite_concept_ref(replaced_by)
+            )
 
         relationships = rewritten.get("relationships")
         if isinstance(relationships, list):
@@ -282,7 +296,9 @@ def normalize_concept_payloads(
                 rel_copy = dict(rel)
                 target = rel_copy.get("target")
                 if isinstance(target, str):
-                    rel_copy["target"] = raw_to_artifact.get(target, _rewrite_concept_ref(target))
+                    rel_copy["target"] = raw_to_artifact.get(
+                        target, _rewrite_concept_ref(target)
+                    )
                 rewritten_relationships.append(rel_copy)
             rewritten["relationships"] = rewritten_relationships
 
@@ -297,7 +313,9 @@ def normalize_concept_payloads(
                 inputs = param_copy.get("inputs")
                 if isinstance(inputs, list):
                     param_copy["inputs"] = [
-                        raw_to_artifact.get(str(input_id), _rewrite_concept_ref(input_id))
+                        raw_to_artifact.get(
+                            str(input_id), _rewrite_concept_ref(input_id)
+                        )
                         for input_id in inputs
                     ]
                 rewritten_params.append(param_copy)
@@ -564,7 +582,9 @@ def insert_conflict(
     )
 
 
-def make_parameter_claim(id, concept_id, value, unit="Hz", *, page=1, paper="test_paper", **kwargs):
+def make_parameter_claim(
+    id, concept_id, value, unit="Hz", *, page=1, paper="test_paper", **kwargs
+):
     """Build a minimal parameter claim dict for testing.
 
     Supports keyword-only extras via **kwargs (e.g. notes, conditions).
@@ -587,44 +607,49 @@ def make_concept_registry():
 
     Returns 3 concepts covering frequency, pressure, and category forms.
     """
-    concept_artifacts = normalize_concept_payloads([
-        {
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "form": "frequency",
-            "status": "accepted",
-            "definition": "F0",
-            "domain": "speech",
-        },
-        {
-            "id": "concept2",
-            "canonical_name": "subglottal_pressure",
-            "form": "pressure",
-            "status": "accepted",
-            "definition": "Ps",
-            "domain": "speech",
-        },
-        {
-            "id": "concept3",
-            "canonical_name": "task",
-            "form": "category",
-            "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True},
-            "status": "accepted",
-            "definition": "Task type",
-            "domain": "speech",
-        },
-        {
-            "id": "concept4",
-            "canonical_name": "hazard_ratio",
-            "form": "ratio",
-            "status": "accepted",
-            "definition": "Ratio of hazard rates",
-            "domain": "speech",
-        },
-    ], default_domain="speech")
+    concept_artifacts = normalize_concept_payloads(
+        [
+            {
+                "id": "concept1",
+                "canonical_name": "fundamental_frequency",
+                "form": "frequency",
+                "status": "accepted",
+                "definition": "F0",
+                "domain": "speech",
+            },
+            {
+                "id": "concept2",
+                "canonical_name": "subglottal_pressure",
+                "form": "pressure",
+                "status": "accepted",
+                "definition": "Ps",
+                "domain": "speech",
+            },
+            {
+                "id": "concept3",
+                "canonical_name": "task",
+                "form": "category",
+                "form_parameters": {
+                    "values": ["speech", "singing", "whisper"],
+                    "extensible": True,
+                },
+                "status": "accepted",
+                "definition": "Task type",
+                "domain": "speech",
+            },
+            {
+                "id": "concept4",
+                "canonical_name": "hazard_ratio",
+                "form": "ratio",
+                "status": "accepted",
+                "definition": "Ratio of hazard rates",
+                "domain": "speech",
+            },
+        ],
+        default_domain="speech",
+    )
     concepts = [
-        concept_artifact_to_record_payload(concept)
-        for concept in concept_artifacts
+        concept_artifact_to_record_payload(concept) for concept in concept_artifacts
     ]
     registry: dict[str, dict] = {}
     form_definitions = {
@@ -668,10 +693,18 @@ def make_concept_registry():
     return registry
 
 
-def make_compilation_context(registry: dict[str, dict] | None = None, *, claim_files=None, context_ids=None):
+def make_compilation_context(
+    registry: dict[str, dict] | None = None, *, claim_files=None, context_ids=None
+):
     from propstore.cel_registry import build_canonical_cel_registry
-    from propstore.compiler.context import CompilationContext, build_compiler_claim_index
-    from propstore.families.concepts.stages import concept_reference_keys, parse_concept_record
+    from propstore.compiler.context import (
+        CompilationContext,
+        build_compiler_claim_index,
+    )
+    from propstore.families.concepts.stages import (
+        concept_reference_keys,
+        parse_concept_record,
+    )
 
     source_registry = make_concept_registry() if registry is None else registry
     concepts_by_id = {}
@@ -703,7 +736,9 @@ def make_compilation_context(registry: dict[str, dict] | None = None, *, claim_f
             if claim_files is None
             else build_compiler_claim_index(list(claim_files))
         ),
-        cel_registry=MappingProxyType(dict(build_canonical_cel_registry(concepts_by_id.values()))),
+        cel_registry=MappingProxyType(
+            dict(build_canonical_cel_registry(concepts_by_id.values()))
+        ),
     )
 
 

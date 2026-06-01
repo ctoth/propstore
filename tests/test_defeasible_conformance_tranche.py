@@ -102,7 +102,9 @@ def _load_resource_cases(resource_path: str) -> list[SuiteCase]:
             )
             for index, entry in enumerate(entries)
         ]
-    return [_case_from_json_payload(raw, source=resource_path, tags=[], path=resource_path)]
+    return [
+        _case_from_json_payload(raw, source=resource_path, tags=[], path=resource_path)
+    ]
 
 
 def _case_from_json_payload(
@@ -118,11 +120,7 @@ def _case_from_json_payload(
         if "theory" in data
         else None
     )
-    expect = (
-        _sections(data["expect"], f"{path}.expect")
-        if "expect" in data
-        else None
-    )
+    expect = _sections(data["expect"], f"{path}.expect") if "expect" in data else None
     expect_per_policy = None
     if "expect_per_policy" in data:
         policy_map = _mapping(data["expect_per_policy"], f"{path}.expect_per_policy")
@@ -171,8 +169,12 @@ def _theory_from_json_payload(raw: object, path: str) -> SuiteTheory:
 def _rules(raw: object, path: str) -> list[SuiteRule]:
     return [
         SuiteRule(
-            id=_required_string(_mapping(item, f"{path}[{index}]"), "id", f"{path}[{index}]"),
-            head=_required_string(_mapping(item, f"{path}[{index}]"), "head", f"{path}[{index}]"),
+            id=_required_string(
+                _mapping(item, f"{path}[{index}]"), "id", f"{path}[{index}]"
+            ),
+            head=_required_string(
+                _mapping(item, f"{path}[{index}]"), "head", f"{path}[{index}]"
+            ),
             body=_string_list(_mapping(item, f"{path}[{index}]").get("body", [])),
         )
         for index, item in enumerate(_sequence(raw, path))
@@ -205,7 +207,9 @@ def _predicate_facts(raw: object, path: str) -> PredicateFacts:
         for index, row in enumerate(_sequence(rows, f"{path}.{predicate}")):
             values = _sequence(row, f"{path}.{predicate}[{index}]")
             if not all(isinstance(value, str | int | float | bool) for value in values):
-                raise AssertionError(f"{path}.{predicate}[{index}] must contain scalars")
+                raise AssertionError(
+                    f"{path}.{predicate}[{index}] must contain scalars"
+                )
             row_values.append(tuple(cast(Scalar, value) for value in values))
         result[str(predicate)] = row_values
     return result
@@ -240,7 +244,9 @@ def _required_string(data: dict[object, object], key: str, path: str) -> str:
 
 
 def _selected_cases(case_ids: tuple[str, ...]) -> list[tuple[Path, SuiteCase]]:
-    resource_paths = sorted({case_id.split("::", 1)[0] + ".yaml" for case_id in case_ids})
+    resource_paths = sorted(
+        {case_id.split("::", 1)[0] + ".yaml" for case_id in case_ids}
+    )
     cases_by_id = {
         _case_id(resource_path, case): (Path(resource_path), case)
         for resource_path in resource_paths
@@ -291,7 +297,9 @@ def _run_suite_case(evaluator: object, case: SuiteCase) -> None:
                 actual_model = evaluate(case.theory, ClosurePolicy(policy_name))
             else:
                 actual_model = evaluate(case.theory, MarkingPolicy(policy_name))
-            _assert_sections(case.name, expected, _extract_sections(actual_model), policy_name)
+            _assert_sections(
+                case.name, expected, _extract_sections(actual_model), policy_name
+            )
         return
 
     if case.expect is None:
@@ -345,7 +353,9 @@ def _build_term_document(term: Variable | Constant):
         return TermDocument(kind="var", name=term.name, value=None)
     if isinstance(term, Constant):
         return TermDocument(kind="const", name=None, value=term.value)
-    raise TypeError(f"Unsupported Gunray term for translator tranche: {type(term).__name__}")
+    raise TypeError(
+        f"Unsupported Gunray term for translator tranche: {type(term).__name__}"
+    )
 
 
 def _build_atom_document(atom_text: str):
@@ -382,7 +392,10 @@ def _build_rule_documents(theory: SuiteTheory):
 
     rule_documents = [
         *(_build_rule_document(rule, kind="strict") for rule in theory.strict_rules),
-        *(_build_rule_document(rule, kind="defeasible") for rule in theory.defeasible_rules),
+        *(
+            _build_rule_document(rule, kind="defeasible")
+            for rule in theory.defeasible_rules
+        ),
         *(
             _build_rule_document(rule, kind="proper_defeater")
             for rule in theory.defeaters
@@ -448,7 +461,9 @@ def _build_registry(theory: SuiteTheory):
     )
 
 
-def _evaluate_translated_suite_theory(case: SuiteCase, *, policy_name: str | None = None) -> object:
+def _evaluate_translated_suite_theory(
+    case: SuiteCase, *, policy_name: str | None = None
+) -> object:
     from propstore.grounding.translator import translate_to_theory
 
     assert case.theory is not None
@@ -489,15 +504,20 @@ def test_propstore_translation_matches_curated_suite_cases(
 
     if case.expect_per_policy is not None:
         for policy_name, expected in case.expect_per_policy.items():
-            actual_model = _evaluate_translated_suite_theory(case, policy_name=policy_name)
+            actual_model = _evaluate_translated_suite_theory(
+                case, policy_name=policy_name
+            )
             sections = getattr(actual_model, "sections", None)
             if not isinstance(sections, dict):
-                raise AssertionError("Gunray evaluator did not return defeasible sections")
+                raise AssertionError(
+                    "Gunray evaluator did not return defeasible sections"
+                )
             for section_name, predicates in expected.items():
                 assert section_name in sections
                 for predicate, rows in predicates.items():
                     actual_rows = {
-                        tuple(row) for row in sections[section_name].get(predicate, set())
+                        tuple(row)
+                        for row in sections[section_name].get(predicate, set())
                     }
                     assert actual_rows == set(rows)
         return

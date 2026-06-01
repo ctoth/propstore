@@ -107,6 +107,7 @@ def world_extensions(
     """Compute argumentation extension reports for a bound world."""
 
     from propstore.relation_analysis import stance_summary
+
     with open_app_world_model(repo) as world:
         bound = bind_world(world, request.bindings, context_id=request.context)
         active = tuple(bound.active_claims())
@@ -251,9 +252,7 @@ def _praf_extensions(
         rng_seed=request.praf_seed,
     )
     acceptance_probs = (
-        {}
-        if praf_result.acceptance_probs is None
-        else praf_result.acceptance_probs
+        {} if praf_result.acceptance_probs is None else praf_result.acceptance_probs
     )
     return WorldExtensionsReport(
         backend="praf",

@@ -38,8 +38,8 @@ def test_blocked_claim_html_is_accessible_error_not_redacted_page(tmp_path) -> N
     html = response.text
     assert "<title>Not Found - propstore</title>" in html
     assert html.count("<h1") == 1
-    assert "<h1 id=\"error-heading\">Not Found</h1>" in html
-    assert "<main aria-labelledby=\"error-heading\">" in html
+    assert '<h1 id="error-heading">Not Found</h1>' in html
+    assert '<main aria-labelledby="error-heading">' in html
     assert "/claims" in html
     assert "/concepts" in html
     assert fixture.focus_claim_id not in html

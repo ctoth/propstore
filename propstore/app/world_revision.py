@@ -8,7 +8,12 @@ from dataclasses import dataclass
 from propstore.app.world import open_app_world_model
 from propstore.repository import Repository
 from propstore.support_revision.snapshot_types import belief_base_to_canonical_dict
-from propstore.support_revision.state import BeliefAtom, RevisionEvent, is_assumption_atom, is_assertion_atom
+from propstore.support_revision.state import (
+    BeliefAtom,
+    RevisionEvent,
+    is_assumption_atom,
+    is_assertion_atom,
+)
 
 
 class WorldRevisionAppError(Exception):
@@ -85,7 +90,9 @@ def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
             atom_id=atom.atom_id,
             display_id=atom.atom_id,
             claim_type=None if claim is None else claim.type.value,
-            concept_id=None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id),
+            concept_id=None
+            if claim is None or claim.value_concept_id is None
+            else str(claim.value_concept_id),
             value=None if numeric_payload is None else numeric_payload.value,
             unit=None if numeric_payload is None else numeric_payload.unit,
         )
@@ -99,7 +106,9 @@ def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
 
 def revision_event_inspection_payload(event: RevisionEvent) -> dict[str, object]:
     decision_payload = None if event.decision is None else event.decision.to_dict()
-    realization_payload = None if event.realization is None else event.realization.to_dict()
+    realization_payload = (
+        None if event.realization is None else event.realization.to_dict()
+    )
     diagnostics = {
         "operation": event.operation,
         "replay_status": event.replay_status,
@@ -107,8 +116,12 @@ def revision_event_inspection_payload(event: RevisionEvent) -> dict[str, object]
     }
     if event.decision is not None:
         diagnostics["merge_operator"] = event.decision.trace.get("merge_operator")
-        diagnostics["selected_worlds_hash"] = event.decision.trace.get("selected_worlds_hash")
-        diagnostics["scored_worlds_hash"] = event.decision.trace.get("scored_worlds_hash")
+        diagnostics["selected_worlds_hash"] = event.decision.trace.get(
+            "selected_worlds_hash"
+        )
+        diagnostics["scored_worlds_hash"] = event.decision.trace.get(
+            "scored_worlds_hash"
+        )
     return {
         "decision": decision_payload,
         "realization": realization_payload,
@@ -125,7 +138,9 @@ def world_revision_base(repo: Repository, request: AppRevisionWorldRequest):
         return revision_base(world, _lower_request(request))
 
 
-def world_revision_base_payload(repo: Repository, request: AppRevisionWorldRequest) -> dict[str, object]:
+def world_revision_base_payload(
+    repo: Repository, request: AppRevisionWorldRequest
+) -> dict[str, object]:
     return belief_base_to_canonical_dict(world_revision_base(repo, request))
 
 
@@ -147,7 +162,9 @@ def world_revision_contract(repo: Repository, request: AppRevisionContractReques
     from propstore.support_revision.workflows import contract_revision
 
     with open_app_world_model(repo) as world:
-        return contract_revision(world, _lower_request(request.world), tuple(request.targets))
+        return contract_revision(
+            world, _lower_request(request.world), tuple(request.targets)
+        )
 
 
 def world_revision_revise(repo: Repository, request: AppRevisionReviseRequest):
@@ -166,17 +183,11 @@ def world_revision_explain(repo: Repository, request: AppRevisionExplainRequest)
     from propstore.support_revision.workflows import explain_revision_operation
 
     if request.operation == "expand" and request.atom is None:
-        raise WorldRevisionValidationError(
-            "revision atom is required for expand"
-        )
+        raise WorldRevisionValidationError("revision atom is required for expand")
     if request.operation == "contract" and not request.targets:
-        raise WorldRevisionValidationError(
-            "revision targets are required for contract"
-        )
+        raise WorldRevisionValidationError("revision targets are required for contract")
     if request.operation == "revise" and request.atom is None:
-        raise WorldRevisionValidationError(
-            "revision atom is required for revise"
-        )
+        raise WorldRevisionValidationError("revision atom is required for revise")
     with open_app_world_model(repo) as world:
         try:
             return explain_revision_operation(

@@ -251,7 +251,9 @@ def _check_logical(
     bool_compatible = {ExprType.BOOLEAN, ExprType.UNKNOWN}
     if left_type not in bool_compatible:
         errors.append(
-            CelError(expr, f"Left operand of '{op}' must be boolean, got {left_type.value}")
+            CelError(
+                expr, f"Left operand of '{op}' must be boolean, got {left_type.value}"
+            )
         )
     if right_type not in bool_compatible:
         errors.append(
@@ -271,8 +273,12 @@ def _check_arithmetic(
     left, right = node.args
     _resolve_type(left, expr, registry, errors)
     _resolve_type(right, expr, registry, errors)
-    _check_disallowed_kind_usage(left, expr, registry, errors, operation_class="arithmetic")
-    _check_disallowed_kind_usage(right, expr, registry, errors, operation_class="arithmetic")
+    _check_disallowed_kind_usage(
+        left, expr, registry, errors, operation_class="arithmetic"
+    )
+    _check_disallowed_kind_usage(
+        right, expr, registry, errors, operation_class="arithmetic"
+    )
     return ExprType.NUMERIC
 
 
@@ -331,7 +337,10 @@ def _check_in_call(
         info = registry.get(element.name)
         if info is not None and info.kind == KindType.CATEGORY:
             for val_node in values:
-                if isinstance(val_node, StringLit) and val_node.value not in info.category_values:
+                if (
+                    isinstance(val_node, StringLit)
+                    and val_node.value not in info.category_values
+                ):
                     if info.category_extensible:
                         errors.append(
                             CelError(
@@ -489,7 +498,10 @@ def _check_concept_literal_type_mismatch(
     if info is None:
         return False
 
-    if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT) and other_type == ExprType.STRING:
+    if (
+        info.kind in (KindType.QUANTITY, KindType.TIMEPOINT)
+        and other_type == ExprType.STRING
+    ):
         errors.append(
             CelError(
                 expr,
@@ -558,7 +570,9 @@ def _check_category_value(
 
 
 def _is_literal(node: Expr) -> bool:
-    return isinstance(node, (IntLit, UintLit, DoubleLit, StringLit, BytesLit, BoolLit, NullLit))
+    return isinstance(
+        node, (IntLit, UintLit, DoubleLit, StringLit, BytesLit, BoolLit, NullLit)
+    )
 
 
 _SHORT_OPS: dict[str, str] = {
@@ -681,7 +695,9 @@ def _collect_runtime_symbol_kinds(
             expected_kind=expected_kind,
         )
         return
-    if isinstance(node, (BoolLit, IntLit, UintLit, DoubleLit, StringLit, BytesLit, NullLit)):
+    if isinstance(
+        node, (BoolLit, IntLit, UintLit, DoubleLit, StringLit, BytesLit, NullLit)
+    ):
         return
     if not isinstance(node, Call) or node.target is not None:
         return
@@ -804,9 +820,7 @@ def _record_runtime_symbol_kind(
     )
     kind = binding_kind or expected_kind
     if kind is None:
-        raise ValueError(
-            f"Runtime condition symbol '{name}' has no inferable type"
-        )
+        raise ValueError(f"Runtime condition symbol '{name}' has no inferable type")
     existing = inferred.get(name)
     if existing is not None and existing != kind:
         raise ValueError(
@@ -855,7 +869,9 @@ def _literal_list_kind(nodes: list[Expr] | tuple[Expr, ...]) -> KindType | None:
         if kind is None:
             continue
         if inferred is not None and inferred != kind:
-            raise ValueError("Runtime condition membership list has mixed literal types")
+            raise ValueError(
+                "Runtime condition membership list has mixed literal types"
+            )
         inferred = kind
     return inferred
 
@@ -912,7 +928,9 @@ def _lower_node(
         )
     if isinstance(node, StringLit):
         if not allow_string_literal:
-            raise TypeError(f"bare string literal cannot form ConditionIR at {node.span}")
+            raise TypeError(
+                f"bare string literal cannot form ConditionIR at {node.span}"
+            )
         return ConditionLiteral(
             value=node.value,
             value_kind=ConditionValueKind.STRING,

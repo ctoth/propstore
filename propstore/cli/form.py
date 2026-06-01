@@ -1,4 +1,5 @@
 """pks form — subcommands for managing form definitions."""
+
 from __future__ import annotations
 
 import json
@@ -62,7 +63,9 @@ def _parse_dimensionless_option(raw: str | None) -> bool | None:
     raise click.ClickException("--dimensionless must be true or false")
 
 
-def _parse_common_alternatives_option(raw: str | None) -> tuple[FormAlternativeDocument, ...]:
+def _parse_common_alternatives_option(
+    raw: str | None,
+) -> tuple[FormAlternativeDocument, ...]:
     if raw is None:
         return ()
     try:
@@ -88,11 +91,21 @@ def _parse_common_alternatives_option(raw: str | None) -> tuple[FormAlternativeD
 
 # ── form list ────────────────────────────────────────────────────────
 
+
 @form.command("list")
-@click.option("--dims", "dims_filter", default=None,
-              help="Filter by dimensions (e.g. M:1,L:1,T:-2). Implies showing dims column.")
-@click.option("--show-dims", "show_dims_flag", is_flag=True, default=False,
-              help="Show dimensions column.")
+@click.option(
+    "--dims",
+    "dims_filter",
+    default=None,
+    help="Filter by dimensions (e.g. M:1,L:1,T:-2). Implies showing dims column.",
+)
+@click.option(
+    "--show-dims",
+    "show_dims_flag",
+    is_flag=True,
+    default=False,
+    help="Show dimensions column.",
+)
 @click.pass_obj
 def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None:
     """List all available forms.
@@ -119,7 +132,9 @@ def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None
 
 @form.command("search")
 @click.argument("query")
-@click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.option(
+    "--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show."
+)
 @click.pass_obj
 def search(obj: dict, query: str, limit: int) -> None:
     """Search forms by name, unit, QUDT, or base."""
@@ -138,6 +153,7 @@ def search(obj: dict, query: str, limit: int) -> None:
 
 
 # ── form show ────────────────────────────────────────────────────────
+
 
 @form.command()
 @click.argument("name")
@@ -165,9 +181,13 @@ def show(obj: dict, name: str) -> None:
             if conv.type == "multiplicative":
                 emit(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g})")
             elif conv.type == "affine":
-                emit(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g} + {conv.offset:g}, affine)")
+                emit(
+                    f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g} + {conv.offset:g}, affine)"
+                )
             elif conv.type == "logarithmic":
-                emit(f"  {conv.unit} \u2192 {si}  (logarithmic, ref={conv.reference:g})")
+                emit(
+                    f"  {conv.unit} \u2192 {si}  (logarithmic, ref={conv.reference:g})"
+                )
             else:
                 emit(f"  {conv.unit} \u2192 {si}  ({conv.type})")
 
@@ -179,10 +199,7 @@ def show(obj: dict, name: str) -> None:
         for entry in report.decompositions:
             emit(f"  - {name} = {' * '.join(entry.input_forms)}")
             if entry.source_formula:
-                emit(
-                    f"    from: {entry.source_formula} "
-                    f"({entry.source_concept_id})"
-                )
+                emit(f"    from: {entry.source_formula} ({entry.source_concept_id})")
     if report.uses:
         emit("used_in:")
         for entry in report.uses:
@@ -191,14 +208,29 @@ def show(obj: dict, name: str) -> None:
 
 # ── form add ─────────────────────────────────────────────────────────
 
+
 @form.command()
 @click.option("--name", required=True, help="Form name (lowercase, underscored)")
-@click.option("--unit", "unit_symbol", default=None, help="Primary unit symbol (e.g. Hz, Pa)")
+@click.option(
+    "--unit", "unit_symbol", default=None, help="Primary unit symbol (e.g. Hz, Pa)"
+)
 @click.option("--qudt", default=None, help="QUDT IRI (e.g. qudt:HZ)")
 @click.option("--base", default=None, help="Base type (e.g. ratio)")
-@click.option("--dimensions", default=None, help="JSON dict of SI dimension exponents, e.g. '{\"T\": -1}'")
-@click.option("--dimensionless", default=None, help="Whether the form is dimensionless (true/false)")
-@click.option("--common-alternatives", default=None, help="JSON array of alternative unit conversions")
+@click.option(
+    "--dimensions",
+    default=None,
+    help="JSON dict of SI dimension exponents, e.g. '{\"T\": -1}'",
+)
+@click.option(
+    "--dimensionless",
+    default=None,
+    help="Whether the form is dimensionless (true/false)",
+)
+@click.option(
+    "--common-alternatives",
+    default=None,
+    help="JSON array of alternative unit conversions",
+)
 @click.option("--note", default=None, help="Human-readable note about this form")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 @click.pass_obj
@@ -241,9 +273,12 @@ def add(
 
 # ── form remove ──────────────────────────────────────────────────────
 
+
 @form.command()
 @click.argument("name")
-@click.option("--force", is_flag=True, help="Remove even if concepts reference this form")
+@click.option(
+    "--force", is_flag=True, help="Remove even if concepts reference this form"
+)
 @click.option("--dry-run", is_flag=True)
 @click.pass_obj
 def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
@@ -267,10 +302,13 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
 
     emit_success(f"Removed {report.path}")
     if report.references:
-        emit(f"  WARNING: {len(report.references)} concept(s) still reference this form")
+        emit(
+            f"  WARNING: {len(report.references)} concept(s) still reference this form"
+        )
 
 
 # ── form validate ────────────────────────────────────────────────────
+
 
 @form.command()
 @click.argument("name", required=False)

@@ -169,7 +169,7 @@ def test_claim_route_maps_unknown_claim_to_accessible_error(
     json_response = client.get("/claim/missing.json")
 
     assert html_response.status_code == 404
-    assert "<h1 id=\"error-heading\">Claim Not Found</h1>" in html_response.text
+    assert '<h1 id="error-heading">Claim Not Found</h1>' in html_response.text
     assert "Claim 'missing' not found." in unescape(html_response.text)
     assert json_response.status_code == 404
     assert json_response.json()["error"]["title"] == "Claim Not Found"
@@ -191,4 +191,7 @@ def test_claim_route_rejects_unsupported_repository_view(
 
     assert response.status_code == 400
     assert response.json()["error"]["title"] == "Unsupported Repository State"
-    assert response.json()["error"]["message"] == "branch-qualified views are not implemented"
+    assert (
+        response.json()["error"]["message"]
+        == "branch-qualified views are not implemented"
+    )

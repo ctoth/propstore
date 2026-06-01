@@ -17,7 +17,9 @@ def _assertion_id(value: AssertionId, field_name: str) -> AssertionId:
     return AssertionId(rendered)
 
 
-def _assertion_ids(values: tuple[AssertionId, ...], field_name: str) -> tuple[AssertionId, ...]:
+def _assertion_ids(
+    values: tuple[AssertionId, ...], field_name: str
+) -> tuple[AssertionId, ...]:
     return tuple(_assertion_id(value, field_name) for value in values)
 
 
@@ -35,7 +37,9 @@ class BaseRateProfile:
 
     def __post_init__(self) -> None:
         if self.value <= 0.0 or self.value >= 1.0:
-            raise ValueError("BaseRateProfile.value must be in the open interval (0, 1)")
+            raise ValueError(
+                "BaseRateProfile.value must be in the open interval (0, 1)"
+            )
         if self.stratum < 0:
             raise ValueError("BaseRateProfile.stratum must be non-negative")
         object.__setattr__(
@@ -78,7 +82,9 @@ class BaseRateAssertionRecord:
         if not self.concept:
             raise ValueError("concept is required")
         if self.value <= 0.0 or self.value >= 1.0:
-            raise ValueError("BaseRateAssertionRecord.value must be in the open interval (0, 1)")
+            raise ValueError(
+                "BaseRateAssertionRecord.value must be in the open interval (0, 1)"
+            )
         if self.unit != "proportion":
             raise ValueError("base-rate assertion unit must be 'proportion'")
 
@@ -181,12 +187,16 @@ class BaseRateResolver:
         by_target: dict[AssertionId, BaseRateProfile] = {}
         for profile in profiles:
             if profile.target_assertion_id in by_target:
-                raise ValueError(f"duplicate base-rate profile for {profile.target_assertion_id}")
+                raise ValueError(
+                    f"duplicate base-rate profile for {profile.target_assertion_id}"
+                )
             by_target[profile.target_assertion_id] = profile
         object.__setattr__(self, "profiles", tuple(profiles))
         object.__setattr__(self, "_by_target", by_target)
 
-    def resolve(self, assertion_id: AssertionId) -> BaseRateResolved | BaseRateUnresolved:
+    def resolve(
+        self, assertion_id: AssertionId
+    ) -> BaseRateResolved | BaseRateUnresolved:
         assertion = _assertion_id(assertion_id, "assertion_id")
         return self._resolve(assertion, seen=frozenset())
 

@@ -31,9 +31,9 @@ def test_wbf_base_rate_is_confidence_weighted_without_clamp(pair) -> None:
 
     fused = Opinion.wbf(left, right)
     reversed_fused = Opinion.wbf(right, left)
-    expected_a = (
-        left.a * (1.0 - left.u) + right.a * (1.0 - right.u)
-    ) / ((1.0 - left.u) + (1.0 - right.u))
+    expected_a = (left.a * (1.0 - left.u) + right.a * (1.0 - right.u)) / (
+        (1.0 - left.u) + (1.0 - right.u)
+    )
 
     assert fused.b + fused.d + fused.u == pytest.approx(1.0, abs=1e-9)
     assert 0.0 <= fused.b <= 1.0

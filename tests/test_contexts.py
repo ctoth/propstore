@@ -14,7 +14,11 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from sqlalchemy import select
 
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.contexts.declaration import ContextDocument
 from propstore.core.conditions.registry import synthetic_category_concept
@@ -150,7 +154,21 @@ def insert_claim_row(
             notes, description, auto_summary
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (claim_id, conditions_cel, None, None, None, None, None, None, None, None, None, None, None),
+        (
+            claim_id,
+            conditions_cel,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ),
     )
     conn.execute(
         "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) VALUES (?, ?, ?, ?, ?)",
@@ -175,7 +193,9 @@ class TestLoadAndValidateContexts:
 
     def test_validate_structured_context_and_lifting_rule(self, tmp_path: Path) -> None:
         contexts = [
-            loaded_context("source", tmp_path / "source.yaml", make_context("ctx_source", "Source")),
+            loaded_context(
+                "source", tmp_path / "source.yaml", make_context("ctx_source", "Source")
+            ),
             loaded_context(
                 "target",
                 tmp_path / "target.yaml",
@@ -185,14 +205,16 @@ class TestLoadAndValidateContexts:
                     assumptions=["framework == 'target'"],
                     parameters={"domain": "speech"},
                     perspective="experiment",
-                    lifting_rules=[{
-                        "id": "lift-source-target",
-                        "source": "ctx_source",
-                        "target": "ctx_target",
-                        "conditions": ["variant == 'controlled'"],
-                        "mode": "bridge",
-                        "justification": "Guha bridge rule",
-                    }],
+                    lifting_rules=[
+                        {
+                            "id": "lift-source-target",
+                            "source": "ctx_source",
+                            "target": "ctx_target",
+                            "conditions": ["variant == 'controlled'"],
+                            "mode": "bridge",
+                            "justification": "Guha bridge rule",
+                        }
+                    ],
                 ),
             ),
         ]
@@ -201,7 +223,9 @@ class TestLoadAndValidateContexts:
 
         assert result.ok, tuple(error.render() for error in result.errors)
 
-    def test_lifting_rule_must_reference_existing_contexts(self, tmp_path: Path) -> None:
+    def test_lifting_rule_must_reference_existing_contexts(
+        self, tmp_path: Path
+    ) -> None:
         contexts = [
             loaded_context(
                 "target",
@@ -209,11 +233,13 @@ class TestLoadAndValidateContexts:
                 make_context(
                     "ctx_target",
                     "Target",
-                    lifting_rules=[{
-                        "id": "lift-missing-target",
-                        "source": "ctx_missing",
-                        "target": "ctx_target",
-                    }],
+                    lifting_rules=[
+                        {
+                            "id": "lift-missing-target",
+                            "source": "ctx_missing",
+                            "target": "ctx_target",
+                        }
+                    ],
                 ),
             ),
         ]
@@ -222,12 +248,13 @@ class TestLoadAndValidateContexts:
 
         assert not result.ok
         assert any(
-            "nonexistent source context" in error.render()
-            for error in result.errors
+            "nonexistent source context" in error.render() for error in result.errors
         )
 
     @pytest.mark.parametrize("field", ["inherits", "excludes"])
-    def test_visibility_inheritance_fields_are_rejected_at_document_boundary(self, field: str) -> None:
+    def test_visibility_inheritance_fields_are_rejected_at_document_boundary(
+        self, field: str
+    ) -> None:
         payload = make_context("ctx_bad", "Bad")
         payload[field] = "ctx_parent" if field == "inherits" else ["ctx_other"]
 
@@ -237,43 +264,55 @@ class TestLoadAndValidateContexts:
 
 class TestLiftingSystem:
     def test_lifting_system_has_no_ancestry_visibility(self) -> None:
-        system = loaded_contexts_to_lifting_system([
-            loaded_context("root", None, make_context("ctx_root", "Root")),
-            loaded_context("child", None, make_context("ctx_child", "Child")),
-        ])
+        system = loaded_contexts_to_lifting_system(
+            [
+                loaded_context("root", None, make_context("ctx_root", "Root")),
+                loaded_context("child", None, make_context("ctx_child", "Child")),
+            ]
+        )
 
-        assert system.materialize_lifted_assertions(
-            (
-                IstProposition(
-                    context=ContextReference("ctx_root"),
-                    proposition_id="claim_root",
-                ),
+        assert (
+            system.materialize_lifted_assertions(
+                (
+                    IstProposition(
+                        context=ContextReference("ctx_root"),
+                        proposition_id="claim_root",
+                    ),
+                )
             )
-        ) == ()
-        assert system.lift_decisions_between(
-            "ctx_root",
-            "ctx_child",
-            "claim_root",
-        ) == ()
+            == ()
+        )
+        assert (
+            system.lift_decisions_between(
+                "ctx_root",
+                "ctx_child",
+                "claim_root",
+            )
+            == ()
+        )
 
     def test_explicit_lifting_rule_controls_visibility(self) -> None:
-        system = loaded_contexts_to_lifting_system([
-            loaded_context("root", None, make_context("ctx_root", "Root")),
-            loaded_context(
-                "child",
-                None,
-                make_context(
-                    "ctx_child",
-                    "Child",
-                    lifting_rules=[{
-                        "id": "lift-root-child",
-                        "source": "ctx_root",
-                        "target": "ctx_child",
-                        "conditions": ["audience == 'researcher'"],
-                    }],
+        system = loaded_contexts_to_lifting_system(
+            [
+                loaded_context("root", None, make_context("ctx_root", "Root")),
+                loaded_context(
+                    "child",
+                    None,
+                    make_context(
+                        "ctx_child",
+                        "Child",
+                        lifting_rules=[
+                            {
+                                "id": "lift-root-child",
+                                "source": "ctx_root",
+                                "target": "ctx_child",
+                                "conditions": ["audience == 'researcher'"],
+                            }
+                        ],
+                    ),
                 ),
-            ),
-        ])
+            ]
+        )
 
         assertion = IstProposition(
             context=ContextReference("ctx_root"),
@@ -290,16 +329,26 @@ class TestLiftingSystem:
 
     @pytest.mark.property
     @given(
-        source_assumptions=st.lists(st.sampled_from([
-            "framework == 'general'",
-            "variant == 'baseline'",
-            "task == 'speech'",
-        ]), unique=True),
-        target_assumptions=st.lists(st.sampled_from([
-            "framework == 'specific'",
-            "variant == 'controlled'",
-            "task == 'vision'",
-        ]), unique=True),
+        source_assumptions=st.lists(
+            st.sampled_from(
+                [
+                    "framework == 'general'",
+                    "variant == 'baseline'",
+                    "task == 'speech'",
+                ]
+            ),
+            unique=True,
+        ),
+        target_assumptions=st.lists(
+            st.sampled_from(
+                [
+                    "framework == 'specific'",
+                    "variant == 'controlled'",
+                    "task == 'vision'",
+                ]
+            ),
+            unique=True,
+        ),
     )
     @settings(deadline=None)
     def test_source_assumptions_do_not_inherit_into_target(
@@ -307,10 +356,24 @@ class TestLiftingSystem:
         source_assumptions: list[str],
         target_assumptions: list[str],
     ) -> None:
-        system = loaded_contexts_to_lifting_system([
-            loaded_context("source", None, make_context("ctx_source", "Source", assumptions=source_assumptions)),
-            loaded_context("target", None, make_context("ctx_target", "Target", assumptions=target_assumptions)),
-        ])
+        system = loaded_contexts_to_lifting_system(
+            [
+                loaded_context(
+                    "source",
+                    None,
+                    make_context(
+                        "ctx_source", "Source", assumptions=source_assumptions
+                    ),
+                ),
+                loaded_context(
+                    "target",
+                    None,
+                    make_context(
+                        "ctx_target", "Target", assumptions=target_assumptions
+                    ),
+                ),
+            ]
+        )
 
         effective = set(system.effective_assumptions("ctx_target"))
 
@@ -327,15 +390,21 @@ class TestContextSidecar:
         try:
             tables = {
                 row[0]
-                for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
             }
         finally:
             conn.close()
 
-        assert {"context", "context_assumption", "context_lifting_rule"}.issubset(tables)
+        assert {"context", "context_assumption", "context_lifting_rule"}.issubset(
+            tables
+        )
         assert "context_exclusion" not in tables
 
-    def test_context_models_store_structure_and_lifting_rules(self, tmp_path: Path) -> None:
+    def test_context_models_store_structure_and_lifting_rules(
+        self, tmp_path: Path
+    ) -> None:
         schema = world_schema()
         contexts = [
             loaded_context("source", None, make_context("ctx_source", "Source")),
@@ -348,13 +417,15 @@ class TestContextSidecar:
                     assumptions=["framework == 'target'"],
                     parameters={"domain": "speech"},
                     perspective="local-model",
-                    lifting_rules=[{
-                        "id": "lift-source-target",
-                        "source": "ctx_source",
-                        "target": "ctx_target",
-                        "conditions": ["variant == 'controlled'"],
-                        "mode": "specialization",
-                    }],
+                    lifting_rules=[
+                        {
+                            "id": "lift-source-target",
+                            "source": "ctx_source",
+                            "target": "ctx_target",
+                            "conditions": ["variant == 'controlled'"],
+                            "mode": "specialization",
+                        }
+                    ],
                 ),
             ),
         ]
@@ -459,7 +530,9 @@ class TestBoundWorldContextLifting:
 
 
 class TestWorldQueryContextLifting:
-    def test_world_query_bind_loads_lifting_rules_from_sidecar(self, tmp_path: Path) -> None:
+    def test_world_query_bind_loads_lifting_rules_from_sidecar(
+        self, tmp_path: Path
+    ) -> None:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         build_world_projection_schema(conn)
@@ -499,26 +572,36 @@ class TestContextAwareConflicts:
             contexts=(ContextReference("ctx_a"), ContextReference("ctx_b")),
         )
 
-        assert _classify_pair_context("ctx_a", "ctx_b", system) == ConflictClass.CONTEXT_PHI_NODE
+        assert (
+            _classify_pair_context("ctx_a", "ctx_b", system)
+            == ConflictClass.CONTEXT_PHI_NODE
+        )
 
     def test_lifted_contexts_use_normal_conflict_classification(self) -> None:
         system = LiftingSystem(
             contexts=(ContextReference("ctx_a"), ContextReference("ctx_b")),
             lifting_rules=(
-                LiftingRule("lift-a-b", ContextReference("ctx_a"), ContextReference("ctx_b")),
+                LiftingRule(
+                    "lift-a-b", ContextReference("ctx_a"), ContextReference("ctx_b")
+                ),
             ),
         )
 
-        assert _classify_pair_context(
-            "ctx_a",
-            "ctx_b",
-            system,
-            claim_a_id="claim_alpha",
-        ) is None
+        assert (
+            _classify_pair_context(
+                "ctx_a",
+                "ctx_b",
+                system,
+                claim_a_id="claim_alpha",
+            )
+            is None
+        )
 
 
 class TestContextCLIIntegration:
-    def test_context_add_writes_structured_context(self, tmp_path: Path, monkeypatch) -> None:
+    def test_context_add_writes_structured_context(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         from propstore.cli import cli
         from propstore.repository import Repository
 
@@ -526,20 +609,23 @@ class TestContextCLIIntegration:
         Repository.init(workspace)
         monkeypatch.chdir(tmp_path)
 
-        result = CliRunner().invoke(cli, [
-            "context",
-            "add",
-            "--name",
-            "ctx_test",
-            "--description",
-            "A test context",
-            "--assumption",
-            "framework == 'general'",
-            "--parameter",
-            "domain=speech",
-            "--perspective",
-            "local-model",
-        ])
+        result = CliRunner().invoke(
+            cli,
+            [
+                "context",
+                "add",
+                "--name",
+                "ctx_test",
+                "--description",
+                "A test context",
+                "--assumption",
+                "framework == 'general'",
+                "--parameter",
+                "domain=speech",
+                "--perspective",
+                "local-model",
+            ],
+        )
 
         assert result.exit_code == 0, result.output
         repo = Repository.find(workspace)
@@ -549,23 +635,28 @@ class TestContextCLIIntegration:
         assert data["parameters"] == {"domain": "speech"}
         assert data["perspective"] == "local-model"
 
-    def test_context_add_has_no_inherits_flag(self, tmp_path: Path, monkeypatch) -> None:
+    def test_context_add_has_no_inherits_flag(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         from propstore.cli import cli
         from propstore.repository import Repository
 
         Repository.init(tmp_path / "knowledge")
         monkeypatch.chdir(tmp_path)
 
-        result = CliRunner().invoke(cli, [
-            "context",
-            "add",
-            "--name",
-            "ctx_child",
-            "--description",
-            "A child",
-            "--inherits",
-            "ctx_parent",
-        ])
+        result = CliRunner().invoke(
+            cli,
+            [
+                "context",
+                "add",
+                "--name",
+                "ctx_child",
+                "--description",
+                "A child",
+                "--inherits",
+                "ctx_parent",
+            ],
+        )
 
         assert result.exit_code != 0
         assert "No such option: --inherits" in result.output
@@ -579,17 +670,21 @@ class TestContextCLIIntegration:
                 source_path=tmp_path / "claims.yaml",
                 data={
                     "source": {"paper": "test"},
-                    "claims": [{
-                        "artifact_id": "claim1",
-                        "type": "observation",
-                        "statement": "Test statement.",
-                        "concepts": ["c1"],
-                        "provenance": {"paper": "test", "page": 1},
-                    }],
+                    "claims": [
+                        {
+                            "artifact_id": "claim1",
+                            "type": "observation",
+                            "statement": "Test statement.",
+                            "concepts": ["c1"],
+                            "provenance": {"paper": "test", "page": 1},
+                        }
+                    ],
                 },
             )
 
-    def test_claim_validation_accepts_context_reference_document_shape(self, tmp_path: Path) -> None:
+    def test_claim_validation_accepts_context_reference_document_shape(
+        self, tmp_path: Path
+    ) -> None:
         from propstore.claims import loaded_claim_file_from_payload
         from propstore.families.claims.passes import validate_claims
 
@@ -598,14 +693,16 @@ class TestContextCLIIntegration:
             source_path=tmp_path / "claims.yaml",
             data={
                 "source": {"paper": "test"},
-                "claims": [{
-                    "artifact_id": "claim1",
-                    "type": "observation",
-                    "statement": "Test statement.",
-                    "concepts": ["c1"],
-                    "context": {"id": "ctx_atms"},
-                    "provenance": {"paper": "test", "page": 1},
-                }],
+                "claims": [
+                    {
+                        "artifact_id": "claim1",
+                        "type": "observation",
+                        "statement": "Test statement.",
+                        "concepts": ["c1"],
+                        "context": {"id": "ctx_atms"},
+                        "provenance": {"paper": "test", "page": 1},
+                    }
+                ],
             },
         )
         registry = {
@@ -623,6 +720,8 @@ class TestContextCLIIntegration:
             make_compilation_context(registry),
             context_ids={"ctx_atms"},
         )
-        context_errors = [error for error in result.errors if "context" in error.lower()]
+        context_errors = [
+            error for error in result.errors if "context" in error.lower()
+        ]
 
         assert context_errors == []

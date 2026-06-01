@@ -128,7 +128,9 @@ class ConditionZ3Encoder:
             if name not in bindings:
                 raise ValueError(f"missing binding: {name}")
             constraints.append(
-                self._binding_constraint_for_kind(name, references[name], bindings[name])
+                self._binding_constraint_for_kind(
+                    name, references[name], bindings[name]
+                )
             )
         return tuple(constraints)
 
@@ -154,7 +156,9 @@ class ConditionZ3Encoder:
             return self._get_real(condition.source_name)
         if condition.value_kind == ConditionValueKind.STRING:
             if condition.category_extensible is False:
-                const, _ = self._get_enum(condition.source_name, condition.category_values)
+                const, _ = self._get_enum(
+                    condition.source_name, condition.category_values
+                )
                 return const
             return self._get_string(condition.source_name)
         raise ValueError(
@@ -368,7 +372,9 @@ class ConditionZ3Encoder:
             if not isinstance(value, str):
                 raise TypeError(f"expected string binding for {name}")
             return self._get_string(name) == z3.StringVal(value, self.ctx)
-        raise ValueError(f"unsupported ConditionIR binding kind for {name}: {value_kind}")
+        raise ValueError(
+            f"unsupported ConditionIR binding kind for {name}: {value_kind}"
+        )
 
 
 class Z3BackendTranslationError(Exception):

@@ -5,7 +5,12 @@ from dataclasses import dataclass
 from propstore.core.id_types import ConceptId
 from propstore.core.environment import WorldStore
 from propstore.families.claims.declaration import Claim
-from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult, ValueResult
+from propstore.world.types import (
+    DerivedResult,
+    RenderPolicy,
+    ResolvedResult,
+    ValueResult,
+)
 from propstore.world.value_resolver import ClaimValueResolver
 from propstore.worldline.interfaces import HasEnvironment, WorldlineBoundView
 from propstore.worldline.result_types import (
@@ -42,11 +47,7 @@ class ResolutionContext:
 
 def concept_name(world: WorldStore, concept_id: ConceptId | str) -> str:
     concept = world.get_concept(concept_id)
-    return (
-        concept.canonical_name
-        if concept
-        else str(concept_id)
-    )
+    return concept.canonical_name if concept else str(concept_id)
 
 
 def pre_resolve_conflicts(
@@ -118,7 +119,9 @@ def resolve_target(
                 raise TypeError("value_result.claims must contain typed Claim objects")
             claim_id = str(claim.id)
             trace.record_claim_dependency(claim_id)
-            display_id = ClaimValueResolver.display_claim_id(context.world, claim_id) or claim_id
+            display_id = (
+                ClaimValueResolver.display_claim_id(context.world, claim_id) or claim_id
+            )
             payload = ClaimValueResolver.claim_payload(claim)
             target_value = WorldlineTargetValue(
                 status="determined",
@@ -219,7 +222,9 @@ def resolve_target(
             inputs_used=inputs_used,
         )
 
-    strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
+    strategy_enum = (
+        context.policy.strategy if context.policy.strategy is not None else None
+    )
     chain_bindings: dict[str, object] = {}
     if isinstance(context.query_world, HasEnvironment):
         chain_bindings = dict(context.query_world.environment.bindings)
@@ -349,7 +354,9 @@ def trace_input_source(
                 value=resolved.value,
                 source="resolved",
                 claim_id=(
-                    ClaimValueResolver.display_claim_id(context.world, resolved.winning_claim_id)
+                    ClaimValueResolver.display_claim_id(
+                        context.world, resolved.winning_claim_id
+                    )
                     or resolved.winning_claim_id
                     if resolved.winning_claim_id
                     else None
@@ -362,13 +369,18 @@ def trace_input_source(
             claim = value_result.claims[0] if value_result.claims else None
             if claim is not None:
                 if not isinstance(claim, Claim):
-                    raise TypeError("value_result.claims must contain typed Claim objects")
+                    raise TypeError(
+                        "value_result.claims must contain typed Claim objects"
+                    )
                 claim_id = str(claim.id)
                 trace.record_claim_dependency(claim_id)
                 return WorldlineInputSource(
                     value=ClaimValueResolver.claim_value(claim),
                     source="claim",
-                    claim_id=ClaimValueResolver.display_claim_id(context.world, claim_id) or claim_id,
+                    claim_id=ClaimValueResolver.display_claim_id(
+                        context.world, claim_id
+                    )
+                    or claim_id,
                 )
 
         if value_result.status == "conflicted" and context.policy.strategy is not None:
@@ -386,7 +398,9 @@ def trace_input_source(
                     value=resolved.value,
                     source="resolved",
                     claim_id=(
-                        ClaimValueResolver.display_claim_id(context.world, resolved.winning_claim_id)
+                        ClaimValueResolver.display_claim_id(
+                            context.world, resolved.winning_claim_id
+                        )
                         or resolved.winning_claim_id
                         if resolved.winning_claim_id
                         else None
@@ -411,7 +425,9 @@ def trace_input_source(
                 )
                 nested_inputs[str(normalized_input_cid)] = WorldlineInputSource(
                     source=input_source.source,
-                    value=input_value if input_source.value is None else input_source.value,
+                    value=input_value
+                    if input_source.value is None
+                    else input_source.value,
                     claim_id=input_source.claim_id,
                     formula=input_source.formula,
                     reason=input_source.reason,
@@ -440,7 +456,9 @@ def worldline_target_value_from_resolved(
         value=resolved.value,
         source="resolved",
         winning_claim_id=(
-            ClaimValueResolver.display_claim_id(context.world, resolved.winning_claim_id)
+            ClaimValueResolver.display_claim_id(
+                context.world, resolved.winning_claim_id
+            )
             if resolved.winning_claim_id
             else None
         ),

@@ -80,13 +80,17 @@ def test_support_revision_decision_modules_do_not_name_formal_kernels() -> None:
     assert offenders == []
 
 
-def test_support_revision_decision_modules_do_not_define_local_decision_helpers() -> None:
+def test_support_revision_decision_modules_do_not_define_local_decision_helpers() -> (
+    None
+):
     """Phase 0/close guard for local formal-decision helper families."""
 
     offenders: list[str] = []
     for path, forbidden_names in FORBIDDEN_LOCAL_FUNCTIONS.items():
         defined = _defined_functions(path)
-        offenders.extend(f"{path}: {name}" for name in sorted(defined & forbidden_names))
+        offenders.extend(
+            f"{path}: {name}" for name in sorted(defined & forbidden_names)
+        )
 
     assert offenders == []
 
@@ -101,9 +105,15 @@ def test_deleted_operator_entrypoint_names_do_not_return_in_production() -> None
     for path in sorted(Path("propstore").rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name in DELETED_OPERATOR_NAMES:
+            if (
+                isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+                and node.name in DELETED_OPERATOR_NAMES
+            ):
                 offenders.append(f"{path}: defines {node.name}")
-            if isinstance(node, ast.ImportFrom) and node.module == "propstore.support_revision.belief_dynamics":
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module == "propstore.support_revision.belief_dynamics"
+            ):
                 offenders.append(f"{path}: imports deleted belief_dynamics surface")
 
     assert offenders == []

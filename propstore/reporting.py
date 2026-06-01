@@ -9,7 +9,6 @@ from pathlib import Path
 from propstore.json_types import JsonValue
 
 
-
 class JsonReportMixin:
     def to_json(self) -> dict[str, JsonValue]:
         value = json_ready(self)

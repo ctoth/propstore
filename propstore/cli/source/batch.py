@@ -21,7 +21,12 @@ from propstore.cli.source import source
 
 @source.command("add-concepts")
 @click.argument("name")
-@click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--batch",
+    "batch_file",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
 @click.pass_obj
 def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
     repo: Repository = obj["repo"]
@@ -38,9 +43,20 @@ def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
 
 @source.command("add-claim")
 @click.argument("name")
-@click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--reader", required=False, help="Who extracted these claims (human name or model ID)")
-@click.option("--method", required=False, help="Extraction method (skill name, 'manual', etc.)")
+@click.option(
+    "--batch",
+    "batch_file",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
+@click.option(
+    "--reader",
+    required=False,
+    help="Who extracted these claims (human name or model ID)",
+)
+@click.option(
+    "--method", required=False, help="Extraction method (skill name, 'manual', etc.)"
+)
 @click.option(
     "--context",
     "default_context",
@@ -80,11 +96,24 @@ def add_claim(
 
 @source.command("add-justification")
 @click.argument("name")
-@click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--reader", required=False, help="Who extracted these justifications (human name or model ID)")
-@click.option("--method", required=False, help="Extraction method (skill name, 'manual', etc.)")
+@click.option(
+    "--batch",
+    "batch_file",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
+@click.option(
+    "--reader",
+    required=False,
+    help="Who extracted these justifications (human name or model ID)",
+)
+@click.option(
+    "--method", required=False, help="Extraction method (skill name, 'manual', etc.)"
+)
 @click.pass_obj
-def add_justification(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
+def add_justification(
+    obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None
+) -> None:
     repo: Repository = obj["repo"]
     try:
         report = add_source_justifications_batch(
@@ -104,11 +133,24 @@ def add_justification(obj: dict, name: str, batch_file: Path, reader: str | None
 
 @source.command("add-stance")
 @click.argument("name")
-@click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--reader", required=False, help="Who extracted these stances (human name or model ID)")
-@click.option("--method", required=False, help="Extraction method (skill name, 'manual', etc.)")
+@click.option(
+    "--batch",
+    "batch_file",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
+@click.option(
+    "--reader",
+    required=False,
+    help="Who extracted these stances (human name or model ID)",
+)
+@click.option(
+    "--method", required=False, help="Extraction method (skill name, 'manual', etc.)"
+)
 @click.pass_obj
-def add_stance(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
+def add_stance(
+    obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None
+) -> None:
     repo: Repository = obj["repo"]
     try:
         report = add_source_stances_batch(

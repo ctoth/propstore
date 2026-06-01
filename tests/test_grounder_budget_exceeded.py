@@ -8,7 +8,9 @@ import gunray
 def test_grounder_returns_budget_exceeded_bundle_on_gunray_limit(monkeypatch) -> None:
     import propstore.grounding.grounder as grounder
 
-    monkeypatch.setattr(grounder, "translate_to_theory", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        grounder, "translate_to_theory", lambda *args, **kwargs: object()
+    )
 
     class FakeEvaluator:
         def evaluate_with_trace(self, *args, **kwargs):

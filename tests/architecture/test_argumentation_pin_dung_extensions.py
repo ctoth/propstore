@@ -65,7 +65,9 @@ def test_argumentation_pin_contains_stage2_and_prudent_surfaces() -> None:
     stage_framework = af({"a", "b", "c"}, {("a", "b"), ("b", "c"), ("c", "a")})
     prudent_framework = af({"a", "b", "c", "d"}, {("a", "b"), ("b", "c"), ("c", "d")})
 
-    assert set(stage2_extensions(stage_framework)) == set(stage_extensions(stage_framework))
+    assert set(stage2_extensions(stage_framework)) == set(
+        stage_extensions(stage_framework)
+    )
     assert ("a", "c") not in indirect_attacks(prudent_framework)
     assert ("a", "d") in indirect_attacks(prudent_framework)
     assert prudent_conflict_free(prudent_framework, frozenset({"a", "c"})) is True

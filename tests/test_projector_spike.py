@@ -266,9 +266,7 @@ def project_measurement(doc: AtomicPropositionDocument) -> RelationInstance:
 
     # target_concept -> ConceptValue (the TARGET concept link; a real FK).
     if doc.target_concept is not None:
-        bindings.append(
-            RelationBinding("target", ConceptValue(doc.target_concept))
-        )
+        bindings.append(RelationBinding("target", ConceptValue(doc.target_concept)))
 
     # measure="jnd_absolute" -> ScalarValue(str) TOKEN. It is NOT a concept link
     # (the authored contract links only target_concept), and it is NOT prose — it
@@ -381,9 +379,7 @@ def canonical_value(value: RelationValue) -> tuple:
 
 
 def instance_identity(instance: RelationInstance) -> str:
-    parts = sorted(
-        (b.role, canonical_value(b.value)) for b in instance.bindings
-    )
+    parts = sorted((b.role, canonical_value(b.value)) for b in instance.bindings)
     payload = repr((instance.relation, parts))
     return hashlib.sha256(payload.encode()).hexdigest()
 
@@ -399,9 +395,7 @@ def validate_against_signature(
             continue
         got = value_kind(b.value)
         if got != slot.value_kind:
-            errors.append(
-                f"role '{b.role}' wants {slot.value_kind!r} got {got!r}"
-            )
+            errors.append(f"role '{b.role}' wants {slot.value_kind!r} got {got!r}")
     for slot in signature.slots:
         if slot.required and instance.binding(slot.role) is None:
             errors.append(f"required role '{slot.role}' missing")

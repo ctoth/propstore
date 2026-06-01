@@ -34,7 +34,9 @@ def test_sidecar_cache_key_document_contains_derived_inputs() -> None:
     assert "build_time_config" in key_inputs
 
 
-def test_world_store_content_hash_changes_on_manual_cache_bust(tmp_path, monkeypatch) -> None:
+def test_world_store_content_hash_changes_on_manual_cache_bust(
+    tmp_path, monkeypatch
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     first = build_module._world_store_content_hash(repo, "rev-a")
 

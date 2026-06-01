@@ -56,7 +56,9 @@ def test_build_repository_context_schema_error_quarantines_not_raises(
     with readonly_session(sidecar_path, world_schema()) as derived:
         context_ids = {
             str(row[0])
-            for row in derived.session.execute(text("SELECT id FROM context")).fetchall()
+            for row in derived.session.execute(
+                text("SELECT id FROM context")
+            ).fetchall()
         }
         diagnostic_rows = derived.session.execute(
             text(

@@ -15,7 +15,10 @@ from propstore.families.contexts.lifting import (
     LiftingRule,
 )
 from propstore.core.id_types import ContextId
-from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
+from quire.tree_path import (
+    TreePath as KnowledgePath,
+    coerce_tree_path as coerce_knowledge_path,
+)
 from quire.documents import LoadedDocument
 from enum import StrEnum
 
@@ -91,7 +94,9 @@ class LoadedContext:
     ) -> LoadedContext:
         return cls(
             filename=filename,
-            source_path=None if source_path is None else coerce_knowledge_path(source_path),
+            source_path=None
+            if source_path is None
+            else coerce_knowledge_path(source_path),
             knowledge_root=(
                 None
                 if knowledge_root is None
@@ -190,10 +195,7 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     if raw_parameters is None:
         parameters = {}
     elif isinstance(raw_parameters, Mapping):
-        parameters = {
-            str(key): str(value)
-            for key, value in raw_parameters.items()
-        }
+        parameters = {str(key): str(value) for key, value in raw_parameters.items()}
     else:
         raise ValueError("Context record 'parameters' must be a mapping when present")
     raw_perspective = payload.get("perspective")
@@ -235,12 +237,18 @@ def _parse_lifting_rules(raw_rules: object) -> tuple[LiftingRule, ...]:
         raw_id = raw_rule.get("id")
         source_id = _parse_context_reference_id(raw_rule.get("source"))
         target_id = _parse_context_reference_id(raw_rule.get("target"))
-        if not isinstance(raw_id, str) or not raw_id or source_id is None or target_id is None:
+        if (
+            not isinstance(raw_id, str)
+            or not raw_id
+            or source_id is None
+            or target_id is None
+        ):
             continue
         raw_conditions = raw_rule.get("conditions")
         conditions = (
             raw_conditions
-            if isinstance(raw_conditions, Sequence) and not isinstance(raw_conditions, str)
+            if isinstance(raw_conditions, Sequence)
+            and not isinstance(raw_conditions, str)
             else ()
         )
         raw_mode = raw_rule.get("mode")
@@ -250,7 +258,9 @@ def _parse_lifting_rules(raw_rules: object) -> tuple[LiftingRule, ...]:
             else LiftingMode.BRIDGE
         )
         raw_justification = raw_rule.get("justification")
-        justification = raw_justification if isinstance(raw_justification, str) else None
+        justification = (
+            raw_justification if isinstance(raw_justification, str) else None
+        )
         rules.append(
             LiftingRule(
                 id=raw_id,
@@ -296,9 +306,7 @@ def loaded_contexts_to_lifting_system(
             if context.record.context_id is not None
         ),
         lifting_rules=tuple(
-            rule
-            for context in contexts
-            for rule in context.record.lifting_rules
+            rule for context in contexts for rule in context.record.lifting_rules
         ),
         context_assumptions={
             context.record.context_id: to_cel_exprs(context.record.assumptions)

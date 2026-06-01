@@ -13,9 +13,7 @@ class TestEvaluateParameterization:
         assert result.value == 3.0
 
     def test_equality_solve(self):
-        result = evaluate_parameterization(
-            "Eq(y, a + b)", {"a": 1.0, "b": 2.0}, "y"
-        )
+        result = evaluate_parameterization("Eq(y, a + b)", {"a": 1.0, "b": 2.0}, "y")
         assert result.status is ParameterizationEvaluationStatus.VALUE
         assert result.value == 3.0
 
@@ -49,8 +47,6 @@ class TestEvaluateParameterization:
         assert result.value is None
 
     def test_multiplication(self):
-        result = evaluate_parameterization(
-            "Eq(y, a * b)", {"a": 3.0, "b": 4.0}, "y"
-        )
+        result = evaluate_parameterization("Eq(y, a * b)", {"a": 3.0, "b": 4.0}, "y")
         assert result.status is ParameterizationEvaluationStatus.VALUE
         assert result.value == 12.0

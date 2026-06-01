@@ -96,11 +96,15 @@ def candidate_concept_id_for_repo(repo: Repository) -> ConceptIdCandidate:
             counter_ref_sha=None,
         )
     current, ref_sha = _read_concept_id_counter_state(repo.git)
-    numeric_id = current + 1 if current is not None else _next_concept_id_from_documents(repo)
+    numeric_id = (
+        current + 1 if current is not None else _next_concept_id_from_documents(repo)
+    )
     return ConceptIdCandidate(numeric_id=numeric_id, counter_ref_sha=ref_sha)
 
 
-def reserve_concept_id_candidate(repo: Repository, candidate: ConceptIdCandidate) -> bool:
+def reserve_concept_id_candidate(
+    repo: Repository, candidate: ConceptIdCandidate
+) -> bool:
     if repo.git is None:
         return True
     return _write_concept_id_counter_if_unchanged(
@@ -146,7 +150,11 @@ def _reserve_next_concept_id(repo: Repository) -> int:
         return _next_concept_id_from_documents(repo)
     for _attempt in range(_COUNTER_WRITE_ATTEMPTS):
         current, ref_sha = _read_concept_id_counter_state(repo.git)
-        numeric_id = current + 1 if current is not None else _next_concept_id_from_documents(repo)
+        numeric_id = (
+            current + 1
+            if current is not None
+            else _next_concept_id_from_documents(repo)
+        )
         if _write_concept_id_counter_if_unchanged(repo.git, ref_sha, numeric_id):
             return numeric_id
     raise RuntimeError("could not reserve concept ID after concurrent updates")

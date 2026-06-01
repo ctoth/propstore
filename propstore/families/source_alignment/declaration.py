@@ -55,7 +55,9 @@ class ConceptAlignmentArtifactDocument(CharterDoc):
     kind: str
     id: Annotated[str, charter_field(primary_key=True)]
     sources: Annotated[tuple[str, ...], charter_field(json=True)]
-    arguments: Annotated[tuple[AlignmentArgumentDocument, ...], charter_field(json=True)]
+    arguments: Annotated[
+        tuple[AlignmentArgumentDocument, ...], charter_field(json=True)
+    ]
     framework: Annotated[AlignmentFrameworkDocument, charter_field(json=True)]
     queries: Annotated[AlignmentQueriesDocument, charter_field(json=True)]
     decision: Annotated[AlignmentDecisionDocument, charter_field(json=True)]

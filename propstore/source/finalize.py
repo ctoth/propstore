@@ -28,13 +28,18 @@ from propstore.families.micropublications.declaration import (
     MicropublicationDocument,
     MicropublicationEvidenceDocument,
 )
-from propstore.families.sources.declaration import SourceDocument, SourceFinalizeReportDocument
+from propstore.families.sources.declaration import (
+    SourceDocument,
+    SourceFinalizeReportDocument,
+)
 from propstore.families.stances.declaration import SourceStanceEntryDocument
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
     source_claim_index as build_source_claim_index,
 )
-from propstore.families.concepts.lifecycle import preview_source_parameterization_group_merges
+from propstore.families.concepts.lifecycle import (
+    preview_source_parameterization_group_merges,
+)
 from .stages import SourceFinalizePlan
 
 
@@ -89,7 +94,9 @@ def _save_finalize_write(transaction: Any, write: FamilyRecordWrite) -> None:
     raise ValueError(f"unknown source finalize write family: {write.family!r}")
 
 
-def _with_micropub_identity(document: MicropublicationDocument) -> MicropublicationDocument:
+def _with_micropub_identity(
+    document: MicropublicationDocument,
+) -> MicropublicationDocument:
     return MicropublicationDocument(
         artifact_id=micropub_artifact_id(document),
         context=document.context,
@@ -164,7 +171,9 @@ def finalize_source_branch(
     if source_doc is None:
         raise ValueError(f"Source branch {source_name!r} does not exist")
     claims_doc = repo.families.source_claims.load(SourceRef(source_name))
-    justifications_doc = repo.families.source_justifications.load(SourceRef(source_name))
+    justifications_doc = repo.families.source_justifications.load(
+        SourceRef(source_name)
+    )
     stances_doc = repo.families.source_stances.load(SourceRef(source_name))
     concepts_doc = repo.families.source_concepts.load(SourceRef(source_name))
 
@@ -173,7 +182,7 @@ def finalize_source_branch(
 
     claim_errors: list[str] = []
     micropub_coverage_errors: list[str] = []
-    for claim in (() if claims_doc is None else claims_doc):
+    for claim in () if claims_doc is None else claims_doc:
         if not isinstance(claim.artifact_id, str):
             claim_errors.append(str(claim.id or "?"))
         if not isinstance(claim.context, str) or not claim.context:
@@ -182,7 +191,7 @@ def finalize_source_branch(
             )
 
     justification_errors: list[str] = []
-    for justification in (() if justifications_doc is None else justifications_doc):
+    for justification in () if justifications_doc is None else justifications_doc:
         conclusion = justification.conclusion
         if not source_claim_index.exists(conclusion):
             justification_errors.append(str(conclusion))
@@ -191,7 +200,7 @@ def finalize_source_branch(
                 justification_errors.append(str(premise))
 
     stance_errors: list[str] = []
-    for stance in (() if stances_doc is None else stances_doc):
+    for stance in () if stances_doc is None else stances_doc:
         source_claim = stance.source_claim
         if not source_claim_index.exists(source_claim):
             stance_errors.append(str(source_claim))
@@ -199,11 +208,14 @@ def finalize_source_branch(
         if not isinstance(target, str) or not target:
             stance_errors.append(str(target))
             continue
-        if resolve_first_claim_reference_id(
-            target,
-            source_claim_index,
-            primary_claim_index,
-        ) is None:
+        if (
+            resolve_first_claim_reference_id(
+                target,
+                source_claim_index,
+                primary_claim_index,
+            )
+            is None
+        ):
             stance_errors.append(target)
 
     concept_alignment_candidates = sorted(
@@ -213,7 +225,9 @@ def finalize_source_branch(
             if entry.registry_match is None
         }
     )
-    parameterization_group_merges = preview_source_parameterization_group_merges(repo, concepts_doc)
+    parameterization_group_merges = preview_source_parameterization_group_merges(
+        repo, concepts_doc
+    )
 
     derived_from = list(source_doc.trust.derived_from)
     covered = bool(derived_from)
@@ -233,7 +247,9 @@ def finalize_source_branch(
         micropub_status = "blocked"
     else:
         micropub_status = "complete" if micropubs_doc is not None else "empty"
-    branch = repo.families.source_documents.address(SourceRef(source_name)).require_branch()
+    branch = repo.families.source_documents.address(
+        SourceRef(source_name)
+    ).require_branch()
     ready = (
         not claim_errors
         and not micropub_coverage_errors
@@ -242,11 +258,13 @@ def finalize_source_branch(
     )
     writes: list[FamilyRecordWrite] = []
     if ready:
-        updated_source, updated_claims, updated_justifications, updated_stances = stamp_source_artifacts(
-            source_doc,
-            claims_doc,
-            justifications_doc,
-            stances_doc,
+        updated_source, updated_claims, updated_justifications, updated_stances = (
+            stamp_source_artifacts(
+                source_doc,
+                claims_doc,
+                justifications_doc,
+                stances_doc,
+            )
         )
         writes.append(_finalize_write("source_documents", source_name, updated_source))
         if updated_claims is not None and updated_claims:
@@ -260,9 +278,13 @@ def finalize_source_branch(
                 )
             )
         if updated_stances is not None and updated_stances:
-            writes.append(_finalize_write("source_stances", source_name, updated_stances))
+            writes.append(
+                _finalize_write("source_stances", source_name, updated_stances)
+            )
         if micropubs_doc is not None:
-            writes.append(_finalize_write("source_micropubs", source_name, micropubs_doc))
+            writes.append(
+                _finalize_write("source_micropubs", source_name, micropubs_doc)
+            )
         artifact_code_status = "complete"
 
     report = convert_document_value(
@@ -298,7 +320,9 @@ def finalize_source_branch(
     if git is None:
         raise ValueError("source finalize requires a git-backed repository")
     with git.head_bound_transaction(finalize_plan.source_branch) as head_txn:
-        with head_txn.families_transact(repo.families, message=f"Finalize {source_slug}") as transaction:
+        with head_txn.families_transact(
+            repo.families, message=f"Finalize {source_slug}"
+        ) as transaction:
             for write in finalize_plan.writes:
                 _save_finalize_write(transaction, write)
         sha = head_txn.commit_sha

@@ -71,15 +71,19 @@ class TestEmbedEntitiesOperationalError:
             )
         ]
 
-        with patch("propstore.heuristic.embed._require_litellm", return_value=mock_litellm):
+        with patch(
+            "propstore.heuristic.embed._require_litellm", return_value=mock_litellm
+        ):
             with pytest.raises(sqlite3.OperationalError, match="disk I/O error"):
                 _embed_entities(
                     entities,
                     "test-model",
                     existing_content_hashes=lambda _model_identity: (
-                        (_ for _ in ()).throw(sqlite3.OperationalError("disk I/O error"))
+                        _ for _ in ()
+                    ).throw(sqlite3.OperationalError("disk I/O error")),
+                    prepare_model=lambda _model_identity, _dimensions, _created_at: (
+                        None
                     ),
-                    prepare_model=lambda _model_identity, _dimensions, _created_at: None,
                     save_embedding=lambda _model_identity, _entity, _blob, _at: None,
                 )
 
@@ -101,12 +105,16 @@ class TestEmbedEntitiesOperationalError:
             )
         ]
 
-        with patch("propstore.heuristic.embed._require_litellm", return_value=mock_litellm):
+        with patch(
+            "propstore.heuristic.embed._require_litellm", return_value=mock_litellm
+        ):
             with pytest.raises(RuntimeError, match="boom"):
                 _embed_entities(
                     entities,
                     "test-model",
                     existing_content_hashes=lambda _model_identity: {},
-                    prepare_model=lambda _model_identity, _dimensions, _created_at: None,
+                    prepare_model=lambda _model_identity, _dimensions, _created_at: (
+                        None
+                    ),
                     save_embedding=lambda _model_identity, _entity, _blob, _at: None,
                 )

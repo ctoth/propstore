@@ -78,10 +78,19 @@ from propstore.families.sources.declaration import (
     SourceTrustDocument,
     source_document_payload,
 )
-from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
-from propstore.families.stances.declaration import SourceStanceEntryDocument, StanceDocument
+from propstore.source_trust_argumentation import (
+    SourceTrustResult,
+    calibrate_source_trust,
+)
+from propstore.families.stances.declaration import (
+    SourceStanceEntryDocument,
+    StanceDocument,
+)
 from propstore.families.identity.justifications import derive_justification_artifact_id
-from propstore.families.identity.stances import derive_stance_artifact_id, stamp_stance_artifact_id
+from propstore.families.identity.stances import (
+    derive_stance_artifact_id,
+    stamp_stance_artifact_id,
+)
 
 from .common import (
     utc_now,
@@ -201,7 +210,8 @@ def _validate_promoted_claims_before_commit(
         concepts.append(
             LoadedConcept(
                 filename=concept_name,
-                source_path=tree / repo.families.concepts.address(concept_ref).require_path(),
+                source_path=tree
+                / repo.families.concepts.address(concept_ref).require_path(),
                 knowledge_root=tree,
                 record=parse_concept_record_document(concept_document),
                 document=concept_document,
@@ -233,7 +243,8 @@ def _validate_promoted_claims_before_commit(
         claim_files.append(
             LoadedClaimsFile(
                 filename=claim_ref.artifact_id,
-                artifact_path=tree / repo.families.claims.address(claim_ref).require_path(),
+                artifact_path=tree
+                / repo.families.claims.address(claim_ref).require_path(),
                 store_root=tree,
                 document=claim_document,
             )
@@ -283,7 +294,9 @@ def _commit_promote_time_trust_calibration(
     *,
     promotion_commit_sha: str,
 ) -> str | None:
-    branch = repo.families.source_documents.address(SourceRef(source_name)).require_branch()
+    branch = repo.families.source_documents.address(
+        SourceRef(source_name)
+    ).require_branch()
     calibration = calibrate_source_trust(
         repo,
         source_name,
@@ -387,7 +400,7 @@ def _promoted_stance_documents(
     primary_claim_index,
 ) -> tuple[StanceDocument, ...]:
     promoted: list[StanceDocument] = []
-    for stance in (() if stances_doc is None else stances_doc):
+    for stance in () if stances_doc is None else stances_doc:
         source_claim = stance.source_claim
         if not isinstance(source_claim, str) or not source_claim:
             raise ValueError("stance source_claim must be normalized before promotion")
@@ -499,7 +512,9 @@ def _assemble_source_promotion_plan(
     ]
     if unresolved_concepts:
         formatted = ", ".join(sorted(unresolved_concepts))
-        raise ValueError(f"Cannot promote source {source_name!r}; unresolved concept mappings: {formatted}")
+        raise ValueError(
+            f"Cannot promote source {source_name!r}; unresolved concept mappings: {formatted}"
+        )
 
     valid_artifact_ids = {
         claim.artifact_id
@@ -573,7 +588,9 @@ def _assemble_source_promotion_plan(
         if not isinstance(justification_payload, dict):
             raise TypeError("promoted justification payload must be a mapping")
         artifact_id = derive_justification_artifact_id(justification_payload)
-        promoted_justification_documents[JustificationRef(artifact_id)] = justification_document
+        promoted_justification_documents[JustificationRef(artifact_id)] = (
+            justification_document
+        )
 
     promoted_micropub_documents = {
         MicropublicationRef(micropub.artifact_id): micropub
@@ -625,7 +642,9 @@ def resolve_source_concept_promotions(
 ) -> SourceConceptPromotionResolution:
     concepts_doc = repo.families.source_concepts.load(SourceRef(source_name))
     concepts_by_artifact = load_primary_branch_concepts(repo)
-    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(
+        repo.require_git().primary_branch_name()
+    )
     primary_concept_index = (
         None
         if primary_tip is None
@@ -650,12 +669,14 @@ def resolve_source_concept_promotions(
         }
         return handles
 
-    def block_entry(entry: SourceConceptEntryDocument, fallback: str, detail: str) -> None:
+    def block_entry(
+        entry: SourceConceptEntryDocument, fallback: str, detail: str
+    ) -> None:
         for handle in entry_handles(entry, fallback):
             blocked_concept_refs[handle] = detail
             mapping.pop(handle, None)
 
-    for entry in (() if concepts_doc is None else concepts_doc):
+    for entry in () if concepts_doc is None else concepts_doc:
         registry_match = entry.registry_match
         if registry_match is not None:
             artifact_id = registry_match.artifact_id
@@ -678,7 +699,9 @@ def resolve_source_concept_promotions(
         slug = normalize_source_slug(handle_seed)
         concept_payload = normalize_canonical_concept_payload(
             {
-                "canonical_name": str(entry.proposed_name or entry.local_name or slug).strip(),
+                "canonical_name": str(
+                    entry.proposed_name or entry.local_name or slug
+                ).strip(),
                 "status": "accepted",
                 "definition": str(entry.definition or "").strip(),
                 "domain": "source",
@@ -717,7 +740,9 @@ def resolve_source_concept_promotions(
     for raw_entry, artifact_id, slug, _ in new_concepts.values():
         parameterization_relationships: list[dict[str, Any]] = []
         for relationship in raw_entry.parameterization_relationships:
-            normalized_relationship = cast(dict[str, Any], document_to_payload(relationship))
+            normalized_relationship = cast(
+                dict[str, Any], document_to_payload(relationship)
+            )
             normalized_inputs: list[str] = []
             for input_ref in normalized_relationship.get("inputs", []) or []:
                 if not isinstance(input_ref, str) or not input_ref:
@@ -725,7 +750,9 @@ def resolve_source_concept_promotions(
                 if input_ref.startswith("ps:concept:") or input_ref.startswith("tag:"):
                     normalized_inputs.append(input_ref)
                     continue
-                resolved = mapping.get(input_ref) or resolve_primary_concept_id(input_ref)
+                resolved = mapping.get(input_ref) or resolve_primary_concept_id(
+                    input_ref
+                )
                 if resolved is None:
                     raise ValueError(
                         f"Cannot promote source {source_name!r}; unresolved parameterization concept: {input_ref}"
@@ -735,19 +762,29 @@ def resolve_source_concept_promotions(
             parameterization_relationships.append(normalized_relationship)
 
         concept_doc: dict[str, Any] = {
-            "canonical_name": str(raw_entry.proposed_name or raw_entry.local_name or slug).strip(),
+            "canonical_name": str(
+                raw_entry.proposed_name or raw_entry.local_name or slug
+            ).strip(),
             "status": "accepted",
             "definition": str(raw_entry.definition or "").strip(),
             "domain": "source",
             "form": str(raw_entry.form or "structural").strip(),
         }
         if raw_entry.aliases:
-            concept_doc["aliases"] = [document_to_payload(alias) for alias in raw_entry.aliases]
+            concept_doc["aliases"] = [
+                document_to_payload(alias) for alias in raw_entry.aliases
+            ]
         if raw_entry.form_parameters is not None:
-            concept_doc["form_parameters"] = document_to_payload(raw_entry.form_parameters)
+            concept_doc["form_parameters"] = document_to_payload(
+                raw_entry.form_parameters
+            )
         if parameterization_relationships:
-            concept_doc["parameterization_relationships"] = parameterization_relationships
-        concept_doc = normalize_canonical_concept_payload(concept_doc, local_handle=slug)
+            concept_doc["parameterization_relationships"] = (
+                parameterization_relationships
+            )
+        concept_doc = normalize_canonical_concept_payload(
+            concept_doc, local_handle=slug
+        )
         concept_ref = ConceptFileRef(slug)
         concept_documents[slug] = convert_document_value(
             concept_doc,
@@ -867,7 +904,9 @@ def collect_source_promotion_blocked_facts(
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
     )
     slug = source_paper_slug(source_name)
-    source_branch = repo.families.source_claims.address(SourceRef(source_name)).require_branch()
+    source_branch = repo.families.source_claims.address(
+        SourceRef(source_name)
+    ).require_branch()
     source_paper = _promoted_claim_source_paper(claims_doc, fallback_slug=slug)
     facts: list[PromotionBlockedClaimFact] = []
     for claim in claims_doc:
@@ -938,7 +977,9 @@ def promote_source_branch(
     source_doc = repo.families.source_documents.require(SourceRef(source_name))
     claims_doc = repo.families.source_claims.load(SourceRef(source_name))
     micropubs_doc = repo.families.source_micropubs.load(SourceRef(source_name))
-    justifications_doc = repo.families.source_justifications.load(SourceRef(source_name))
+    justifications_doc = repo.families.source_justifications.load(
+        SourceRef(source_name)
+    )
     stances_doc = repo.families.source_stances.load(SourceRef(source_name))
     concept_resolution = resolve_source_concept_promotions(repo, source_name)
     concept_map = concept_resolution.concept_map
@@ -1014,8 +1055,12 @@ def promote_source_branch(
     git = repo.git
     if git is None:
         raise ValueError("source promotion requires a git-backed repository")
-    with git.head_bound_transaction(repo.require_git().primary_branch_name()) as head_txn:
-        with head_txn.families_transact(repo.families, message=f"Promote source {slug}") as transaction:
+    with git.head_bound_transaction(
+        repo.require_git().primary_branch_name()
+    ) as head_txn:
+        with head_txn.families_transact(
+            repo.families, message=f"Promote source {slug}"
+        ) as transaction:
             for write in promotion_plan.writes:
                 _save_promotion_write(transaction, write)
         sha = head_txn.commit_sha

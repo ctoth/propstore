@@ -2,7 +2,11 @@ from __future__ import annotations
 
 
 def test_proposal_rules_family_is_registered(tmp_path) -> None:
-    from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFamily, RuleProposalRef
+    from propstore.families.registry import (
+        PROPSTORE_FAMILY_REGISTRY,
+        PropstoreFamily,
+        RuleProposalRef,
+    )
     from propstore.repository import Repository
 
     repo = Repository.init(tmp_path / "knowledge")

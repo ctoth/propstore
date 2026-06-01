@@ -78,7 +78,11 @@ def _describe_parameter(
     unit = claim.unit or ""
 
     # Build the value part
-    if claim.value is not None and claim.uncertainty is not None and claim.uncertainty_type:
+    if (
+        claim.value is not None
+        and claim.uncertainty is not None
+        and claim.uncertainty_type
+    ):
         val_str = (
             f"{name} = {_format_number(claim.value)} \u00b1 "
             f"{_format_number(claim.uncertainty)} ({claim.uncertainty_type})"
@@ -99,7 +103,9 @@ def _describe_parameter(
 
     # Append condition summary
     if claim.conditions:
-        summary = _format_conditions_prose(tuple(str(condition) for condition in claim.conditions))
+        summary = _format_conditions_prose(
+            tuple(str(condition) for condition in claim.conditions)
+        )
         if summary:
             val_str = f"{val_str} ({summary})"
 
@@ -134,7 +140,9 @@ def _describe_measurement(
         val_str = f"{val_str} {unit}"
 
     if claim.conditions:
-        summary = _format_conditions_prose(tuple(str(condition) for condition in claim.conditions))
+        summary = _format_conditions_prose(
+            tuple(str(condition) for condition in claim.conditions)
+        )
         if summary:
             val_str = f"{val_str} ({summary})"
 
@@ -157,6 +165,7 @@ def _describe_algorithm(claim: ClaimDocument) -> str:
 
 # Patterns for common CEL equality conditions
 _EQUALITY_RE = re.compile(r"""^(\w+)\s*==\s*(['"])(.+?)\2$""")
+
 
 def _format_conditions_prose(conditions: Sequence[str]) -> str:
     """Convert CEL conditions to readable text.

@@ -23,23 +23,25 @@ from enum import StrEnum
 from propstore.core.id_types import ConceptId
 
 
-BOOTSTRAP_RELATION_IDS: frozenset[str] = frozenset({
-    "relation_concept",
-    "role",
-    "has_role",
-    "role_domain",
-    "role_range",
-    "subtype_of",
-    "instance_of",
-    "contextualizes",
-    "condition_applies",
-    "supports",
-    "undercuts",
-    "rebuts",
-    "base_rate_for",
-    "calibrates",
-    "published_in",
-})
+BOOTSTRAP_RELATION_IDS: frozenset[str] = frozenset(
+    {
+        "relation_concept",
+        "role",
+        "has_role",
+        "role_domain",
+        "role_range",
+        "subtype_of",
+        "instance_of",
+        "contextualizes",
+        "condition_applies",
+        "supports",
+        "undercuts",
+        "rebuts",
+        "base_rate_for",
+        "calibrates",
+        "published_in",
+    }
+)
 
 
 class ClaimConceptLinkRole(StrEnum):
@@ -201,8 +203,7 @@ class RoleSignature:
         return (
             self.relation.identity_key(),
             tuple(
-                definition.identity_payload()
-                for definition in self.role_definitions
+                definition.identity_payload() for definition in self.role_definitions
             ),
         )
 

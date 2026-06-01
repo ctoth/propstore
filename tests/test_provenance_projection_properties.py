@@ -22,7 +22,9 @@ from propstore.provenance import (
 
 
 _PROP_SETTINGS = settings(deadline=None)
-_VARIABLES = tuple(SourceVariableId(f"ps:source:test:{name}") for name in ("a", "b", "c"))
+_VARIABLES = tuple(
+    SourceVariableId(f"ps:source:test:{name}") for name in ("a", "b", "c")
+)
 
 
 @st.composite
@@ -66,14 +68,18 @@ class TestProjectionHomomorphisms:
     @_PROP_SETTINGS
     def test_count_projection_preserves_addition(self, left, right):
         hom = CountHomomorphism()
-        assert evaluate(left + right, hom) == hom.add(evaluate(left, hom), evaluate(right, hom))
+        assert evaluate(left + right, hom) == hom.add(
+            evaluate(left, hom), evaluate(right, hom)
+        )
 
     @pytest.mark.property
     @given(polynomials(), polynomials())
     @_PROP_SETTINGS
     def test_count_projection_preserves_multiplication(self, left, right):
         hom = CountHomomorphism()
-        assert evaluate(left * right, hom) == hom.mul(evaluate(left, hom), evaluate(right, hom))
+        assert evaluate(left * right, hom) == hom.mul(
+            evaluate(left, hom), evaluate(right, hom)
+        )
 
     @pytest.mark.property
     @given(polynomials())
@@ -114,9 +120,8 @@ class TestProjectionHomomorphisms:
         a = SourceVariableId("ps:source:test:a")
         b = SourceVariableId("ps:source:test:b")
         c = SourceVariableId("ps:source:test:c")
-        poly = (
-            ProvenancePolynomial.variable(a) * ProvenancePolynomial.variable(b)
-            + ProvenancePolynomial.variable(c)
-        )
+        poly = ProvenancePolynomial.variable(a) * ProvenancePolynomial.variable(
+            b
+        ) + ProvenancePolynomial.variable(c)
 
         assert tropical_cost(poly, {a: 3.0, b: 4.0, c: 10.0}) == 7.0

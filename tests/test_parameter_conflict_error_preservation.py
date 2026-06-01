@@ -42,7 +42,9 @@ def _three_parameter_claims_on_concept() -> tuple[ConflictClaim, ...]:
 
 def test_partitioning_runtime_error_includes_underlying_cause_text() -> None:
     stub = MagicMock()
-    underlying = "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    underlying = (
+        "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    )
     stub.partition_equivalence_classes.side_effect = Z3TranslationError(underlying)
 
     with pytest.raises(RuntimeError) as info:
@@ -71,7 +73,9 @@ def test_disjointness_runtime_error_includes_underlying_cause_text() -> None:
     # raises — partitioning itself succeeds here.
     stub = MagicMock()
     stub.partition_equivalence_classes.return_value = [[0], [1, 2]]
-    underlying = "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    underlying = (
+        "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    )
     stub.are_disjoint_result.side_effect = Z3TranslationError(underlying)
 
     with pytest.raises(RuntimeError) as info:

@@ -14,7 +14,11 @@ from propstore.families.sources.declaration import (
     SourceTrustDocument,
     SourceTrustQualityDocument,
 )
-from quire.documents import DocumentSchemaError, convert_document_value, document_to_payload
+from quire.documents import (
+    DocumentSchemaError,
+    convert_document_value,
+    document_to_payload,
+)
 from propstore.opinion import Opinion
 from propstore.provenance import (
     PROVENANCE_NOTES_REF,
@@ -176,14 +180,21 @@ def test_provenance_composition_is_associative(
 
 
 def test_opinion_fusion_composes_provenance() -> None:
-    left = Opinion(0.4, 0.2, 0.4, 0.5, provenance=_provenance(ProvenanceStatus.STATED, "left"))
-    right = Opinion(0.2, 0.3, 0.5, 0.5, provenance=_provenance(ProvenanceStatus.CALIBRATED, "right"))
+    left = Opinion(
+        0.4, 0.2, 0.4, 0.5, provenance=_provenance(ProvenanceStatus.STATED, "left")
+    )
+    right = Opinion(
+        0.2, 0.3, 0.5, 0.5, provenance=_provenance(ProvenanceStatus.CALIBRATED, "right")
+    )
 
     fused = left.consensus_pair(right)
 
     assert fused.provenance is not None
     assert fused.provenance.status is ProvenanceStatus.CALIBRATED
-    assert [w.source_artifact_code for w in fused.provenance.witnesses] == ["claim:left", "claim:right"]
+    assert [w.source_artifact_code for w in fused.provenance.witnesses] == [
+        "claim:left",
+        "claim:right",
+    ]
     assert fused.provenance.operations == ("fusion",)
 
 
@@ -202,7 +213,9 @@ def test_probability_status_access_requires_explicit_provenance() -> None:
         _ = Opinion(0.0, 0.0, 1.0, 0.5).provenance_status
 
 
-def test_probability_derivation_without_provenance_does_not_manufacture_status() -> None:
+def test_probability_derivation_without_provenance_does_not_manufacture_status() -> (
+    None
+):
     left = Opinion(0.4, 0.2, 0.4, 0.5)
     right = Opinion(0.2, 0.3, 0.5, 0.5)
 
@@ -292,7 +305,9 @@ def test_resolution_rejects_nested_opinion_document() -> None:
                     "d": 0.0,
                     "u": 1.0,
                     "a": 0.5,
-                    "provenance": _provenance(ProvenanceStatus.VACUOUS, "stance").to_payload(),
+                    "provenance": _provenance(
+                        ProvenanceStatus.VACUOUS, "stance"
+                    ).to_payload(),
                 },
             },
             ResolutionDocument,

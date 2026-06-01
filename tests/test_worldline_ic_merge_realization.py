@@ -6,16 +6,30 @@ import pytest
 
 from belief_set import Atom, TOP, disjunction
 
-from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
+from propstore.support_revision.belief_set_adapter import (
+    decide_ic_merge,
+    decide_ic_merge_profile,
+)
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.history import JournalOperator, TransitionJournal, TransitionOperation
+from propstore.support_revision.history import (
+    JournalOperator,
+    TransitionJournal,
+    TransitionOperation,
+)
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.realization import realize_ic_merge_decision
-from propstore.support_revision.state import BeliefBase, RevisionMergeRequiredFailure, RevisionScope
+from propstore.support_revision.state import (
+    BeliefBase,
+    RevisionMergeRequiredFailure,
+    RevisionScope,
+)
 from propstore.worldline.definition import WorldlineRevisionQuery
 from tests.fixtures.journal import make_journal_entry
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
+from tests.support_revision.revision_assertion_helpers import (
+    make_assertion_atom,
+    make_assumption_atom,
+)
 
 
 _POLICY = {
@@ -25,7 +39,9 @@ _POLICY = {
 }
 
 
-def test_ic_merge_decision_report_records_profile_multiset_and_integrity_constraint() -> None:
+def test_ic_merge_decision_report_records_profile_multiset_and_integrity_constraint() -> (
+    None
+):
     decision = decide_ic_merge_profile(
         profile_atom_ids=(("atom:a",), ("atom:a",), ("atom:b",)),
         integrity_constraint={"kind": "atom", "atom_id": "atom:a"},
@@ -80,11 +96,20 @@ def test_ic_merge_decision_preserves_duplicate_profile_members() -> None:
         max_alphabet_size=4,
     )
 
-    assert duplicate_decision.report.trace["profile_atom_ids"] == [["atom:a"], ["atom:a"], ["atom:b"]]
-    assert duplicate_decision.report.trace["profile_hash"] != unique_decision.report.trace["profile_hash"]
+    assert duplicate_decision.report.trace["profile_atom_ids"] == [
+        ["atom:a"],
+        ["atom:a"],
+        ["atom:b"],
+    ]
+    assert (
+        duplicate_decision.report.trace["profile_hash"]
+        != unique_decision.report.trace["profile_hash"]
+    )
 
 
-def test_realizable_ic_merge_returns_epistemic_state_instead_of_realization_not_implemented() -> None:
+def test_realizable_ic_merge_returns_epistemic_state_instead_of_realization_not_implemented() -> (
+    None
+):
     state, atom_ids = _merge_state()
 
     next_state = _dispatch_realizable_merge(state, atom_ids)
@@ -130,7 +155,10 @@ def test_realized_ic_merge_records_realization_report_in_event() -> None:
     assert event.realization is not None
     assert event.realization.accepted_atom_ids == (atom_ids["a"],)
     assert event.realization.rejected_atom_ids == (atom_ids["b"],)
-    assert event.realization.reasons[atom_ids["a"]].selection_rule == "ic_merge_selected_world"
+    assert (
+        event.realization.reasons[atom_ids["a"]].selection_rule
+        == "ic_merge_selected_world"
+    )
     assert event.realization.reasons[atom_ids["b"]].reason == "ic_merge_world_false"
 
 
@@ -149,7 +177,10 @@ def test_disjunctive_selected_worlds_fail_with_typed_ambiguous_realization() -> 
 
     assert exc_info.value.reason == "ambiguous_selected_worlds"
     assert exc_info.value.decision_report is not None
-    assert exc_info.value.selected_worlds_hash == decision.report.trace["selected_worlds_hash"]
+    assert (
+        exc_info.value.selected_worlds_hash
+        == decision.report.trace["selected_worlds_hash"]
+    )
 
 
 def test_selected_world_with_unknown_formal_atom_fails_typed() -> None:
@@ -169,7 +200,10 @@ def test_selected_world_with_unknown_formal_atom_fails_typed() -> None:
 
     assert exc_info.value.reason == "unmapped_formal_atom"
     assert exc_info.value.decision_report is not None
-    assert exc_info.value.selected_worlds_hash == exc_info.value.decision_report.trace["selected_worlds_hash"]
+    assert (
+        exc_info.value.selected_worlds_hash
+        == exc_info.value.decision_report.trace["selected_worlds_hash"]
+    )
 
 
 def test_unsatisfiable_integrity_constraint_preserves_formal_decision() -> None:
@@ -206,7 +240,10 @@ def test_unrealizable_merge_failure_event_preserves_selected_world_hash() -> Non
     assert event.decision is not None
     assert event.realization is None
     assert event.realization_failure == "unsatisfiable_integrity_constraint"
-    assert event.decision.trace["selected_worlds_hash"] == exc_info.value.selected_worlds_hash
+    assert (
+        event.decision.trace["selected_worlds_hash"]
+        == exc_info.value.selected_worlds_hash
+    )
 
 
 def test_unrealizable_merge_failure_is_replayable_as_failure() -> None:
@@ -217,7 +254,11 @@ def test_unrealizable_merge_failure_is_replayable_as_failure() -> None:
     with pytest.raises(RevisionMergeRequiredFailure) as second:
         _dispatch_unsatisfiable_merge(state, atom_ids)
 
-    assert first.value.reason == second.value.reason == "unsatisfiable_integrity_constraint"
+    assert (
+        first.value.reason
+        == second.value.reason
+        == "unsatisfiable_integrity_constraint"
+    )
     assert first.value.event is not None
     assert second.value.event is not None
     assert first.value.event.content_hash == second.value.event.content_hash
@@ -287,18 +328,20 @@ def test_ic_merge_replay_rejects_policy_drift_before_semantic_replay() -> None:
 
 def test_worldline_capture_serializes_ic_merge_event() -> None:
     state, atom_ids = _merge_state()
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "ic_merge",
-        "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
-        "integrity_constraint": {
-            "kind": "literals",
-            "required": [atom_ids["a"]],
-            "forbidden": [atom_ids["b"]],
-        },
-        "merge_parent_commits": ["left", "right"],
-        "merge_operator": "sigma",
-        "max_alphabet_size": 8,
-    })
+    query = WorldlineRevisionQuery.from_dict(
+        {
+            "operation": "ic_merge",
+            "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
+            "integrity_constraint": {
+                "kind": "literals",
+                "required": [atom_ids["a"]],
+                "forbidden": [atom_ids["b"]],
+            },
+            "merge_parent_commits": ["left", "right"],
+            "merge_operator": "sigma",
+            "max_alphabet_size": 8,
+        }
+    )
     assert query is not None
 
     journal = _capture_journal_for(state, (query,))
@@ -307,7 +350,9 @@ def test_worldline_capture_serializes_ic_merge_event() -> None:
     entry = payload["entries"][0]
     assert entry["operator"] == "ic_merge"
     assert entry["operator_input"]["merge_parent_commits"] == ["left", "right"]
-    assert entry["operator_input"]["integrity_constraint"]["required"] == [atom_ids["a"]]
+    assert entry["operator_input"]["integrity_constraint"]["required"] == [
+        atom_ids["a"]
+    ]
     event = entry["normalized_state_out"]["history"][-1]["event"]
     assert event["operation"] == "ic_merge"
     assert event["decision"]["trace"]["merge_operator"] == "sigma"

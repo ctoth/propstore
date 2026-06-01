@@ -48,7 +48,10 @@ def test_partial_eval_equivalence_suppresses_algorithm_conflict(monkeypatch) -> 
     monkeypatch.setattr(algorithms, "ast_compare", lambda *args, **kwargs: Result())
 
     records = algorithms.detect_algorithm_conflicts(
-        [_claim("a", "def f(x):\n    return x\n"), _claim("b", "def f(x):\n    return x\n")],
+        [
+            _claim("a", "def f(x):\n    return x\n"),
+            _claim("b", "def f(x):\n    return x\n"),
+        ],
         _registry(),
     )
 
@@ -66,7 +69,10 @@ def test_none_tier_non_equivalence_still_reports_conflict(monkeypatch) -> None:
     monkeypatch.setattr(algorithms, "ast_compare", lambda *args, **kwargs: Result())
 
     records = algorithms.detect_algorithm_conflicts(
-        [_claim("a", "def f(x):\n    return x\n"), _claim("b", "def f(x):\n    return x + 1\n")],
+        [
+            _claim("a", "def f(x):\n    return x\n"),
+            _claim("b", "def f(x):\n    return x + 1\n"),
+        ],
         _registry(),
     )
 
@@ -88,7 +94,10 @@ def test_generated_true_equivalence_tiers_suppress_conflict(tier: Tier) -> None:
 
     with patch.object(algorithms, "ast_compare", lambda *args, **kwargs: Result(tier)):
         records = algorithms.detect_algorithm_conflicts(
-            [_claim("a", "def f(x):\n    return x\n"), _claim("b", "def f(x):\n    return x\n")],
+            [
+                _claim("a", "def f(x):\n    return x\n"),
+                _claim("b", "def f(x):\n    return x\n"),
+            ],
             _registry(),
         )
 

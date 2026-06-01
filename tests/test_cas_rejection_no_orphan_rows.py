@@ -26,7 +26,9 @@ def test_promote_cas_rejection_does_not_write_blocked_sidecar_rows(
     expected_head = repo.git.branch_sha("master")
     original_commit_batch = type(repo.git).commit_batch
 
-    def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):
+    def stale_commit_batch(
+        self, adds, deletes, message, *, branch=None, expected_head=None
+    ):
         if branch == "master" and expected_head == expected_head_at_start:
             raise HeadMismatchError(
                 branch=branch,

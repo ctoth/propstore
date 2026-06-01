@@ -83,7 +83,9 @@ def _complement_predicate(predicate: str) -> str:
     return f"~{predicate}"
 
 
-def _preference_criterion(theory: gunray.DefeasibleTheory) -> gunray.PreferenceCriterion:
+def _preference_criterion(
+    theory: gunray.DefeasibleTheory,
+) -> gunray.PreferenceCriterion:
     return gunray.CompositePreference(
         gunray.SuperiorityPreference(theory),
         gunray.GeneralizedSpecificity(theory),

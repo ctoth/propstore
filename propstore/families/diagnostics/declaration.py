@@ -25,38 +25,38 @@ class BuildDiagnostic(FamilyModel):
 
 
 DIAGNOSTICS_CHARTER: FamilyCharter = FamilyCharter(
-        family=FamilyDefinition(
-            key="build_diagnostics",
-            name="build_diagnostics",
+    family=FamilyDefinition(
+        key="build_diagnostics",
+        name="build_diagnostics",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-build_diagnostics",
             contract_version=_WORLD_CONTRACT_VERSION,
-            artifact_family=ArtifactFamily(
-                name="propstore-world-build_diagnostics",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                doc_type=BuildDiagnostic,
-                placement=FlatYamlPlacement(".derived/build_diagnostics", str),
-            ),
-            identity_field="id",
+            doc_type=BuildDiagnostic,
+            placement=FlatYamlPlacement(".derived/build_diagnostics", str),
         ),
-        model=BuildDiagnostic,
-        fields=(
-            CharterField("id", int, primary_key=True, nullable=False),
-            CharterField("claim_id", str),
-            CharterField("source_kind", str, nullable=False),
-            CharterField("source_ref", str),
-            CharterField("diagnostic_kind", str, nullable=False),
-            CharterField("severity", str, nullable=False),
-            CharterField("blocking", int, nullable=False),
-            CharterField("message", str, nullable=False),
-            CharterField("file", str),
-            CharterField("detail_json", str),
-        ),
-        indexes=(
-            CharterIndex("idx_build_diagnostics_claim", ("claim_id",)),
-            CharterIndex("idx_build_diagnostics_kind", ("diagnostic_kind",)),
-            CharterIndex("idx_build_diagnostics_source", ("source_kind", "source_ref")),
-        ),
-        semantic_metadata={"semantic": "propstore.world"},
-    )
+        identity_field="id",
+    ),
+    model=BuildDiagnostic,
+    fields=(
+        CharterField("id", int, primary_key=True, nullable=False),
+        CharterField("claim_id", str),
+        CharterField("source_kind", str, nullable=False),
+        CharterField("source_ref", str),
+        CharterField("diagnostic_kind", str, nullable=False),
+        CharterField("severity", str, nullable=False),
+        CharterField("blocking", int, nullable=False),
+        CharterField("message", str, nullable=False),
+        CharterField("file", str),
+        CharterField("detail_json", str),
+    ),
+    indexes=(
+        CharterIndex("idx_build_diagnostics_claim", ("claim_id",)),
+        CharterIndex("idx_build_diagnostics_kind", ("diagnostic_kind",)),
+        CharterIndex("idx_build_diagnostics_source", ("source_kind", "source_ref")),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
 
 
 def quarantine_diagnostic(

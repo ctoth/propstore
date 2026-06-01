@@ -27,7 +27,12 @@ def test_full_opinion_tagged_as_opinion():
     """All four opinion components present + pignistic → source is OPINION."""
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
     result = apply_decision_criterion(
-        b, d, u, a, confidence=0.99, criterion="pignistic",
+        b,
+        d,
+        u,
+        a,
+        confidence=0.99,
+        criterion="pignistic",
     )
     assert isinstance(result, DecisionValue)
     assert result.source is DecisionValueSource.OPINION
@@ -39,7 +44,12 @@ def test_full_opinion_tagged_as_opinion():
 def test_missing_opinion_with_confidence_returns_no_data():
     """All four opinion components None + confidence set -> NO_DATA."""
     result = apply_decision_criterion(
-        None, None, None, None, confidence=0.75, criterion="pignistic",
+        None,
+        None,
+        None,
+        None,
+        confidence=0.75,
+        criterion="pignistic",
     )
     assert isinstance(result, DecisionValue)
     assert result.source is DecisionValueSource.NO_DATA
@@ -54,7 +64,12 @@ def test_partial_opinion_returns_no_data():
     honest no-data rather than using raw confidence.
     """
     result = apply_decision_criterion(
-        0.6, 0.1, None, 0.5, confidence=0.4, criterion="pignistic",
+        0.6,
+        0.1,
+        None,
+        0.5,
+        confidence=0.4,
+        criterion="pignistic",
     )
     assert isinstance(result, DecisionValue)
     assert result.source is DecisionValueSource.NO_DATA
@@ -64,7 +79,12 @@ def test_partial_opinion_returns_no_data():
 def test_no_data_returns_no_data_with_none_value():
     """All inputs None → source is NO_DATA, value is None."""
     result = apply_decision_criterion(
-        None, None, None, None, confidence=None, criterion="pignistic",
+        None,
+        None,
+        None,
+        None,
+        confidence=None,
+        criterion="pignistic",
     )
     assert isinstance(result, DecisionValue)
     assert result.source is DecisionValueSource.NO_DATA
@@ -76,12 +96,19 @@ def test_hurwicz_criterion_with_full_opinion():
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
     pessimism = 0.7
     result = apply_decision_criterion(
-        b, d, u, a, confidence=0.99,
-        criterion="hurwicz", pessimism_index=pessimism,
+        b,
+        d,
+        u,
+        a,
+        confidence=0.99,
+        criterion="hurwicz",
+        pessimism_index=pessimism,
     )
     assert isinstance(result, DecisionValue)
     assert result.source is DecisionValueSource.OPINION
-    bel = b              # 0.6
-    pl = 1.0 - d         # 0.9
-    expected = pessimism * bel + (1.0 - pessimism) * pl  # 0.7*0.6 + 0.3*0.9 = 0.42 + 0.27 = 0.69
+    bel = b  # 0.6
+    pl = 1.0 - d  # 0.9
+    expected = (
+        pessimism * bel + (1.0 - pessimism) * pl
+    )  # 0.7*0.6 + 0.3*0.9 = 0.42 + 0.27 = 0.69
     assert result.value == pytest.approx(expected)

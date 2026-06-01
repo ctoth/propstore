@@ -67,7 +67,9 @@ def test_micropublication_missing_claim_quarantines_not_raises(
                 sort_keys=False,
             ).encode(),
             **claim_payloads,
-            repo.families.micropubs.address(MicropublicationRef(micropub_id)).require_path(): yaml.dump(
+            repo.families.micropubs.address(
+                MicropublicationRef(micropub_id)
+            ).require_path(): yaml.dump(
                 {
                     "artifact_id": micropub_id,
                     "context": {"id": "ctx_test"},

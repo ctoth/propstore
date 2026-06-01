@@ -62,7 +62,9 @@ def test_finalize_blocks_claim_without_context_before_writing_micropubs(
     assert finalize.exit_code == 0, finalize.output
 
     source_head = repo.git.branch_sha("source/demo")
-    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=source_head))
+    report = yaml.safe_load(
+        repo.git.read_file("merge/finalize/demo.yaml", commit=source_head)
+    )
     assert report["status"] == "blocked"
     assert report["artifact_code_status"] == "incomplete"
     assert report["micropub_coverage_errors"] == ["no_context"]

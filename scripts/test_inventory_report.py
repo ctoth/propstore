@@ -114,7 +114,9 @@ def main() -> int:
     source_files = sorted(src_dir.rglob("*.py"))
 
     _print_heading("Largest Test Files By Test Count")
-    for stats in sorted(test_stats, key=lambda item: item.test_count, reverse=True)[: args.top]:
+    for stats in sorted(test_stats, key=lambda item: item.test_count, reverse=True)[
+        : args.top
+    ]:
         print(f"{stats.test_count:4d}  {stats.path.relative_to(Path.cwd())}")
 
     _print_heading("Source Files With No Direct Matching Test File")
@@ -133,7 +135,11 @@ def main() -> int:
         _print_heading("Lowest Coverage Source Files")
         for entry in coverage_entries[: args.top]:
             matching = _matching_test_files(entry.path, test_stats)
-            matching_text = ", ".join(stats.path.name for stats in matching) if matching else "no direct match"
+            matching_text = (
+                ", ".join(stats.path.name for stats in matching)
+                if matching
+                else "no direct match"
+            )
             print(
                 f"{entry.line_rate * 100:6.2f}%  {entry.path.relative_to(Path.cwd())}  "
                 f"[tests: {matching_text}]"

@@ -7,7 +7,10 @@ that lack explicit statement fields.
 import pytest
 
 from propstore.families.claims.types import ClaimType
-from propstore.description_generator import generate_description, _format_conditions_prose
+from propstore.description_generator import (
+    generate_description,
+    _format_conditions_prose,
+)
 from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.contexts.declaration import ContextReferenceDocument
 
@@ -20,6 +23,7 @@ def claim_document(**kwargs: object) -> ClaimDocument:
 
 
 # ── Concept registry fixture ─────────────────────────────────────────
+
 
 @pytest.fixture
 def concept_registry():
@@ -44,6 +48,7 @@ def concept_registry():
 
 # ── Test 1: Parameter claim with value ────────────────────────────────
 
+
 def test_parameter_claim_with_value(concept_registry):
     claim = claim_document(
         type=ClaimType.PARAMETER,
@@ -58,6 +63,7 @@ def test_parameter_claim_with_value(concept_registry):
 
 # ── Test 2: Parameter claim with range ────────────────────────────────
 
+
 def test_parameter_claim_with_range(concept_registry):
     claim = claim_document(
         type=ClaimType.PARAMETER,
@@ -71,6 +77,7 @@ def test_parameter_claim_with_range(concept_registry):
 
 
 # ── Test 3: Parameter claim with uncertainty ──────────────────────────
+
 
 def test_parameter_claim_with_uncertainty(concept_registry):
     claim = claim_document(
@@ -87,6 +94,7 @@ def test_parameter_claim_with_uncertainty(concept_registry):
 
 # ── Test 4: Equation claim ────────────────────────────────────────────
 
+
 def test_equation_claim(concept_registry):
     claim = claim_document(
         type=ClaimType.EQUATION,
@@ -98,6 +106,7 @@ def test_equation_claim(concept_registry):
 
 # ── Test 5: Observation claim with explicit statement ─────────────────
 
+
 def test_observation_preserves_statement(concept_registry):
     claim = claim_document(
         type=ClaimType.OBSERVATION,
@@ -108,6 +117,7 @@ def test_observation_preserves_statement(concept_registry):
 
 
 # ── Test 6: Claim with no conditions ──────────────────────────────────
+
 
 def test_parameter_no_conditions(concept_registry):
     claim = claim_document(
@@ -122,6 +132,7 @@ def test_parameter_no_conditions(concept_registry):
 
 # ── Test 7: Claim with multiple conditions ────────────────────────────
 
+
 def test_parameter_multiple_conditions(concept_registry):
     claim = claim_document(
         type=ClaimType.PARAMETER,
@@ -134,10 +145,14 @@ def test_parameter_multiple_conditions(concept_registry):
         ),
     )
     result = generate_description(claim, concept_registry)
-    assert result == "open_quotient = 0.7 ratio (modal voice_quality_type, male speaker_sex)"
+    assert (
+        result
+        == "open_quotient = 0.7 ratio (modal voice_quality_type, male speaker_sex)"
+    )
 
 
 # ── Test: Model claim ─────────────────────────────────────────────────
+
 
 def test_model_claim(concept_registry):
     claim = claim_document(
@@ -149,6 +164,7 @@ def test_model_claim(concept_registry):
 
 
 # ── Test: Measurement claim ───────────────────────────────────────────
+
 
 def test_measurement_claim(concept_registry):
     claim = claim_document(
@@ -164,6 +180,7 @@ def test_measurement_claim(concept_registry):
 
 # ── Test: Algorithm claim with stage ─────────────────────────────────
 
+
 def test_algorithm_claim_with_stage(concept_registry):
     claim = claim_document(
         type=ClaimType.ALGORITHM,
@@ -176,6 +193,7 @@ def test_algorithm_claim_with_stage(concept_registry):
 
 # ── Test: Algorithm claim without stage ──────────────────────────────
 
+
 def test_algorithm_claim_without_stage(concept_registry):
     claim = claim_document(
         type=ClaimType.ALGORITHM,
@@ -187,6 +205,7 @@ def test_algorithm_claim_without_stage(concept_registry):
 
 # ── Test: Unknown type returns None ───────────────────────────────────
 
+
 def test_unknown_type_returns_none(concept_registry):
     claim = claim_document()
     result = generate_description(claim, concept_registry)
@@ -194,6 +213,7 @@ def test_unknown_type_returns_none(concept_registry):
 
 
 # ── Test: Concept not in registry falls back to concept ID ────────────
+
 
 def test_missing_concept_falls_back_to_id(concept_registry):
     claim = claim_document(
@@ -207,6 +227,7 @@ def test_missing_concept_falls_back_to_id(concept_registry):
 
 
 # ── Test: Parameter with value + range prefers value ──────────────────
+
 
 def test_parameter_value_and_range(concept_registry):
     claim = claim_document(
@@ -224,8 +245,12 @@ def test_parameter_value_and_range(concept_registry):
 
 # ── Test: Condition summarizer ────────────────────────────────────────
 
+
 def test_summarize_voice_quality():
-    assert _format_conditions_prose(["voice_quality_type == 'modal'"]) == "modal voice_quality_type"
+    assert (
+        _format_conditions_prose(["voice_quality_type == 'modal'"])
+        == "modal voice_quality_type"
+    )
 
 
 def test_summarize_speaker_sex():
@@ -239,10 +264,12 @@ def test_summarize_complex_condition():
 
 
 def test_summarize_multiple():
-    result = _format_conditions_prose([
-        "voice_quality_type == 'breathy'",
-        "speaker_sex == 'female'",
-    ])
+    result = _format_conditions_prose(
+        [
+            "voice_quality_type == 'breathy'",
+            "speaker_sex == 'female'",
+        ]
+    )
     assert result == "breathy voice_quality_type, female speaker_sex"
 
 

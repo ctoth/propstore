@@ -96,7 +96,9 @@ def load_claim_batch_file(
 ) -> tuple[LoadedClaimsFile, ...]:
     artifact_path = coerce_tree_path(path)
     root_path = None if knowledge_root is None else coerce_tree_path(knowledge_root)
-    data = decode_yaml_mapping(artifact_path.read_bytes(), source=artifact_path.as_posix())
+    data = decode_yaml_mapping(
+        artifact_path.read_bytes(), source=artifact_path.as_posix()
+    )
     return claim_batch_files_from_payload(
         filename=artifact_path.name,
         source_path=artifact_path,

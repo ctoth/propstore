@@ -45,33 +45,41 @@ _CLI_ARGUMENTATION_SEMANTICS = (
 )
 
 _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = {
-    ReasoningBackend.CLAIM_GRAPH: frozenset({
-        ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.PREFERRED,
-        ArgumentationSemantics.STABLE,
-        ArgumentationSemantics.D_PREFERRED,
-        ArgumentationSemantics.S_PREFERRED,
-        ArgumentationSemantics.C_PREFERRED,
-        ArgumentationSemantics.BIPOLAR_STABLE,
-    }),
-    ReasoningBackend.ASPIC: frozenset({
-        ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.PREFERRED,
-        ArgumentationSemantics.STABLE,
-        ArgumentationSemantics.COMPLETE,
-        ArgumentationSemantics.ASPIC_DIRECT_GROUNDED,
-        ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED,
-    }),
-    ReasoningBackend.ATMS: frozenset({
-        ArgumentationSemantics.GROUNDED,
-    }),
-    ReasoningBackend.PRAF: frozenset({
-        ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.PREFERRED,
-        ArgumentationSemantics.STABLE,
-        ArgumentationSemantics.COMPLETE,
-        ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE,
-    }),
+    ReasoningBackend.CLAIM_GRAPH: frozenset(
+        {
+            ArgumentationSemantics.GROUNDED,
+            ArgumentationSemantics.PREFERRED,
+            ArgumentationSemantics.STABLE,
+            ArgumentationSemantics.D_PREFERRED,
+            ArgumentationSemantics.S_PREFERRED,
+            ArgumentationSemantics.C_PREFERRED,
+            ArgumentationSemantics.BIPOLAR_STABLE,
+        }
+    ),
+    ReasoningBackend.ASPIC: frozenset(
+        {
+            ArgumentationSemantics.GROUNDED,
+            ArgumentationSemantics.PREFERRED,
+            ArgumentationSemantics.STABLE,
+            ArgumentationSemantics.COMPLETE,
+            ArgumentationSemantics.ASPIC_DIRECT_GROUNDED,
+            ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED,
+        }
+    ),
+    ReasoningBackend.ATMS: frozenset(
+        {
+            ArgumentationSemantics.GROUNDED,
+        }
+    ),
+    ReasoningBackend.PRAF: frozenset(
+        {
+            ArgumentationSemantics.GROUNDED,
+            ArgumentationSemantics.PREFERRED,
+            ArgumentationSemantics.STABLE,
+            ArgumentationSemantics.COMPLETE,
+            ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE,
+        }
+    ),
 }
 
 

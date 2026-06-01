@@ -39,11 +39,13 @@ def test_capture_revision_state_serializes_revision_event_contract() -> None:
         max_candidates=8,
         conflicts={new_atom.atom_id: (ids["legacy"],)},
     )
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "revise",
-        "atom": {"kind": "assertion", "id": new_atom.atom_id},
-        "conflicts": {new_atom.atom_id: [ids["legacy"]]},
-    })
+    query = WorldlineRevisionQuery.from_dict(
+        {
+            "operation": "revise",
+            "atom": {"kind": "assertion", "id": new_atom.atom_id},
+            "conflicts": {new_atom.atom_id: [ids["legacy"]]},
+        }
+    )
     assert query is not None
 
     captured = capture_revision_state(_CaptureBound(initial_state, result), query)
@@ -51,7 +53,10 @@ def test_capture_revision_state_serializes_revision_event_contract() -> None:
     restored = WorldlineRevisionState.from_json_payload(payload)
 
     assert captured.event is not None
-    assert captured.event.pre_state_hash == EpistemicSnapshot.from_state(initial_state).content_hash
+    assert (
+        captured.event.pre_state_hash
+        == EpistemicSnapshot.from_state(initial_state).content_hash
+    )
     assert captured.event.operation == "revise"
     assert captured.event.input_atom_id == new_atom.atom_id
     assert captured.event.target_atom_ids == (ids["legacy"],)

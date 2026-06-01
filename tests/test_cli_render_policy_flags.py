@@ -44,7 +44,10 @@ from propstore.families.claims.declaration import (
     ProvenanceDocument,
     SourceJustificationDocument,
 )
-from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
+from propstore.families.contexts.declaration import (
+    ContextDocument,
+    ContextReferenceDocument,
+)
 from propstore.families.sources.declaration import (
     SourceDocument,
     SourceOriginDocument,
@@ -168,9 +171,17 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
             "promotion_status"
         )
 
-        def _insert(claim_id, *, build_status="ingested", stage=None,
-                    promotion_status=None, branch="master") -> None:
-            conn.execute("DELETE FROM claim_concept_link WHERE claim_id = ?", (claim_id,))
+        def _insert(
+            claim_id,
+            *,
+            build_status="ingested",
+            stage=None,
+            promotion_status=None,
+            branch="master",
+        ) -> None:
+            conn.execute(
+                "DELETE FROM claim_concept_link WHERE claim_id = ?", (claim_id,)
+            )
             conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
             conn.execute(
                 f"""
@@ -332,7 +343,9 @@ def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
         convert_document(
             justification_payload,
             SourceJustificationDocument,
-            source=repo.families.justifications.address(justification_ref).require_path(),
+            source=repo.families.justifications.address(
+                justification_ref
+            ).require_path(),
         ),
         message="Seed world status justifications",
     )
@@ -435,7 +448,9 @@ class TestWorldStatusFlags:
         assert report.authored_justification_count == sql_justification_count
         assert report.stance_count == 1
 
-    def test_default_hides_draft_blocked_promotion(self, seeded_workspace: Path) -> None:
+    def test_default_hides_draft_blocked_promotion(
+        self, seeded_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(
             cli, ["-C", str(seeded_workspace / "knowledge"), "world", "status"]

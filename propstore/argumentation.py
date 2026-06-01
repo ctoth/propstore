@@ -98,10 +98,22 @@ def praf_query_parameters(
     query_kind: str,
     inference_mode: str | None,
     queried_set: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
-    target_claim_ids: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
-    default_queried_set: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
+    target_claim_ids: tuple[str, ...]
+    | list[str]
+    | set[str]
+    | frozenset[str]
+    | None = None,
+    default_queried_set: tuple[str, ...]
+    | list[str]
+    | set[str]
+    | frozenset[str]
+    | None = None,
 ) -> PrAFQueryParameters:
-    semantics_value = semantics.value if isinstance(semantics, ArgumentationSemantics) else str(semantics)
+    semantics_value = (
+        semantics.value
+        if isinstance(semantics, ArgumentationSemantics)
+        else str(semantics)
+    )
     if semantics_value != ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE.value:
         return PrAFQueryParameters(
             semantics=semantics_value,
@@ -134,12 +146,16 @@ def _cayrol_derived_defeats(
 
 def _conflict_row_from_witness(conflict: GraphConflictWitness) -> dict:
     details = dict(conflict.details)
-    warning_class = details.get("warning_class") or details.get("conflict_class") or conflict.kind
+    warning_class = (
+        details.get("warning_class") or details.get("conflict_class") or conflict.kind
+    )
     return {
         "claim_a_id": conflict.left_claim_id,
         "claim_b_id": conflict.right_claim_id,
         "warning_class": (
-            warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class)
+            warning_class.value
+            if isinstance(warning_class, ConflictClass)
+            else str(warning_class)
         ),
         **details,
     }
@@ -182,7 +198,9 @@ def _conflict_witness_from_row(conflict: ConflictWitness) -> GraphConflictWitnes
     return GraphConflictWitness(
         left_claim_id=ClaimId(conflict.claim_a_id),
         right_claim_id=ClaimId(conflict.claim_b_id),
-        kind=warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class),
+        kind=warning_class.value
+        if isinstance(warning_class, ConflictClass)
+        else str(warning_class),
         details=details,
     )
 
@@ -196,8 +214,7 @@ def _minimal_compiled_graph(
         for row in store.claims_by_ids(active_claim_ids).values()
     )
     relations = tuple(
-        _relation_edge_from_row(row)
-        for row in store.stances_between(active_claim_ids)
+        _relation_edge_from_row(row) for row in store.stances_between(active_claim_ids)
     )
     conflicts = tuple(
         _conflict_witness_from_row(row)
@@ -274,13 +291,9 @@ def _collect_claim_graph_relations(
     stances = list(_graph_stance_edges(active_graph))
     conflicts = _graph_conflict_rows(active_graph)
 
-    existing_stance_pairs = {
-        (stance.source_id, stance.target_id)
-        for stance in stances
-    }
+    existing_stance_pairs = {(stance.source_id, stance.target_id) for stance in stances}
     existing_stance_undirected = {
-        frozenset({stance.source_id, stance.target_id})
-        for stance in stances
+        frozenset({stance.source_id, stance.target_id}) for stance in stances
     }
     existing_attack_undirected = {
         frozenset({stance.source_id, stance.target_id})
@@ -291,7 +304,9 @@ def _collect_claim_graph_relations(
     for conflict in conflicts:
         warning_class = conflict.get("warning_class")
         warning_class_name = (
-            warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class or "")
+            warning_class.value
+            if isinstance(warning_class, ConflictClass)
+            else str(warning_class or "")
         )
         if warning_class_name not in _REAL_CONFLICT_CLASSES:
             continue
@@ -418,7 +433,9 @@ def shared_analyzer_input_from_active_graph(
     )
     defeats = set(relations.direct_defeats)
     if relations.supports and relations.direct_defeats:
-        defeats |= _cayrol_derived_defeats(set(relations.direct_defeats), set(relations.supports))
+        defeats |= _cayrol_derived_defeats(
+            set(relations.direct_defeats), set(relations.supports)
+        )
     af = ArgumentationFramework(
         arguments=relations.arguments,
         defeats=frozenset(defeats),
@@ -452,7 +469,9 @@ def shared_analyzer_input_from_store(
     )
 
 
-def _extension_results(name: str, extensions: list[frozenset[str]] | tuple[frozenset[str], ...]) -> tuple[ExtensionResult, ...]:
+def _extension_results(
+    name: str, extensions: list[frozenset[str]] | tuple[frozenset[str], ...]
+) -> tuple[ExtensionResult, ...]:
     return tuple(
         ExtensionResult(name=f"{name}:{index}", accepted_claim_ids=tuple(extension))
         for index, extension in enumerate(
@@ -467,7 +486,9 @@ def project_extension_result(
     *,
     target_claim_ids: tuple[str, ...] | list[str] | set[str],
 ) -> ClaimProjection:
-    target_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids)))
+    target_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids))
+    )
     if not extensions:
         return ClaimProjection(target_claim_ids=target_ids)
 
@@ -488,10 +509,14 @@ def project_acceptance_result(
     *,
     target_claim_ids: tuple[str, ...] | list[str] | set[str],
 ) -> ClaimProjection:
-    target_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids)))
+    target_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids))
+    )
     if not target_ids:
         return ClaimProjection(target_claim_ids=target_ids)
-    target_probs = {claim_id: acceptance_probs.get(claim_id, 0.0) for claim_id in target_ids}
+    target_probs = {
+        claim_id: acceptance_probs.get(claim_id, 0.0) for claim_id in target_ids
+    }
     best_prob = max(target_probs.values())
     survivor_claim_ids = tuple(
         sorted(
@@ -513,8 +538,12 @@ def project_extension_probability_result(
     queried_set: tuple[str, ...] | list[str] | set[str] | None,
     target_claim_ids: tuple[str, ...] | list[str] | set[str],
 ) -> ClaimProjection:
-    target_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids)))
-    witness_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in (queried_set or target_ids))))
+    target_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids))
+    )
+    witness_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in (queried_set or target_ids)))
+    )
     survivor_ids = witness_ids if extension_probability > 0.0 else ()
     return ClaimProjection(
         target_claim_ids=target_ids,
@@ -554,8 +583,7 @@ def analyze_claim_graph(
         )
     else:
         raise ValueError(
-            "claim_graph does not support semantics "
-            f"'{normalized_semantics.value}'"
+            f"claim_graph does not support semantics '{normalized_semantics.value}'"
         )
 
     if normalized_semantics == ArgumentationSemantics.GROUNDED:
@@ -609,7 +637,10 @@ def analyze_aspic_backend(
             ExtensionResult(
                 name=package_result.semantics,
                 accepted_claim_ids=tuple(
-                    sorted(repr(conclusion) for conclusion in package_result.accepted_conclusions)
+                    sorted(
+                        repr(conclusion)
+                        for conclusion in package_result.accepted_conclusions
+                    )
                 ),
             ),
         )
@@ -685,16 +716,25 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
         )
 
     defeats = frozenset(
-        edge for edge in shared.argumentation_framework.defeats
+        edge
+        for edge in shared.argumentation_framework.defeats
         if edge_in_framework(edge)
     )
     attacks = (
         None
         if shared.argumentation_framework.attacks is None
-        else frozenset(edge for edge in shared.argumentation_framework.attacks if edge_in_framework(edge))
+        else frozenset(
+            edge
+            for edge in shared.argumentation_framework.attacks
+            if edge_in_framework(edge)
+        )
     )
-    supports = frozenset(edge for edge in shared.relations.supports if edge_in_framework(edge))
-    base_defeats = frozenset(edge for edge in shared.relations.direct_defeats if edge_in_framework(edge))
+    supports = frozenset(
+        edge for edge in shared.relations.supports if edge_in_framework(edge)
+    )
+    base_defeats = frozenset(
+        edge for edge in shared.relations.direct_defeats if edge_in_framework(edge)
+    )
     framework = ArgumentationFramework(
         arguments=active_args,
         defeats=defeats,
@@ -713,8 +753,7 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
         for edge in (attacks or frozenset())
     }
     p_supports = {
-        edge: support_map.get(edge, vacuous_relation(edge))
-        for edge in supports
+        edge: support_map.get(edge, vacuous_relation(edge)) for edge in supports
     }
     kernel = ProbabilisticAF(
         framework=framework,
@@ -722,7 +761,9 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
         p_defeats={edge: opinion.expectation() for edge, opinion in p_defeats.items()},
         p_attacks={edge: opinion.expectation() for edge, opinion in p_attacks.items()},
         supports=supports,
-        p_supports={edge: opinion.expectation() for edge, opinion in p_supports.items()},
+        p_supports={
+            edge: opinion.expectation() for edge, opinion in p_supports.items()
+        },
         base_defeats=base_defeats,
     )
     return PropstorePrAF(
@@ -733,10 +774,20 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
         supports=supports,
         p_supports=p_supports,
         base_defeats=base_defeats,
-        attack_relations=tuple(relation for relation in shared.relations.attack_relations if keep_relation(relation)),
-        support_relations=tuple(relation for relation in shared.relations.support_relations if keep_relation(relation)),
+        attack_relations=tuple(
+            relation
+            for relation in shared.relations.attack_relations
+            if keep_relation(relation)
+        ),
+        support_relations=tuple(
+            relation
+            for relation in shared.relations.support_relations
+            if keep_relation(relation)
+        ),
         direct_defeat_relations=tuple(
-            relation for relation in shared.relations.direct_defeat_relations if keep_relation(relation)
+            relation
+            for relation in shared.relations.direct_defeat_relations
+            if keep_relation(relation)
         ),
         omitted_arguments=omitted_arguments,
         omitted_relations=omitted_relations,

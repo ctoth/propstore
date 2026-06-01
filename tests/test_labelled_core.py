@@ -72,11 +72,7 @@ class _StubStore:
         parameterizations: dict[str, list[dict]] | None = None,
     ) -> None:
         parameterizations = {} if parameterizations is None else parameterizations
-        all_rows = claims + [
-            row
-            for rows in parameterizations.values()
-            for row in rows
-        ]
+        all_rows = claims + [row for rows in parameterizations.values() for row in rows]
         self._condition_registry = condition_registry_for_rows(all_rows)
         self._claims = [
             claim_from_test_payload(row)
@@ -115,7 +111,11 @@ class _StubStore:
 
     def all_concepts(self) -> list[dict]:
         concept_ids = sorted(
-            {str(claim.value_concept_id) for claim in self._claims if claim.value_concept_id is not None}
+            {
+                str(claim.value_concept_id)
+                for claim in self._claims
+                if claim.value_concept_id is not None
+            }
             | {"concept3"}
         )
         return [
@@ -139,7 +139,9 @@ class _StubStore:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if str(claim.id) == claim_id), None)
+        return next(
+            (claim for claim in self._claims if str(claim.id) == claim_id), None
+        )
 
     def get_concept(self, concept_id: str) -> dict | None:
         for concept in self.all_concepts():
@@ -289,7 +291,9 @@ def test_unconditional_claim_gets_empty_environment_label() -> None:
 
 def test_bound_world_uses_singleton_binding_labels() -> None:
     bound = _make_bound(x=1)
-    by_cel = {assumption.cel: assumption for assumption in bound._environment.assumptions}
+    by_cel = {
+        assumption.cel: assumption for assumption in bound._environment.assumptions
+    }
 
     result = bound.value_of("concept1")
 
@@ -300,16 +304,18 @@ def test_bound_world_uses_singleton_binding_labels() -> None:
 def test_context_scoped_claim_gets_explicit_context_label() -> None:
     class ContextScopedStore(_StubStore):
         def __init__(self) -> None:
-            self._set_rows([
-                {
-                    "id": "claim_ctx",
-                    "concept_id": "concept_ctx",
-                    "type": "parameter",
-                    "value": 7.0,
-                    "conditions_cel": None,
-                    "context_id": "ctx_general",
-                }
-            ])
+            self._set_rows(
+                [
+                    {
+                        "id": "claim_ctx",
+                        "concept_id": "concept_ctx",
+                        "type": "parameter",
+                        "value": 7.0,
+                        "conditions_cel": None,
+                        "context_id": "ctx_general",
+                    }
+                ]
+            )
 
     bound = BoundWorld(
         ContextScopedStore(),
@@ -331,18 +337,22 @@ def test_context_scoped_claim_gets_explicit_context_label() -> None:
     assert result.label == Label.context("ctx_general")
 
 
-def test_semantically_active_claim_without_exact_assumption_match_gets_no_label() -> None:
+def test_semantically_active_claim_without_exact_assumption_match_gets_no_label() -> (
+    None
+):
     class SemanticOverlapStore(_StubStore):
         def __init__(self) -> None:
-            self._set_rows([
-                {
-                    "id": "claim_overlap",
-                    "concept_id": "concept_overlap",
-                    "type": "parameter",
-                    "value": 11.0,
-                    "conditions_cel": json.dumps(["x > 0"]),
-                }
-            ])
+            self._set_rows(
+                [
+                    {
+                        "id": "claim_overlap",
+                        "concept_id": "concept_overlap",
+                        "type": "parameter",
+                        "value": 11.0,
+                        "conditions_cel": json.dumps(["x > 0"]),
+                    }
+                ]
+            )
 
     bound = BoundWorld(
         SemanticOverlapStore(),
@@ -360,7 +370,9 @@ def test_semantically_active_claim_without_exact_assumption_match_gets_no_label(
 
 def test_derived_value_combines_input_labels() -> None:
     bound = _make_bound(x=1, y=2)
-    by_cel = {assumption.cel: assumption for assumption in bound._environment.assumptions}
+    by_cel = {
+        assumption.cel: assumption for assumption in bound._environment.assumptions
+    }
 
     result = bound.derived_value("concept3")
 
@@ -379,7 +391,9 @@ def test_derived_value_combines_input_labels() -> None:
 
 
 def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
-    claim = claim_from_test_payload({"id": "claim1", "concept_id": "concept1", "value": 42.0})
+    claim = claim_from_test_payload(
+        {"id": "claim1", "concept_id": "concept1", "value": 42.0}
+    )
 
     class FakeBound:
         def value_of(self, concept_id: str) -> ValueResult:
@@ -396,7 +410,9 @@ def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
             *,
             override_values: dict[str, float | str | None] | None = None,
         ) -> DerivedResult:
-            return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+            return DerivedResult(
+                concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+            )
 
         def active_claims(self, concept_id: str | None = None):
             return [claim]

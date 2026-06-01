@@ -16,8 +16,7 @@ from propstore.families.relations.declaration import Stance
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus
 
-_CLAIM_GRAPH_METADATA_KEYS = (
-)
+_CLAIM_GRAPH_METADATA_KEYS = ()
 
 
 def _test_provenance(operation: str) -> Provenance:
@@ -136,9 +135,7 @@ def claim_from_payload(payload: Mapping[str, Any]) -> Claim:
 def claim_node_from_payload(payload: Mapping[str, Any]) -> ClaimNode:
     node = claim_node_from_claim(claim_from_payload(payload))
     metadata = tuple(
-        (key, payload[key])
-        for key in _CLAIM_GRAPH_METADATA_KEYS
-        if key in payload
+        (key, payload[key]) for key in _CLAIM_GRAPH_METADATA_KEYS if key in payload
     )
     return ClaimNode(
         claim_id=node.claim_id,

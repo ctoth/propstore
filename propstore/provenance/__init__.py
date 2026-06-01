@@ -294,6 +294,7 @@ def read_provenance_note(
 # YAML block builder
 # ---------------------------------------------------------------------------
 
+
 def _build_produced_by_yaml(
     agent: str,
     skill: str,
@@ -333,7 +334,9 @@ def _stamp_md(
     timestamp: str,
 ) -> tuple[str, bool]:
     """Add or update produced_by in markdown YAML frontmatter."""
-    produced_by_block = _build_produced_by_yaml(agent, skill, status, plugin_version, timestamp)
+    produced_by_block = _build_produced_by_yaml(
+        agent, skill, status, plugin_version, timestamp
+    )
     match = _FRONTMATTER_RE.match(text)
 
     if not match:
@@ -342,10 +345,12 @@ def _stamp_md(
         return result, True
 
     frontmatter = match.group(1)
-    body = text[match.end():]
+    body = text[match.end() :]
 
     if _PRODUCED_BY_BLOCK_RE.search(frontmatter):
-        new_frontmatter = _PRODUCED_BY_BLOCK_RE.sub(produced_by_block, frontmatter).rstrip()
+        new_frontmatter = _PRODUCED_BY_BLOCK_RE.sub(
+            produced_by_block, frontmatter
+        ).rstrip()
     else:
         new_frontmatter = frontmatter.rstrip() + "\n" + produced_by_block
 
@@ -373,7 +378,9 @@ def _stamp_yaml(
     timestamp: str,
 ) -> tuple[str, bool]:
     """Add or update produced_by in a YAML file's top level."""
-    produced_by_block = _build_produced_by_yaml(agent, skill, status, plugin_version, timestamp) + "\n"
+    produced_by_block = (
+        _build_produced_by_yaml(agent, skill, status, plugin_version, timestamp) + "\n"
+    )
 
     if _YAML_PRODUCED_BY_RE.search(text):
         result = _YAML_PRODUCED_BY_RE.sub(produced_by_block, text, count=1)
@@ -396,6 +403,7 @@ def _stamp_yaml(
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def stamp_file(
     path: Path,
     agent: str,
@@ -412,9 +420,13 @@ def stamp_file(
     text = path.read_text(encoding="utf-8")
 
     if path.suffix == ".md":
-        result, changed = _stamp_md(text, agent, skill, status, plugin_version, timestamp)
+        result, changed = _stamp_md(
+            text, agent, skill, status, plugin_version, timestamp
+        )
     elif path.suffix in (".yaml", ".yml"):
-        result, changed = _stamp_yaml(text, agent, skill, status, plugin_version, timestamp)
+        result, changed = _stamp_yaml(
+            text, agent, skill, status, plugin_version, timestamp
+        )
     else:
         raise ValueError(f"Unsupported file type: {path.suffix}")
 

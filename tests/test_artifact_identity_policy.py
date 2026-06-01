@@ -14,7 +14,9 @@ from propstore.repository import Repository
 FormDocument = FORM_CHARTER.generated_document()
 
 
-def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_updates_primary_identity() -> None:
+def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_updates_primary_identity() -> (
+    None
+):
     normalized = normalize_canonical_concept_payload(
         {
             "canonical_name": "vocal_task",
@@ -28,7 +30,10 @@ def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_upda
     )
 
     assert normalized["artifact_id"] == derive_concept_artifact_id("propstore", "task")
-    assert normalized["logical_ids"][0] == {"namespace": "speech", "value": "vocal_task"}
+    assert normalized["logical_ids"][0] == {
+        "namespace": "speech",
+        "value": "vocal_task",
+    }
     assert {"namespace": "propstore", "value": "task"} in normalized["logical_ids"]
     assert normalized["version_id"].startswith("sha256:")
 
@@ -42,12 +47,14 @@ def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -
     )
     ref = ConceptFileRef("demo")
     document = convert_document(
-        normalize_canonical_concept_payload({
-            "canonical_name": "demo",
-            "status": "accepted",
-            "definition": "Demo concept.",
-            "form": "structural",
-        }),
+        normalize_canonical_concept_payload(
+            {
+                "canonical_name": "demo",
+                "status": "accepted",
+                "definition": "Demo concept.",
+                "form": "structural",
+            }
+        ),
         ConceptDocument,
         source="concepts/demo.yaml",
     )
@@ -64,4 +71,6 @@ def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -
     assert loaded.logical_ids[0].value == "demo"
     assert loaded.lexical_entry.canonical_form.written_rep == "demo"
     assert loaded.lexical_entry.physical_dimension_form == "structural"
-    assert isinstance(loaded.version_id, str) and loaded.version_id.startswith("sha256:")
+    assert isinstance(loaded.version_id, str) and loaded.version_id.startswith(
+        "sha256:"
+    )

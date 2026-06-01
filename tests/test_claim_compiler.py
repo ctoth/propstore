@@ -26,22 +26,31 @@ def test_build_compilation_context_from_paths_keeps_canonical_records_and_lookup
     concepts_dir.mkdir(parents=True)
     forms_dir.mkdir()
 
-    (forms_dir / "frequency.yaml").write_text(yaml.dump({
-        "name": "frequency",
-        "kind": "quantity",
-        "dimensionless": False,
-        "unit_symbol": "Hz",
-    }))
+    (forms_dir / "frequency.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "frequency",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+            }
+        )
+    )
 
-    concepts = normalize_concept_payloads([{
-        "id": "concept1",
-        "canonical_name": "fundamental_frequency",
-        "aliases": [{"name": "F0", "source": "paper"}],
-        "status": "accepted",
-        "definition": "F0",
-        "domain": "speech",
-        "form": "frequency",
-    }], default_domain="speech")
+    concepts = normalize_concept_payloads(
+        [
+            {
+                "id": "concept1",
+                "canonical_name": "fundamental_frequency",
+                "aliases": [{"name": "F0", "source": "paper"}],
+                "status": "accepted",
+                "definition": "F0",
+                "domain": "speech",
+                "form": "frequency",
+            }
+        ],
+        default_domain="speech",
+    )
     (concepts_dir / "fundamental_frequency.yaml").write_text(
         yaml.dump(concepts[0], default_flow_style=False)
     )
@@ -70,39 +79,50 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
     concepts_dir.mkdir()
     forms_dir.mkdir()
 
-    (forms_dir / "frequency.yaml").write_text(yaml.dump({
-        "name": "frequency",
-        "kind": "quantity",
-        "dimensionless": False,
-        "unit_symbol": "Hz",
-    }))
-    (forms_dir / "pressure.yaml").write_text(yaml.dump({
-        "name": "pressure",
-        "kind": "quantity",
-        "dimensionless": False,
-        "unit_symbol": "Pa",
-    }))
+    (forms_dir / "frequency.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "frequency",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+            }
+        )
+    )
+    (forms_dir / "pressure.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "pressure",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "Pa",
+            }
+        )
+    )
 
-    concepts = normalize_concept_payloads([
-        {
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "aliases": [{"name": "F0", "source": "paper"}],
-            "status": "accepted",
-            "definition": "F0",
-            "domain": "speech",
-            "form": "frequency",
-        },
-        {
-            "id": "concept2",
-            "canonical_name": "subglottal_pressure",
-            "aliases": [{"name": "Ps", "source": "paper"}],
-            "status": "accepted",
-            "definition": "Ps",
-            "domain": "speech",
-            "form": "pressure",
-        },
-    ], default_domain="speech")
+    concepts = normalize_concept_payloads(
+        [
+            {
+                "id": "concept1",
+                "canonical_name": "fundamental_frequency",
+                "aliases": [{"name": "F0", "source": "paper"}],
+                "status": "accepted",
+                "definition": "F0",
+                "domain": "speech",
+                "form": "frequency",
+            },
+            {
+                "id": "concept2",
+                "canonical_name": "subglottal_pressure",
+                "aliases": [{"name": "Ps", "source": "paper"}],
+                "status": "accepted",
+                "definition": "Ps",
+                "domain": "speech",
+                "form": "pressure",
+            },
+        ],
+        default_domain="speech",
+    )
     for index, concept in enumerate(concepts, start=1):
         (concepts_dir / f"concept{index}.yaml").write_text(
             yaml.dump(concept, default_flow_style=False)
@@ -118,10 +138,12 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
     )
     claim1["output_concept"] = "F0"
     claim2 = make_parameter_claim("claim2", "concept2", 100.0, "Pa", paper="paper")
-    payload = normalize_claims_payload({
-        "source": {"paper": "paper"},
-        "claims": [claim1, claim2],
-    })
+    payload = normalize_claims_payload(
+        {
+            "source": {"paper": "paper"},
+            "claims": [claim1, claim2],
+        }
+    )
     (claims_dir / "paper.yaml").write_text(yaml.dump(payload, default_flow_style=False))
 
     files = load_claim_files(claims_dir)
@@ -139,11 +161,13 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
         for claim in semantic_file.claims
     ]
     semantic_claim = next(
-        claim for claim in semantic_claims
+        claim
+        for claim in semantic_claims
         if claim.resolved_claim.primary_logical_id == "paper:claim1"
     )
     target_claim_id = next(
-        claim.artifact_id for claim in semantic_claims
+        claim.artifact_id
+        for claim in semantic_claims
         if claim.resolved_claim.primary_logical_id == "paper:claim2"
     )
 
@@ -162,10 +186,12 @@ def test_compilation_context_exposes_quire_reference_indexes(tmp_path):
     claims_dir.mkdir()
 
     claim = make_parameter_claim("claim1", "concept1", 200.0, "Hz", paper="paper")
-    payload = normalize_claims_payload({
-        "source": {"paper": "paper"},
-        "claims": [claim],
-    })
+    payload = normalize_claims_payload(
+        {
+            "source": {"paper": "paper"},
+            "claims": [claim],
+        }
+    )
     (claims_dir / "paper.yaml").write_text(yaml.dump(payload, default_flow_style=False))
 
     files = load_claim_files(claims_dir)
@@ -178,7 +204,10 @@ def test_compilation_context_exposes_quire_reference_indexes(tmp_path):
     assert context.concept_index.exists("fundamental_frequency")
     assert context.concept_index.exists("propstore:concept1")
     assert context.claim_index.exists(claim_logical_id)
-    assert context.claim_index.resolve_id(claim_logical_id) == payload["claims"][0]["artifact_id"]
+    assert (
+        context.claim_index.resolve_id(claim_logical_id)
+        == payload["claims"][0]["artifact_id"]
+    )
     assert {spec.name for spec in semantic_foreign_keys()} >= {
         "claim_stance_target",
         "concept_parameterization_canonical_claim",
@@ -194,21 +223,30 @@ def test_compile_claim_files_normalizes_authored_raw_id_batches(tmp_path):
     concepts_dir.mkdir()
     forms_dir.mkdir()
 
-    (forms_dir / "frequency.yaml").write_text(yaml.dump({
-        "name": "frequency",
-        "kind": "quantity",
-        "dimensionless": False,
-        "unit_symbol": "Hz",
-    }))
+    (forms_dir / "frequency.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "frequency",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+            }
+        )
+    )
 
-    concepts = normalize_concept_payloads([{
-        "id": "concept1",
-        "canonical_name": "fundamental_frequency",
-        "status": "accepted",
-        "definition": "F0",
-        "domain": "speech",
-        "form": "frequency",
-    }], default_domain="speech")
+    concepts = normalize_concept_payloads(
+        [
+            {
+                "id": "concept1",
+                "canonical_name": "fundamental_frequency",
+                "status": "accepted",
+                "definition": "F0",
+                "domain": "speech",
+                "form": "frequency",
+            }
+        ],
+        default_domain="speech",
+    )
     (concepts_dir / "fundamental_frequency.yaml").write_text(
         yaml.dump(concepts[0], default_flow_style=False)
     )

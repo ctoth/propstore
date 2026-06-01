@@ -129,12 +129,17 @@ def test_policy_profile_projects_to_situated_assertions() -> None:
     assert "ps:concept:policy-profile" in relation_ids
     assert "ps:concept:policy-revision" in relation_ids
     assert "ps:concept:policy-merge" in relation_ids
-    assert all(str(assertion.context.id) == "ps:context:governance" for assertion in assertions)
+    assert all(
+        str(assertion.context.id) == "ps:context:governance" for assertion in assertions
+    )
 
 
 def test_worldline_content_hash_changes_when_policy_profile_changes() -> None:
     from propstore.worldline import compute_worldline_content_hash
-    from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
+    from propstore.worldline.result_types import (
+        WorldlineDependencies,
+        WorldlineTargetValue,
+    )
 
     profile = default_policy_profile()
     changed = replace(

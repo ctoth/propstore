@@ -1,4 +1,5 @@
 """Worldline journal CLI commands."""
+
 from __future__ import annotations
 
 import click
@@ -29,7 +30,9 @@ def worldline_build_journal(obj: dict, name: str) -> None:
         )
     except WorldlineValidationError as exc:
         fail(exc)
-    emit_success(f"Built journal for worldline '{report.name}' ({report.step_count} steps)")
+    emit_success(
+        f"Built journal for worldline '{report.name}' ({report.step_count} steps)"
+    )
 
 
 @worldline.command("at-step")

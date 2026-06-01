@@ -85,8 +85,12 @@ class ContextReferenceDocument(CharterDoc):
     model_name="ContextLiftingRule",
     reference_keys=(ReferenceKey.field("name"),),
     indexes=(
-        CharterIndex("idx_context_lifting_rule_source_context_id", ("source_context_id",)),
-        CharterIndex("idx_context_lifting_rule_target_context_id", ("target_context_id",)),
+        CharterIndex(
+            "idx_context_lifting_rule_source_context_id", ("source_context_id",)
+        ),
+        CharterIndex(
+            "idx_context_lifting_rule_target_context_id", ("target_context_id",)
+        ),
     ),
 )
 class Context_lifting_ruleDocument(CharterDoc):
@@ -159,8 +163,14 @@ ContextAssumptionDocument = Context_assumptionDocument
     model_name="ContextLiftingMaterialization",
     model_mixin=ContextLiftingMaterializationMixin,
     indexes=(
-        CharterIndex("idx_context_lifting_materialization_source_context_id", ("source_context_id",)),
-        CharterIndex("idx_context_lifting_materialization_target_context_id", ("target_context_id",)),
+        CharterIndex(
+            "idx_context_lifting_materialization_source_context_id",
+            ("source_context_id",),
+        ),
+        CharterIndex(
+            "idx_context_lifting_materialization_target_context_id",
+            ("target_context_id",),
+        ),
     ),
 )
 class Context_lifting_materializationDocument(CharterDoc):
@@ -202,10 +212,7 @@ def filter_invalid_context_lifting_models(
     models: ContextModelBatches,
 ) -> ContextModelBatches:
     contexts, assumptions, lifting_rules, lifting_materializations = models
-    context_ids = {
-        context.id
-        for context in contexts
-    }
+    context_ids = {context.id for context in contexts}
     return (
         contexts,
         assumptions,
@@ -285,9 +292,7 @@ def compile_context_models(
             for assertion in authored_ist_assertions
             for decision in lifting_system.lift_decisions_for(assertion)
         )
-        materialization_models = compile_context_lifting_materializations(
-            decisions
-        )
+        materialization_models = compile_context_lifting_materializations(decisions)
 
     return (
         tuple(context_models),
@@ -373,8 +378,7 @@ def load_lifting_system_from_models(
 
     context_ids = [str(context.id) for context in contexts]
     context_refs = tuple(
-        ContextReference(id=ContextId(context_id))
-        for context_id in context_ids
+        ContextReference(id=ContextId(context_id)) for context_id in context_ids
     )
 
     assumptions_by_id: dict[str, list[str]] = {

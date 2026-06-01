@@ -26,7 +26,9 @@ def _registry():
 
 def _condition_set(*sources: str):
     registry = _registry()
-    return checked_condition_set(check_condition_ir(source, registry) for source in sources)
+    return checked_condition_set(
+        check_condition_ir(source, registry) for source in sources
+    )
 
 
 class UnknownEquivalenceSolver:
@@ -34,7 +36,9 @@ class UnknownEquivalenceSolver:
         return SolverUnknown(SolverUnknownReason.OTHER, "test unknown equivalence")
 
     def are_disjoint_result(self, conditions_a, conditions_b):
-        raise AssertionError("disjointness must not be queried after UNKNOWN equivalence")
+        raise AssertionError(
+            "disjointness must not be queried after UNKNOWN equivalence"
+        )
 
 
 class UnknownDisjointSolver:

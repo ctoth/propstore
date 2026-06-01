@@ -136,14 +136,20 @@ class SourceStanceEntryDocument(CharterDoc, kw_only=True):
         ExtractionProvenanceDocument | None, charter_field(nullable=True)
     ] = None
     source_claim: Annotated[str | None, charter_field(nullable=True)] = None
-    perspective_source_claim_id: Annotated[str | None, charter_field(nullable=True)] = None
+    perspective_source_claim_id: Annotated[str | None, charter_field(nullable=True)] = (
+        None
+    )
     target: Annotated[str | None, charter_field(nullable=True)] = None
-    type: Annotated[StanceType | None, charter_field(nullable=True, enum_type=StanceType)] = None
+    type: Annotated[
+        StanceType | None, charter_field(nullable=True, enum_type=StanceType)
+    ] = None
     strength: Annotated[str | None, charter_field(nullable=True)] = None
     note: Annotated[str | None, charter_field(nullable=True)] = None
     conditions_differ: Annotated[str | None, charter_field(nullable=True)] = None
     opinion: Annotated[Opinion | None, charter_field(nullable=True)] = None
-    resolution: Annotated[ResolutionDocument | None, charter_field(nullable=True)] = None
+    resolution: Annotated[ResolutionDocument | None, charter_field(nullable=True)] = (
+        None
+    )
     target_justification_id: Annotated[str | None, charter_field(nullable=True)] = None
     artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
 

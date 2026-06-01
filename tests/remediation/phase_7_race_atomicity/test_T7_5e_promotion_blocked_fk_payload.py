@@ -10,6 +10,7 @@ session (2026-04-23): a claim was ingested in a sibling branch (so its
 payload rows exist), and Belch's promote needed to mirror it as
 blocked.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -71,8 +72,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
         )
         derived.session.execute(
             text(
-                "INSERT INTO claim_algorithm_payload (claim_id) "
-                "VALUES ('claim-shared')"
+                "INSERT INTO claim_algorithm_payload (claim_id) VALUES ('claim-shared')"
             )
         )
         # ``claim_concept_link`` also FKs to claim_core(id). The real

@@ -25,7 +25,11 @@ class WhySupport:
         object.__setattr__(
             self,
             "assumption_ids",
-            tuple(sorted(dict.fromkeys(AssumptionId(item) for item in self.assumption_ids))),
+            tuple(
+                sorted(
+                    dict.fromkeys(AssumptionId(item) for item in self.assumption_ids)
+                )
+            ),
         )
         object.__setattr__(
             self,
@@ -35,7 +39,13 @@ class WhySupport:
         object.__setattr__(
             self,
             "other_variables",
-            tuple(sorted(dict.fromkeys(SourceVariableId(str(item)) for item in self.other_variables))),
+            tuple(
+                sorted(
+                    dict.fromkeys(
+                        SourceVariableId(str(item)) for item in self.other_variables
+                    )
+                )
+            ),
         )
 
     def union(self, other: WhySupport) -> WhySupport:
@@ -99,7 +109,9 @@ def normalize_why_supports(supports: list[WhySupport]) -> tuple[WhySupport, ...]
     ordered = sorted(
         unique.values(),
         key=lambda support: (
-            len(support.assumption_ids) + len(support.context_ids) + len(support.other_variables),
+            len(support.assumption_ids)
+            + len(support.context_ids)
+            + len(support.other_variables),
             support.assumption_ids,
             support.context_ids,
             support.other_variables,

@@ -5,19 +5,21 @@ from pathlib import Path
 
 
 def test_aspic_grounding_bridge_imports_only_complement_protocol() -> None:
-    tree = ast.parse(Path("propstore/aspic_bridge/grounding.py").read_text(encoding="utf-8"))
+    tree = ast.parse(
+        Path("propstore/aspic_bridge/grounding.py").read_text(encoding="utf-8")
+    )
 
-    imports = [node for node in ast.walk(tree) if isinstance(node, (ast.Import, ast.ImportFrom))]
+    imports = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+    ]
     imported_modules = {
         alias.name
         for node in imports
         if isinstance(node, ast.Import)
         for alias in node.names
-    } | {
-        node.module or ""
-        for node in imports
-        if isinstance(node, ast.ImportFrom)
-    }
+    } | {node.module or "" for node in imports if isinstance(node, ast.ImportFrom)}
     complement_imports = [
         node
         for node in imports
@@ -33,7 +35,10 @@ def test_aspic_grounding_bridge_imports_only_complement_protocol() -> None:
 
     assert complement_imports
     assert "_gunray_complement" not in local_functions
-    assert not any(module == "gunray" or module.startswith("gunray.") for module in imported_modules)
+    assert not any(
+        module == "gunray" or module.startswith("gunray.")
+        for module in imported_modules
+    )
 
 
 def test_gunray_complement_encoder_lives_in_grounding_adapter() -> None:

@@ -4,6 +4,7 @@ This module owns Pint, SI conversion, and dimensional algebra. Semantic form
 loading stays in ``propstore.families.forms``; lemon lexical forms stay in
 ``propstore.core.lemon.forms``.
 """
+
 from __future__ import annotations
 
 import math
@@ -170,7 +171,9 @@ def register_extra_unit_with_pint(symbol: str, dimensions: dict[str, int]) -> No
     except pint.errors.RedefinitionError as exc:
         if can_convert_unit_to(symbol, expression):
             return
-        raise ValueError(f"Unit symbol '{symbol}' is already defined incompatibly") from exc
+        raise ValueError(
+            f"Unit symbol '{symbol}' is already defined incompatibly"
+        ) from exc
 
 
 def _pint_expression_for_dimensions(dimensions: dict[str, int]) -> str:
@@ -223,7 +226,9 @@ def verify_form_algebra_dimensions(
         import sympy as sp
         from bridgman import verify_expr
 
-        dim_map: dict[str, dict[str, int]] = {output.name: dict(required_dimensions(output))}
+        dim_map: dict[str, dict[str, int]] = {
+            output.name: dict(required_dimensions(output))
+        }
         for inp_fd in concrete_inputs:
             dim_map[inp_fd.name] = dict(required_dimensions(inp_fd))
 

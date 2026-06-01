@@ -72,7 +72,9 @@ def search_concepts(
             ConceptSearchHit(
                 handle=str(row.primary_logical_id or row.id),
                 logical_id=(
-                    None if row.primary_logical_id is None else str(row.primary_logical_id)
+                    None
+                    if row.primary_logical_id is None
+                    else str(row.primary_logical_id)
                 ),
                 canonical_name=str(row.canonical_name),
                 status=None if row.status is None else str(row.status),
@@ -83,6 +85,7 @@ def search_concepts(
             if row is not None
         )
     )
+
 
 def list_concepts(
     repo: Repository,

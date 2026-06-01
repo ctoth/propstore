@@ -20,7 +20,9 @@ from propstore.provenance import live
 
 _PROP_SETTINGS = settings(deadline=None)
 _ASSUMPTION_IDS = st.text(alphabet="abcd", min_size=1, max_size=3)
-_CONTEXT_IDS = st.text(alphabet="wxyz", min_size=1, max_size=3).map(lambda text: f"ctx_{text}")
+_CONTEXT_IDS = st.text(alphabet="wxyz", min_size=1, max_size=3).map(
+    lambda text: f"ctx_{text}"
+)
 
 
 @st.composite
@@ -52,15 +54,21 @@ class TestLabelPolynomialEquivalence:
 
         assert projected.environments == label.environments
         if environment.assumption_ids or environment.context_ids:
-            assert projected.environments[0].assumption_ids == environment.assumption_ids
+            assert (
+                projected.environments[0].assumption_ids == environment.assumption_ids
+            )
             assert projected.environments[0].context_ids == environment.context_ids
 
     @pytest.mark.property
     @given(labels(), labels())
     @_PROP_SETTINGS
-    def test_combine_labels_uses_polynomial_multiplication_projection(self, left, right):
+    def test_combine_labels_uses_polynomial_multiplication_projection(
+        self, left, right
+    ):
         combined = combine_labels(left, right)
-        expected = polynomial_to_label(label_to_polynomial(left) * label_to_polynomial(right))
+        expected = polynomial_to_label(
+            label_to_polynomial(left) * label_to_polynomial(right)
+        )
 
         assert combined == expected
 
@@ -69,7 +77,9 @@ class TestLabelPolynomialEquivalence:
     @_PROP_SETTINGS
     def test_merge_labels_uses_polynomial_addition_projection(self, left, right):
         merged = merge_labels([left, right])
-        expected = polynomial_to_label(label_to_polynomial(left) + label_to_polynomial(right))
+        expected = polynomial_to_label(
+            label_to_polynomial(left) + label_to_polynomial(right)
+        )
 
         assert merged == expected
 

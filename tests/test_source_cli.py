@@ -128,7 +128,11 @@ def test_source_write_notes_commits_only_to_source_branch(tmp_path: Path) -> Non
     assert result.exit_code == 0, result.output
     branch_tip = repo.git.branch_sha("source/demo")
     assert branch_tip is not None
-    stored_notes = repo.git.read_file("notes.md", commit=branch_tip).decode("utf-8").replace("\r\n", "\n")
+    stored_notes = (
+        repo.git.read_file("notes.md", commit=branch_tip)
+        .decode("utf-8")
+        .replace("\r\n", "\n")
+    )
     assert stored_notes == notes_file.read_text(encoding="utf-8").replace("\r\n", "\n")
     try:
         repo.git.read_file("notes.md")
@@ -279,13 +283,20 @@ def test_source_add_concepts_batch_preserves_inventory_fields(tmp_path: Path) ->
     assert branch_tip is not None
     stored = yaml.safe_load(repo.git.read_file("concepts.yaml", commit=branch_tip))
     assert stored["concepts"][0]["status"] == "linked"
-    assert stored["concepts"][0]["registry_match"]["artifact_id"] == existing_concept["artifact_id"]
+    assert (
+        stored["concepts"][0]["registry_match"]["artifact_id"]
+        == existing_concept["artifact_id"]
+    )
     assert stored["concepts"][0]["aliases"] == [{"name": "existing_alias"}]
     assert stored["concepts"][1]["status"] == "proposed"
-    assert stored["concepts"][1]["parameterization_relationships"][0]["inputs"] == ["existing"]
+    assert stored["concepts"][1]["parameterization_relationships"][0]["inputs"] == [
+        "existing"
+    ]
 
 
-def test_source_add_concepts_auto_finalize_runtime_error_propagates(tmp_path: Path) -> None:
+def test_source_add_concepts_auto_finalize_runtime_error_propagates(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
     init_result = _init_source(runner, repo)
@@ -380,11 +391,17 @@ def _init_source(runner, repo, name="demo"):
     return runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "init", name,
-            "--kind", "academic_paper",
-            "--origin-type", "manual",
-            "--origin-value", name,
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            name,
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            name,
         ],
     )
 
@@ -403,7 +420,10 @@ def _seed_forms(repo, form_names):
             allow_unicode=True,
         ).encode("utf-8")
     repo.git.commit_batch(
-        adds=adds, deletes=[], message="Seed forms", branch="master",
+        adds=adds,
+        deletes=[],
+        message="Seed forms",
+        branch="master",
     )
 
 
@@ -559,11 +579,17 @@ def test_propose_concept_reports_linked_status(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "existing",
-            "--definition", "Existing concept from source.",
-            "--form", "structural",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "existing",
+            "--definition",
+            "Existing concept from source.",
+            "--form",
+            "structural",
         ],
     )
 
@@ -586,11 +612,17 @@ def test_propose_concept_reports_proposed_status(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "brand_new_thing",
-            "--definition", "A brand new concept.",
-            "--form", "structural",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "brand_new_thing",
+            "--definition",
+            "A brand new concept.",
+            "--form",
+            "structural",
         ],
     )
 
@@ -613,11 +645,17 @@ def test_propose_concept_rejects_invalid_form(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "some_concept",
-            "--definition", "A concept.",
-            "--form", "bogus_form",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "some_concept",
+            "--definition",
+            "A concept.",
+            "--form",
+            "bogus_form",
         ],
     )
 
@@ -640,12 +678,19 @@ def test_propose_concept_category_with_values(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "color",
-            "--definition", "A color category.",
-            "--form", "category",
-            "--values", "red,green,blue",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "color",
+            "--definition",
+            "A color category.",
+            "--form",
+            "category",
+            "--values",
+            "red,green,blue",
         ],
     )
 
@@ -673,12 +718,19 @@ def test_propose_concept_category_with_values_and_closed(tmp_path: Path) -> None
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "status",
-            "--definition", "A status category.",
-            "--form", "category",
-            "--values", "active,inactive",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "status",
+            "--definition",
+            "A status category.",
+            "--form",
+            "category",
+            "--values",
+            "active,inactive",
             "--closed",
         ],
     )
@@ -705,12 +757,19 @@ def test_propose_concept_values_rejected_for_non_category(tmp_path: Path) -> Non
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "temperature",
-            "--definition", "A temperature measurement.",
-            "--form", "scalar",
-            "--values", "hot,cold",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "temperature",
+            "--definition",
+            "A temperature measurement.",
+            "--form",
+            "scalar",
+            "--values",
+            "hot,cold",
         ],
     )
 
@@ -731,11 +790,17 @@ def test_propose_concept_category_without_values_still_works(tmp_path: Path) -> 
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "mood",
-            "--definition", "A mood category.",
-            "--form", "category",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "mood",
+            "--definition",
+            "A mood category.",
+            "--form",
+            "category",
         ],
     )
 
@@ -756,12 +821,19 @@ def test_propose_concept_values_survive_finalize_and_promote(tmp_path: Path) -> 
     propose_result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "severity",
-            "--definition", "Severity levels.",
-            "--form", "category",
-            "--values", "low,medium,high",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "severity",
+            "--definition",
+            "Severity levels.",
+            "--form",
+            "category",
+            "--values",
+            "low,medium,high",
             "--closed",
         ],
     )
@@ -783,8 +855,12 @@ def test_propose_concept_values_survive_finalize_and_promote(tmp_path: Path) -> 
     master_tip = repo.git.branch_sha("master")
     concept_files = list(repo.git.iter_dir("concepts", commit=master_tip))
     severity_file = [f for f in concept_files if "severity" in f]
-    assert severity_file, f"No severity concept file found on master. Files: {concept_files}"
-    concept_data = yaml.safe_load(repo.git.read_file(f"concepts/{severity_file[0]}", commit=master_tip))
+    assert severity_file, (
+        f"No severity concept file found on master. Files: {concept_files}"
+    )
+    concept_data = yaml.safe_load(
+        repo.git.read_file(f"concepts/{severity_file[0]}", commit=master_tip)
+    )
     assert "form_parameters" in concept_data
     assert concept_data["form_parameters"]["values"] == ["low", "medium", "high"]
     assert concept_data["form_parameters"]["extensible"] is False
@@ -821,9 +897,13 @@ def test_add_concepts_batch_rejects_invalid_form(tmp_path: Path) -> None:
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "add-concepts", "demo",
-            "--batch", str(concepts_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-concepts",
+            "demo",
+            "--batch",
+            str(concepts_file),
         ],
     )
 
@@ -899,13 +979,17 @@ def test_source_authoring_build_verify_and_worldline_flow(tmp_path: Path) -> Non
     assert list_result.exit_code == 0, list_result.output
     assert "boiling_worldline" in list_result.output
 
-    worldline_doc = yaml.safe_load(repo.git.read_file("worldlines/boiling_worldline.yaml"))
+    worldline_doc = yaml.safe_load(
+        repo.git.read_file("worldlines/boiling_worldline.yaml")
+    )
     value_record = worldline_doc["results"]["values"]["boiling_point"]
     assert value_record["status"] == "determined"
     assert value_record["value"] == 100.0
 
 
-def test_source_add_claim_sees_source_branch_proposed_concepts_in_cel(tmp_path: Path) -> None:
+def test_source_add_claim_sees_source_branch_proposed_concepts_in_cel(
+    tmp_path: Path,
+) -> None:
     """Regression: CEL conditions referencing source-branch-proposed concepts must validate.
 
     Reproduces the bug where ``pks source add-claim`` rejected a claim whose
@@ -925,11 +1009,17 @@ def test_source_add_claim_sees_source_branch_proposed_concepts_in_cel(tmp_path: 
     propose_result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "scheme_size",
-            "--definition", "Number of slots in the scheme.",
-            "--form", "count",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "scheme_size",
+            "--definition",
+            "Number of slots in the scheme.",
+            "--form",
+            "count",
         ],
     )
     assert propose_result.exit_code == 0, propose_result.output
@@ -959,9 +1049,13 @@ def test_source_add_claim_sees_source_branch_proposed_concepts_in_cel(tmp_path: 
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "add-claim", "demo",
-            "--batch", str(claims_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
         ],
     )
 
@@ -987,11 +1081,17 @@ def test_source_add_claim_rejects_unknown_concept_in_cel(tmp_path: Path) -> None
     propose_result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", "scheme_size",
-            "--definition", "Number of slots in the scheme.",
-            "--form", "count",
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            "scheme_size",
+            "--definition",
+            "Number of slots in the scheme.",
+            "--form",
+            "count",
         ],
     )
     assert propose_result.exit_code == 0, propose_result.output
@@ -1021,9 +1121,13 @@ def test_source_add_claim_rejects_unknown_concept_in_cel(tmp_path: Path) -> None
     result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "add-claim", "demo",
-            "--batch", str(claims_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
         ],
     )
 
@@ -1073,7 +1177,10 @@ def _seed_bounded_forms(repo) -> None:
         ).encode("utf-8"),
     }
     repo.git.commit_batch(
-        adds=adds, deletes=[], message="Seed bounded forms", branch="master",
+        adds=adds,
+        deletes=[],
+        message="Seed bounded forms",
+        branch="master",
     )
 
 
@@ -1100,11 +1207,17 @@ def _add_claim_with_bounds(
     propose_result = runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "propose-concept", "demo",
-            "--concept-name", concept_handle,
-            "--definition", f"Test concept of form {form}.",
-            "--form", form,
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--concept-name",
+            concept_handle,
+            "--definition",
+            f"Test concept of form {form}.",
+            "--form",
+            form,
         ],
     )
     assert propose_result.exit_code == 0, propose_result.output
@@ -1140,9 +1253,13 @@ def _add_claim_with_bounds(
     return runner.invoke(
         cli,
         [
-            "-C", str(repo.root),
-            "source", "add-claim", "demo",
-            "--batch", str(claims_file),
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
         ],
     )
 
@@ -1207,7 +1324,9 @@ def test_source_add_claim_unbounded_form_accepts_any_value(tmp_path: Path) -> No
     assert below.exit_code == 0, below.output
 
 
-def test_source_add_claim_rejects_lower_bound_outside_form_range(tmp_path: Path) -> None:
+def test_source_add_claim_rejects_lower_bound_outside_form_range(
+    tmp_path: Path,
+) -> None:
     result = _add_claim_with_bounds(
         tmp_path,
         form="probability",

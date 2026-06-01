@@ -6,11 +6,21 @@ from sqlite3 import Connection
 import pytest
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
-from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph, RelationEdge
+from propstore.core.graph_types import (
+    WorldActivationGraph,
+    ClaimNode,
+    CompiledWorldGraph,
+    RelationEdge,
+)
 from propstore.core.id_types import ClaimId
 from propstore.opinion import Opinion
 from argumentation.probabilistic import compute_probabilistic_acceptance
-from tests.conftest import create_argumentation_schema, insert_claim, insert_conflict, insert_stance
+from tests.conftest import (
+    create_argumentation_schema,
+    insert_claim,
+    insert_conflict,
+    insert_stance,
+)
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
 
@@ -60,10 +70,7 @@ def conn() -> Connection:
 
 
 def _accepted_extensions(result) -> set[frozenset[str]]:
-    return {
-        frozenset(extension.accepted_claim_ids)
-        for extension in result.extensions
-    }
+    return {frozenset(extension.accepted_claim_ids) for extension in result.extensions}
 
 
 def test_shared_claim_graph_analyzer_matches_current_grounded(conn: Connection) -> None:
@@ -73,7 +80,10 @@ def test_shared_claim_graph_analyzer_matches_current_grounded(conn: Connection) 
     _insert_stance(conn, "c2", "c1", "rebuts")
     conn.commit()
 
-    from propstore.argumentation import analyze_claim_graph, shared_analyzer_input_from_store
+    from propstore.argumentation import (
+        analyze_claim_graph,
+        shared_analyzer_input_from_store,
+    )
 
     store = SQLiteArgumentationStore(conn)
     shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
@@ -163,7 +173,10 @@ def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
     _insert_stance(conn, "c2", "c1", "rebuts")
     conn.commit()
 
-    from propstore.argumentation import analyze_claim_graph, shared_analyzer_input_from_store
+    from propstore.argumentation import (
+        analyze_claim_graph,
+        shared_analyzer_input_from_store,
+    )
 
     store = SQLiteArgumentationStore(conn)
     shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
@@ -255,7 +268,9 @@ def test_shared_praf_analyzer_matches_current_acceptance() -> None:
 
     metadata = dict(result.metadata)
     assert metadata["strategy_used"] == expected_result.strategy_used
-    assert metadata["acceptance_probs"] == pytest.approx(expected_result.acceptance_probs)
+    assert metadata["acceptance_probs"] == pytest.approx(
+        expected_result.acceptance_probs
+    )
     assert result.projection is not None
     assert result.projection.survivor_claim_ids == ("c2",)
 
@@ -314,9 +329,7 @@ def test_shared_projection_is_independent_of_active_claim_id_order() -> None:
 class TestConflictStanceSynthesis:
     """Conflicts should always synthesize rebut stances when not already explicit."""
 
-    def test_conflict_visible_despite_existing_stances(
-        self, conn: Connection
-    ) -> None:
+    def test_conflict_visible_despite_existing_stances(self, conn: Connection) -> None:
         """A conflict between A and C must still produce synthetic rebuts
         even if A already has an explicit support stance to B."""
         # claim A, B, C all on the same concept so conflicts are meaningful

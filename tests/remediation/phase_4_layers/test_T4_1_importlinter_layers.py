@@ -64,8 +64,5 @@ def test_importlinter_layer_contracts_are_clean() -> None:
     assert len(contract_sections) == 1
     assert parser.get(contract_sections[0], "type") == "layers"
     assert not (set(contract_sections) & LEGACY_FORBIDDEN_CONTRACTS)
-    assert {
-        parser.get(section, "type")
-        for section in contract_sections
-    } == {"layers"}
+    assert {parser.get(section, "type") for section in contract_sections} == {"layers"}
     assert not Path("tests/_allowlists/layered_contract_residual.txt").exists()

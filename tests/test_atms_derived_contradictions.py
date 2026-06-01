@@ -29,10 +29,12 @@ def test_ws_i_derived_derived_contradictions_feed_atms_nogoods() -> None:
         assumption.cel: assumption.assumption_id
         for assumption in bound._environment.assumptions
     }
-    expected_nogood = EnvironmentKey((
-        assumption_ids["a == 1"],
-        assumption_ids["b == 2"],
-    ))
+    expected_nogood = EnvironmentKey(
+        (
+            assumption_ids["a == 1"],
+            assumption_ids["b == 2"],
+        )
+    )
 
     assert expected_nogood in bound.atms_engine().nogoods.environments
 

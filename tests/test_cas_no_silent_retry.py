@@ -31,7 +31,12 @@ from tests.test_branch_head_cas_matrix import (
             lambda repo, _source_name: None,
             lambda tmp: _repository_import_runner(_seed_import_source(tmp)),
         ),
-        ("materialize", "master", lambda repo, _source_name: None, lambda _tmp: _materialize_runner),
+        (
+            "materialize",
+            "master",
+            lambda repo, _source_name: None,
+            lambda _tmp: _materialize_runner,
+        ),
     ],
 )
 def test_cas_rejection_is_not_silently_retried(
@@ -65,7 +70,9 @@ def test_cas_rejection_is_not_silently_retried(
     else:
         original_commit_batch = type(repo.git).commit_batch
 
-        def stale_once_then_succeed(self, adds, deletes, message, *, branch=None, expected_head=None):
+        def stale_once_then_succeed(
+            self, adds, deletes, message, *, branch=None, expected_head=None
+        ):
             nonlocal attempts
             if branch == target_branch and expected_head == head_at_start:
                 attempts += 1

@@ -95,7 +95,11 @@ def _source_trust_rule_from_document(
             if not isinstance(atom, Mapping):
                 continue
             terms = atom.get("terms", ())
-            if not isinstance(terms, Sequence) or isinstance(terms, str) or len(terms) < 2:
+            if (
+                not isinstance(terms, Sequence)
+                or isinstance(terms, str)
+                or len(terms) < 2
+            ):
                 continue
             value_term = terms[1]
             if isinstance(value_term, Mapping) and value_term.get("kind") == "const":
@@ -111,11 +115,15 @@ def _source_trust_rule_from_document(
     }
 
 
-def _rule_matches(rule: Mapping[str, Any], metadata_payload: Mapping[str, object]) -> bool:
+def _rule_matches(
+    rule: Mapping[str, Any], metadata_payload: Mapping[str, object]
+) -> bool:
     conditions = rule.get("conditions", {})
     if not isinstance(conditions, Mapping):
         raise ValueError("source trust rule conditions must be a mapping")
-    return all(metadata_payload.get(str(key)) == value for key, value in conditions.items())
+    return all(
+        metadata_payload.get(str(key)) == value for key, value in conditions.items()
+    )
 
 
 def _firing(rule: Mapping[str, Any], *, in_extension: bool) -> RuleFiring:
@@ -141,7 +149,10 @@ def _framework_for(fired_rules: Sequence[Mapping[str, Any]]) -> ArgumentationFra
         attacker_id = str(attacker["id"])
         for target in fired_rules:
             target_id = str(target["id"])
-            if target_id != attacker_id and str(target.get("effect", "support")) == "support":
+            if (
+                target_id != attacker_id
+                and str(target.get("effect", "support")) == "support"
+            ):
                 defeats.add((attacker_id, target_id))
     return ArgumentationFramework(arguments=arguments, defeats=frozenset(defeats))
 
@@ -172,7 +183,9 @@ def calibrate_source_trust(
     rule_corpus: Sequence[Mapping[str, Any]] | None = None,
     world_snapshot: object | None = None,
 ) -> SourceTrustResult:
-    rules = tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
+    rules = (
+        tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
+    )
     metadata_payload = repo.families.source_metadata.load(SourceRef(source_name)) or {}
     fired_rules = tuple(rule for rule in rules if _rule_matches(rule, metadata_payload))
     repo_head = repo.require_git().head_sha() if repo.git is not None else None
@@ -189,8 +202,7 @@ def calibrate_source_trust(
 
     extension = grounded_extension(_framework_for(fired_rules))
     firings = tuple(
-        _firing(rule, in_extension=str(rule["id"]) in extension)
-        for rule in fired_rules
+        _firing(rule, in_extension=str(rule["id"]) in extension) for rule in fired_rules
     )
     active_firings = tuple(firing for firing in firings if firing.in_grounded_extension)
     if not active_firings:

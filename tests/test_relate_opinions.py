@@ -114,10 +114,16 @@ def _opinion_payload(
 # Helper: build bidirectional mock response
 # ---------------------------------------------------------------------------
 
+
 def _bidirectional_response(forward: dict, reverse: dict | None = None) -> MagicMock:
     """Build a mock response returning forward then reverse directional JSON."""
     if reverse is None:
-        reverse = {"type": "none", "strength": "weak", "note": "reverse", "conditions_differ": None}
+        reverse = {
+            "type": "none",
+            "strength": "weak",
+            "note": "reverse",
+            "conditions_differ": None,
+        }
     resp = MagicMock()
     resp.choices = [MagicMock()]
     message = MagicMock()
@@ -131,6 +137,7 @@ def _bidirectional_response(forward: dict, reverse: dict | None = None) -> Magic
 # ---------------------------------------------------------------------------
 # Test 1: categorical_to_opinion without calibration returns vacuous
 # ---------------------------------------------------------------------------
+
 
 class TestCategoricalToOpinionNoCalibration:
     """Per Josang (2001, p.8): vacuous opinion is the correct representation
@@ -161,6 +168,7 @@ class TestCategoricalToOpinionNoCalibration:
 # ---------------------------------------------------------------------------
 # Test 2: categorical_to_opinion with calibration returns informative
 # ---------------------------------------------------------------------------
+
 
 class TestCategoricalToOpinionWithCalibration:
     """With calibration data, returns opinion with u < 1.0 and expectation
@@ -194,13 +202,19 @@ class TestCategoricalToOpinionWithCalibration:
 # Test 3: stance payload has top-level opinion
 # ---------------------------------------------------------------------------
 
+
 class TestResolutionDictHasOpinionFields:
     """classify_stance_async() returns scalar resolution metadata and a typed opinion."""
 
     @pytest.fixture
     def mock_litellm_response(self):
         return _bidirectional_response(
-            {"type": "supports", "strength": "strong", "note": "test note", "conditions_differ": None},
+            {
+                "type": "supports",
+                "strength": "strong",
+                "note": "test note",
+                "conditions_differ": None,
+            },
         )
 
     def test_resolution_has_opinion_keys(self, mock_litellm_response):
@@ -217,7 +231,10 @@ class TestResolutionDictHasOpinionFields:
                 mock_litellm.acompletion = AsyncMock(return_value=mock_litellm_response)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                     category_prior_registry=_category_prior_registry(),
                 )
 
@@ -235,6 +252,7 @@ class TestResolutionDictHasOpinionFields:
 # ---------------------------------------------------------------------------
 # Test 4: confidence equals expectation
 # ---------------------------------------------------------------------------
+
 
 class TestConfidenceEqualsExpectation:
     """Per Josang (2001, p.5, Def 6): E(w) = b + a*u.
@@ -264,7 +282,12 @@ class TestConfidenceEqualsExpectation:
         from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
-            {"type": "rebuts", "strength": "moderate", "note": "test", "conditions_differ": None},
+            {
+                "type": "rebuts",
+                "strength": "moderate",
+                "note": "test",
+                "conditions_differ": None,
+            },
         )
 
         claim_a = {"id": "a", "text": "A", "source_paper": "p"}
@@ -277,7 +300,10 @@ class TestConfidenceEqualsExpectation:
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                     category_prior_registry=_category_prior_registry(),
                 )
 
@@ -293,6 +319,7 @@ class TestConfidenceEqualsExpectation:
 # Test 5: stance YAML round-trips opinion
 # ---------------------------------------------------------------------------
 
+
 class TestStanceYamlRoundTrip:
     def test_opinion_fields_survive_yaml(self):
         from quire.documents import encode_document
@@ -301,30 +328,32 @@ class TestStanceYamlRoundTrip:
             build_stance_proposal_document,
         )
 
-        stances = [{
-            "target": "claim_b",
-            "type": "supports",
-            "strength": "strong",
-            "note": "test",
-            "conditions_differ": None,
-            "resolution": {
-                "method": "nli",
-                "model": "test-model",
-                "embedding_model": None,
-                "embedding_distance": None,
-                "confidence": 0.7,
-            },
-            "opinion": Opinion(
-                0.0,
-                0.0,
-                1.0,
-                0.7,
-                provenance=Provenance(
-                    status=ProvenanceStatus.VACUOUS,
-                    witnesses=(),
+        stances = [
+            {
+                "target": "claim_b",
+                "type": "supports",
+                "strength": "strong",
+                "note": "test",
+                "conditions_differ": None,
+                "resolution": {
+                    "method": "nli",
+                    "model": "test-model",
+                    "embedding_model": None,
+                    "embedding_distance": None,
+                    "confidence": 0.7,
+                },
+                "opinion": Opinion(
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.7,
+                    provenance=Provenance(
+                        status=ProvenanceStatus.VACUOUS,
+                        witnesses=(),
+                    ),
                 ),
-            ),
-        }]
+            }
+        ]
 
         data = yaml.safe_load(
             encode_document(
@@ -356,6 +385,7 @@ class TestStanceYamlRoundTrip:
 # ---------------------------------------------------------------------------
 # Test 6: sidecar populates relation opinion
 # ---------------------------------------------------------------------------
+
 
 class TestSidecarPopulatesOpinionColumns:
     def test_opinion_from_stance_yaml(self, tmp_path):
@@ -411,6 +441,7 @@ class TestSidecarPopulatesOpinionColumns:
 # Test 7: sidecar handles stance without opinion
 # ---------------------------------------------------------------------------
 
+
 class TestSidecarHandlesResolutionWithoutOpinion:
     def test_missing_opinion_becomes_null(self, tmp_path):
         from propstore.families.relations.declaration import (
@@ -455,6 +486,7 @@ class TestSidecarHandlesResolutionWithoutOpinion:
 # Test 8: none stance gets null confidence
 # ---------------------------------------------------------------------------
 
+
 class TestNoneStanceGetsNullConfidence:
     """Stances with type='none' carry null confidence rather than a fabricated zero."""
 
@@ -463,8 +495,18 @@ class TestNoneStanceGetsNullConfidence:
         from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
-            {"type": "none", "strength": "strong", "note": "unrelated", "conditions_differ": None},
-            {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None},
+            {
+                "type": "none",
+                "strength": "strong",
+                "note": "unrelated",
+                "conditions_differ": None,
+            },
+            {
+                "type": "none",
+                "strength": "weak",
+                "note": "unrelated",
+                "conditions_differ": None,
+            },
         )
 
         claim_a = {"id": "a", "text": "A", "source_paper": "p"}
@@ -477,7 +519,10 @@ class TestNoneStanceGetsNullConfidence:
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                 )
 
         results = asyncio.run(run())
@@ -489,8 +534,8 @@ class TestNoneStanceGetsNullConfidence:
 # Test 9: API failure returns error type, not none (F2.4)
 # ---------------------------------------------------------------------------
 
-class TestApiFailureReturnsErrorType:
 
+class TestApiFailureReturnsErrorType:
     def test_api_exception_returns_error_not_none(self):
         import asyncio
         from propstore.heuristic.classify import classify_stance_async
@@ -507,7 +552,10 @@ class TestApiFailureReturnsErrorType:
                 )
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                 )
 
         results = asyncio.run(run())
@@ -520,8 +568,8 @@ class TestApiFailureReturnsErrorType:
 # Test 10: JSON parse failure returns error type, not none (F2.5)
 # ---------------------------------------------------------------------------
 
-class TestJsonParseFailureReturnsErrorType:
 
+class TestJsonParseFailureReturnsErrorType:
     def test_json_parse_failure_returns_error_not_none(self):
         import asyncio
         from propstore.heuristic.classify import classify_stance_async
@@ -540,7 +588,10 @@ class TestJsonParseFailureReturnsErrorType:
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                 )
 
         results = asyncio.run(run())
@@ -553,15 +604,25 @@ class TestJsonParseFailureReturnsErrorType:
 # Test 11: Genuine "none" classification still works
 # ---------------------------------------------------------------------------
 
-class TestGenuineNoneStillWorks:
 
+class TestGenuineNoneStillWorks:
     def test_genuine_none_passes_through(self):
         import asyncio
         from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
-            {"type": "none", "strength": "weak", "note": "entirely different topics", "conditions_differ": None},
-            {"type": "none", "strength": "weak", "note": "entirely different topics", "conditions_differ": None},
+            {
+                "type": "none",
+                "strength": "weak",
+                "note": "entirely different topics",
+                "conditions_differ": None,
+            },
+            {
+                "type": "none",
+                "strength": "weak",
+                "note": "entirely different topics",
+                "conditions_differ": None,
+            },
         )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
@@ -574,7 +635,10 @@ class TestGenuineNoneStillWorks:
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                 )
 
         results = asyncio.run(run())
@@ -586,8 +650,8 @@ class TestGenuineNoneStillWorks:
 # Test 12: stance proposals live on the proposal branch (F17)
 # ---------------------------------------------------------------------------
 
-class TestStanceProposalsUseBranchState:
 
+class TestStanceProposalsUseBranchState:
     def test_stance_proposal_path_and_branch_are_git_native(self):
         from propstore.families.stances.lifecycle import (
             stance_proposal_branch,
@@ -595,21 +659,28 @@ class TestStanceProposalsUseBranchState:
         )
 
         assert stance_proposal_branch() == "proposal/stances"
-        assert stance_proposal_relpath("ps:stance:abc") == "stances/ps__stance__abc.yaml"
+        assert (
+            stance_proposal_relpath("ps:stance:abc") == "stances/ps__stance__abc.yaml"
+        )
 
 
 # ---------------------------------------------------------------------------
 # Test 13: CorpusCalibrator reduces uncertainty in classify_stance_async
 # ---------------------------------------------------------------------------
 
-class TestCorpusCalibReducesUncertainty:
 
+class TestCorpusCalibReducesUncertainty:
     def test_corpus_calibrator_reduces_uncertainty(self):
         import asyncio
         from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
-            {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
+            {
+                "type": "supports",
+                "strength": "strong",
+                "note": "test",
+                "conditions_differ": None,
+            },
         )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
@@ -623,7 +694,10 @@ class TestCorpusCalibReducesUncertainty:
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                     category_prior_registry=_category_prior_registry(),
                     embedding_distance=0.3,
                     reference_distances=reference_distances,
@@ -639,7 +713,12 @@ class TestCorpusCalibReducesUncertainty:
         from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
-            {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
+            {
+                "type": "supports",
+                "strength": "strong",
+                "note": "test",
+                "conditions_differ": None,
+            },
         )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
@@ -652,7 +731,10 @@ class TestCorpusCalibReducesUncertainty:
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                     embedding_distance=0.3,
                     reference_distances=None,
                 )
@@ -661,14 +743,22 @@ class TestCorpusCalibReducesUncertainty:
         result = results[0]
         assert result["opinion"] is None
         assert result["resolution"]["confidence"] is None
-        assert result["resolution"]["unresolved_calibration"]["reason"] == "missing_base_rate"
+        assert (
+            result["resolution"]["unresolved_calibration"]["reason"]
+            == "missing_base_rate"
+        )
 
     def test_corpus_and_categorical_fused_via_wbf(self):
         import asyncio
         from propstore.heuristic.classify import classify_stance_async
 
         resp = _bidirectional_response(
-            {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
+            {
+                "type": "supports",
+                "strength": "strong",
+                "note": "test",
+                "conditions_differ": None,
+            },
         )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
@@ -684,7 +774,10 @@ class TestCorpusCalibReducesUncertainty:
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
                 return await classify_stance_async(
-                    claim_a, claim_b, "test-model", sem,
+                    claim_a,
+                    claim_b,
+                    "test-model",
+                    sem,
                     category_prior_registry=_category_prior_registry(),
                     embedding_distance=0.3,
                     reference_distances=reference_distances,
@@ -696,8 +789,14 @@ class TestCorpusCalibReducesUncertainty:
         assert isinstance(result["opinion"], Opinion)
         u = result["opinion"].u
 
-        from propstore.heuristic.calibrate import CorpusCalibrator, categorical_to_opinion
-        corpus_op = CorpusCalibrator(reference_distances, corpus_base_rate=0.7).to_opinion(0.3)
+        from propstore.heuristic.calibrate import (
+            CorpusCalibrator,
+            categorical_to_opinion,
+        )
+
+        corpus_op = CorpusCalibrator(
+            reference_distances, corpus_base_rate=0.7
+        ).to_opinion(0.3)
         cat_op = categorical_to_opinion(
             "strong",
             1,

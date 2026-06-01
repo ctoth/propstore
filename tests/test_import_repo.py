@@ -1,4 +1,5 @@
 """Tests for committed-snapshot repository import."""
+
 from __future__ import annotations
 
 from uuid import uuid4
@@ -92,7 +93,9 @@ def _claim_artifact_path(local_id: str, *, namespace: str) -> str:
     return f"claims/{artifact_id.replace(':', '__')}.yaml"
 
 
-def _expected_imported_claim_yaml(local_id: str, *, namespace: str, source_paper: str = "source") -> dict:
+def _expected_imported_claim_yaml(
+    local_id: str, *, namespace: str, source_paper: str = "source"
+) -> dict:
     claim = make_claim_identity(local_id, namespace=namespace)
     claim["context"] = {"id": TEST_CONTEXT_ID}
     claim["source"] = {"paper": source_paper}
@@ -123,7 +126,10 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     source_claim_ids: list[str],
     stale_claim_ids: list[str],
 ):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
 
     assume(set(source_claim_ids).isdisjoint(stale_claim_ids))
 
@@ -139,8 +145,12 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     if stale_claim_ids:
         destination_git.commit_files(
             {
-                _claim_artifact_path(claim_id, namespace=repository_name): yaml.safe_dump(
-                    _expected_imported_claim_yaml(claim_id, namespace=repository_name, source_paper=claim_id),
+                _claim_artifact_path(
+                    claim_id, namespace=repository_name
+                ): yaml.safe_dump(
+                    _expected_imported_claim_yaml(
+                        claim_id, namespace=repository_name, source_paper=claim_id
+                    ),
                     sort_keys=False,
                 ).encode()
                 for claim_id in stale_claim_ids
@@ -158,14 +168,20 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
     )
     source_git.commit_files(source_snapshot, "seed source snapshot")
 
-    first_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
-    second_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
-
-    assert destination_git.flat_tree_entries(first_result.commit_sha) == destination_git.flat_tree_entries(
-        second_result.commit_sha
+    first_result = commit_repository_import(
+        destination, plan_repository_import(destination, source.root.parent)
+    )
+    second_result = commit_repository_import(
+        destination, plan_repository_import(destination, source.root.parent)
     )
 
-    imported_claim_paths = set(destination_git.iter_dir("claims", commit=second_result.commit_sha))
+    assert destination_git.flat_tree_entries(
+        first_result.commit_sha
+    ) == destination_git.flat_tree_entries(second_result.commit_sha)
+
+    imported_claim_paths = set(
+        destination_git.iter_dir("claims", commit=second_result.commit_sha)
+    )
     assert imported_claim_paths == {
         Path(_claim_artifact_path(claim_id, namespace=repository_name)).name
         for claim_id in source_claim_ids
@@ -195,7 +211,10 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
     tmp_path,
     concept_ids: list[str],
 ):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
 
     destination = _init_project(tmp_path / f"dest_{uuid4().hex}")
     source = _init_project(tmp_path / f"repo-b_{uuid4().hex}")
@@ -239,7 +258,9 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
         "seed randomized source snapshot",
     )
 
-    result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
+    result = commit_repository_import(
+        destination, plan_repository_import(destination, source.root.parent)
+    )
 
     expected_concept_ids = {
         concept_id: make_concept_identity(
@@ -252,10 +273,15 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
 
     for concept_id in concept_ids:
         imported_concept = yaml.safe_load(
-            destination.git.read_file(f"concepts/{concept_id}.yaml", commit=result.commit_sha)
+            destination.git.read_file(
+                f"concepts/{concept_id}.yaml", commit=result.commit_sha
+            )
         )
         assert imported_concept["artifact_id"] == expected_concept_ids[concept_id]
-        assert imported_concept["logical_ids"][0] == {"namespace": "speech", "value": concept_id}
+        assert imported_concept["logical_ids"][0] == {
+            "namespace": "speech",
+            "value": concept_id,
+        }
         assert "id" not in imported_concept
 
     for index, concept_id in enumerate(concept_ids, start=1):
@@ -304,13 +330,17 @@ def test_plan_repository_import_uses_committed_head_snapshot(tmp_path):
 
     assert plan.source_commit == source_git.head_sha()
     committed_path = _claim_artifact_path("committed", namespace="repo-b")
-    assert plan.writes[committed_path].document.to_payload() == _expected_imported_claim_yaml(
+    assert plan.writes[
+        committed_path
+    ].document.to_payload() == _expected_imported_claim_yaml(
         "committed",
         namespace="repo-b",
     )
 
 
-def test_plan_repository_import_uses_default_branch_name_from_source_repository(tmp_path):
+def test_plan_repository_import_uses_default_branch_name_from_source_repository(
+    tmp_path,
+):
     from propstore.importing.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
@@ -352,8 +382,13 @@ def test_plan_repository_import_limits_to_semantic_tree_and_excludes_sidecar(tmp
     assert all(path.split("/", 1)[0] in SEMANTIC_DIRS for path in plan.touched_paths)
 
 
-def test_repository_import_includes_registered_rules_and_predicates_from_committed_snapshot(tmp_path):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+def test_repository_import_includes_registered_rules_and_predicates_from_committed_snapshot(
+    tmp_path,
+):
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -425,13 +460,18 @@ def test_repository_import_includes_registered_rules_and_predicates_from_committ
         "arity": 1,
         "arg_types": ["concept"],
     }
-    assert yaml.safe_load(destination.git.read_file("rules/r1.yaml", commit=result.commit_sha))["source"] == {
-        "paper": "repo-b"
-    }
+    assert yaml.safe_load(
+        destination.git.read_file("rules/r1.yaml", commit=result.commit_sha)
+    )["source"] == {"paper": "repo-b"}
 
 
-def test_commit_repository_import_writes_commit_to_target_branch_and_returns_result(tmp_path):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+def test_commit_repository_import_writes_commit_to_target_branch_and_returns_result(
+    tmp_path,
+):
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -458,9 +498,9 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
     assert imported_tip == result.commit_sha
     assert imported_tip != master_before
     imported_path = _claim_artifact_path("imported", namespace="repo-b")
-    assert yaml.safe_load(destination_git.read_file(imported_path, commit=imported_tip)) == (
-        _expected_imported_claim_yaml("imported", namespace="repo-b")
-    )
+    assert yaml.safe_load(
+        destination_git.read_file(imported_path, commit=imported_tip)
+    ) == (_expected_imported_claim_yaml("imported", namespace="repo-b"))
     assert result.surface == "repository_import_commit"
     assert result.source_repository == str(source.root)
     assert result.source_commit == source_git.head_sha()
@@ -475,7 +515,10 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
 
 
 def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_path):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
 
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
@@ -508,13 +551,18 @@ def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_pat
     assert destination_git.head_sha() == master_before
     with pytest.raises(FileNotFoundError):
         destination_git.read_file(imported_path, commit=master_before)
-    assert yaml.safe_load(destination_git.read_file(imported_path, commit=result.commit_sha)) == (
-        _expected_imported_claim_yaml("imported", namespace="repo-b")
+    assert yaml.safe_load(
+        destination_git.read_file(imported_path, commit=result.commit_sha)
+    ) == (_expected_imported_claim_yaml("imported", namespace="repo-b"))
+
+
+def test_commit_repository_import_does_not_materialize_master_or_other_branches(
+    tmp_path,
+):
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
     )
-
-
-def test_commit_repository_import_does_not_materialize_master_or_other_branches(tmp_path):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 
     source = _init_project(tmp_path / "repo-b")
     source_git = source.git
@@ -530,7 +578,9 @@ def test_commit_repository_import_does_not_materialize_master_or_other_branches(
 
     non_master_destination = _init_project(tmp_path / "dest-branch")
     non_master_plan = plan_repository_import(non_master_destination, source.root.parent)
-    non_master_result = commit_repository_import(non_master_destination, non_master_plan)
+    non_master_result = commit_repository_import(
+        non_master_destination, non_master_plan
+    )
     assert not (non_master_destination.root / Path(imported_path)).exists()
 
     master_destination = _init_project(tmp_path / "dest-master")
@@ -541,12 +591,14 @@ def test_commit_repository_import_does_not_materialize_master_or_other_branches(
     )
     master_result = commit_repository_import(master_destination, master_plan)
     assert not (master_destination.root / Path(imported_path)).exists()
-    assert yaml.safe_load(master_destination.git.read_file(imported_path, commit=master_result.commit_sha)) == (
-        _expected_imported_claim_yaml("imported", namespace="repo-b")
-    )
+    assert yaml.safe_load(
+        master_destination.git.read_file(imported_path, commit=master_result.commit_sha)
+    ) == (_expected_imported_claim_yaml("imported", namespace="repo-b"))
 
 
-def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapshot(tmp_path):
+def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapshot(
+    tmp_path,
+):
     from propstore.importing.repository_import import plan_repository_import
 
     destination = _init_project(tmp_path / "dest")
@@ -557,7 +609,9 @@ def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapsho
     destination_git.commit_files(
         {
             stale_claim_path: yaml.safe_dump(
-                _expected_imported_claim_yaml("stale", namespace="repo-b", source_paper="stale"),
+                _expected_imported_claim_yaml(
+                    "stale", namespace="repo-b", source_paper="stale"
+                ),
                 sort_keys=False,
             ).encode(),
             "concepts/stale.yaml": b"id: stale\n",
@@ -578,11 +632,16 @@ def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapsho
 
     fresh_claim_path = _claim_artifact_path("fresh", namespace="repo-b")
     assert plan.deletes == [stale_claim_path, "concepts/stale.yaml"]
-    assert plan.touched_paths == sorted([fresh_claim_path, stale_claim_path, "concepts/stale.yaml"])
+    assert plan.touched_paths == sorted(
+        [fresh_claim_path, stale_claim_path, "concepts/stale.yaml"]
+    )
 
 
 def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -595,7 +654,9 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
             "type": "rebuts",
         }
     )
-    stance_path = "stances/" + str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
+    stance_path = (
+        "stances/" + str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
+    )
     source_git.commit_files(
         {
             **_context_commit_entries(),
@@ -636,7 +697,10 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
 
 
 def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_path):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -680,14 +744,21 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
     plan = plan_repository_import(destination, source.root.parent)
     result = commit_repository_import(destination, plan)
 
-    concept_a = yaml.safe_load(destination.git.read_file("concepts/concept_a.yaml", commit=result.commit_sha))
-    concept_b_id = make_concept_identity("concept_b", domain="speech", canonical_name="concept_b")["artifact_id"]
-
-    assert concept_a["artifact_id"] == make_concept_identity(
-        "concept_a",
-        domain="speech",
-        canonical_name="concept_a",
+    concept_a = yaml.safe_load(
+        destination.git.read_file("concepts/concept_a.yaml", commit=result.commit_sha)
+    )
+    concept_b_id = make_concept_identity(
+        "concept_b", domain="speech", canonical_name="concept_b"
     )["artifact_id"]
+
+    assert (
+        concept_a["artifact_id"]
+        == make_concept_identity(
+            "concept_a",
+            domain="speech",
+            canonical_name="concept_a",
+        )["artifact_id"]
+    )
     assert "id" not in concept_a
     assert concept_a["logical_ids"][0] == {"namespace": "speech", "value": "concept_a"}
     assert concept_a["version_id"].startswith("sha256:")
@@ -695,8 +766,13 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
     assert concept_a["parameterization_relationships"][0]["inputs"] == [concept_b_id]
 
 
-def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_ids(tmp_path):
-    from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_ids(
+    tmp_path,
+):
+    from propstore.importing.repository_import import (
+        commit_repository_import,
+        plan_repository_import,
+    )
     from propstore.families.claims.declaration import ClaimDocument
 
     destination = _init_project(tmp_path / "dest")
@@ -744,19 +820,30 @@ def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_id
     plan = plan_repository_import(destination, source.root.parent)
     claim_b_write = plan.writes[_claim_artifact_path("claim_b", namespace="repo-b")]
     assert isinstance(claim_b_write.document, ClaimDocument)
-    assert claim_b_write.document.output_concept == make_concept_identity(
-        "concept_a",
-        domain="speech",
-        canonical_name="concept_a",
-    )["artifact_id"]
+    assert (
+        claim_b_write.document.output_concept
+        == make_concept_identity(
+            "concept_a",
+            domain="speech",
+            canonical_name="concept_a",
+        )["artifact_id"]
+    )
     result = commit_repository_import(destination, plan)
 
-    concept_a_id = make_concept_identity("concept_a", domain="speech", canonical_name="concept_a")["artifact_id"]
+    concept_a_id = make_concept_identity(
+        "concept_a", domain="speech", canonical_name="concept_a"
+    )["artifact_id"]
     imported_claim_a = yaml.safe_load(
-        destination.git.read_file(_claim_artifact_path("claim_a", namespace="repo-b"), commit=result.commit_sha)
+        destination.git.read_file(
+            _claim_artifact_path("claim_a", namespace="repo-b"),
+            commit=result.commit_sha,
+        )
     )
     imported_claim_b = yaml.safe_load(
-        destination.git.read_file(_claim_artifact_path("claim_b", namespace="repo-b"), commit=result.commit_sha)
+        destination.git.read_file(
+            _claim_artifact_path("claim_b", namespace="repo-b"),
+            commit=result.commit_sha,
+        )
     )
 
     assert imported_claim_a["concepts"] == [concept_a_id]
@@ -829,9 +916,9 @@ def test_import_repo_cli_can_target_master_without_materializing_worktree(tmp_pa
     assert payload["target_branch"] == "master"
     imported_path = _claim_artifact_path("imported", namespace="repo-b")
     assert not (destination.root / Path(imported_path)).exists()
-    assert yaml.safe_load(destination.git.read_file(imported_path, commit=payload["commit_sha"])) == (
-        _expected_imported_claim_yaml("imported", namespace="repo-b")
-    )
+    assert yaml.safe_load(
+        destination.git.read_file(imported_path, commit=payload["commit_sha"])
+    ) == (_expected_imported_claim_yaml("imported", namespace="repo-b"))
 
 
 def test_import_repository_exports_from_importing_surface():

@@ -70,6 +70,7 @@ def test_build_repository_claim_pipeline_none_quarantines_not_raises(
         },
         "seed compiler workflow claim pipeline quarantine test",
     )
+
     def fail_claim_pipeline(_authored):
         return PipelineResult(
             family=PropstoreFamily.CLAIMS,
@@ -89,7 +90,9 @@ def test_build_repository_claim_pipeline_none_quarantines_not_raises(
             ),
         )
 
-    monkeypatch.setattr("propstore.compiler.workflows.run_claim_pipeline", fail_claim_pipeline)
+    monkeypatch.setattr(
+        "propstore.compiler.workflows.run_claim_pipeline", fail_claim_pipeline
+    )
 
     report = build_repository(repo, force=True)
 

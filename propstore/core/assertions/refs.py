@@ -49,9 +49,14 @@ class ConditionRef:
     def __post_init__(self) -> None:
         if not isinstance(self.id, str):
             raise TypeError("condition id must be a string")
-        if str(self.id).strip() != str(self.id) or not str(self.id).startswith(_CONDITION_ID_PREFIX):
+        if str(self.id).strip() != str(self.id) or not str(self.id).startswith(
+            _CONDITION_ID_PREFIX
+        ):
             raise ValueError("condition id must start with ps:condition:")
-        if self.registry_fingerprint.strip() != self.registry_fingerprint or self.registry_fingerprint == "":
+        if (
+            self.registry_fingerprint.strip() != self.registry_fingerprint
+            or self.registry_fingerprint == ""
+        ):
             raise ValueError("condition registry fingerprint must be non-empty")
 
     @classmethod
@@ -79,7 +84,9 @@ class ProvenanceGraphRef:
     def __post_init__(self) -> None:
         if not isinstance(self.graph_name, str):
             raise TypeError("provenance graph name must be a string")
-        if str(self.graph_name).strip() != str(self.graph_name) or not str(self.graph_name).startswith(_GRAPH_NAME_PREFIXES):
+        if str(self.graph_name).strip() != str(self.graph_name) or not str(
+            self.graph_name
+        ).startswith(_GRAPH_NAME_PREFIXES):
             raise ValueError("provenance graph reference must be a URI")
 
     def identity_payload(self) -> tuple[str, str]:

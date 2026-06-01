@@ -22,7 +22,9 @@ class GraphRelationType(StrEnum):
     NONE = "none"
 
 
-VALID_GRAPH_RELATION_TYPES = frozenset(relation_type.value for relation_type in GraphRelationType)
+VALID_GRAPH_RELATION_TYPES = frozenset(
+    relation_type.value for relation_type in GraphRelationType
+)
 
 
 def coerce_graph_relation_type(value: object) -> GraphRelationType:

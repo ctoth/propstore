@@ -1,4 +1,5 @@
 """Tests for direct repo emission of the formal merge object."""
+
 from __future__ import annotations
 
 import yaml
@@ -16,26 +17,32 @@ from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_payloads(
+    kr: GitStore, claims: list[dict], paper: str = "test_paper"
+) -> dict[str, bytes]:
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return claim_artifact_commit_payloads(
         Repository(kr.root),
         doc,
@@ -84,15 +91,19 @@ def _param_claim(
     return claim
 
 
-def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_paper") -> bytes:
-    normalized = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_yaml_with_explicit_identities(
+    claims: list[dict], paper: str = "test_paper"
+) -> bytes:
+    normalized = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     rewritten_claims: list[dict] = []
     for original, normalized_claim in zip(claims, normalized["claims"], strict=True):
         merged = dict(normalized_claim)
@@ -136,7 +147,9 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
     assert len(merge.arguments) == 2
     assert all(not hasattr(argument, "claim_id") for argument in merge.arguments)
     assertion_ids = {argument.assertion_id for argument in merge.arguments}
-    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids)
+    assert all(
+        assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids
+    )
 
     left_id, right_id = sorted(assertion_ids)
     assert (left_id, right_id) in merge.framework.attacks
@@ -174,7 +187,9 @@ def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
 
     assert len(merge.arguments) == 2
     assertion_ids = {argument.assertion_id for argument in merge.arguments}
-    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids)
+    assert all(
+        assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids
+    )
     left_id, right_id = sorted(assertion_ids)
     assert (left_id, right_id) in merge.framework.ignorance
     assert (right_id, left_id) in merge.framework.ignorance
@@ -204,14 +219,19 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
     assert len(merge.arguments) == 1
     emitted = merge.arguments[0]
     assert emitted.assertion_id.startswith("ps:assertion:")
-    assert emitted.artifact_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    assert (
+        emitted.artifact_id
+        == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    )
     assert emitted.claim["value"] == 999.0
     assert emitted.branch_origins == (branch_name,)
     assert merge.framework.attacks == frozenset()
     assert merge.framework.ignorance == frozenset()
 
 
-def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_rivals(tmp_path):
+def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_rivals(
+    tmp_path,
+):
     kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
@@ -237,9 +257,13 @@ def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_ri
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
 
-    manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
+    manifest = yaml.safe_load(
+        (kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text()
+    )
     manifest_arguments = manifest["merge"]["arguments"]
-    canonical_artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    canonical_artifact_id = make_claim_identity("claim1", namespace="test_paper")[
+        "artifact_id"
+    ]
 
     materialized_claims = [
         claim.to_payload()
@@ -251,9 +275,7 @@ def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_ri
 
     assert len(manifest_arguments) == 2
     assert all(row["materialized"] is True for row in manifest_arguments)
-    assert {row["artifact_id"] for row in manifest_arguments} == {
-        canonical_artifact_id
-    }
+    assert {row["artifact_id"] for row in manifest_arguments} == {canonical_artifact_id}
 
 
 def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:

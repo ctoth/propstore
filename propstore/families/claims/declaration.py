@@ -73,7 +73,7 @@ class ClaimConceptContext(Protocol):
 
 def _require_claim_type(value: object) -> ClaimType:
     if not isinstance(value, str):
-        raise KeyError('claim_type')
+        raise KeyError("claim_type")
     return ClaimType(value)
 
 
@@ -382,7 +382,9 @@ class StanceDocument(CharterDoc, kw_only=True):
     target_justification_id: str | None = None
 
 
-class AtomicPropositionDocument(CharterDoc, tag="atomic", tag_field="kind", kw_only=True):
+class AtomicPropositionDocument(
+    CharterDoc, tag="atomic", tag_field="kind", kw_only=True
+):
     type: ClaimType
     body: str | None = None
     concepts: tuple[str, ...] = ()
@@ -485,7 +487,9 @@ class ClaimDocument(CharterDoc, kw_only=True):
         str | None,
         charter_field(column_name="id", primary_key=True, nullable=True, order=3),
     ] = None
-    artifact_code: Annotated[str | None, charter_field(artifact=True, nullable=True)] = None
+    artifact_code: Annotated[
+        str | None, charter_field(artifact=True, nullable=True)
+    ] = None
     logical_ids: Annotated[
         tuple[ClaimLogicalIdDocument, ...],
         charter_field(json=True, nullable=False, default_sql="'[]'"),
@@ -495,7 +499,9 @@ class ClaimDocument(CharterDoc, kw_only=True):
     provenance: Annotated[
         ProvenanceDocument | None, charter_field(json=True, nullable=True)
     ] = None
-    id: Annotated[str | None, charter_field(column_name="source_local_id", nullable=True)] = None
+    id: Annotated[
+        str | None, charter_field(column_name="source_local_id", nullable=True)
+    ] = None
     body: str | None = None
     concepts: Annotated[
         tuple[str, ...],
@@ -524,7 +530,9 @@ class ClaimDocument(CharterDoc, kw_only=True):
         charter_field(json=True, nullable=False, default_sql="'[]'"),
     ] = ()
     expression: str | None = None
-    fit: Annotated[FitStatisticsDocument | None, charter_field(json=True, nullable=True)] = None
+    fit: Annotated[
+        FitStatisticsDocument | None, charter_field(json=True, nullable=True)
+    ] = None
     listener_population: str | None = None
     lower_bound: Annotated[float | int | None, charter_field(nullable=True)] = None
     measure: str | None = None
@@ -630,9 +638,7 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = ClaimDocument.__charter__
 class ClaimBehavior(FamilyModel):
     def concept_ids_for_role(self, role: ClaimConceptLinkRole) -> tuple[str, ...]:
         return tuple(
-            str(link.concept_id)
-            for link in self.concept_links
-            if link.role is role
+            str(link.concept_id) for link in self.concept_links if link.role is role
         )
 
     @property
@@ -870,9 +876,13 @@ class Claim_coreDocument(CharterDoc):
     provenance_page: Annotated[int, charter_field(nullable=False)]
     provenance_json: Annotated[str, charter_field(nullable=True)]
     context_id: Annotated[str, charter_field(nullable=True)]
-    premise_kind: Annotated[str, charter_field(nullable=False, default_sql="'ordinary'")]
+    premise_kind: Annotated[
+        str, charter_field(nullable=False, default_sql="'ordinary'")
+    ]
     branch: Annotated[str, charter_field(nullable=True)]
-    build_status: Annotated[str, charter_field(nullable=False, default_sql="'ingested'")]
+    build_status: Annotated[
+        str, charter_field(nullable=False, default_sql="'ingested'")
+    ]
     stage: Annotated[str, charter_field(nullable=True)]
     promotion_status: Annotated[str, charter_field(nullable=True)]
 
@@ -937,7 +947,9 @@ class Claim_concept_linkDocument(CharterDoc):
             ),
         ),
     ]
-    role: Annotated[ClaimConceptLinkRole, charter_field(primary_key=True, nullable=False)]
+    role: Annotated[
+        ClaimConceptLinkRole, charter_field(primary_key=True, nullable=False)
+    ]
     ordinal: Annotated[int, charter_field(primary_key=True, nullable=False)]
     binding_name: Annotated[str, charter_field(nullable=True)]
 
@@ -1145,7 +1157,9 @@ class Claim_source_assertionDocument(CharterDoc):
     ordinal: Annotated[int, charter_field(primary_key=True, nullable=False)]
 
 
-CLAIM_SOURCE_ASSERTION_CHARTER: FamilyCharter = Claim_source_assertionDocument.__charter__
+CLAIM_SOURCE_ASSERTION_CHARTER: FamilyCharter = (
+    Claim_source_assertionDocument.__charter__
+)
 
 
 class JustificationProvenanceDocument(CharterDoc, kw_only=True):
@@ -1227,7 +1241,9 @@ class JustificationDocument(CharterDoc):
         JustificationAttackTargetDocument | None,
         charter_field(json=True, nullable=True),
     ] = None
-    artifact_code: Annotated[str | None, charter_field(artifact=True, nullable=True)] = None
+    artifact_code: Annotated[
+        str | None, charter_field(artifact=True, nullable=True)
+    ] = None
 
 
 JUSTIFICATION_CHARTER: FamilyCharter = JustificationDocument.__charter__
@@ -1305,14 +1321,20 @@ SOURCE_ATTACK_TARGET_CHARTER: FamilyCharter = SourceAttackTargetDocument.__chart
 )
 class SourceClaimDocument(CharterDoc, kw_only=True):
     source: Annotated[ClaimSourceDocument | None, charter_field(nullable=True)] = None
-    produced_by: Annotated[ExtractionProvenanceDocument | None, charter_field(nullable=True)] = None
+    produced_by: Annotated[
+        ExtractionProvenanceDocument | None, charter_field(nullable=True)
+    ] = None
     artifact_id: Annotated[str | None, charter_field(nullable=True)] = None
     logical_ids: Annotated[
         tuple[ClaimLogicalIdDocument, ...], charter_field(nullable=True)
     ] = ()
     version_id: Annotated[str | None, charter_field(nullable=True)] = None
-    type: Annotated[ClaimType | None, charter_field(nullable=True, enum_type=ClaimType)] = None
-    provenance: Annotated[SourceProvenanceDocument | None, charter_field(nullable=True)] = None
+    type: Annotated[
+        ClaimType | None, charter_field(nullable=True, enum_type=ClaimType)
+    ] = None
+    provenance: Annotated[
+        SourceProvenanceDocument | None, charter_field(nullable=True)
+    ] = None
     id: Annotated[str | None, charter_field(nullable=True)] = None
     body: Annotated[str | None, charter_field(nullable=True)] = None
     concept: Annotated[str | None, charter_field(nullable=True)] = None
@@ -1364,18 +1386,26 @@ SOURCE_CLAIM_DOCUMENT_CHARTER: FamilyCharter = SourceClaimDocument.__charter__
 )
 class SourceJustificationDocument(CharterDoc, kw_only=True):
     source: Annotated[ClaimSourceDocument | None, charter_field(nullable=True)] = None
-    produced_by: Annotated[ExtractionProvenanceDocument | None, charter_field(nullable=True)] = None
+    produced_by: Annotated[
+        ExtractionProvenanceDocument | None, charter_field(nullable=True)
+    ] = None
     id: Annotated[str | None, charter_field(nullable=True)] = None
     conclusion: Annotated[str | None, charter_field(nullable=True)] = None
     premises: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
     rule_kind: Annotated[str | None, charter_field(nullable=True)] = None
     rule_strength: Annotated[str | None, charter_field(nullable=True)] = None
-    provenance: Annotated[SourceProvenanceDocument | None, charter_field(nullable=True)] = None
-    attack_target: Annotated[SourceAttackTargetDocument | None, charter_field(nullable=True)] = None
+    provenance: Annotated[
+        SourceProvenanceDocument | None, charter_field(nullable=True)
+    ] = None
+    attack_target: Annotated[
+        SourceAttackTargetDocument | None, charter_field(nullable=True)
+    ] = None
     artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
 
 
-SOURCE_JUSTIFICATION_DOCUMENT_CHARTER: FamilyCharter = SourceJustificationDocument.__charter__
+SOURCE_JUSTIFICATION_DOCUMENT_CHARTER: FamilyCharter = (
+    SourceJustificationDocument.__charter__
+)
 
 CLAIM_BATCH_SPEC = DocumentBatchSpec(
     batch_name="claims",
@@ -1479,9 +1509,8 @@ def _numeric_si_value(
 
 
 def _claim_concept_ref(claim_doc: object) -> str | None:
-    concept_id = (
-        getattr(claim_doc, "output_concept", None)
-        or getattr(claim_doc, "target_concept", None)
+    concept_id = getattr(claim_doc, "output_concept", None) or getattr(
+        claim_doc, "target_concept", None
     )
     return None if concept_id is None else str(concept_id)
 
@@ -1552,9 +1581,7 @@ def compile_claim_models(
     seen_claim_versions: dict[str, str] = {}
     emitted_version_conflicts: set[tuple[str, str, str]] = set()
     seen_claim_link_keys: set[tuple[str, ClaimConceptLinkRole, int, str]] = set()
-    claim_index = build_claim_file_reference_index(
-        claim_bundle.normalized_claim_files
-    )
+    claim_index = build_claim_file_reference_index(claim_bundle.normalized_claim_files)
     file_stage_by_filename: dict[str, str | None] = {
         claim_file_filename(claim_file): claim_file_stage(claim_file)
         for claim_file in claim_bundle.normalized_claim_files
@@ -1569,9 +1596,7 @@ def compile_claim_models(
             claim_doc = semantic_claim.resolved_claim
             provenance = claim_doc.provenance
             provenance_payload = (
-                None
-                if provenance is None
-                else document_to_payload(provenance)
+                None if provenance is None else document_to_payload(provenance)
             )
             conditions_ir = (
                 json.dumps(
@@ -1582,8 +1607,7 @@ def compile_claim_models(
                 else None
             )
             logical_ids_payload = [
-                document_to_payload(logical_id)
-                for logical_id in claim_doc.logical_ids
+                document_to_payload(logical_id) for logical_id in claim_doc.logical_ids
             ]
             source_slug = (
                 semantic_claim.source_paper
@@ -1700,9 +1724,7 @@ def compile_claim_models(
                     else sympy_derivation.generated
                 ),
                 "sympy_error": (
-                    None
-                    if sympy_derivation is None
-                    else sympy_derivation.error
+                    None if sympy_derivation is None else sympy_derivation.error
                 ),
                 "name": claim_doc.name,
                 "measure": claim_doc.measure,
@@ -1726,10 +1748,12 @@ def compile_claim_models(
                     claim_doc.variables,
                 ),
                 "variables_json": (
-                    json.dumps([
-                        document_to_payload(variable)
-                        for variable in claim_doc.variables
-                    ])
+                    json.dumps(
+                        [
+                            document_to_payload(variable)
+                            for variable in claim_doc.variables
+                        ]
+                    )
                     if claim_doc.variables
                     else None
                 ),
@@ -1787,8 +1811,7 @@ def compile_claim_models(
                                 f"{declaration.field}"
                             )
                         linked_concepts = tuple(
-                            (concept_id, None)
-                            for concept_id in claim_doc.concepts
+                            (concept_id, None) for concept_id in claim_doc.concepts
                         )
                     elif declaration.source == "bindings":
                         if declaration.field == "variables":
@@ -1811,7 +1834,9 @@ def compile_claim_models(
                             "unsupported claim concept-link source: "
                             f"{declaration.source}"
                         )
-                    for ordinal, (concept_id, binding_name) in enumerate(linked_concepts):
+                    for ordinal, (concept_id, binding_name) in enumerate(
+                        linked_concepts
+                    ):
                         link_key = (claim_id, declaration.role, ordinal, concept_id)
                         if link_key in seen_claim_link_keys:
                             continue
@@ -1862,9 +1887,7 @@ def compile_authored_justification_models_with_diagnostics(
         justification_id = justification.id
         conclusion = claim_index.resolve_id(justification.conclusion)
         if not isinstance(justification_id, str) or not justification_id:
-            raise ValueError(
-                f"justification artifact {filename} missing id"
-            )
+            raise ValueError(f"justification artifact {filename} missing id")
         if not isinstance(conclusion, str) or conclusion not in valid_claims:
             message = (
                 f"justification artifact {filename} references "
@@ -1933,7 +1956,9 @@ def compile_authored_justification_models_with_diagnostics(
                 source_claim_id=None,
                 provenance_json=provenance if isinstance(provenance, dict) else None,
                 rule_strength=str(justification.rule_strength or "defeasible"),
-                attack_target=attack_target if isinstance(attack_target, dict) else None,
+                attack_target=attack_target
+                if isinstance(attack_target, dict)
+                else None,
                 artifact_code=justification.artifact_code,
             )
         )
@@ -2008,10 +2033,7 @@ def write_promotion_blocked_models(
         "propstore.families.diagnostics.declaration"
     ).delete_promotion_blocked_diagnostics
 
-    claim_objects_by_id = {
-        str(getattr(row, "id")): row
-        for row in rows.claims
-    }
+    claim_objects_by_id = {str(getattr(row, "id")): row for row in rows.claims}
     diagnostic_objects = tuple(rows.diagnostics)
     if claim_objects_by_id:
         claim_core = derived.schema.table(CLAIM_CORE_CHARTER.family.name)
@@ -2021,9 +2043,7 @@ def write_promotion_blocked_models(
             )
         ).all()
         preserved_claim_ids = {
-            str(row.id)
-            for row in existing_rows
-            if row.promotion_status != "blocked"
+            str(row.id) for row in existing_rows if row.promotion_status != "blocked"
         }
         for claim_id in preserved_claim_ids:
             claim_objects_by_id.pop(claim_id, None)

@@ -70,7 +70,9 @@ def stance_proposal_filename(artifact_id: str) -> str:
 
 
 def stance_proposal_relpath(artifact_id: str) -> str:
-    family = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.PROPOSAL_STANCES).artifact_family
+    family = PROPSTORE_FAMILY_REGISTRY.by_key(
+        PropstoreFamily.PROPOSAL_STANCES
+    ).artifact_family
     return family.address_for(cast(Any, None), StanceRef(artifact_id)).require_path()
 
 
@@ -92,7 +94,9 @@ def _coerce_stance_proposal_input(stance: Mapping[str, object]) -> StanceProposa
         target=target,
         type=stance_type,
         source_claim=_optional_str(stance.get("source_claim")),
-        perspective_source_claim_id=_optional_str(stance.get("perspective_source_claim_id")),
+        perspective_source_claim_id=_optional_str(
+            stance.get("perspective_source_claim_id")
+        ),
         strength=_optional_str(stance.get("strength")),
         note=_optional_str(stance.get("note")),
         conditions_differ=_optional_str(stance.get("conditions_differ")),
@@ -169,8 +173,7 @@ def plan_stance_proposal_promotion(
         commit=proposal_tip,
     )
     available_by_name = {
-        stance_proposal_filename(ref.artifact_id): ref
-        for ref in available_refs
+        stance_proposal_filename(ref.artifact_id): ref for ref in available_refs
     }
     if path is not None:
         requested_name = Path(path).name
@@ -185,7 +188,9 @@ def plan_stance_proposal_promotion(
     items: list[ProposalPromotionItem[StanceRef]] = []
     for ref in selected_refs:
         filename = stance_proposal_filename(ref.artifact_id)
-        target_relpath = repo.families.stances.address(StanceRef(ref.artifact_id)).require_path()
+        target_relpath = repo.families.stances.address(
+            StanceRef(ref.artifact_id)
+        ).require_path()
         proposal_document = repo.families.proposal_stances.require(
             ref,
             commit=proposal_tip,

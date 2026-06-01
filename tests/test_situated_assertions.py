@@ -41,10 +41,14 @@ def test_situated_assertion_identity_includes_structural_parts() -> None:
 
 
 @pytest.mark.property
-@given(st.permutations((
-    RoleBinding("paper", "ps:concept:paper:clark-2014"),
-    RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
-)))
+@given(
+    st.permutations(
+        (
+            RoleBinding("paper", "ps:concept:paper:clark-2014"),
+            RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
+        )
+    )
+)
 def test_situated_assertion_identity_canonicalizes_role_order(
     bindings: tuple[RoleBinding, ...],
 ) -> None:
@@ -65,20 +69,24 @@ def test_rival_normalized_candidates_can_coexist_with_distinct_identities() -> N
 
     subtype_candidate = SituatedAssertion(
         relation=subtype,
-        role_bindings=RoleBindingSet((
-            RoleBinding("subtype", "ps:concept:method:rct"),
-            RoleBinding("supertype", "ps:concept:method:empirical"),
-        )),
+        role_bindings=RoleBindingSet(
+            (
+                RoleBinding("subtype", "ps:concept:method:rct"),
+                RoleBinding("supertype", "ps:concept:method:empirical"),
+            )
+        ),
         context=shared_context,
         condition=shared_condition,
         provenance_ref=shared_provenance,
     )
     instance_candidate = SituatedAssertion(
         relation=instance,
-        role_bindings=RoleBindingSet((
-            RoleBinding("instance", "ps:concept:method:rct"),
-            RoleBinding("type", "ps:concept:method:empirical"),
-        )),
+        role_bindings=RoleBindingSet(
+            (
+                RoleBinding("instance", "ps:concept:method:rct"),
+                RoleBinding("type", "ps:concept:method:empirical"),
+            )
+        ),
         context=shared_context,
         condition=shared_condition,
         provenance_ref=shared_provenance,
@@ -97,10 +105,12 @@ def _published_in_assertion(
     return SituatedAssertion(
         relation=RelationConceptRef(ConceptId("ps:concept:relation:published_in")),
         role_bindings=role_bindings
-        or RoleBindingSet((
-            RoleBinding("paper", "ps:concept:paper:clark-2014"),
-            RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
-        )),
+        or RoleBindingSet(
+            (
+                RoleBinding("paper", "ps:concept:paper:clark-2014"),
+                RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
+            )
+        ),
         context=context or ContextReference("ctx_literature"),
         condition=condition or ConditionRef.unconditional(),
         provenance_ref=provenance

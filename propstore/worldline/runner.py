@@ -114,10 +114,12 @@ def run_worldline(
     stance_dependencies: list[str] = []
     if strategy == ResolutionStrategy.ARGUMENTATION:
         try:
-            argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
-                bound,
-                world,
-                definition,
+            argumentation_state, stance_dependencies, active_ids = (
+                capture_argumentation_state(
+                    bound,
+                    world,
+                    definition,
+                )
             )
             if argumentation_state is not None:
                 trace.dependency_claims.update(active_ids)
@@ -142,10 +144,13 @@ def run_worldline(
 
     lifting_rules, blocked_exceptions = _lifting_dependencies(bound, world, context_id)
     dependencies = WorldlineDependencies(
-        claims=tuple(sorted(
-            ClaimValueResolver.display_claim_id(world, str(claim_id)) or str(claim_id)
-            for claim_id in trace.dependency_claims
-        )),
+        claims=tuple(
+            sorted(
+                ClaimValueResolver.display_claim_id(world, str(claim_id))
+                or str(claim_id)
+                for claim_id in trace.dependency_claims
+            )
+        ),
         stances=tuple(stance_dependencies),
         contexts=tuple(_context_dependencies(bound, context_id)),
         lifting_rules=tuple(lifting_rules),
@@ -212,7 +217,9 @@ def _capture_sensitivity(
                     )
                 )
         except Exception as exc:
-            logger.warning("sensitivity analysis failed for %s", target_name, exc_info=True)
+            logger.warning(
+                "sensitivity analysis failed for %s", target_name, exc_info=True
+            )
             outcomes[target_name] = WorldlineSensitivityOutcome(
                 error=WorldlineCaptureError.SENSITIVITY,
             )

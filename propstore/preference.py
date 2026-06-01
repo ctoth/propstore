@@ -41,7 +41,9 @@ class MetadataStrengthVector:
         return self.uncertainty > 0.99
 
 
-def _metadata_provenance(status: ProvenanceStatus, source_artifact_code: str) -> Provenance:
+def _metadata_provenance(
+    status: ProvenanceStatus, source_artifact_code: str
+) -> Provenance:
     return Provenance(
         status=status,
         witnesses=(
@@ -78,17 +80,29 @@ def metadata_strength_vector(
     sample_size = (
         claim.sample_size
         if isinstance(claim, ClaimNode)
-        else (claim.numeric_payload.sample_size if claim.numeric_payload is not None else None)
+        else (
+            claim.numeric_payload.sample_size
+            if claim.numeric_payload is not None
+            else None
+        )
     )
     uncertainty = (
         claim.uncertainty
         if isinstance(claim, ClaimNode)
-        else (claim.numeric_payload.uncertainty if claim.numeric_payload is not None else None)
+        else (
+            claim.numeric_payload.uncertainty
+            if claim.numeric_payload is not None
+            else None
+        )
     )
     confidence = (
         claim.confidence
         if isinstance(claim, ClaimNode)
-        else (claim.numeric_payload.confidence if claim.numeric_payload is not None else None)
+        else (
+            claim.numeric_payload.confidence
+            if claim.numeric_payload is not None
+            else None
+        )
     )
     source_artifact_code = str(
         (claim.claim_id if isinstance(claim, ClaimNode) else claim.id)

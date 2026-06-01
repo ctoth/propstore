@@ -160,16 +160,17 @@ def lint_extracted_rule_corpus(
 
 _SYNTHETIC_METADATA: dict[str, dict[str, object]] = {
     "Ioannidis_2005_WhyMostPublishedResearch": {"sample_size": 30, "bias": 0.8},
-    "Begley_2012_DrugDevelopmentRaiseStandards": {"peer_reviewed": True, "blinded": False},
+    "Begley_2012_DrugDevelopmentRaiseStandards": {
+        "peer_reviewed": True,
+        "blinded": False,
+    },
     "Aarts_2015_EstimatingReproducibilityPsychologicalScience": {
         "replication_status": "failed-replication"
     },
     "Errington_2021_InvestigatingReplicabilityPreclinicalCancer": {
         "discipline": "preclinical-cancer"
     },
-    "Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments": {
-        "effect_size_z": 1.1
-    },
+    "Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments": {"effect_size_z": 1.1},
     "Camerer_2018_EvaluatingReplicabilitySocialScience": {
         "discipline": "social-science"
     },

@@ -9,9 +9,15 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
-from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
+from quire.tree_path import (
+    TreePath as KnowledgePath,
+    coerce_tree_path as coerce_knowledge_path,
+)
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
+from propstore.core.conditions.registry import (
+    ConceptInfo,
+    with_standard_synthetic_bindings,
+)
 from propstore.conflict_detector.models import (
     ConflictConcept,
     ConflictConceptRegistry,
@@ -70,7 +76,9 @@ def concept_form_definition(
     document = context.concepts_by_id.get(concept_id)
     if document is None:
         return None
-    form_definition = context.form_registry.get(document.lexical_entry.physical_dimension_form)
+    form_definition = context.form_registry.get(
+        document.lexical_entry.physical_dimension_form
+    )
     return form_definition if isinstance(form_definition, FormDefinition) else None
 
 
@@ -151,9 +159,7 @@ def _build_context_from_concepts(
         ),
         cel_registry=_freeze_mapping(
             with_standard_synthetic_bindings(
-                build_canonical_cel_registry(
-                    concept.document for concept in concepts
-                )
+                build_canonical_cel_registry(concept.document for concept in concepts)
             )
         ),
     )
@@ -227,8 +233,7 @@ def concept_registry_for_context(
     context: CompilationContext,
 ) -> ConflictConceptRegistry:
     unique_reference_keys: dict[str, list[str]] = {
-        artifact_id: [artifact_id]
-        for artifact_id in context.concepts_by_id
+        artifact_id: [artifact_id] for artifact_id in context.concepts_by_id
     }
     for key, candidates in context.concept_index.lookup.items():
         if len(candidates) != 1:
@@ -243,11 +248,15 @@ def concept_registry_for_context(
                 concept_id=artifact_id,
                 canonical_name=document.lexical_entry.canonical_form.written_rep,
                 form_name=form_name,
-                reference_keys=tuple(unique_reference_keys.get(artifact_id, (artifact_id,))),
+                reference_keys=tuple(
+                    unique_reference_keys.get(artifact_id, (artifact_id,))
+                ),
                 form_definition=form_definition,
                 parameterizations=tuple(
                     ConflictParameterization(
-                        inputs=tuple(str(input_id) for input_id in parameterization.inputs),
+                        inputs=tuple(
+                            str(input_id) for input_id in parameterization.inputs
+                        ),
                         sympy=parameterization.sympy,
                         exactness=(
                             None

@@ -46,11 +46,7 @@ class _NonCatalogConflictStore:
     def claims_for(self, concept_id: str | None):
         if concept_id is None:
             return list(self._claims)
-        return [
-            claim
-            for claim in self._claims
-            if claim.target_concept == concept_id
-        ]
+        return [claim for claim in self._claims if claim.target_concept == concept_id]
 
     def conflicts(self):
         return list(self._conflicts)
@@ -89,7 +85,9 @@ class TestBoundConflictInputsCache:
             f"but was called {wrapped.call_count} times."
         )
 
-    def test_repeated_same_concept_call_does_not_rebuild_inputs(self, world, monkeypatch):
+    def test_repeated_same_concept_call_does_not_rebuild_inputs(
+        self, world, monkeypatch
+    ):
         """A second call for the SAME concept id hits `_conflicts_cache`
         directly and never reaches `_recomputed_conflicts`, so the input
         builder still must have been called at most once overall.
@@ -139,14 +137,16 @@ class TestBoundConflictInputsCache:
         behind the cheap cardinality guard.
         """
         bound = BoundWorld(
-            _NonCatalogConflictStore([
-                {
-                    "id": "claim_a",
-                    "concept_id": "concept_sparse",
-                    "type": "parameter",
-                    "value": 1.0,
-                }
-            ])
+            _NonCatalogConflictStore(
+                [
+                    {
+                        "id": "claim_a",
+                        "concept_id": "concept_sparse",
+                        "type": "parameter",
+                        "value": 1.0,
+                    }
+                ]
+            )
         )
         builder = Mock(side_effect=AssertionError("conflict inputs should not build"))
         monkeypatch.setattr(bound_module, "conflict_detector_inputs_for_world", builder)

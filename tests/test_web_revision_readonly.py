@@ -6,7 +6,9 @@ from propstore.web.app import create_app
 from tests.test_revision_phase1_cli import revision_cli_workspace
 
 
-def test_web_revision_base_route_is_read_only_app_backed(revision_cli_workspace) -> None:
+def test_web_revision_base_route_is_read_only_app_backed(
+    revision_cli_workspace,
+) -> None:
     client = TestClient(create_app(repository_root=revision_cli_workspace))
 
     response = client.get(

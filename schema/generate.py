@@ -4,6 +4,7 @@
 Usage:
     uv run python schema/generate.py
 """
+
 from __future__ import annotations
 
 import subprocess

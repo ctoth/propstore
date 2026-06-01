@@ -20,7 +20,10 @@ from propstore.families.concepts.declaration import ConceptDocument
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_batch_bytes
 from argumentation.partial_af import PartialArgumentationFramework
-from argumentation.partial_af import credulously_accepted_arguments, skeptically_accepted_arguments
+from argumentation.partial_af import (
+    credulously_accepted_arguments,
+    skeptically_accepted_arguments,
+)
 from propstore.families.source_alignment.declaration import (
     AlignmentArgumentDocument,
     AlignmentDecisionDocument,
@@ -53,13 +56,17 @@ def _serialized_alignment_mutation(function):
 
 
 def alignment_slug(value: str) -> str:
-    cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in value.strip().lower())
+    cleaned = "".join(
+        ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in value.strip().lower()
+    )
     cleaned = cleaned.strip("_-")
     return cleaned or "alignment"
 
 
 def concept_proposal_branch(repo: Repository | None = None) -> str:
-    family = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CONCEPT_ALIGNMENTS).artifact_family
+    family = PROPSTORE_FAMILY_REGISTRY.by_key(
+        PropstoreFamily.CONCEPT_ALIGNMENTS
+    ).artifact_family
     return family.address_for(
         cast(Repository, object()) if repo is None else repo,
         ConceptAlignmentRef("placeholder"),
@@ -89,8 +96,12 @@ def classify_relation(
         relation = left
         relation_left = relation.get("left")
         relation_right = relation.get("right")
-        if not isinstance(relation_left, Mapping) or not isinstance(relation_right, Mapping):
-            raise TypeError("alignment relation must contain mapping left/right proposals")
+        if not isinstance(relation_left, Mapping) or not isinstance(
+            relation_right, Mapping
+        ):
+            raise TypeError(
+                "alignment relation must contain mapping left/right proposals"
+            )
         left = relation_left
         right = relation_right
         opinion = relation.get("opinion")
@@ -103,7 +114,9 @@ def classify_relation(
     left_entry = _proposal_lexical_entry(left)
     right_entry = _proposal_lexical_entry(right)
     definitions_match = left["definition"] == right["definition"]
-    if lexical_entry_identity_key(left_entry) == lexical_entry_identity_key(right_entry):
+    if lexical_entry_identity_key(left_entry) == lexical_entry_identity_key(
+        right_entry
+    ):
         return "non_attack" if definitions_match else "attack"
     if lexical_form_identity_key(left_entry) == lexical_form_identity_key(right_entry):
         return "non_attack" if definitions_match else "attack"
@@ -123,14 +136,18 @@ def build_alignment_artifact(
         local_handle = str(proposal["local_handle"])
         base_id = f"alt_{alignment_slug(local_handle)}"
         id_counts[base_id] += 1
-        arg_id = base_id if id_counts[base_id] == 1 else f"{base_id}_{id_counts[base_id]}"
+        arg_id = (
+            base_id if id_counts[base_id] == 1 else f"{base_id}_{id_counts[base_id]}"
+        )
         enriched.append(
             {
                 "id": arg_id,
                 "source": proposal["source"],
                 "local_handle": local_handle,
                 "proposed_name": proposal["proposed_name"],
-                "proposed_uri": concept_tag_uri(proposal["proposed_name"], authority=authority),
+                "proposed_uri": concept_tag_uri(
+                    proposal["proposed_name"], authority=authority
+                ),
                 "definition": proposal["definition"],
                 "form": proposal["form"],
             }
@@ -226,14 +243,23 @@ def align_sources(
             except FileNotFoundError:
                 concepts_doc = None
         branch_source_name = branch.split("/", 1)[1] if "/" in branch else branch
-        source_doc = repo.families.source_documents.require(SourceRef(branch_source_name))
-        source_uri = str(source_doc.id or source_tag_uri(branch_source_name, authority=repo.uri_authority))
-        for entry in (() if concepts_doc is None else concepts_doc):
+        source_doc = repo.families.source_documents.require(
+            SourceRef(branch_source_name)
+        )
+        source_uri = str(
+            source_doc.id
+            or source_tag_uri(branch_source_name, authority=repo.uri_authority)
+        )
+        for entry in () if concepts_doc is None else concepts_doc:
             proposals.append(
                 {
                     "source": source_uri,
-                    "local_handle": str(entry.local_name or entry.proposed_name or "concept"),
-                    "proposed_name": str(entry.proposed_name or entry.local_name or "concept"),
+                    "local_handle": str(
+                        entry.local_name or entry.proposed_name or "concept"
+                    ),
+                    "proposed_name": str(
+                        entry.proposed_name or entry.local_name or "concept"
+                    ),
                     "definition": str(entry.definition or ""),
                     "form": str(entry.form or "structural"),
                 }
@@ -295,7 +321,9 @@ def decide_alignment(
         rejected=tuple(reject),
         promoted_concept=artifact.decision.promoted_concept,
     )
-    save_alignment_artifact(repo, slug, updated, message=f"Decide concept alignment {cluster_id}")
+    save_alignment_artifact(
+        repo, slug, updated, message=f"Decide concept alignment {cluster_id}"
+    )
     return updated
 
 
@@ -333,7 +361,9 @@ def promote_alignment(
     document = convert_document_value(
         concept_doc,
         ConceptDocument,
-        source=repo.families.concepts.family.address_for(repo, concept_ref).require_path(),
+        source=repo.families.concepts.family.address_for(
+            repo, concept_ref
+        ).require_path(),
     )
     repo.families.concepts.save(
         concept_ref,
@@ -347,5 +377,7 @@ def promote_alignment(
         rejected=artifact.decision.rejected,
         promoted_concept=concept_tag_uri(local_handle, authority=repo.uri_authority),
     )
-    save_alignment_artifact(repo, slug, updated, message=f"Record concept promotion {cluster_id}")
+    save_alignment_artifact(
+        repo, slug, updated, message=f"Record concept promotion {cluster_id}"
+    )
     return updated

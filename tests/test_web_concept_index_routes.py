@@ -69,14 +69,16 @@ def test_concept_index_html_route_renders_inventory(
     assert "Concept Inventory" in html
     assert "fundamental_frequency" in html
     assert "/concept/speech%3Afundamental_frequency" in html
-    assert "<th scope=\"col\">Status</th>" in html
+    assert '<th scope="col">Status</th>' in html
 
 
 def test_concept_index_json_route_uses_search_report_when_query_present(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(routing, "search_concepts", lambda repo, request: _search_report())
+    monkeypatch.setattr(
+        routing, "search_concepts", lambda repo, request: _search_report()
+    )
 
     response = client.get("/concepts.json?q=frequency")
 

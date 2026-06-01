@@ -58,78 +58,86 @@ def _heuristic_embed() -> Any:
 
 
 EMBEDDING_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="embedding_model",
-                name="embedding_model",
+    FamilyCharter(
+        family=FamilyDefinition(
+            key="embedding_model",
+            name="embedding_model",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-embedding_model",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-embedding_model",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=EmbeddingModel,
-                    placement=FlatYamlPlacement(".derived/embedding_model", str),
-                ),
-                identity_field="model_identity_hash",
+                doc_type=EmbeddingModel,
+                placement=FlatYamlPlacement(".derived/embedding_model", str),
             ),
-            model=EmbeddingModel,
-            fields=(
-                CharterField("model_identity_hash", str, primary_key=True, nullable=False),
-                CharterField("provider", str, nullable=False),
-                CharterField("model_name", str, nullable=False),
-                CharterField("model_version", str, nullable=False, default_sql="''"),
-                CharterField("content_digest", str, nullable=False),
-                CharterField("dimensions", int, nullable=False),
-                CharterField("created_at", str, nullable=False),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
+            identity_field="model_identity_hash",
         ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="embedding_status",
-                name="embedding_status",
+        model=EmbeddingModel,
+        fields=(
+            CharterField("model_identity_hash", str, primary_key=True, nullable=False),
+            CharterField("provider", str, nullable=False),
+            CharterField("model_name", str, nullable=False),
+            CharterField("model_version", str, nullable=False, default_sql="''"),
+            CharterField("content_digest", str, nullable=False),
+            CharterField("dimensions", int, nullable=False),
+            CharterField("created_at", str, nullable=False),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    ),
+    FamilyCharter(
+        family=FamilyDefinition(
+            key="embedding_status",
+            name="embedding_status",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-embedding_status",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-embedding_status",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=EmbeddingStatus,
-                    placement=FlatYamlPlacement(".derived/embedding_status", str),
-                ),
-                identity_field="model_identity_hash",
+                doc_type=EmbeddingStatus,
+                placement=FlatYamlPlacement(".derived/embedding_status", str),
             ),
-            model=EmbeddingStatus,
-            fields=(
-                CharterField("model_identity_hash", str, primary_key=True, nullable=False),
-                CharterField("claim_id", str, primary_key=True, nullable=False),
-                CharterField("content_hash", str, nullable=False),
-                CharterField("embedded_at", str, nullable=False),
-            ),
-            indexes=(CharterIndex("idx_embedding_status_model_identity", ("model_identity_hash",)),),
-            semantic_metadata={"semantic": "propstore.world"},
+            identity_field="model_identity_hash",
         ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="concept_embedding_status",
-                name="concept_embedding_status",
+        model=EmbeddingStatus,
+        fields=(
+            CharterField("model_identity_hash", str, primary_key=True, nullable=False),
+            CharterField("claim_id", str, primary_key=True, nullable=False),
+            CharterField("content_hash", str, nullable=False),
+            CharterField("embedded_at", str, nullable=False),
+        ),
+        indexes=(
+            CharterIndex(
+                "idx_embedding_status_model_identity", ("model_identity_hash",)
+            ),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    ),
+    FamilyCharter(
+        family=FamilyDefinition(
+            key="concept_embedding_status",
+            name="concept_embedding_status",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-concept_embedding_status",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-concept_embedding_status",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ConceptEmbeddingStatus,
-                    placement=FlatYamlPlacement(".derived/concept_embedding_status", str),
-                ),
-                identity_field="model_identity_hash",
+                doc_type=ConceptEmbeddingStatus,
+                placement=FlatYamlPlacement(".derived/concept_embedding_status", str),
             ),
-            model=ConceptEmbeddingStatus,
-            fields=(
-                CharterField("model_identity_hash", str, primary_key=True, nullable=False),
-                CharterField("concept_id", str, primary_key=True, nullable=False),
-                CharterField("content_hash", str, nullable=False),
-                CharterField("embedded_at", str, nullable=False),
-            ),
-            indexes=(CharterIndex("idx_concept_embedding_status_model_identity", ("model_identity_hash",)),),
-            semantic_metadata={"semantic": "propstore.world"},
+            identity_field="model_identity_hash",
         ),
-    )
+        model=ConceptEmbeddingStatus,
+        fields=(
+            CharterField("model_identity_hash", str, primary_key=True, nullable=False),
+            CharterField("concept_id", str, primary_key=True, nullable=False),
+            CharterField("content_hash", str, nullable=False),
+            CharterField("embedded_at", str, nullable=False),
+        ),
+        indexes=(
+            CharterIndex(
+                "idx_concept_embedding_status_model_identity", ("model_identity_hash",)
+            ),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    ),
+)
 
 
 @dataclasses.dataclass
@@ -397,7 +405,9 @@ def _claim_similarity_hits(
             ClaimSimilarityHit(
                 claim_id=ClaimId(claim_id),
                 distance=float(row["distance"]),
-                auto_summary=None if text_payload is None else text_payload.auto_summary,
+                auto_summary=None
+                if text_payload is None
+                else text_payload.auto_summary,
                 statement=None if text_payload is None else text_payload.statement,
                 source_paper=claim_model.source_paper,
                 concept_id=(
@@ -449,7 +459,9 @@ def get_registered_models(derived_store: DerivedStoreHandle) -> list[dict]:
 
     schema = world_schema()
     with derived_store.readonly_session(schema) as derived:
-        return SqlAlchemyVecRegistry(derived.session.connection()).get_registered_models()
+        return SqlAlchemyVecRegistry(
+            derived.session.connection()
+        ).get_registered_models()
 
 
 def embed_claims(
@@ -552,14 +564,12 @@ def find_similar(
             model_identity,
             seq,
         ),
-        similar_entities=lambda model_identity, query_vector, k: (
-            _similar_vector_rows(
-                derived_store,
-                "claim_embeddings",
-                model_identity,
-                query_vector,
-                k,
-            )
+        similar_entities=lambda model_identity, query_vector, k: _similar_vector_rows(
+            derived_store,
+            "claim_embeddings",
+            model_identity,
+            query_vector,
+            k,
         ),
         top_k=top_k,
     )
@@ -588,14 +598,12 @@ def find_similar_concepts(
             model_identity,
             seq,
         ),
-        similar_entities=lambda model_identity, query_vector, k: (
-            _similar_vector_rows(
-                derived_store,
-                "concept_embeddings",
-                model_identity,
-                query_vector,
-                k,
-            )
+        similar_entities=lambda model_identity, query_vector, k: _similar_vector_rows(
+            derived_store,
+            "concept_embeddings",
+            model_identity,
+            query_vector,
+            k,
         ),
         top_k=top_k,
     )
@@ -623,14 +631,12 @@ def find_similar_agree(
             model_identity,
             seq,
         ),
-        similar_entities=lambda model_identity, query_vector, k: (
-            _similar_vector_rows(
-                derived_store,
-                "claim_embeddings",
-                model_identity,
-                query_vector,
-                k,
-            )
+        similar_entities=lambda model_identity, query_vector, k: _similar_vector_rows(
+            derived_store,
+            "claim_embeddings",
+            model_identity,
+            query_vector,
+            k,
         ),
         top_k=top_k,
     )
@@ -658,14 +664,12 @@ def find_similar_disagree(
             model_identity,
             seq,
         ),
-        similar_entities=lambda model_identity, query_vector, k: (
-            _similar_vector_rows(
-                derived_store,
-                "claim_embeddings",
-                model_identity,
-                query_vector,
-                k,
-            )
+        similar_entities=lambda model_identity, query_vector, k: _similar_vector_rows(
+            derived_store,
+            "claim_embeddings",
+            model_identity,
+            query_vector,
+            k,
         ),
         top_k=top_k,
     )
@@ -693,14 +697,12 @@ def find_similar_concepts_agree(
             model_identity,
             seq,
         ),
-        similar_entities=lambda model_identity, query_vector, k: (
-            _similar_vector_rows(
-                derived_store,
-                "concept_embeddings",
-                model_identity,
-                query_vector,
-                k,
-            )
+        similar_entities=lambda model_identity, query_vector, k: _similar_vector_rows(
+            derived_store,
+            "concept_embeddings",
+            model_identity,
+            query_vector,
+            k,
         ),
         top_k=top_k,
     )
@@ -728,14 +730,12 @@ def find_similar_concepts_disagree(
             model_identity,
             seq,
         ),
-        similar_entities=lambda model_identity, query_vector, k: (
-            _similar_vector_rows(
-                derived_store,
-                "concept_embeddings",
-                model_identity,
-                query_vector,
-                k,
-            )
+        similar_entities=lambda model_identity, query_vector, k: _similar_vector_rows(
+            derived_store,
+            "concept_embeddings",
+            model_identity,
+            query_vector,
+            k,
         ),
         top_k=top_k,
     )

@@ -35,15 +35,15 @@ def _projected_assertion_id(repo: Repository) -> str:
     with WorldQuery(repo) as wm:
         base = revision_base(wm, _revision_request())
     assertion_ids = [
-        atom.atom_id
-        for atom in base.atoms
-        if getattr(atom, "source_claims", ())
+        atom.atom_id for atom in base.atoms if getattr(atom, "source_claims", ())
     ]
     assert len(assertion_ids) == 1
     return assertion_ids[0]
 
 
-def test_revision_workflow_reports_base_and_entrenchment(revision_cli_workspace) -> None:
+def test_revision_workflow_reports_base_and_entrenchment(
+    revision_cli_workspace,
+) -> None:
     repo = Repository.find(revision_cli_workspace)
     with WorldQuery(repo) as wm:
         base = revision_base(wm, _revision_request())
@@ -54,7 +54,9 @@ def test_revision_workflow_reports_base_and_entrenchment(revision_cli_workspace)
     assert assertion_id in entrenchment.ranked_atom_ids
 
 
-def test_revision_workflow_runs_expand_contract_and_revise(revision_cli_workspace) -> None:
+def test_revision_workflow_runs_expand_contract_and_revise(
+    revision_cli_workspace,
+) -> None:
     repo = Repository.find(revision_cli_workspace)
     assertion_id = _projected_assertion_id(repo)
     atom = {"kind": "assertion", "id": assertion_id}
@@ -120,7 +122,9 @@ def test_world_expand_shows_added_revision_atom(revision_cli_workspace) -> None:
     assert assertion_id in result.output
 
 
-def test_world_contract_shows_rejected_atoms_and_incision_set(revision_cli_workspace) -> None:
+def test_world_contract_shows_rejected_atoms_and_incision_set(
+    revision_cli_workspace,
+) -> None:
     runner = CliRunner()
     assertion_id = _projected_assertion_id(Repository.find(revision_cli_workspace))
 
@@ -139,13 +143,17 @@ def test_world_contract_shows_rejected_atoms_and_incision_set(revision_cli_works
     )
 
     assert result.exit_code == 0, result.output
-    assert result.output.index("Formal decision:") < result.output.index("Support realization:")
+    assert result.output.index("Formal decision:") < result.output.index(
+        "Support realization:"
+    )
     assert "Rejected" in result.output
     assert assertion_id in result.output
     assert "Incision set" in result.output
 
 
-def test_world_revise_shows_new_atom_and_rejected_conflict(revision_cli_workspace) -> None:
+def test_world_revise_shows_new_atom_and_rejected_conflict(
+    revision_cli_workspace,
+) -> None:
     runner = CliRunner()
     assertion_id = _projected_assertion_id(Repository.find(revision_cli_workspace))
 
@@ -169,7 +177,9 @@ def test_world_revise_shows_new_atom_and_rejected_conflict(revision_cli_workspac
     assert assertion_id in result.output
 
 
-def test_world_revision_explain_shows_atom_status_and_reason(revision_cli_workspace) -> None:
+def test_world_revision_explain_shows_atom_status_and_reason(
+    revision_cli_workspace,
+) -> None:
     runner = CliRunner()
     assertion_id = _projected_assertion_id(Repository.find(revision_cli_workspace))
 
@@ -195,7 +205,9 @@ def test_world_revision_explain_shows_atom_status_and_reason(revision_cli_worksp
     assert "reason=support_lost" in result.output
 
 
-def test_world_iterated_state_shows_ranked_atoms_and_empty_history(revision_cli_workspace) -> None:
+def test_world_iterated_state_shows_ranked_atoms_and_empty_history(
+    revision_cli_workspace,
+) -> None:
     runner = CliRunner()
 
     result = runner.invoke(
@@ -216,7 +228,9 @@ def test_world_iterated_state_shows_ranked_atoms_and_empty_history(revision_cli_
     assert "ps:assertion:" in result.output
 
 
-def test_world_iterated_revise_shows_operator_and_next_state_summary(revision_cli_workspace) -> None:
+def test_world_iterated_revise_shows_operator_and_next_state_summary(
+    revision_cli_workspace,
+) -> None:
     runner = CliRunner()
     assertion_id = _projected_assertion_id(Repository.find(revision_cli_workspace))
 
@@ -246,7 +260,9 @@ def test_world_iterated_revise_shows_operator_and_next_state_summary(revision_cl
     assert "History:" in result.output
 
 
-def test_ic_merge_app_cli_payload_separates_decision_realization_policy_and_diagnostics() -> None:
+def test_ic_merge_app_cli_payload_separates_decision_realization_policy_and_diagnostics() -> (
+    None
+):
     from propstore.app.world_revision import revision_event_inspection_payload
     from propstore.cli.world.revision import format_revision_event_inspection
 

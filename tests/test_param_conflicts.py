@@ -126,8 +126,10 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
         records = _detect_parameterization_conflicts(by_concept, concept_registry, [])
 
     param_warnings = [
-        warning for warning in caught
-        if f"Could not evaluate parameterization for {concept3_id}" in str(warning.message)
+        warning
+        for warning in caught
+        if f"Could not evaluate parameterization for {concept3_id}"
+        in str(warning.message)
     ]
     assert param_warnings == []
     assert len(records) == 1
@@ -258,14 +260,14 @@ def test_transitive_propagation_normalizes_units():
         ]
     )
 
-    conflicts = detect_transitive_conflicts(
-        claim_file, concept_registry, forms=forms
-    )
+    conflicts = detect_transitive_conflicts(claim_file, concept_registry, forms=forms)
 
     # With correct SI normalization (0.1 kHz → 100 Hz), chain gives 300,
     # matching the direct claim. No conflict.
     # Without normalization, 0.1 * 2 = 0.2, 0.2 + 100 = 100.2 ≠ 300 → spurious conflict.
-    param_conflicts = [c for c in conflicts if c.warning_class == ConflictClass.PARAM_CONFLICT]
+    param_conflicts = [
+        c for c in conflicts if c.warning_class == ConflictClass.PARAM_CONFLICT
+    ]
     assert len(param_conflicts) == 0
 
 
@@ -274,20 +276,24 @@ def test_single_hop_conflict_carries_derived_conditions():
     concept_out_id, concept_out = _concept("concept_out", form="frequency")
     by_concept = {
         concept_in_id: [
-            _claim({
-                "id": "claim_in",
-                "value": 10.0,
-                "conditions": ["task == 'speech'"],
-                "context": "ctx_input",
-            }),
+            _claim(
+                {
+                    "id": "claim_in",
+                    "value": 10.0,
+                    "conditions": ["task == 'speech'"],
+                    "context": "ctx_input",
+                }
+            ),
         ],
         concept_out_id: [
-            _claim({
-                "id": "claim_out",
-                "value": 100.0,
-                "conditions": ["task == 'speech'", "mode == 'normal'"],
-                "context": "ctx_input",
-            }),
+            _claim(
+                {
+                    "id": "claim_out",
+                    "value": 100.0,
+                    "conditions": ["task == 'speech'", "mode == 'normal'"],
+                    "context": "ctx_input",
+                }
+            ),
         ],
     }
     concept_registry = {
@@ -398,17 +404,47 @@ def test_transitive_conflict_detection_is_order_independent():
     }
     first_order = _claim_file(
         [
-            {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
-            {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
-            {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
+            {
+                "id": "in_a",
+                "type": "parameter",
+                "concept": concept_in_id,
+                "value": 10.0,
+            },
+            {
+                "id": "in_b",
+                "type": "parameter",
+                "concept": concept_in_id,
+                "value": 20.0,
+            },
+            {
+                "id": "out_direct",
+                "type": "parameter",
+                "concept": concept_out_id,
+                "value": 25.0,
+            },
         ],
         filename="first",
     )
     second_order = _claim_file(
         [
-            {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
-            {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
-            {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
+            {
+                "id": "in_b",
+                "type": "parameter",
+                "concept": concept_in_id,
+                "value": 20.0,
+            },
+            {
+                "id": "in_a",
+                "type": "parameter",
+                "concept": concept_in_id,
+                "value": 10.0,
+            },
+            {
+                "id": "out_direct",
+                "type": "parameter",
+                "concept": concept_out_id,
+                "value": 25.0,
+            },
         ],
         filename="second",
     )

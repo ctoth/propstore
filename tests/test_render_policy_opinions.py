@@ -28,6 +28,7 @@ from propstore.world.types import (
 
 # ── 1. Default decision criterion ───────────────────────────────
 
+
 def test_default_decision_criterion_is_pignistic():
     """Per Denoeux (2019, p.17-18): pignistic transformation is the default decision criterion."""
     policy = RenderPolicy()
@@ -35,6 +36,7 @@ def test_default_decision_criterion_is_pignistic():
 
 
 # ── 2. Pignistic equals expectation ─────────────────────────────
+
 
 def test_pignistic_equals_expectation():
     """Per Jøsang (2001, p.5, Def 6): E(ω) = b + a·u.
@@ -49,7 +51,9 @@ def test_pignistic_equals_expectation():
     op = Opinion(b, d, u, a)
     expected = op.expectation()  # 0.6 + 0.5 * 0.3 = 0.75
 
-    result = apply_decision_criterion(b, d, u, a, confidence=expected, criterion="pignistic")
+    result = apply_decision_criterion(
+        b, d, u, a, confidence=expected, criterion="pignistic"
+    )
     assert result.source is DecisionValueSource.OPINION
     assert result.value == pytest.approx(expected)
     assert result.value == pytest.approx(0.75)
@@ -57,13 +61,16 @@ def test_pignistic_equals_expectation():
 
 # ── 3. Lower bound equals belief ────────────────────────────────
 
+
 def test_lower_bound_equals_belief():
     """Per Jøsang (2001, Def 9): Bel(x) = b.
 
     papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
     """
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
-    result = apply_decision_criterion(b, d, u, a, confidence=0.75, criterion="lower_bound")
+    result = apply_decision_criterion(
+        b, d, u, a, confidence=0.75, criterion="lower_bound"
+    )
     assert result.source is DecisionValueSource.OPINION
     assert result.value == pytest.approx(b)
     assert result.value == pytest.approx(0.6)
@@ -71,19 +78,23 @@ def test_lower_bound_equals_belief():
 
 # ── 4. Upper bound equals plausibility ──────────────────────────
 
+
 def test_upper_bound_equals_plausibility():
     """Plausibility is 1 - disbelief for the binary opinion interval.
 
     papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
     """
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
-    result = apply_decision_criterion(b, d, u, a, confidence=0.75, criterion="upper_bound")
+    result = apply_decision_criterion(
+        b, d, u, a, confidence=0.75, criterion="upper_bound"
+    )
     assert result.source is DecisionValueSource.OPINION
     assert result.value == pytest.approx(1.0 - d)
     assert result.value == pytest.approx(0.9)
 
 
 # ── 5. Hurwicz interpolates ─────────────────────────────────────
+
 
 def test_hurwicz_interpolates():
     """Per Denoeux (2019, p.17): Hurwicz criterion = α·Bel + (1-α)·Pl.
@@ -92,11 +103,16 @@ def test_hurwicz_interpolates():
     """
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
     result = apply_decision_criterion(
-        b, d, u, a, confidence=0.75,
-        criterion="hurwicz", pessimism_index=0.5,
+        b,
+        d,
+        u,
+        a,
+        confidence=0.75,
+        criterion="hurwicz",
+        pessimism_index=0.5,
     )
-    bel = b          # 0.6
-    pl = 1.0 - d     # 0.9
+    bel = b  # 0.6
+    pl = 1.0 - d  # 0.9
     expected = 0.5 * bel + 0.5 * pl  # 0.75
     assert result.source is DecisionValueSource.OPINION
     assert result.value == pytest.approx(expected)
@@ -104,30 +120,46 @@ def test_hurwicz_interpolates():
 
 # ── 6. Hurwicz at extremes ──────────────────────────────────────
 
+
 def test_hurwicz_at_extremes():
     """Hurwicz at α=1.0 equals lower_bound, at α=0.0 equals upper_bound."""
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
 
     pessimistic = apply_decision_criterion(
-        b, d, u, a, confidence=0.75,
-        criterion="hurwicz", pessimism_index=1.0,
+        b,
+        d,
+        u,
+        a,
+        confidence=0.75,
+        criterion="hurwicz",
+        pessimism_index=1.0,
     )
-    lower = apply_decision_criterion(b, d, u, a, confidence=0.75, criterion="lower_bound")
+    lower = apply_decision_criterion(
+        b, d, u, a, confidence=0.75, criterion="lower_bound"
+    )
     assert pessimistic.source is DecisionValueSource.OPINION
     assert lower.source is DecisionValueSource.OPINION
     assert pessimistic.value == pytest.approx(lower.value)
 
     optimistic = apply_decision_criterion(
-        b, d, u, a, confidence=0.75,
-        criterion="hurwicz", pessimism_index=0.0,
+        b,
+        d,
+        u,
+        a,
+        confidence=0.75,
+        criterion="hurwicz",
+        pessimism_index=0.0,
     )
-    upper = apply_decision_criterion(b, d, u, a, confidence=0.75, criterion="upper_bound")
+    upper = apply_decision_criterion(
+        b, d, u, a, confidence=0.75, criterion="upper_bound"
+    )
     assert optimistic.source is DecisionValueSource.OPINION
     assert upper.source is DecisionValueSource.OPINION
     assert optimistic.value == pytest.approx(upper.value)
 
 
 # ── 7. Show uncertainty interval ────────────────────────────────
+
 
 def test_show_uncertainty_interval():
     """Interval [b, 1-d] per Jøsang (2001, p.4).
@@ -150,6 +182,7 @@ def test_show_uncertainty_interval():
 
 # ── 8. RenderPolicy serialization roundtrip ───────────────────
 
+
 def test_worldline_policy_serialization_roundtrip():
     """RenderPolicy with worldline-used fields serializes to dict and back without loss."""
     policy = RenderPolicy(
@@ -168,6 +201,7 @@ def test_worldline_policy_serialization_roundtrip():
 
 # ── 9. RenderPolicy defaults via dict parsing ──────────────────────────
 
+
 def test_worldline_policy_backward_compat():
     """RenderPolicy.from_dict({}) uses defaults for worldline-used fields."""
     policy = RenderPolicy.from_dict({})
@@ -178,6 +212,7 @@ def test_worldline_policy_backward_compat():
 
 # ── 10. Vacuous opinion all criteria ─────────────────────────────
 
+
 def test_vacuous_opinion_all_criteria():
     """For vacuous opinion (0, 0, 1, 0.5): all criteria produce correct results on total ignorance.
 
@@ -185,27 +220,39 @@ def test_vacuous_opinion_all_criteria():
     """
     b, d, u, a = 0.0, 0.0, 1.0, 0.5
 
-    pignistic = apply_decision_criterion(b, d, u, a, confidence=0.5, criterion="pignistic")
+    pignistic = apply_decision_criterion(
+        b, d, u, a, confidence=0.5, criterion="pignistic"
+    )
     assert pignistic.source is DecisionValueSource.OPINION
     assert pignistic.value == pytest.approx(0.5)
 
-    lower = apply_decision_criterion(b, d, u, a, confidence=0.5, criterion="lower_bound")
+    lower = apply_decision_criterion(
+        b, d, u, a, confidence=0.5, criterion="lower_bound"
+    )
     assert lower.source is DecisionValueSource.OPINION
     assert lower.value == pytest.approx(0.0)
 
-    upper = apply_decision_criterion(b, d, u, a, confidence=0.5, criterion="upper_bound")
+    upper = apply_decision_criterion(
+        b, d, u, a, confidence=0.5, criterion="upper_bound"
+    )
     assert upper.source is DecisionValueSource.OPINION
     assert upper.value == pytest.approx(1.0)
 
     hurwicz = apply_decision_criterion(
-        b, d, u, a, confidence=0.5,
-        criterion="hurwicz", pessimism_index=0.5,
+        b,
+        d,
+        u,
+        a,
+        confidence=0.5,
+        criterion="hurwicz",
+        pessimism_index=0.5,
     )
     assert hurwicz.source is DecisionValueSource.OPINION
     assert hurwicz.value == pytest.approx(0.5)
 
 
 # ── Missing opinion data stays unknown ───────────────────────────
+
 
 def test_missing_opinion_ignores_raw_confidence():
     """When opinion columns are NULL, raw confidence is not a substitute.
@@ -214,13 +261,23 @@ def test_missing_opinion_ignores_raw_confidence():
     result and missing opinion data, per the honest-ignorance discipline.
     """
     result = apply_decision_criterion(
-        None, None, None, None, confidence=0.8, criterion="pignistic",
+        None,
+        None,
+        None,
+        None,
+        confidence=0.8,
+        criterion="pignistic",
     )
     assert result.source is DecisionValueSource.NO_DATA
     assert result.value is None
 
     result_none = apply_decision_criterion(
-        None, None, None, None, confidence=None, criterion="pignistic",
+        None,
+        None,
+        None,
+        None,
+        confidence=None,
+        criterion="pignistic",
     )
     assert result_none.source is DecisionValueSource.NO_DATA
     assert result_none.value is None
@@ -256,16 +313,37 @@ def test_generated_decision_criteria_stay_inside_belief_plausibility(opinion):
     pl = 1.0 - d
 
     pignistic = apply_decision_criterion(
-        b, d, u, a, confidence=None, criterion="pignistic",
+        b,
+        d,
+        u,
+        a,
+        confidence=None,
+        criterion="pignistic",
     )
     lower = apply_decision_criterion(
-        b, d, u, a, confidence=None, criterion="lower_bound",
+        b,
+        d,
+        u,
+        a,
+        confidence=None,
+        criterion="lower_bound",
     )
     upper = apply_decision_criterion(
-        b, d, u, a, confidence=None, criterion="upper_bound",
+        b,
+        d,
+        u,
+        a,
+        confidence=None,
+        criterion="upper_bound",
     )
     hurwicz = apply_decision_criterion(
-        b, d, u, a, confidence=None, criterion="hurwicz", pessimism_index=0.37,
+        b,
+        d,
+        u,
+        a,
+        confidence=None,
+        criterion="hurwicz",
+        pessimism_index=0.37,
     )
 
     for result in (pignistic, lower, upper, hurwicz):
@@ -291,19 +369,30 @@ def test_partial_opinion_is_no_data_not_opinion(components):
     """
     b, d, u, a = components
     missing = apply_decision_criterion(
-        b, d, u, a, confidence=0.8, criterion="pignistic",
+        b,
+        d,
+        u,
+        a,
+        confidence=0.8,
+        criterion="pignistic",
     )
     assert missing.source is DecisionValueSource.NO_DATA
     assert missing.value is None
 
     no_data = apply_decision_criterion(
-        b, d, u, a, confidence=None, criterion="pignistic",
+        b,
+        d,
+        u,
+        a,
+        confidence=None,
+        criterion="pignistic",
     )
     assert no_data.source is DecisionValueSource.NO_DATA
     assert no_data.value is None
 
 
 # ── 11. Lifecycle-visibility flags (WS-Z-gates Phase 4) ─────────────
+
 
 def test_lifecycle_visibility_flags_default_false():
     """Per reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md

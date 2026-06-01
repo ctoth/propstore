@@ -42,8 +42,11 @@ _PREDICATE_NAMES = st.sampled_from(
     ["bird", "flies", "penguin", "chicken", "scared", "nests", "feathered"]
 )
 _CONST_SCALARS: st.SearchStrategy[str | int | float | bool] = st.one_of(
-    st.text(alphabet=st.characters(whitelist_categories=("Ll", "Lu", "Nd")),
-            min_size=1, max_size=8),
+    st.text(
+        alphabet=st.characters(whitelist_categories=("Ll", "Lu", "Nd")),
+        min_size=1,
+        max_size=8,
+    ),
     st.integers(min_value=-100, max_value=100),
     st.floats(allow_nan=False, allow_infinity=False, width=32),
     st.booleans(),
@@ -60,9 +63,7 @@ def term_documents() -> st.SearchStrategy:
     """
     from propstore.families.rules.declaration import TermDocument  # noqa: E402
 
-    var_strategy = _VARIABLE_NAMES.map(
-        lambda name: TermDocument(kind="var", name=name)
-    )
+    var_strategy = _VARIABLE_NAMES.map(lambda name: TermDocument(kind="var", name=name))
     const_strategy = _CONST_SCALARS.map(
         lambda value: TermDocument(kind="const", value=value)
     )
@@ -89,9 +90,7 @@ def atom_documents(
         )
         term_strategy = st.one_of(
             var_term_strategy,
-            _CONST_SCALARS.map(
-                lambda value: TermDocument(kind="const", value=value)
-            ),
+            _CONST_SCALARS.map(lambda value: TermDocument(kind="const", value=value)),
         )
     else:
         term_strategy = term_documents()
@@ -151,8 +150,12 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
 
         # Guard: if the drawn head introduced a variable not in the body
         # (it can't — head_var_strategy is constrained), skip. Defensive.
-        head_vars = {t.name for t in head.terms if t.kind == "var" and t.name is not None}
-        assert head_vars <= used  # strategy guarantees head vars come only from actually-used body vars
+        head_vars = {
+            t.name for t in head.terms if t.kind == "var" and t.name is not None
+        }
+        assert (
+            head_vars <= used
+        )  # strategy guarantees head vars come only from actually-used body vars
 
         kind = draw(
             st.sampled_from(
@@ -171,8 +174,7 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
             kind=kind,
             head=head,
             body=tuple(
-                BodyLiteralDocument(kind="positive", atom=atom)
-                for atom in body
+                BodyLiteralDocument(kind="positive", atom=atom) for atom in body
             ),
         )
 
@@ -191,7 +193,11 @@ def rule_superiority_documents() -> st.SearchStrategy:
         st.builds(
             RuleSourceDocument,
             paper=st.sampled_from(
-                ["Garcia_2004_DefeasibleLogicProgramming", "example/paper", "test/fixture"]
+                [
+                    "Garcia_2004_DefeasibleLogicProgramming",
+                    "example/paper",
+                    "test/fixture",
+                ]
             ),
         ),
     )

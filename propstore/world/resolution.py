@@ -20,7 +20,9 @@ from propstore.core.id_types import (
 from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
-from propstore.world.assignment_selection_policy import resolve_assignment_selection_merge
+from propstore.world.assignment_selection_policy import (
+    resolve_assignment_selection_merge,
+)
 from propstore.world.value_resolver import ClaimValueResolver
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -271,20 +273,33 @@ def _resolve_claim_graph_argumentation(
             return None, "no stable extensions"
         return None, f"no {normalized_semantics.value} extensions"
 
-    survivors = frozenset(projection.survivor_claim_ids if projection is not None else ())
-    witness_claims = frozenset(projection.witness_claim_ids if projection is not None else ())
+    survivors = frozenset(
+        projection.survivor_claim_ids if projection is not None else ()
+    )
+    witness_claims = frozenset(
+        projection.witness_claim_ids if projection is not None else ()
+    )
 
     if len(survivors) == 0:
         if len(result.extensions) > 1:
             if witness_claims:
-                return None, f"no skeptically accepted claim in {normalized_semantics.value} extensions"
-            return None, f"all target claims absent from every {normalized_semantics.value} extension"
+                return (
+                    None,
+                    f"no skeptically accepted claim in {normalized_semantics.value} extensions",
+                )
+            return (
+                None,
+                f"all target claims absent from every {normalized_semantics.value} extension",
+            )
         return None, "all claims defeated"
     if len(survivors) == 1:
         winner = next(iter(survivors))
         return winner, f"sole survivor in {normalized_semantics.value} extension"
 
-    return None, f"{len(survivors)} claims survive in {normalized_semantics.value} extension"
+    return (
+        None,
+        f"{len(survivors)} claims survive in {normalized_semantics.value} extension",
+    )
 
 
 def _resolve_structured_argumentation(
@@ -320,11 +335,11 @@ def _resolve_structured_argumentation(
     if active_graph is None:
         has_stance_surface = isinstance(world, StanceStore)
         stance_rows = (
-            tuple(world.stances_between(active_ids))
-            if has_stance_surface
-            else ()
+            tuple(world.stances_between(active_ids)) if has_stance_surface else ()
         )
-        has_authored_justification_surface = isinstance(world, AuthoredJustificationStore)
+        has_authored_justification_surface = isinstance(
+            world, AuthoredJustificationStore
+        )
         authored_justifications = (
             tuple(world.justifications_for_claim_scope(active_ids))
             if has_authored_justification_surface
@@ -383,8 +398,7 @@ def _resolve_structured_argumentation(
             )
 
     survivor_claims = {
-        projection.argument_to_claim_id[arg_id]
-        for arg_id in survivor_args
+        projection.argument_to_claim_id[arg_id] for arg_id in survivor_args
     }
     if len(survivor_claims) == 0:
         return None, "all ASPIC+ arguments defeated"
@@ -392,7 +406,10 @@ def _resolve_structured_argumentation(
         winner = next(iter(survivor_claims))
         return winner, f"sole ASPIC+ survivor in {normalized_semantics.value} extension"
 
-    return None, f"{len(survivor_claims)} claims survive in {normalized_semantics.value} ASPIC+ projection"
+    return (
+        None,
+        f"{len(survivor_claims)} claims survive in {normalized_semantics.value} ASPIC+ projection",
+    )
 
 
 def _resolve_aspic_argumentation(
@@ -441,6 +458,7 @@ def _resolve_praf(
         shared_analyzer_input_from_active_graph,
         shared_analyzer_input_from_store,
     )
+
     _, normalized_semantics = validate_backend_semantics(
         ReasoningBackend.PRAF,
         semantics,
@@ -507,7 +525,9 @@ def _resolve_praf(
 
     if acceptance is None:
         extension_probability = metadata.get("extension_probability")
-        best_claims = list(projection.survivor_claim_ids if projection is not None else ())
+        best_claims = list(
+            projection.survivor_claim_ids if projection is not None else ()
+        )
         if len(best_claims) == 1:
             winner = best_claims[0]
             probability_text = (
@@ -601,8 +621,11 @@ def _resolve_praf(
         scored = {cid: v for cid, v in decision_values.items() if v is not None}
         if scored:
             best_dv = max(scored.values())
-            dv_winners = [cid for cid, v in scored.items()
-                          if math.isclose(v, best_dv, rel_tol=1e-9)]
+            dv_winners = [
+                cid
+                for cid, v in scored.items()
+                if math.isclose(v, best_dv, rel_tol=1e-9)
+            ]
             if len(dv_winners) == 1:
                 winner = dv_winners[0]
                 return (
@@ -625,7 +648,9 @@ def _resolve_atms_support(
 ) -> tuple[str | None, str | None]:
     """Resolve by ATMS-supported status over the active belief space."""
     if not isinstance(view, HasATMSEngine):
-        raise NotImplementedError("ATMS backend requires a bound world with an ATMS engine")
+        raise NotImplementedError(
+            "ATMS backend requires a bound world with an ATMS engine"
+        )
 
     engine = view.atms_engine()
     target_ids = {claim.id for claim in target_claims}
@@ -658,20 +683,20 @@ def resolve(
         return ResolvedResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
     if vr.status is ValueStatus.DETERMINED:
-        determined_claim = (
-            _resolution_claim_view(vr.claims[0])
-            if vr.claims
-            else None
-        )
+        determined_claim = _resolution_claim_view(vr.claims[0]) if vr.claims else None
         value = None if determined_claim is None else determined_claim.value
         return ResolvedResult(
-            concept_id=typed_concept_id, status=ValueStatus.DETERMINED,
-            value=value, claims=vr.claims,
+            concept_id=typed_concept_id,
+            status=ValueStatus.DETERMINED,
+            value=value,
+            claims=vr.claims,
         )
 
     if vr.status is not ValueStatus.CONFLICTED:
         return ResolvedResult(
-            concept_id=typed_concept_id, status=vr.status, claims=vr.claims,
+            concept_id=typed_concept_id,
+            status=vr.status,
+            claims=vr.claims,
         )
 
     if policy is not None:
@@ -700,8 +725,10 @@ def resolve(
         link = "last"
     if strategy is None:
         return ResolvedResult(
-            concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
-            claims=vr.claims, reason="no resolution strategy configured",
+            concept_id=typed_concept_id,
+            status=ValueStatus.CONFLICTED,
+            claims=vr.claims,
+            reason="no resolution strategy configured",
         )
 
     # Conflicted — apply strategy
@@ -719,8 +746,10 @@ def resolve(
         override_id = override_map.get(concept_id)
         if override_id is None:
             return ResolvedResult(
-                concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
-                claims=active, reason="no override specified",
+                concept_id=typed_concept_id,
+                status=ValueStatus.CONFLICTED,
+                claims=active,
+                reason="no override specified",
             )
         active_ids = {claim.id for claim in active_views}
         if override_id not in active_ids:
@@ -756,8 +785,10 @@ def resolve(
     elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:
             return ResolvedResult(
-                concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
-                claims=active, reason="argumentation strategy requires an explicit artifact store",
+                concept_id=typed_concept_id,
+                status=ValueStatus.CONFLICTED,
+                claims=active,
+                reason="argumentation strategy requires an explicit artifact store",
             )
         _, semantics = validate_backend_semantics(reasoning_backend, semantics)
         if reasoning_backend == ReasoningBackend.CLAIM_GRAPH:
@@ -798,17 +829,25 @@ def resolve(
 
     if winner_id is None:
         return ResolvedResult(
-            concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
-            claims=active, strategy=strategy.value, reason=reason,
+            concept_id=typed_concept_id,
+            status=ValueStatus.CONFLICTED,
+            claims=active,
+            strategy=strategy.value,
+            reason=reason,
             acceptance_probs=_acceptance_probs,
         )
 
-    winning_claim = next((claim for claim in active_views if claim.id == winner_id), None)
+    winning_claim = next(
+        (claim for claim in active_views if claim.id == winner_id), None
+    )
     value = None if winning_claim is None else winning_claim.value
     return ResolvedResult(
-        concept_id=typed_concept_id, status=ValueStatus.RESOLVED,
-        value=value, claims=active,
+        concept_id=typed_concept_id,
+        status=ValueStatus.RESOLVED,
+        value=value,
+        claims=active,
         winning_claim_id=ClaimId(winner_id),
-        strategy=strategy.value, reason=reason,
+        strategy=strategy.value,
+        reason=reason,
         acceptance_probs=_acceptance_probs,
     )

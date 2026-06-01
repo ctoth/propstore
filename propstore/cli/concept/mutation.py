@@ -67,6 +67,7 @@ def _parse_comma_values(raw: str | None) -> tuple[str, ...]:
         return ()
     return tuple(value.strip() for value in raw.split(",") if value.strip())
 
+
 # ── concept add ──────────────────────────────────────────────────────
 
 
@@ -110,7 +111,9 @@ def add(
     if definition is None:
         definition = click.prompt("Definition")
     if form_name is None:
-        available = tuple(item.name for item in (list_form_items(repo, dims_filter=None) or ()))
+        available = tuple(
+            item.name for item in (list_form_items(repo, dims_filter=None) or ())
+        )
         if available:
             emit(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")

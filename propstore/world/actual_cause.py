@@ -49,14 +49,11 @@ def actual_cause(
     effect: EffectPredicate,
     candidate_cause: Mapping[ConceptId | str, Value],
     *,
-    max_witnesses: int = 2 ** 14,
+    max_witnesses: int = 2**14,
 ) -> ActualCauseVerdict:
     """Evaluate modified-HP actual causality over a finite recursive SCM."""
     scm = world.scm
-    cause = {
-        str(concept_id): value
-        for concept_id, value in candidate_cause.items()
-    }
+    cause = {str(concept_id): value for concept_id, value in candidate_cause.items()}
     ac1_values = scm.evaluate()
     actual_values = _string_values(ac1_values)
 
@@ -115,10 +112,7 @@ def _find_ac2_witness(
     rest = sorted(scm.endogenous - frozenset(cause))
     examined = 0
     for w_variables in _subsets(rest):
-        w_values = {
-            variable: actual_values[variable]
-            for variable in w_variables
-        }
+        w_values = {variable: actual_values[variable] for variable in w_variables}
         for x_prime in _alternative_assignments(scm, cause):
             examined += 1
             if examined > max_witnesses:
@@ -195,7 +189,4 @@ def _matches(
 
 
 def _string_values(values: Mapping[str, Value]) -> dict[str, Value]:
-    return {
-        str(name): value
-        for name, value in values.items()
-    }
+    return {str(name): value for name, value in values.items()}

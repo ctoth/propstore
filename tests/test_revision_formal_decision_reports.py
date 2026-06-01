@@ -4,7 +4,10 @@ from dataclasses import asdict
 
 from belief_set import expand as formal_expand
 
-from propstore.support_revision.belief_set_adapter import decide_expand, project_formal_bundle
+from propstore.support_revision.belief_set_adapter import (
+    decide_expand,
+    project_formal_bundle,
+)
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_operators import _base_with_shared_support
 
@@ -15,7 +18,9 @@ def test_expand_decision_report_matches_direct_belief_set_call() -> None:
     bundle = project_formal_bundle(base, extra_atoms=(new_atom,))
 
     decision = decide_expand(base, new_atom, max_alphabet_size=16)
-    direct = formal_expand(bundle.belief_set, bundle.formula_by_atom_id[new_atom.atom_id])
+    direct = formal_expand(
+        bundle.belief_set, bundle.formula_by_atom_id[new_atom.atom_id]
+    )
 
     direct_accepted = tuple(
         atom_id

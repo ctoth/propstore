@@ -36,37 +36,52 @@ from propstore.families.concepts.declaration import Concept
 
 # ── Fixtures: concept registries ─────────────────────────────────────
 
+
 @pytest.fixture
 def registry():
     """A registry with one concept of each kind, plus extras."""
     return {
         # Quantities
-        "fundamental_frequency": ConceptInfo("concept1", "fundamental_frequency", KindType.QUANTITY),
-        "subglottal_pressure": ConceptInfo("concept12", "subglottal_pressure", KindType.QUANTITY),
+        "fundamental_frequency": ConceptInfo(
+            "concept1", "fundamental_frequency", KindType.QUANTITY
+        ),
+        "subglottal_pressure": ConceptInfo(
+            "concept12", "subglottal_pressure", KindType.QUANTITY
+        ),
         "speaking_rate": ConceptInfo("concept20", "speaking_rate", KindType.QUANTITY),
         "F0": ConceptInfo("concept1b", "F0", KindType.QUANTITY),
         "F1": ConceptInfo("concept2", "F1", KindType.QUANTITY),
         # Category
         "task": ConceptInfo(
-            "concept30", "task", KindType.CATEGORY,
+            "concept30",
+            "task",
+            KindType.CATEGORY,
             category_values=["speech", "singing", "whisper"],
             category_extensible=True,
         ),
         "population": ConceptInfo(
-            "concept31", "population", KindType.CATEGORY,
+            "concept31",
+            "population",
+            KindType.CATEGORY,
             category_values=["adult", "child", "elderly"],
             category_extensible=True,
         ),
         "vowel_type": ConceptInfo(
-            "concept32", "vowel_type", KindType.CATEGORY,
+            "concept32",
+            "vowel_type",
+            KindType.CATEGORY,
             category_values=["front", "back", "central"],
             category_extensible=False,
         ),
         # Boolean
-        "phonation_present": ConceptInfo("concept40", "phonation_present", KindType.BOOLEAN),
+        "phonation_present": ConceptInfo(
+            "concept40", "phonation_present", KindType.BOOLEAN
+        ),
         # Structural
         "focalization": ConceptInfo("concept101", "focalization", KindType.STRUCTURAL),
-        "coarticulation": ConceptInfo("concept50", "coarticulation", KindType.STRUCTURAL),
+        "coarticulation": ConceptInfo(
+            "concept50", "coarticulation", KindType.STRUCTURAL
+        ),
     }
 
 
@@ -117,6 +132,7 @@ class TestParser:
 
 # ── Type checker: quantity concepts ──────────────────────────────────
 
+
 class TestQuantityTypeChecking:
     def test_arithmetic_ok(self, registry):
         errors = check_cel_expression("F1 / F0 > 3.0", registry)
@@ -127,7 +143,9 @@ class TestQuantityTypeChecking:
         assert not any(not e.is_warning for e in errors)
 
     def test_compound_arithmetic_ok(self, registry):
-        errors = check_cel_expression("speaking_rate > 3.0 && task == 'singing'", registry)
+        errors = check_cel_expression(
+            "speaking_rate > 3.0 && task == 'singing'", registry
+        )
         assert not any(not e.is_warning for e in errors)
 
     def test_string_literal_comparison_error(self, registry):
@@ -135,8 +153,11 @@ class TestQuantityTypeChecking:
         errors = check_cel_expression("fundamental_frequency == 'high'", registry)
         hard_errors = [e for e in errors if not e.is_warning]
         assert len(hard_errors) >= 1
-        assert any("string literal" in e.message.lower() or "compared to string" in e.message.lower()
-                    for e in hard_errors)
+        assert any(
+            "string literal" in e.message.lower()
+            or "compared to string" in e.message.lower()
+            for e in hard_errors
+        )
 
     def test_quantity_equality_numeric_ok(self, registry):
         errors = check_cel_expression("fundamental_frequency == 220", registry)
@@ -154,6 +175,7 @@ class TestQuantityTypeChecking:
 
 
 # ── Type checker: category concepts ──────────────────────────────────
+
 
 class TestCategoryTypeChecking:
     def test_equality_ok(self, registry):
@@ -192,16 +214,20 @@ class TestCategoryTypeChecking:
         warnings = [e for e in errors if e.is_warning]
         assert len(warnings) >= 1
         assert not any(not e.is_warning for e in errors)
-        assert any("value" in e.message.lower() and "not in" in e.message.lower()
-                    for e in warnings)
+        assert any(
+            "value" in e.message.lower() and "not in" in e.message.lower()
+            for e in warnings
+        )
 
     def test_value_not_in_set_non_extensible_error(self, registry):
         """Value not in non-extensible category → ERROR."""
         errors = check_cel_expression("vowel_type == 'nasal'", registry)
         hard_errors = [e for e in errors if not e.is_warning]
         assert len(hard_errors) >= 1
-        assert any("value" in e.message.lower() and "not in" in e.message.lower()
-                    for e in hard_errors)
+        assert any(
+            "value" in e.message.lower() and "not in" in e.message.lower()
+            for e in hard_errors
+        )
 
     def test_in_value_not_in_set_extensible_warning(self, registry):
         errors = check_cel_expression("task in ['speech', 'reading']", registry)
@@ -222,6 +248,7 @@ class TestCategoryTypeChecking:
 
 
 # ── Type checker: boolean concepts ───────────────────────────────────
+
 
 class TestBooleanTypeChecking:
     def test_bare_truthy_ok(self, registry):
@@ -266,6 +293,7 @@ class TestBooleanTypeChecking:
 
 # ── Type checker: structural concepts ────────────────────────────────
 
+
 class TestStructuralTypeChecking:
     def test_any_appearance_error(self, registry):
         """Structural concept in any expression → ERROR."""
@@ -293,6 +321,7 @@ class TestStructuralTypeChecking:
 
 # ── Type checker: undefined concepts ─────────────────────────────────
 
+
 class TestUndefinedConcepts:
     def test_undefined_name_error(self, registry):
         errors = check_cel_expression("undefined_thing > 3", registry)
@@ -308,6 +337,7 @@ class TestUndefinedConcepts:
 
 
 # ── Type checker: complex expressions ────────────────────────────────
+
 
 class TestComplexExpressions:
     def test_compound_and(self, registry):
@@ -345,6 +375,7 @@ class TestComplexExpressions:
 
 # ── Parse error handling ─────────────────────────────────────────────
 
+
 class TestParseErrors:
     def test_empty_expression(self, registry):
         errors = check_cel_expression("", registry)
@@ -363,7 +394,9 @@ class TestParseErrors:
 
 _name_strategy = st.from_regex(r"[a-z][a-z0-9_]{0,15}", fullmatch=True)
 _op_strategy = st.sampled_from(["==", "!=", ">", "<", ">=", "<="])
-_num_strategy = st.one_of(st.integers(0, 1000), st.floats(0.1, 1000.0, allow_nan=False, allow_infinity=False))
+_num_strategy = st.one_of(
+    st.integers(0, 1000), st.floats(0.1, 1000.0, allow_nan=False, allow_infinity=False)
+)
 
 
 @pytest.mark.property
@@ -380,13 +413,19 @@ def test_unknown_name_always_errors(name, op, val):
 
 
 @pytest.mark.property
-@given(val=st.text(min_size=1, max_size=10, alphabet=st.characters(whitelist_categories=("L", "N"))))
+@given(
+    val=st.text(
+        min_size=1, max_size=10, alphabet=st.characters(whitelist_categories=("L", "N"))
+    )
+)
 @settings()
 def test_structural_always_errors(val):
     """Structural concept in any expression always produces an error."""
     assume(val not in ("true", "false", "in"))
     registry = {
-        "struct_concept": ConceptInfo("concept999", "struct_concept", KindType.STRUCTURAL),
+        "struct_concept": ConceptInfo(
+            "concept999", "struct_concept", KindType.STRUCTURAL
+        ),
     }
     expr = f"struct_concept == '{val}'"
     errors = check_cel_expression(expr, registry)
@@ -475,9 +514,11 @@ class TestBuildCelRegistry:
         return parse_concept_record(payload)
 
     def test_canonical_input_quantity(self):
-        result = build_canonical_cel_registry([
-            self._record("ps:concept:temperature", "temperature", form="frequency"),
-        ])
+        result = build_canonical_cel_registry(
+            [
+                self._record("ps:concept:temperature", "temperature", form="frequency"),
+            ]
+        )
         assert "temperature" in result
         info = result["temperature"]
         assert info.id == "ps:concept:temperature"
@@ -485,17 +526,19 @@ class TestBuildCelRegistry:
         assert info.category_values == []
 
     def test_canonical_input_category(self):
-        result = build_canonical_cel_registry([
-            self._record(
-                "ps:concept:color",
-                "color",
-                form="category",
-                form_parameters={
-                    "values": ["red", "green", "blue"],
-                    "extensible": False,
-                },
-            )
-        ])
+        result = build_canonical_cel_registry(
+            [
+                self._record(
+                    "ps:concept:color",
+                    "color",
+                    form="category",
+                    form_parameters={
+                        "values": ["red", "green", "blue"],
+                        "extensible": False,
+                    },
+                )
+            ]
+        )
         assert "color" in result
         info = result["color"]
         assert info.kind == KindType.CATEGORY
@@ -504,16 +547,20 @@ class TestBuildCelRegistry:
 
     def test_requires_typed_canonical_records(self):
         with pytest.raises(TypeError):
-            build_canonical_cel_registry([
-                {"artifact_id": "ps:concept:x", "canonical_name": "x"},
-            ])
+            build_canonical_cel_registry(
+                [
+                    {"artifact_id": "ps:concept:x", "canonical_name": "x"},
+                ]
+            )
 
     def test_duplicate_canonical_name_is_error(self):
         with pytest.raises(ValueError, match="duplicate canonical_name"):
-            build_canonical_cel_registry([
-                self._record("ps:concept:task-a", "task", form="category"),
-                self._record("ps:concept:task-b", "task", form="category"),
-            ])
+            build_canonical_cel_registry(
+                [
+                    self._record("ps:concept:task-a", "task", form="category"),
+                    self._record("ps:concept:task-b", "task", form="category"),
+                ]
+            )
 
     def test_empty_canonical_name_on_canonical_record_is_error(self):
         record = ConceptRecord(
@@ -529,14 +576,16 @@ class TestBuildCelRegistry:
             build_canonical_cel_registry([record])
 
     def test_category_extensible_defaults_true(self):
-        result = build_canonical_cel_registry([
-            self._record(
-                "ps:concept:status",
-                "status",
-                form="category",
-                form_parameters={"values": ["active"]},
-            )
-        ])
+        result = build_canonical_cel_registry(
+            [
+                self._record(
+                    "ps:concept:status",
+                    "status",
+                    form="category",
+                    form_parameters={"values": ["active"]},
+                )
+            ]
+        )
         assert result["status"].category_extensible is True
 
     def test_canonical_record_rejects_malformed_form_parameters(self):
@@ -576,14 +625,19 @@ class TestBuildCelRegistry:
 
 def test_category_from_cli_round_trip():
     """Category concept created with values -> CEL checker validates against those values."""
-    registry = build_canonical_cel_registry([
-        TestBuildCelRegistry._record(
-            "ps:concept:dataset",
-            "dataset",
-            form="category",
-            form_parameters={"values": ["ActivityNet", "YouCook2"], "extensible": False},
-        )
-    ])
+    registry = build_canonical_cel_registry(
+        [
+            TestBuildCelRegistry._record(
+                "ps:concept:dataset",
+                "dataset",
+                form="category",
+                form_parameters={
+                    "values": ["ActivityNet", "YouCook2"],
+                    "extensible": False,
+                },
+            )
+        ]
+    )
     # Valid value -> no errors
     errors = check_cel_expression("dataset == 'ActivityNet'", registry)
     assert not any(not e.is_warning for e in errors)
@@ -594,6 +648,7 @@ def test_category_from_cli_round_trip():
 
 
 # ── Type checker: logical operator operand validation (M6/F8) ────────
+
 
 class TestLogicalOperatorTypeValidation:
     """Tests for M6: CEL type checker must reject non-boolean operands to && and ||.
@@ -640,9 +695,7 @@ class TestLogicalOperatorTypeValidation:
 
     def test_comparison_results_to_and_ok(self, registry):
         """'fundamental_frequency > 0 && F0 < 10' — comparisons to && should pass (control)."""
-        errors = check_cel_expression(
-            "fundamental_frequency > 0 && F0 < 10", registry
-        )
+        errors = check_cel_expression("fundamental_frequency > 0 && F0 < 10", registry)
         hard_errors = [e for e in errors if not e.is_warning]
         assert len(hard_errors) == 0, (
             f"Comparison results as operands to '&&' should be valid, but got errors: {hard_errors}"

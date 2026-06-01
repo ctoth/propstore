@@ -78,15 +78,17 @@ def _append_context_classified_record(
     )
     if context_class is None:
         return False
-    records.append(ConflictRecord(
-        concept_id=concept_id,
-        claim_a_id=claim_a_id,
-        claim_b_id=claim_b_id,
-        warning_class=context_class,
-        conditions_a=conditions_a,
-        conditions_b=conditions_b,
-        value_a=value_a,
-        value_b=value_b,
-        derivation_chain=derivation_chain,
-    ))
+    records.append(
+        ConflictRecord(
+            concept_id=concept_id,
+            claim_a_id=claim_a_id,
+            claim_b_id=claim_b_id,
+            warning_class=context_class,
+            conditions_a=conditions_a,
+            conditions_b=conditions_b,
+            value_a=value_a,
+            value_b=value_b,
+            derivation_chain=derivation_chain,
+        )
+    )
     return True

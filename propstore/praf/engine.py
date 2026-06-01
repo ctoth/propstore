@@ -100,7 +100,9 @@ def _opinion_expectation_map(
     return {key: opinion.expectation() for key, opinion in opinions.items()}
 
 
-def propstore_praf_kernel(praf: PropstorePrAF | ProbabilisticArgumentationFramework) -> ProbabilisticArgumentationFramework:
+def propstore_praf_kernel(
+    praf: PropstorePrAF | ProbabilisticArgumentationFramework,
+) -> ProbabilisticArgumentationFramework:
     if isinstance(praf, PropstorePrAF):
         return praf.kernel
     return praf
@@ -237,7 +239,9 @@ def _max_coh_violation(
         if src == tgt:
             max_violation = max(max_violation, expectations[src] - 0.5)
         elif expectations[src] + expectations[tgt] > 1.0 + _COH_TOLERANCE:
-            max_violation = max(max_violation, expectations[src] + expectations[tgt] - 1.0)
+            max_violation = max(
+                max_violation, expectations[src] + expectations[tgt] - 1.0
+            )
     return max(0.0, max_violation)
 
 
@@ -253,7 +257,9 @@ def enforce_coh(
 
     attacks = praf.framework.attacks
     if attacks is None:
-        raise PreferenceLayerError("enforce_coh requires explicit pre-preference attacks")
+        raise PreferenceLayerError(
+            "enforce_coh requires explicit pre-preference attacks"
+        )
 
     expectations: dict[str, float] = {}
     evidence_n: dict[str, float] = {}
@@ -336,7 +342,9 @@ def enforce_coh(
     kernel = ProbabilisticArgumentationFramework(
         framework=praf.kernel.framework,
         p_args={arg: opinion.expectation() for arg, opinion in new_p_args.items()},
-        p_defeats={edge: opinion.expectation() for edge, opinion in praf.p_defeats.items()},
+        p_defeats={
+            edge: opinion.expectation() for edge, opinion in praf.p_defeats.items()
+        },
         p_attacks=_opinion_expectation_map(praf.p_attacks),
         supports=praf.supports,
         p_supports=_opinion_expectation_map(praf.p_supports),
@@ -377,7 +385,11 @@ def summarize_defeat_relations(
         kernel,
         include_derived=include_derived,
     )
-    direct_defeats = kernel.base_defeats if kernel.base_defeats is not None else kernel.framework.defeats
+    direct_defeats = (
+        kernel.base_defeats
+        if kernel.base_defeats is not None
+        else kernel.framework.defeats
+    )
     records: list[ProbabilisticRelation] = []
     for edge, probability in probabilities.items():
         kind = "direct_defeat" if edge in direct_defeats else "derived_defeat"

@@ -27,8 +27,12 @@ def test_project_belief_base_threads_real_git_merge_parents(tmp_path) -> None:
     base = repo.git.head_sha()
     assert base is not None
     repo.git.create_branch("topic", source_commit=base)
-    left = repo.git.commit_files({"left.txt": b"left\n"}, "left", branch="master", expected_head=base)
-    right = repo.git.commit_files({"right.txt": b"right\n"}, "right", branch="topic", expected_head=base)
+    left = repo.git.commit_files(
+        {"left.txt": b"left\n"}, "left", branch="master", expected_head=base
+    )
+    right = repo.git.commit_files(
+        {"right.txt": b"right\n"}, "right", branch="topic", expected_head=base
+    )
     merge = repo.git.commit_flat_tree(
         {**repo.git.flat_tree_entries(left), **repo.git.flat_tree_entries(right)},
         "merge",

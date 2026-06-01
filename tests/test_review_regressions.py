@@ -21,16 +21,18 @@ _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
 def _claim(claim_id: str, concept_id: str, value: float) -> Claim:
-    return claim_from_payload({
-        "id": claim_id,
-        "concept_id": concept_id,
-        "type": "parameter",
-        "value": value,
-        "opinion_belief": 1.0,
-        "opinion_disbelief": 0.0,
-        "opinion_uncertainty": 0.0,
-        "opinion_base_rate": 0.5,
-    })
+    return claim_from_payload(
+        {
+            "id": claim_id,
+            "concept_id": concept_id,
+            "type": "parameter",
+            "value": value,
+            "opinion_belief": 1.0,
+            "opinion_disbelief": 0.0,
+            "opinion_uncertainty": 0.0,
+            "opinion_base_rate": 0.5,
+        }
+    )
 
 
 def _stance(
@@ -39,12 +41,14 @@ def _stance(
     stance_type: str,
     **attributes: object,
 ) -> Stance:
-    return stance_from_payload({
-        "claim_id": claim_id,
-        "target_claim_id": target_claim_id,
-        "stance_type": stance_type,
-        **attributes,
-    })
+    return stance_from_payload(
+        {
+            "claim_id": claim_id,
+            "target_claim_id": target_claim_id,
+            "stance_type": stance_type,
+            **attributes,
+        }
+    )
 
 
 class _MiniStore:
@@ -58,12 +62,16 @@ class _MiniStore:
         return [claim for claim in self._claims if claim.target_concept == concept_id]
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
-        return {str(claim.id): claim for claim in self._claims if str(claim.id) in claim_ids}
+        return {
+            str(claim.id): claim for claim in self._claims if str(claim.id) in claim_ids
+        }
 
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
-            stance for stance in self._stances
-            if str(stance.claim_id) in claim_ids and str(stance.target_claim_id) in claim_ids
+            stance
+            for stance in self._stances
+            if str(stance.claim_id) in claim_ids
+            and str(stance.target_claim_id) in claim_ids
         ]
 
 
@@ -207,7 +215,9 @@ def test_structured_projection_keeps_vacuous_attack_edges() -> None:
     # Look up argument IDs by claim (bridge uses sequential IDs, not arg:claim_id)
     claim_a_args = projection.claim_to_argument_ids["claim_a"]
     claim_b_args = projection.claim_to_argument_ids["claim_b"]
-    assert projection.framework.attacks is not None, "attacks relation should be populated"
+    assert projection.framework.attacks is not None, (
+        "attacks relation should be populated"
+    )
     assert any(
         (a_arg, b_arg) in projection.framework.attacks
         for a_arg in claim_a_args
@@ -249,7 +259,9 @@ def test_build_praf_keeps_direct_defeats_separate_from_derived_summaries() -> No
 
     assert ("claim_a", "claim_c") not in praf.p_defeats
     base = praf.p_defeats[("claim_b", "claim_c")].expectation()
-    summary = {relation.edge: relation.opinion for relation in summarize_defeat_relations(praf)}
+    summary = {
+        relation.edge: relation.opinion for relation in summarize_defeat_relations(praf)
+    }
     derived = summary[("claim_a", "claim_c")].expectation()
 
     assert ("claim_a", "claim_c") in summary

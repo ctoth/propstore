@@ -17,7 +17,12 @@ def extract_interval(claim: object) -> tuple[float, float, float] | None:
     lower_bound = _claim_field(claim, "lower_bound")
     upper_bound = _claim_field(claim, "upper_bound")
 
-    if value is not None and not isinstance(value, list) and lower_bound is not None and upper_bound is not None:
+    if (
+        value is not None
+        and not isinstance(value, list)
+        and lower_bound is not None
+        and upper_bound is not None
+    ):
         return (float(value), float(lower_bound), float(upper_bound))
     if value is not None and not isinstance(value, list):
         v = float(value)
@@ -99,9 +104,8 @@ def values_compatible(
                 unit_a = _claim_field(claim_a, "unit")
                 unit_b = _claim_field(claim_b, "unit")
                 if (
-                    (unit_a is not None or unit_b is not None)
-                    and form_def.unit_symbol is not None
-                ):
+                    unit_a is not None or unit_b is not None
+                ) and form_def.unit_symbol is not None:
                     interval_a = _normalize_interval(interval_a, unit_a, form_def)
                     interval_b = _normalize_interval(interval_b, unit_b, form_def)
             return intervals_compatible(interval_a, interval_b, tolerance)
@@ -133,4 +137,3 @@ def _claim_field(claim: object, key: str) -> Any:
     if callable(getter):
         return getter(key)
     return getattr(claim, key, None)
-

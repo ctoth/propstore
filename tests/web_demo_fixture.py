@@ -43,6 +43,7 @@ def seed_web_demo_repository(tmp_path: Path) -> WebDemoRepositoryFixture:
         concept_id="demo_concept",
     )
 
+
 def _seed_rows(conn: Connection) -> None:
     conn.execute(
         """
@@ -55,10 +56,12 @@ def _seed_rows(conn: Connection) -> None:
             "demo_source",
             "academic_paper",
             json.dumps({"type": "manual", "value": "web demo fixture"}),
-            json.dumps({
-                "status": "stated",
-                "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
-            }),
+            json.dumps(
+                {
+                    "status": "stated",
+                    "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+                }
+            ),
             None,
             None,
             None,
@@ -152,7 +155,12 @@ def _seed_rows(conn: Connection) -> None:
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            "claim", "demo_supporter", "supports", "claim", "demo_focus", 0.85,
+            "claim",
+            "demo_supporter",
+            "supports",
+            "claim",
+            "demo_focus",
+            0.85,
             msgspec.json.encode(Opinion(0.7, 0.1, 0.2, 0.5)).decode(),
         ),
     )
@@ -164,7 +172,12 @@ def _seed_rows(conn: Connection) -> None:
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            "claim", "demo_attacker", "rebuts", "claim", "demo_focus", 0.8,
+            "claim",
+            "demo_attacker",
+            "rebuts",
+            "claim",
+            "demo_focus",
+            0.8,
             msgspec.json.encode(Opinion(0.65, 0.15, 0.2, 0.5)).decode(),
         ),
     )

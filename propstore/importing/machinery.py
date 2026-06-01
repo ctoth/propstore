@@ -13,7 +13,11 @@ import json
 from dataclasses import dataclass, replace
 from typing import Any, Literal
 
-from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
+from propstore.core.assertions.refs import (
+    ConditionRef,
+    ContextReference,
+    ProvenanceGraphRef,
+)
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import ConditionId, ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
@@ -51,9 +55,13 @@ class ExternalInferenceSurface:
     premise_statement_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "inference_id", _require_uri(self.inference_id, "inference_id"))
+        object.__setattr__(
+            self, "inference_id", _require_uri(self.inference_id, "inference_id")
+        )
         object.__setattr__(self, "engine", _require_non_empty(self.engine, "engine"))
-        object.__setattr__(self, "inferred_at", _require_non_empty(self.inferred_at, "inferred_at"))
+        object.__setattr__(
+            self, "inferred_at", _require_non_empty(self.inferred_at, "inferred_at")
+        )
         object.__setattr__(
             self,
             "premise_statement_ids",
@@ -91,8 +99,14 @@ class AuthoredAssertionSurface:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "source_id", _require_uri(self.source_id, "source_id"))
-        object.__setattr__(self, "source_label", _require_non_empty(self.source_label, "source_label"))
-        object.__setattr__(self, "source_version_id", _require_non_empty(self.source_version_id, "source_version_id"))
+        object.__setattr__(
+            self, "source_label", _require_non_empty(self.source_label, "source_label")
+        )
+        object.__setattr__(
+            self,
+            "source_version_id",
+            _require_non_empty(self.source_version_id, "source_version_id"),
+        )
         object.__setattr__(
             self,
             "source_content_hash",
@@ -104,17 +118,29 @@ class AuthoredAssertionSurface:
                 "retrieval_uri",
                 _require_uri(self.retrieval_uri, "retrieval_uri"),
             )
-        object.__setattr__(self, "license_id", _require_uri(self.license_id, "license_id"))
-        object.__setattr__(self, "license_label", _require_non_empty(self.license_label, "license_label"))
+        object.__setattr__(
+            self, "license_id", _require_uri(self.license_id, "license_id")
+        )
+        object.__setattr__(
+            self,
+            "license_label",
+            _require_non_empty(self.license_label, "license_label"),
+        )
         if self.license_uri is not None:
             object.__setattr__(
                 self,
                 "license_uri",
                 _require_uri(self.license_uri, "license_uri"),
             )
-        object.__setattr__(self, "import_run_id", _require_uri(self.import_run_id, "import_run_id"))
-        object.__setattr__(self, "importer_id", _require_uri(self.importer_id, "importer_id"))
-        object.__setattr__(self, "imported_at", _require_non_empty(self.imported_at, "imported_at"))
+        object.__setattr__(
+            self, "import_run_id", _require_uri(self.import_run_id, "import_run_id")
+        )
+        object.__setattr__(
+            self, "importer_id", _require_uri(self.importer_id, "importer_id")
+        )
+        object.__setattr__(
+            self, "imported_at", _require_non_empty(self.imported_at, "imported_at")
+        )
         object.__setattr__(
             self,
             "external_statement_id",
@@ -123,7 +149,9 @@ class AuthoredAssertionSurface:
         object.__setattr__(
             self,
             "external_statement_locator",
-            _require_non_empty(self.external_statement_locator, "external_statement_locator"),
+            _require_non_empty(
+                self.external_statement_locator, "external_statement_locator"
+            ),
         )
         object.__setattr__(
             self,
@@ -135,12 +163,16 @@ class AuthoredAssertionSurface:
             "mapping_policy_label",
             _require_non_empty(self.mapping_policy_label, "mapping_policy_label"),
         )
-        object.__setattr__(self, "relation_id", _require_non_empty(self.relation_id, "relation_id"))
+        object.__setattr__(
+            self, "relation_id", _require_non_empty(self.relation_id, "relation_id")
+        )
         role_bindings = tuple(self.role_bindings)
         if not role_bindings:
             raise ValueError("role bindings must be non-empty")
         object.__setattr__(self, "role_bindings", role_bindings)
-        object.__setattr__(self, "context_id", _require_non_empty(self.context_id, "context_id"))
+        object.__setattr__(
+            self, "context_id", _require_non_empty(self.context_id, "context_id")
+        )
         object.__setattr__(
             self,
             "microtheory_id",
@@ -152,7 +184,9 @@ class AuthoredAssertionSurface:
                 "lifting_rule_id",
                 _require_uri(self.lifting_rule_id, "lifting_rule_id"),
             )
-        object.__setattr__(self, "condition_id", _require_non_empty(self.condition_id, "condition_id"))
+        object.__setattr__(
+            self, "condition_id", _require_non_empty(self.condition_id, "condition_id")
+        )
         object.__setattr__(
             self,
             "condition_registry_fingerprint",
@@ -186,7 +220,9 @@ class ExternalSourceIdentity:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "source_id", _require_uri(self.source_id, "source_id"))
-        object.__setattr__(self, "label", _require_non_empty(self.label, "source label"))
+        object.__setattr__(
+            self, "label", _require_non_empty(self.label, "source label")
+        )
 
     def to_payload(self) -> dict[str, str]:
         return {"source_id": self.source_id, "label": self.label}
@@ -199,7 +235,9 @@ class MappingPolicy:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "policy_id", _require_uri(self.policy_id, "policy_id"))
-        object.__setattr__(self, "label", _require_non_empty(self.label, "mapping policy label"))
+        object.__setattr__(
+            self, "label", _require_non_empty(self.label, "mapping policy label")
+        )
 
     def identity_payload(self) -> tuple[str, str]:
         return ("mapping_policy", self.policy_id)
@@ -417,7 +455,9 @@ class ImportAuthoredFormLens:
             imported_at=form.import_run.imported_at,
             external_statement_id=form.external_statement.statement_id,
             external_statement_locator=form.external_statement.locator,
-            external_inference=_surface_from_external_inference(form.external_inference),
+            external_inference=_surface_from_external_inference(
+                form.external_inference
+            ),
             mapping_policy_id=form.mapping_policy.policy_id,
             mapping_policy_label=form.mapping_policy.label,
             relation_id=str(form.relation.concept_id),
@@ -469,8 +509,12 @@ class EquivalenceWitness:
     source_witness_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "witness_id", _require_uri(self.witness_id, "witness_id"))
-        candidates = _canonical_candidate_pair(self.candidate_ids[0], self.candidate_ids[1])
+        object.__setattr__(
+            self, "witness_id", _require_uri(self.witness_id, "witness_id")
+        )
+        candidates = _canonical_candidate_pair(
+            self.candidate_ids[0], self.candidate_ids[1]
+        )
         object.__setattr__(self, "candidate_ids", candidates)
         object.__setattr__(
             self,
@@ -529,9 +573,7 @@ class EquivalenceWitnessStore:
         if len(shared) != 1:
             return None
         endpoints = (
-            set(first.candidate_ids)
-            .union(second.candidate_ids)
-            .difference(shared)
+            set(first.candidate_ids).union(second.candidate_ids).difference(shared)
         )
         if len(endpoints) != 2:
             return None
@@ -540,7 +582,8 @@ class EquivalenceWitnessStore:
             left,
             right,
             mapping_policy_id=first.mapping_policy_id,
-            evidence_statement_ids=first.evidence_statement_ids + second.evidence_statement_ids,
+            evidence_statement_ids=first.evidence_statement_ids
+            + second.evidence_statement_ids,
             status="derived_unresolved",
             source_witness_ids=(first.witness_id, second.witness_id),
         )
@@ -566,7 +609,9 @@ class EquivalenceWitnessStore:
         status: EquivalenceWitnessStatus,
         source_witness_ids: tuple[str, ...],
     ) -> EquivalenceWitness:
-        candidate_ids = _canonical_candidate_pair(first_candidate_id, second_candidate_id)
+        candidate_ids = _canonical_candidate_pair(
+            first_candidate_id, second_candidate_id
+        )
         payload = (
             candidate_ids,
             mapping_policy_id,

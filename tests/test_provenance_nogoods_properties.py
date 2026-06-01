@@ -22,7 +22,9 @@ from propstore.provenance import (
 
 
 _PROP_SETTINGS = settings(deadline=None)
-_VARIABLES = tuple(SourceVariableId(f"ps:source:test:{name}") for name in ("a", "b", "c", "d"))
+_VARIABLES = tuple(
+    SourceVariableId(f"ps:source:test:{name}") for name in ("a", "b", "c", "d")
+)
 
 
 def _provenance() -> Provenance:
@@ -71,7 +73,9 @@ class TestLiveFiltering:
     def test_live_removes_every_nogood_superset(self, poly, generated_nogoods):
         result = live(poly, generated_nogoods)
         for support in result.squarefree_supports():
-            assert not any(nogood.variables.issubset(support) for nogood in generated_nogoods)
+            assert not any(
+                nogood.variables.issubset(support) for nogood in generated_nogoods
+            )
 
     @pytest.mark.property
     @given(polynomials(), st.lists(nogoods(), min_size=0, max_size=3))
@@ -81,7 +85,10 @@ class TestLiveFiltering:
         expected_terms = tuple(
             term
             for term in poly.terms
-            if not any(nogood.variables.issubset(term.squarefree_support()) for nogood in generated_nogoods)
+            if not any(
+                nogood.variables.issubset(term.squarefree_support())
+                for nogood in generated_nogoods
+            )
         )
         assert result == ProvenancePolynomial(expected_terms)
 

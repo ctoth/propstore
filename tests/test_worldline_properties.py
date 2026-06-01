@@ -18,7 +18,11 @@ from hypothesis import strategies as st
 from tests.family_helpers import materialized_world_store_path
 from propstore.world import OverlayWorld, WorldQuery
 from propstore.worldline import WorldlineDefinition, run_worldline
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
+from tests.conftest import (
+    normalize_claims_payload,
+    normalize_concept_payloads,
+    write_test_context,
+)
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -48,8 +52,16 @@ def property_kb(tmp_path_factory):
 
     forms_dir = root / "forms"
     forms_dir.mkdir()
-    for form_name in ("acceleration", "force", "mass", "velocity",
-                       "energy", "category", "temperature", "distance"):
+    for form_name in (
+        "acceleration",
+        "force",
+        "mass",
+        "velocity",
+        "energy",
+        "category",
+        "temperature",
+        "distance",
+    ):
         data = {"name": form_name, "dimensionless": False, "kind": "quantity"}
         if form_name == "category":
             data["kind"] = "category"
@@ -61,77 +73,159 @@ def property_kb(tmp_path_factory):
         with open(concepts_dir / f"{name}.yaml", "w") as f:
             yaml.dump(normalized, f, default_flow_style=False)
 
-    write_concept("mass", {
-        "id": "concept1", "canonical_name": "mass",
-        "status": "accepted", "definition": "Mass.", "form": "mass",
-    })
-    write_concept("acceleration", {
-        "id": "concept2", "canonical_name": "acceleration",
-        "status": "accepted", "definition": "Acceleration.", "form": "acceleration",
-    })
-    write_concept("force", {
-        "id": "concept3", "canonical_name": "force",
-        "status": "accepted", "definition": "Force.", "form": "force",
-        "parameterization_relationships": [{
-            "formula": "F = m * a",
-            "inputs": ["concept1", "concept2"],
-            "sympy": "Eq(concept3, concept1 * concept2)",
-            "exactness": "exact", "source": "test", "bidirectional": True,
-        }],
-    })
-    write_concept("velocity", {
-        "id": "concept4", "canonical_name": "velocity",
-        "status": "accepted", "definition": "Velocity.", "form": "velocity",
-    })
-    write_concept("kinetic_energy", {
-        "id": "concept5", "canonical_name": "kinetic_energy",
-        "status": "accepted", "definition": "KE.", "form": "energy",
-        "parameterization_relationships": [{
-            "formula": "E = 0.5 * m * v^2",
-            "inputs": ["concept1", "concept4"],
-            "sympy": "Eq(concept5, 0.5 * concept1 * concept4**2)",
-            "exactness": "exact", "source": "test", "bidirectional": True,
-        }],
-    })
-    write_concept("temperature", {
-        "id": "concept6", "canonical_name": "temperature",
-        "status": "accepted", "definition": "Temp.", "form": "temperature",
-    })
-    write_concept("location", {
-        "id": "concept7", "canonical_name": "location",
-        "status": "accepted", "definition": "Location.", "form": "category",
-        "form_parameters": {"values": ["earth", "moon"], "extensible": False},
-    })
-    write_concept("distance", {
-        "id": "concept8", "canonical_name": "distance",
-        "status": "accepted", "definition": "Distance.", "form": "distance",
-    })
+    write_concept(
+        "mass",
+        {
+            "id": "concept1",
+            "canonical_name": "mass",
+            "status": "accepted",
+            "definition": "Mass.",
+            "form": "mass",
+        },
+    )
+    write_concept(
+        "acceleration",
+        {
+            "id": "concept2",
+            "canonical_name": "acceleration",
+            "status": "accepted",
+            "definition": "Acceleration.",
+            "form": "acceleration",
+        },
+    )
+    write_concept(
+        "force",
+        {
+            "id": "concept3",
+            "canonical_name": "force",
+            "status": "accepted",
+            "definition": "Force.",
+            "form": "force",
+            "parameterization_relationships": [
+                {
+                    "formula": "F = m * a",
+                    "inputs": ["concept1", "concept2"],
+                    "sympy": "Eq(concept3, concept1 * concept2)",
+                    "exactness": "exact",
+                    "source": "test",
+                    "bidirectional": True,
+                }
+            ],
+        },
+    )
+    write_concept(
+        "velocity",
+        {
+            "id": "concept4",
+            "canonical_name": "velocity",
+            "status": "accepted",
+            "definition": "Velocity.",
+            "form": "velocity",
+        },
+    )
+    write_concept(
+        "kinetic_energy",
+        {
+            "id": "concept5",
+            "canonical_name": "kinetic_energy",
+            "status": "accepted",
+            "definition": "KE.",
+            "form": "energy",
+            "parameterization_relationships": [
+                {
+                    "formula": "E = 0.5 * m * v^2",
+                    "inputs": ["concept1", "concept4"],
+                    "sympy": "Eq(concept5, 0.5 * concept1 * concept4**2)",
+                    "exactness": "exact",
+                    "source": "test",
+                    "bidirectional": True,
+                }
+            ],
+        },
+    )
+    write_concept(
+        "temperature",
+        {
+            "id": "concept6",
+            "canonical_name": "temperature",
+            "status": "accepted",
+            "definition": "Temp.",
+            "form": "temperature",
+        },
+    )
+    write_concept(
+        "location",
+        {
+            "id": "concept7",
+            "canonical_name": "location",
+            "status": "accepted",
+            "definition": "Location.",
+            "form": "category",
+            "form_parameters": {"values": ["earth", "moon"], "extensible": False},
+        },
+    )
+    write_concept(
+        "distance",
+        {
+            "id": "concept8",
+            "canonical_name": "distance",
+            "status": "accepted",
+            "definition": "Distance.",
+            "form": "distance",
+        },
+    )
 
     claims_dir = root / "claims"
     claims_dir.mkdir()
     with open(claims_dir / "test_claims.yaml", "w") as f:
-        yaml.dump(normalize_claims_payload({
-            "source": {"paper": "test"},
-            "claims": [
-                # Acceleration: conditional on location
-                {"id": "g_earth", "type": "parameter", "concept": "concept2",
-                 "value": 9.807, "unit": "m/s^2",
-                 "conditions": ["location == 'earth'"],
-                 "provenance": {"paper": "test", "page": 1}},
-                {"id": "g_moon", "type": "parameter", "concept": "concept2",
-                 "value": 1.625, "unit": "m/s^2",
-                 "conditions": ["location == 'moon'"],
-                 "provenance": {"paper": "test", "page": 1}},
-                # Temperature: unrelated to force
-                {"id": "temp_room", "type": "parameter", "concept": "concept6",
-                 "value": 293.15, "unit": "K",
-                 "provenance": {"paper": "test", "page": 1}},
-                # Distance: unrelated to force
-                {"id": "dist_100", "type": "parameter", "concept": "concept8",
-                 "value": 100.0, "unit": "m",
-                 "provenance": {"paper": "test", "page": 1}},
-            ],
-        }), f, default_flow_style=False)
+        yaml.dump(
+            normalize_claims_payload(
+                {
+                    "source": {"paper": "test"},
+                    "claims": [
+                        # Acceleration: conditional on location
+                        {
+                            "id": "g_earth",
+                            "type": "parameter",
+                            "concept": "concept2",
+                            "value": 9.807,
+                            "unit": "m/s^2",
+                            "conditions": ["location == 'earth'"],
+                            "provenance": {"paper": "test", "page": 1},
+                        },
+                        {
+                            "id": "g_moon",
+                            "type": "parameter",
+                            "concept": "concept2",
+                            "value": 1.625,
+                            "unit": "m/s^2",
+                            "conditions": ["location == 'moon'"],
+                            "provenance": {"paper": "test", "page": 1},
+                        },
+                        # Temperature: unrelated to force
+                        {
+                            "id": "temp_room",
+                            "type": "parameter",
+                            "concept": "concept6",
+                            "value": 293.15,
+                            "unit": "K",
+                            "provenance": {"paper": "test", "page": 1},
+                        },
+                        # Distance: unrelated to force
+                        {
+                            "id": "dist_100",
+                            "type": "parameter",
+                            "concept": "concept8",
+                            "value": 100.0,
+                            "unit": "m",
+                            "provenance": {"paper": "test", "page": 1},
+                        },
+                    ],
+                }
+            ),
+            f,
+            default_flow_style=False,
+        )
 
     return root
 
@@ -139,6 +233,7 @@ def property_kb(tmp_path_factory):
 @pytest.fixture(scope="module")
 def property_world(property_kb):
     from propstore.repository import Repository
+
     repo = Repository(property_kb)
     materialized_world_store_path(repo)
     return WorldQuery(repo)
@@ -170,13 +265,14 @@ def _run(world, targets, bindings=None, overrides=None, strategy=None):
 
 
 class TestSoundness:
-
     def test_force_dependency_on_g_earth_is_necessary(self, property_world):
         """Force depends on g_earth. Removing g_earth must break derivation."""
-        result = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 10.0})
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
 
         assert result.values["force"].status == "derived"
         assert "test:g_earth" in result.dependencies.claims
@@ -193,10 +289,12 @@ class TestSoundness:
 
     def test_temperature_not_in_force_dependencies(self, property_world):
         """Force derivation should NOT depend on temperature claims."""
-        result = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 10.0})
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
 
         assert "test:temp_room" not in result.dependencies.claims, (
             "temp_room is a spurious dependency of force"
@@ -204,10 +302,12 @@ class TestSoundness:
 
     def test_distance_not_in_force_dependencies(self, property_world):
         """Force derivation should NOT depend on distance claims."""
-        result = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 10.0})
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
 
         assert "test:dist_100" not in result.dependencies.claims, (
             "dist_100 is a spurious dependency of force"
@@ -215,10 +315,12 @@ class TestSoundness:
 
     def test_moon_g_not_in_earth_force_dependencies(self, property_world):
         """Force on Earth should NOT depend on Moon's g value."""
-        result = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 10.0})
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
 
         assert "test:g_moon" not in result.dependencies.claims, (
             "g_moon should not appear in Earth-bound force dependencies"
@@ -235,7 +337,6 @@ class TestSoundness:
 
 
 class TestCompleteness:
-
     def test_changing_g_earth_changes_force(self, property_world):
         """g_earth is in deps. Changing its value must change force.
 
@@ -243,10 +344,12 @@ class TestCompleteness:
         verify the dependency tracking by checking that g_earth IS in
         the dependency set and that the derived force USES g_earth's value.
         """
-        result = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 10.0})
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
 
         assert "test:g_earth" in result.dependencies.claims
 
@@ -268,10 +371,12 @@ class TestCompleteness:
         from propstore.world import SyntheticClaim
 
         # Original force
-        result1 = _run(property_world,
-                       targets=["force"],
-                       bindings={"location": "earth"},
-                       overrides={"mass": 10.0})
+        result1 = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
         force1 = result1.values["force"].value
 
         # Hypothetical: remove g_earth, add g_earth_alt=5.0
@@ -279,11 +384,13 @@ class TestCompleteness:
         hypo = OverlayWorld(
             bound,
             remove=["g_earth"],
-            add=[SyntheticClaim(
-                id="g_earth_alt",
-                concept_id="concept2",
-                value=5.0,
-            )],
+            add=[
+                SyntheticClaim(
+                    id="g_earth_alt",
+                    concept_id="concept2",
+                    value=5.0,
+                )
+            ],
         )
         dr = hypo.derived_value("concept3", override_values={"concept1": 10.0})
 
@@ -298,10 +405,12 @@ class TestCompleteness:
     def test_non_dependency_change_irrelevant(self, property_world):
         """Removing a non-dependency (temp_room) doesn't affect force."""
         # Original
-        result1 = _run(property_world,
-                       targets=["force"],
-                       bindings={"location": "earth"},
-                       overrides={"mass": 10.0})
+        result1 = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
         force1 = result1.values["force"].value
 
         # Hypothetical: remove temp_room
@@ -321,15 +430,16 @@ class TestCompleteness:
 
 
 class TestDeterminism:
-
     def test_same_inputs_same_results(self, property_world):
         """Three identical runs produce identical results."""
         results = []
         for _ in range(3):
-            r = _run(property_world,
-                     targets=["force", "temperature"],
-                     bindings={"location": "earth"},
-                     overrides={"mass": 7.5})
+            r = _run(
+                property_world,
+                targets=["force", "temperature"],
+                bindings={"location": "earth"},
+                overrides={"mass": 7.5},
+            )
             results.append(r)
 
         for i in range(1, len(results)):
@@ -342,14 +452,18 @@ class TestDeterminism:
 
     def test_different_bindings_different_results(self, property_world):
         """Earth and Moon bindings produce different force values."""
-        r_earth = _run(property_world,
-                       targets=["force"],
-                       bindings={"location": "earth"},
-                       overrides={"mass": 10.0})
-        r_moon = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "moon"},
-                      overrides={"mass": 10.0})
+        r_earth = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 10.0},
+        )
+        r_moon = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "moon"},
+            overrides={"mass": 10.0},
+        )
 
         f_earth = r_earth.values["force"].value
         f_moon = r_moon.values["force"].value
@@ -364,14 +478,15 @@ class TestDeterminism:
 
 
 class TestOverridePrecedence:
-
     def test_override_value_returned_directly(self, property_world):
         """Overriding acceleration returns the override, not a claim."""
         # acceleration has claims (g_earth, g_moon) but override should win
-        result = _run(property_world,
-                      targets=["acceleration"],
-                      bindings={"location": "earth"},
-                      overrides={"acceleration": 42.0})
+        result = _run(
+            property_world,
+            targets=["acceleration"],
+            bindings={"location": "earth"},
+            overrides={"acceleration": 42.0},
+        )
 
         accel = result.values["acceleration"]
         assert accel.value == 42.0, (
@@ -381,14 +496,18 @@ class TestOverridePrecedence:
 
     def test_override_propagates_to_derivation(self, property_world):
         """Override mass feeds into F=ma derivation."""
-        r1 = _run(property_world,
-                   targets=["force"],
-                   bindings={"location": "earth"},
-                   overrides={"mass": 1.0})
-        r2 = _run(property_world,
-                   targets=["force"],
-                   bindings={"location": "earth"},
-                   overrides={"mass": 100.0})
+        r1 = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 1.0},
+        )
+        r2 = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 100.0},
+        )
 
         f1 = r1.values["force"].value
         f2 = r2.values["force"].value
@@ -406,13 +525,14 @@ class TestOverridePrecedence:
 
 
 class TestValueAccuracy:
-
     def test_force_equals_mass_times_acceleration(self, property_world):
         """F = m * a: derived value matches manual computation."""
-        result = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 13.7})
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "earth"},
+            overrides={"mass": 13.7},
+        )
 
         force = result.values["force"]
         assert force.status == "derived"
@@ -423,10 +543,12 @@ class TestValueAccuracy:
 
     def test_force_on_moon(self, property_world):
         """F = m * a with Moon's g: 25.0 * 1.625 = 40.625."""
-        result = _run(property_world,
-                      targets=["force"],
-                      bindings={"location": "moon"},
-                      overrides={"mass": 25.0})
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": "moon"},
+            overrides={"mass": 25.0},
+        )
 
         force = result.values["force"]
         assert force.status == "derived"
@@ -442,23 +564,26 @@ class TestValueAccuracy:
 
 
 class TestPartialHonesty:
-
     def test_all_targets_present_even_if_underspecified(self, property_world):
         """Every target appears in results, even if it can't be computed."""
-        result = _run(property_world,
-                      targets=["force", "kinetic_energy", "temperature", "distance"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 5.0})
+        result = _run(
+            property_world,
+            targets=["force", "kinetic_energy", "temperature", "distance"],
+            bindings={"location": "earth"},
+            overrides={"mass": 5.0},
+        )
 
         for t in ["force", "kinetic_energy", "temperature", "distance"]:
             assert t in result.values, f"Target '{t}' missing from results"
 
     def test_determined_vs_underspecified_correct(self, property_world):
         """Determined, derived, and underspecified statuses are accurate."""
-        result = _run(property_world,
-                      targets=["force", "kinetic_energy", "temperature"],
-                      bindings={"location": "earth"},
-                      overrides={"mass": 5.0})
+        result = _run(
+            property_world,
+            targets=["force", "kinetic_energy", "temperature"],
+            bindings={"location": "earth"},
+            overrides={"mass": 5.0},
+        )
 
         # Force: derivable (mass override + g_earth claim)
         assert result.values["force"].status == "derived"
@@ -474,9 +599,9 @@ class TestPartialHonesty:
 
     def test_underspecified_has_reason(self, property_world):
         """Underspecified results include a reason explaining why."""
-        result = _run(property_world,
-                      targets=["kinetic_energy"],
-                      overrides={"mass": 5.0})
+        result = _run(
+            property_world, targets=["kinetic_energy"], overrides={"mass": 5.0}
+        )
 
         ke = result.values["kinetic_energy"]
         assert ke.status in ("underspecified", "no_relationship")
@@ -494,8 +619,15 @@ class TestPartialHonesty:
 # ═══════════════════════════════════════════════════════════════════
 
 # Available concepts and their canonical names in the fixture
-_ALL_TARGETS = ["mass", "acceleration", "force", "velocity",
-                "kinetic_energy", "temperature", "distance"]
+_ALL_TARGETS = [
+    "mass",
+    "acceleration",
+    "force",
+    "velocity",
+    "kinetic_energy",
+    "temperature",
+    "distance",
+]
 _LOCATIONS = ["earth", "moon"]
 # Concepts that can be meaningfully overridden with float values
 _OVERRIDABLE = ["mass", "velocity", "acceleration", "temperature", "distance"]
@@ -518,7 +650,9 @@ class TestContentHashDeterminism:
         targets = data.draw(
             st.lists(
                 st.sampled_from(_ALL_TARGETS),
-                min_size=1, max_size=len(_ALL_TARGETS), unique=True,
+                min_size=1,
+                max_size=len(_ALL_TARGETS),
+                unique=True,
             ),
             label="targets",
         )
@@ -528,40 +662,53 @@ class TestContentHashDeterminism:
         override_keys = data.draw(
             st.lists(
                 st.sampled_from(_OVERRIDABLE),
-                min_size=0, max_size=3, unique=True,
+                min_size=0,
+                max_size=3,
+                unique=True,
             ),
             label="override_keys",
         )
         overrides = {}
         for key in override_keys:
             overrides[key] = data.draw(
-                st.floats(min_value=0.01, max_value=1e4,
-                          allow_nan=False, allow_infinity=False),
+                st.floats(
+                    min_value=0.01, max_value=1e4, allow_nan=False, allow_infinity=False
+                ),
                 label=f"override_{key}",
             )
 
-        r1 = _run(property_world, targets=targets,
-                   bindings={"location": location}, overrides=overrides)
-        r2 = _run(property_world, targets=targets,
-                   bindings={"location": location}, overrides=overrides)
+        r1 = _run(
+            property_world,
+            targets=targets,
+            bindings={"location": location},
+            overrides=overrides,
+        )
+        r2 = _run(
+            property_world,
+            targets=targets,
+            bindings={"location": location},
+            overrides=overrides,
+        )
 
         assert r1.content_hash == r2.content_hash, (
             f"Same inputs produced different hashes: "
             f"{r1.content_hash} vs {r2.content_hash}"
         )
-        assert r1.values == r2.values, (
-            f"Same inputs produced different values"
-        )
+        assert r1.values == r2.values, f"Same inputs produced different values"
 
 
 class TestOverrideAlwaysWins:
     """For any concept with claims AND an override, the override value wins."""
 
     @pytest.mark.property
-    @given(override_value=st.floats(
-        min_value=-1e6, max_value=1e6,
-        allow_nan=False, allow_infinity=False,
-    ))
+    @given(
+        override_value=st.floats(
+            min_value=-1e6,
+            max_value=1e6,
+            allow_nan=False,
+            allow_infinity=False,
+        )
+    )
     @settings(deadline=None)
     def test_override_always_wins(self, override_value, property_world):
         """Override value is returned regardless of what claims exist.
@@ -584,14 +731,17 @@ class TestOverrideAlwaysWins:
     @pytest.mark.property
     @given(
         mass_val=st.floats(
-            min_value=0.01, max_value=1e4,
-            allow_nan=False, allow_infinity=False,
+            min_value=0.01,
+            max_value=1e4,
+            allow_nan=False,
+            allow_infinity=False,
         ),
         location=st.sampled_from(_LOCATIONS),
     )
     @settings(deadline=None)
-    def test_override_propagates_through_derivation(self, mass_val, location,
-                                                    property_world):
+    def test_override_propagates_through_derivation(
+        self, mass_val, location, property_world
+    ):
         """Override mass feeds into F=ma. The derived force must use it.
 
         g_earth=9.807, g_moon=1.625. For any mass override m, force = m * g.
@@ -603,9 +753,7 @@ class TestOverrideAlwaysWins:
             overrides={"mass": mass_val},
         )
         force = result.values["force"]
-        assert force.status == "derived", (
-            f"Expected derived, got {force.status}"
-        )
+        assert force.status == "derived", f"Expected derived, got {force.status}"
         g = 9.807 if location == "earth" else 1.625
         expected = mass_val * g
         assert abs(force.value - expected) < 1e-6 * (1 + abs(expected)), (
@@ -628,8 +776,9 @@ class TestBindingIsolation:
         """
         location = data.draw(st.sampled_from(_LOCATIONS), label="location")
         mass_val = data.draw(
-            st.floats(min_value=0.1, max_value=1e4,
-                       allow_nan=False, allow_infinity=False),
+            st.floats(
+                min_value=0.1, max_value=1e4, allow_nan=False, allow_infinity=False
+            ),
             label="mass",
         )
 
@@ -660,4 +809,3 @@ class TestBindingIsolation:
         assert wrong_claim not in result.dependencies.claims, (
             f"{wrong_claim} leaked into dependencies with location={location}"
         )
-

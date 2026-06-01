@@ -139,7 +139,8 @@ class _ATMSStore:
 
     def parameterizations_for(self, concept_id: str) -> list[Parameterization]:
         return [
-            row for row in self._parameterizations
+            row
+            for row in self._parameterizations
             if row.output_concept_id == concept_id
         ]
 
@@ -252,7 +253,9 @@ def _make_bound(
     return BoundWorld(
         store,
         environment=environment,
-        lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
+        lifting_system=leaf_lifting_system(context_id)
+        if context_id is not None
+        else None,
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
     )
 
@@ -346,8 +349,10 @@ class _GraphOnlyATMSRuntime:
         return [
             conflict_witness(conflict)
             for conflict in self.active_graph.compiled.conflicts
-            if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
+            if conflict.left_claim_id in active_ids
+            and conflict.right_claim_id in active_ids
         ]
+
     def all_parameterizations(self) -> list[Parameterization]:
         rows = []
         for edge in self.active_graph.compiled.parameterizations:
@@ -365,7 +370,9 @@ class _GraphOnlyATMSRuntime:
                     sympy=edge.sympy,
                     exactness=edge.exactness,
                     conditions_cel=(
-                        None if not edge.conditions else json.dumps(list(edge.conditions))
+                        None
+                        if not edge.conditions
+                        else json.dumps(list(edge.conditions))
                     ),
                     conditions_ir=conditions_ir,
                 )
@@ -401,7 +408,9 @@ class _GraphOnlyATMSRuntime:
         return _GraphOnlyATMSRuntime(future_bound)
 
     def __getattr__(self, name: str):
-        raise AssertionError(f"ATMS graph runtime should not access BoundWorld internals: {name}")
+        raise AssertionError(
+            f"ATMS graph runtime should not access BoundWorld internals: {name}"
+        )
 
 
 def test_atms_propagates_combined_support_to_derived_node() -> None:
@@ -527,11 +536,17 @@ def test_atms_label_propagation_is_order_independent() -> None:
         bindings={"x": 1, "y": 2},
     )
     reverse = _make_bound(
-        _ATMSStore(claims=list(reversed(claims)), parameterizations=list(reversed(parameterizations))),
+        _ATMSStore(
+            claims=list(reversed(claims)),
+            parameterizations=list(reversed(parameterizations)),
+        ),
         bindings={"x": 1, "y": 2},
     )
 
-    assert forward.derived_value("concept3").label == reverse.derived_value("concept3").label
+    assert (
+        forward.derived_value("concept3").label
+        == reverse.derived_value("concept3").label
+    )
 
 
 def test_atms_cycle_does_not_bootstrap_support() -> None:
@@ -561,7 +576,9 @@ def test_atms_cycle_does_not_bootstrap_support() -> None:
     assert bound.atms_engine().supported_claim_ids() == set()
 
 
-def test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_overlap() -> None:
+def test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_overlap() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -666,7 +683,9 @@ def test_atms_materializes_micropublication_as_contextual_bundle_node() -> None:
     assert engine.node_status("micropub:ps:micropub:bundle").status == ATMSNodeStatus.IN
 
 
-def test_atms_reconstructs_exact_support_for_context_scoped_claim_with_matching_assumption() -> None:
+def test_atms_reconstructs_exact_support_for_context_scoped_claim_with_matching_assumption() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -738,7 +757,9 @@ def test_atms_node_status_partition_and_support_quality_honesty() -> None:
     assert "semantic compatibility" in semantic_status.reason
 
 
-def test_atms_essential_support_intersection_and_environment_queries_are_exact() -> None:
+def test_atms_essential_support_intersection_and_environment_queries_are_exact() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -789,10 +810,12 @@ def test_atms_essential_support_intersection_and_environment_queries_are_exact()
     assert essential_support == EnvironmentKey((assumption_ids["x == 1"],))
 
     visible_nodes = engine.nodes_in_environment(
-        EnvironmentKey((
-            assumption_ids["x == 1"],
-            assumption_ids["y == 2"],
-        ))
+        EnvironmentKey(
+            (
+                assumption_ids["x == 1"],
+                assumption_ids["y == 2"],
+            )
+        )
     )
     claim_x_node = _assertion_node_id(bound, "claim_x")
     claim_y_a_node = _assertion_node_id(bound, "claim_y_a")
@@ -841,7 +864,9 @@ def test_atms_explain_node_returns_real_justification_chains() -> None:
     bound = _make_bound(store, bindings={"x": 1, "y": 2, "z": 3})
     engine = bound.atms_engine()
     derived = bound.derived_value("concept3")
-    explanation = engine.explain_node(engine._derived_node_id("concept3", derived.value))
+    explanation = engine.explain_node(
+        engine._derived_node_id("concept3", derived.value)
+    )
     claim_x_node = _assertion_node_id(bound, "claim_x")
 
     assert explanation.status is ATMSNodeStatus.IN
@@ -895,14 +920,20 @@ def test_atms_preserves_nogood_pruned_vs_semantic_only_out_and_provenance() -> N
             }
         ],
         conflicts=[
-            {"claim_a_id": "claim_x", "claim_b_id": "claim_y", "concept_id": "concept3"},
+            {
+                "claim_a_id": "claim_x",
+                "claim_b_id": "claim_y",
+                "concept_id": "concept3",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"x": 1, "y": 2})
     engine = bound.atms_engine()
     derived = bound.derived_value("concept3")
 
-    derived_status = engine.node_status(engine._derived_node_id("concept3", derived.value))
+    derived_status = engine.node_status(
+        engine._derived_node_id("concept3", derived.value)
+    )
     semantic_status = bound.claim_status("claim_semantic")
     nogood = next(iter(engine.nogoods.environments))
     nogood_details = engine.explain_nogood(nogood)
@@ -973,7 +1004,11 @@ def test_phase8_graph_runtime_matches_boundworld_for_labels_and_nogoods() -> Non
             }
         ],
         conflicts=[
-            {"claim_a_id": "claim_x", "claim_b_id": "claim_y", "concept_id": "concept3"},
+            {
+                "claim_a_id": "claim_x",
+                "claim_b_id": "claim_y",
+                "concept_id": "concept3",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"x": 1, "y": 2})
@@ -983,14 +1018,18 @@ def test_phase8_graph_runtime_matches_boundworld_for_labels_and_nogoods() -> Non
 
     assert graph_engine.claim_label("claim_x") == bound_engine.claim_label("claim_x")
     assert graph_engine.claim_label("claim_y") == bound_engine.claim_label("claim_y")
-    assert graph_engine.derived_label("concept3", derived.value) == bound_engine.derived_label(
+    assert graph_engine.derived_label(
+        "concept3", derived.value
+    ) == bound_engine.derived_label(
         "concept3",
         derived.value,
     )
     assert graph_engine.nogoods == bound_engine.nogoods
 
 
-def test_phase8_graph_runtime_replays_future_status_and_interventions_without_boundworld_introspection() -> None:
+def test_phase8_graph_runtime_replays_future_status_and_interventions_without_boundworld_introspection() -> (
+    None
+):
     from propstore.world.atms import ATMSEngine
 
     store = _ATMSStore(
@@ -1015,9 +1054,13 @@ def test_phase8_graph_runtime_replays_future_status_and_interventions_without_bo
     runtime_engine = ATMSEngine(_GraphOnlyATMSRuntime(bound))
     queryables = [QueryableAssumption.from_cel("y == 2")]
 
-    future_statuses = runtime_engine.claim_future_statuses("claim_future", queryables, limit=8)
+    future_statuses = runtime_engine.claim_future_statuses(
+        "claim_future", queryables, limit=8
+    )
     relevance = runtime_engine.claim_relevance("claim_future", queryables, limit=8)
-    plans = runtime_engine.claim_interventions("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
+    plans = runtime_engine.claim_interventions(
+        "claim_future", queryables, ATMSNodeStatus.IN, limit=8
+    )
 
     assert future_statuses.could_become_in is True
     assert [entry.queryable_cels for entry in future_statuses.futures] == [("y == 2",)]
@@ -1028,7 +1071,11 @@ def test_phase8_graph_runtime_replays_future_status_and_interventions_without_bo
 def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> None:
     class WorldWithBind(_ATMSStore):
         def bind(self, environment=None, *, policy=None, **conditions):
-            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            bindings = (
+                dict(environment.bindings)
+                if environment is not None
+                else dict(conditions)
+            )
             context_id = environment.context_id if environment is not None else None
             return BoundWorld(
                 self,
@@ -1040,7 +1087,9 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
                         context_id=context_id,
                     ),
                 ),
-                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id)
+                if context_id is not None
+                else None,
                 policy=policy,
             )
 
@@ -1049,12 +1098,14 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
                 return Concept(id="concept1", canonical_name="target")
             return None
 
-    worldline = WorldlineDefinition.from_dict({
-        "id": "atms_worldline",
-        "targets": ["target"],
-        "inputs": {"bindings": {"x": 1}},
-        "policy": {"strategy": "argumentation", "reasoning_backend": "atms"},
-    })
+    worldline = WorldlineDefinition.from_dict(
+        {
+            "id": "atms_worldline",
+            "targets": ["target"],
+            "inputs": {"bindings": {"x": 1}},
+            "policy": {"strategy": "argumentation", "reasoning_backend": "atms"},
+        }
+    )
     world = WorldWithBind(
         claims=[
             {
@@ -1074,7 +1125,10 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
     assert result.argumentation.backend == "atms"
     assert result.argumentation.supported == ("claim_exact",)
     assert list(result.argumentation.node_statuses.values()) == ["IN"]
-    assert all(node_id.startswith("ps:assertion:") for node_id in result.argumentation.node_statuses)
+    assert all(
+        node_id.startswith("ps:assertion:")
+        for node_id in result.argumentation.node_statuses
+    )
     assert result.argumentation.support_quality == {"claim_exact": "exact"}
     assert result.argumentation.essential_support["claim_exact"]
     assert result.argumentation.nogood_details == ()
@@ -1116,7 +1170,11 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
             )
 
         def bind(self, environment=None, *, policy=None, **conditions):
-            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            bindings = (
+                dict(environment.bindings)
+                if environment is not None
+                else dict(conditions)
+            )
             context_id = environment.context_id if environment is not None else None
             return BoundWorld(
                 self,
@@ -1128,14 +1186,18 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
                         context_id=context_id,
                     ),
                 ),
-                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id)
+                if context_id is not None
+                else None,
                 policy=policy,
             )
 
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr(
+        "propstore.repository.Repository.find", lambda start=None: FakeRepo()
+    )
     monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
@@ -1143,7 +1205,10 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
     status_result = runner.invoke(cli, ["world", "atms", "status", "x=1"])
     assert status_result.exit_code == 0, status_result.output
     assert "claim_exact: status=IN support_quality=exact" in status_result.output
-    assert "claim_semantic: status=OUT support_quality=semantic_compatible" in status_result.output
+    assert (
+        "claim_semantic: status=OUT support_quality=semantic_compatible"
+        in status_result.output
+    )
 
     context_result = runner.invoke(cli, ["world", "atms", "context", "x=1"])
     assert context_result.exit_code == 0, context_result.output
@@ -1175,7 +1240,9 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr(
+        "propstore.repository.Repository.find", lambda start=None: FakeRepo()
+    )
     monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
@@ -1185,7 +1252,9 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
     assert "does not expose Dung extensions" in result.output
 
 
-def test_atms_future_queryables_can_activate_exact_support_without_fabricating_current_support() -> None:
+def test_atms_future_queryables_can_activate_exact_support_without_fabricating_current_support() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -1314,11 +1383,17 @@ def test_run7_future_audit_queryables_are_additive_only() -> None:
     future_queryable = QueryableAssumption.from_cel("y == 2")
 
     assert [future.queryable_cels for future in futures] == [("y == 2",)]
-    assert any(current_assumption_ids["x == 1"] in future.environment for future in futures)
-    assert any(future_queryable.assumption_id in future.environment for future in futures)
+    assert any(
+        current_assumption_ids["x == 1"] in future.environment for future in futures
+    )
+    assert any(
+        future_queryable.assumption_id in future.environment for future in futures
+    )
 
 
-def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation() -> None:
+def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -1353,7 +1428,11 @@ def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation
             }
         ],
         conflicts=[
-            {"claim_a_id": "claim_x", "claim_b_id": "claim_y", "concept_id": "concept4"},
+            {
+                "claim_a_id": "claim_x",
+                "claim_b_id": "claim_y",
+                "concept_id": "concept4",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"x": 1, "y": 2})
@@ -1361,8 +1440,12 @@ def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation
     queryables = [QueryableAssumption.from_cel("z == 3")]
     derived = bound.derived_value("concept4")
 
-    derived_why_out = engine.why_out(engine._derived_node_id("concept4", derived.value), limit=4)
-    future_why_out = engine.why_out(_assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4)
+    derived_why_out = engine.why_out(
+        engine._derived_node_id("concept4", derived.value), limit=4
+    )
+    future_why_out = engine.why_out(
+        _assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4
+    )
 
     assert derived_why_out.out_kind == ATMSOutKind.NOGOOD_PRUNED
     assert derived_why_out.future_activatable is False
@@ -1428,7 +1511,9 @@ def test_atms_future_queryables_can_be_insufficient() -> None:
     queryables = [QueryableAssumption.from_cel("z == 3")]
 
     future_statuses = bound.claim_future_statuses("claim_future", queryables, limit=4)
-    why_out = bound.atms_engine().why_out(_assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4)
+    why_out = bound.atms_engine().why_out(
+        _assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4
+    )
 
     assert future_statuses.could_become_in is False
     assert future_statuses.futures[0].status is ATMSNodeStatus.OUT
@@ -1437,7 +1522,9 @@ def test_atms_future_queryables_can_be_insufficient() -> None:
     assert why_out.candidate_queryable_cels == ()
 
 
-def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts() -> None:
+def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -1481,9 +1568,15 @@ def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts
     assert bound.claim_is_stable("claim_now", queryables, limit=8) is True
 
     assert unstable_out.stable is False
-    assert [witness.queryable_cels for witness in unstable_out.witnesses] == [("y == 2",)]
+    assert [witness.queryable_cels for witness in unstable_out.witnesses] == [
+        ("y == 2",)
+    ]
     assert unstable_out.witnesses[0].status is ATMSNodeStatus.IN
-    assert tuple(bound.atms_engine().status_flip_witnesses(_assertion_node_id(bound, "claim_future"), queryables, limit=8)) == tuple(unstable_out.witnesses)
+    assert tuple(
+        bound.atms_engine().status_flip_witnesses(
+            _assertion_node_id(bound, "claim_future"), queryables, limit=8
+        )
+    ) == tuple(unstable_out.witnesses)
     assert bound.claim_is_stable("claim_future", queryables, limit=8) is False
 
     assert stable_out.stable is True
@@ -1492,23 +1585,43 @@ def test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts
     assert claim_relevance.relevant_queryables == ("y == 2",)
     assert claim_relevance.irrelevant_queryables == ("z == 3",)
     assert claim_relevance.current_status is ATMSNodeStatus.OUT
-    assert claim_relevance.witness_pairs["y == 2"][0].without_state.status is ATMSNodeStatus.OUT
-    assert claim_relevance.witness_pairs["y == 2"][0].with_state.status is ATMSNodeStatus.IN
-    assert bound.claim_relevant_queryables("claim_future", queryables, limit=8) == ["y == 2"]
+    assert (
+        claim_relevance.witness_pairs["y == 2"][0].without_state.status
+        is ATMSNodeStatus.OUT
+    )
+    assert (
+        claim_relevance.witness_pairs["y == 2"][0].with_state.status
+        is ATMSNodeStatus.IN
+    )
+    assert bound.claim_relevant_queryables("claim_future", queryables, limit=8) == [
+        "y == 2"
+    ]
 
     assert concept_stability.stable is False
-    assert [witness.queryable_cels for witness in concept_stability.witnesses] == [("y == 2",)]
+    assert [witness.queryable_cels for witness in concept_stability.witnesses] == [
+        ("y == 2",)
+    ]
     assert concept_stability.current_status is ValueStatus.NO_CLAIMS
     assert concept_stability.witnesses[0].status is ValueStatus.DETERMINED
     assert bound.concept_is_stable("concept2", queryables, limit=8) is False
     assert concept_relevance.relevant_queryables == ("y == 2",)
     assert concept_relevance.current_status is ValueStatus.NO_CLAIMS
-    assert concept_relevance.witness_pairs["y == 2"][0].without_state.status is ValueStatus.NO_CLAIMS
-    assert concept_relevance.witness_pairs["y == 2"][0].with_state.status is ValueStatus.DETERMINED
-    assert bound.concept_relevant_queryables("concept2", queryables, limit=8) == ["y == 2"]
+    assert (
+        concept_relevance.witness_pairs["y == 2"][0].without_state.status
+        is ValueStatus.NO_CLAIMS
+    )
+    assert (
+        concept_relevance.witness_pairs["y == 2"][0].with_state.status
+        is ValueStatus.DETERMINED
+    )
+    assert bound.concept_relevant_queryables("concept2", queryables, limit=8) == [
+        "y == 2"
+    ]
 
 
-def test_atms_future_queryables_do_not_fabricate_future_out_transitions_without_revision() -> None:
+def test_atms_future_queryables_do_not_fabricate_future_out_transitions_without_revision() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -1527,7 +1640,11 @@ def test_atms_future_queryables_do_not_fabricate_future_out_transitions_without_
             },
         ],
         conflicts=[
-            {"claim_a_id": "claim_future", "claim_b_id": "claim_future_conflict", "concept_id": "concept2"},
+            {
+                "claim_a_id": "claim_future",
+                "claim_b_id": "claim_future_conflict",
+                "concept_id": "concept2",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
@@ -1537,7 +1654,9 @@ def test_atms_future_queryables_do_not_fabricate_future_out_transitions_without_
     ]
 
     future_statuses = bound.claim_future_statuses("claim_future", queryables, limit=4)
-    future_out = bound.atms_engine().could_become_out(_assertion_node_id(bound, "claim_future"), queryables, limit=4)
+    future_out = bound.atms_engine().could_become_out(
+        _assertion_node_id(bound, "claim_future"), queryables, limit=4
+    )
 
     assert bound.claim_status("claim_future").status == ATMSNodeStatus.OUT
     assert future_statuses.could_become_in is True
@@ -1563,8 +1682,12 @@ def test_atms_claim_interventions_and_next_queries_are_minimal() -> None:
         QueryableAssumption.from_cel("y == 2"),
     ]
 
-    plans = bound.claim_interventions("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
-    suggestions = bound.claim_next_queryables("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
+    plans = bound.claim_interventions(
+        "claim_future", queryables, ATMSNodeStatus.IN, limit=8
+    )
+    suggestions = bound.claim_next_queryables(
+        "claim_future", queryables, ATMSNodeStatus.IN, limit=8
+    )
     current_assumption_ids = {
         assumption.cel: assumption.assumption_id
         for assumption in bound.environment.assumptions
@@ -1586,7 +1709,9 @@ def test_atms_claim_interventions_and_next_queries_are_minimal() -> None:
     assert suggestions[0].plan_queryable_cels == (("y == 2",),)
 
 
-def test_atms_claim_interventions_to_out_require_consistent_nogood_pruned_future() -> None:
+def test_atms_claim_interventions_to_out_require_consistent_nogood_pruned_future() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -1605,14 +1730,22 @@ def test_atms_claim_interventions_to_out_require_consistent_nogood_pruned_future
             },
         ],
         conflicts=[
-            {"claim_a_id": "claim_future", "claim_b_id": "claim_conflict", "concept_id": "concept2"},
+            {
+                "claim_a_id": "claim_future",
+                "claim_b_id": "claim_conflict",
+                "concept_id": "concept2",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
     queryables = [QueryableAssumption.from_cel("y == 2")]
 
-    future_out = bound.atms_engine().could_become_out(_assertion_node_id(bound, "claim_future"), queryables, limit=8)
-    plans = bound.claim_interventions("claim_future", queryables, ATMSNodeStatus.OUT, limit=8)
+    future_out = bound.atms_engine().could_become_out(
+        _assertion_node_id(bound, "claim_future"), queryables, limit=8
+    )
+    plans = bound.claim_interventions(
+        "claim_future", queryables, ATMSNodeStatus.OUT, limit=8
+    )
 
     assert [future.queryable_cels for future in future_out] == [("y == 2",)]
     assert future_out[0].out_kind == ATMSOutKind.NOGOOD_PRUNED
@@ -1635,7 +1768,9 @@ def test_atms_concept_interventions_use_replayed_value_statuses() -> None:
     bound = _make_bound(store, bindings={"x": 1})
     queryables = (QueryableAssumption.from_cel("y == 2"),)
 
-    plans = bound.concept_interventions("concept2", queryables, ValueStatus.DETERMINED, limit=8)
+    plans = bound.concept_interventions(
+        "concept2", queryables, ValueStatus.DETERMINED, limit=8
+    )
     suggestions = bound.concept_next_queryables(
         "concept2",
         queryables,
@@ -1650,7 +1785,9 @@ def test_atms_concept_interventions_use_replayed_value_statuses() -> None:
     assert [entry.queryable_cel for entry in suggestions] == ["y == 2"]
 
 
-def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_limit() -> None:
+def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_limit() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -1664,12 +1801,15 @@ def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_li
     )
     bound = _make_bound(store)
 
-    assert bound.claim_interventions(
-        "claim_future",
-        (QueryableAssumption.from_cel("z == 3"),),
-        ATMSNodeStatus.IN,
-        limit=8,
-    ) == []
+    assert (
+        bound.claim_interventions(
+            "claim_future",
+            (QueryableAssumption.from_cel("z == 3"),),
+            ATMSNodeStatus.IN,
+            limit=8,
+        )
+        == []
+    )
     with pytest.raises(BudgetExhausted) as exc_info:
         bound.claim_interventions(
             "claim_future",
@@ -1682,18 +1822,23 @@ def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_li
         )
     assert exc_info.value.examined == 1
     assert exc_info.value.total == 4
-    assert [plan.queryable_cels for plan in bound.claim_interventions(
-        "claim_future",
-        (
-            QueryableAssumption.from_cel("b == 2"),
-            QueryableAssumption.from_cel("a == 1"),
-        ),
-        ATMSNodeStatus.IN,
-        limit=8,
-    )] == [("a == 1", "b == 2")]
+    assert [
+        plan.queryable_cels
+        for plan in bound.claim_interventions(
+            "claim_future",
+            (
+                QueryableAssumption.from_cel("b == 2"),
+                QueryableAssumption.from_cel("a == 1"),
+            ),
+            ATMSNodeStatus.IN,
+            limit=8,
+        )
+    ] == [("a == 1", "b == 2")]
 
 
-def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activation() -> None:
+def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activation() -> (
+    None
+):
     store = _ATMSStore(
         claims=[
             {
@@ -1728,7 +1873,11 @@ def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activ
             }
         ],
         conflicts=[
-            {"claim_a_id": "claim_x", "claim_b_id": "claim_y", "concept_id": "concept4"},
+            {
+                "claim_a_id": "claim_x",
+                "claim_b_id": "claim_y",
+                "concept_id": "concept4",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"x": 1, "y": 2})
@@ -1736,8 +1885,12 @@ def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activ
     queryables = [QueryableAssumption.from_cel("z == 3")]
     derived = bound.derived_value("concept4")
 
-    derived_why_out = engine.why_out(engine._derived_node_id("concept4", derived.value), limit=4)
-    future_why_out = engine.why_out(_assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4)
+    derived_why_out = engine.why_out(
+        engine._derived_node_id("concept4", derived.value), limit=4
+    )
+    future_why_out = engine.why_out(
+        _assertion_node_id(bound, "claim_future"), queryables=queryables, limit=4
+    )
 
     assert derived_why_out.out_kind == ATMSOutKind.NOGOOD_PRUNED
     assert derived_why_out.future_activatable is False
@@ -1749,9 +1902,17 @@ def test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activ
 def test_atms_worldline_future_capture_is_opt_in() -> None:
     class WorldWithBind(_ATMSStore):
         def bind(self, environment=None, *, policy=None, **conditions):
-            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            bindings = (
+                dict(environment.bindings)
+                if environment is not None
+                else dict(conditions)
+            )
             context_id = environment.context_id if environment is not None else None
-            effective_assumptions = tuple(environment.effective_assumptions) if environment is not None else ()
+            effective_assumptions = (
+                tuple(environment.effective_assumptions)
+                if environment is not None
+                else ()
+            )
             assumptions = compile_environment_assumptions(
                 bindings=bindings,
                 effective_assumptions=effective_assumptions,
@@ -1765,7 +1926,9 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
                     effective_assumptions=effective_assumptions,
                     assumptions=assumptions,
                 ),
-                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id)
+                if context_id is not None
+                else None,
                 policy=policy,
             )
 
@@ -1795,23 +1958,27 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
             },
         ]
     )
-    plain_worldline = WorldlineDefinition.from_dict({
-        "id": "atms_worldline_plain",
-        "targets": ["target"],
-        "inputs": {"bindings": {"x": 1}},
-        "policy": {"strategy": "argumentation", "reasoning_backend": "atms"},
-    })
-    future_worldline = WorldlineDefinition.from_dict({
-        "id": "atms_worldline_future",
-        "targets": ["target"],
-        "inputs": {"bindings": {"x": 1}},
-        "policy": {
-            "strategy": "argumentation",
-            "reasoning_backend": "atms",
-            "future_queryables": ["y == 2"],
-            "future_limit": 4,
-        },
-    })
+    plain_worldline = WorldlineDefinition.from_dict(
+        {
+            "id": "atms_worldline_plain",
+            "targets": ["target"],
+            "inputs": {"bindings": {"x": 1}},
+            "policy": {"strategy": "argumentation", "reasoning_backend": "atms"},
+        }
+    )
+    future_worldline = WorldlineDefinition.from_dict(
+        {
+            "id": "atms_worldline_future",
+            "targets": ["target"],
+            "inputs": {"bindings": {"x": 1}},
+            "policy": {
+                "strategy": "argumentation",
+                "reasoning_backend": "atms",
+                "future_queryables": ["y == 2"],
+                "future_limit": 4,
+            },
+        }
+    )
 
     plain_result = run_worldline(plain_worldline, world)
     future_result = run_worldline(future_worldline, world)
@@ -1820,11 +1987,20 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
     assert plain_result.argumentation.declared_queryables == ()
     assert future_result.argumentation is not None
     assert future_result.argumentation.declared_queryables == ("y == 2",)
-    assert future_result.argumentation.future_statuses["claim_future"].could_become_in is True
-    assert future_result.argumentation.why_out["claim_future"].candidate_queryable_cels == (("y == 2",),)
+    assert (
+        future_result.argumentation.future_statuses["claim_future"].could_become_in
+        is True
+    )
+    assert future_result.argumentation.why_out[
+        "claim_future"
+    ].candidate_queryable_cels == (("y == 2",),)
     assert future_result.argumentation.stability["claim_future"].stable is False
-    assert future_result.argumentation.relevance["claim_future"].relevant_queryables == ("y == 2",)
-    assert future_result.argumentation.witness_futures["claim_future"][0].queryable_cels == ("y == 2",)
+    assert future_result.argumentation.relevance[
+        "claim_future"
+    ].relevant_queryables == ("y == 2",)
+    assert future_result.argumentation.witness_futures["claim_future"][
+        0
+    ].queryable_cels == ("y == 2",)
 
 
 def test_was_pruned_by_nogood_detects_transitive_nogood_through_antecedent() -> None:
@@ -1863,7 +2039,11 @@ def test_was_pruned_by_nogood_detects_transitive_nogood_through_antecedent() -> 
             }
         ],
         conflicts=[
-            {"claim_a_id": "claim_a", "claim_b_id": "claim_b", "concept_id": "concept1"},
+            {
+                "claim_a_id": "claim_a",
+                "claim_b_id": "claim_b",
+                "concept_id": "concept1",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
@@ -1909,9 +2089,17 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
             )
 
         def bind(self, environment=None, *, policy=None, **conditions):
-            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            bindings = (
+                dict(environment.bindings)
+                if environment is not None
+                else dict(conditions)
+            )
             context_id = environment.context_id if environment is not None else None
-            effective_assumptions = tuple(environment.effective_assumptions) if environment is not None else ()
+            effective_assumptions = (
+                tuple(environment.effective_assumptions)
+                if environment is not None
+                else ()
+            )
             assumptions = compile_environment_assumptions(
                 bindings=bindings,
                 effective_assumptions=effective_assumptions,
@@ -1925,14 +2113,18 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
                     effective_assumptions=effective_assumptions,
                     assumptions=assumptions,
                 ),
-                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id)
+                if context_id is not None
+                else None,
                 policy=policy,
             )
 
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr(
+        "propstore.repository.Repository.find", lambda start=None: FakeRepo()
+    )
     monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
@@ -1947,24 +2139,52 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
     )
     stability_result = runner.invoke(
         cli,
-        ["world", "atms", "stability", "claim_future", "x=1", "--queryable", "y=2", "--queryable", "z=3"],
+        [
+            "world",
+            "atms",
+            "stability",
+            "claim_future",
+            "x=1",
+            "--queryable",
+            "y=2",
+            "--queryable",
+            "z=3",
+        ],
     )
     relevance_result = runner.invoke(
         cli,
-        ["world", "atms", "relevance", "claim_future", "x=1", "--queryable", "y=2", "--queryable", "z=3"],
+        [
+            "world",
+            "atms",
+            "relevance",
+            "claim_future",
+            "x=1",
+            "--queryable",
+            "y=2",
+            "--queryable",
+            "z=3",
+        ],
     )
 
     assert futures_result.exit_code == 0, futures_result.output
-    assert "claim_future: current_status=OUT could_become_in=True" in futures_result.output
+    assert (
+        "claim_future: current_status=OUT could_become_in=True" in futures_result.output
+    )
     assert "future [y == '2'] -> IN" in futures_result.output
     assert why_out_result.exit_code == 0, why_out_result.output
-    assert "claim_future: out_kind=missing_support future_activatable=True" in why_out_result.output
+    assert (
+        "claim_future: out_kind=missing_support future_activatable=True"
+        in why_out_result.output
+    )
     assert "candidate_queryables=[y == '2']" in why_out_result.output
     assert stability_result.exit_code == 0, stability_result.output
     assert "claim_future: status=OUT stable=False" in stability_result.output
     assert "witness [y == '2'] -> IN" in stability_result.output
     assert relevance_result.exit_code == 0, relevance_result.output
-    assert "claim_future: current_status=OUT relevant_queryables=[y == '2']" in relevance_result.output
+    assert (
+        "claim_future: current_status=OUT relevant_queryables=[y == '2']"
+        in relevance_result.output
+    )
     assert "y == '2': [] -> OUT; [y == '2'] -> IN" in relevance_result.output
 
 
@@ -1987,9 +2207,17 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
             )
 
         def bind(self, environment=None, *, policy=None, **conditions):
-            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            bindings = (
+                dict(environment.bindings)
+                if environment is not None
+                else dict(conditions)
+            )
             context_id = environment.context_id if environment is not None else None
-            effective_assumptions = tuple(environment.effective_assumptions) if environment is not None else ()
+            effective_assumptions = (
+                tuple(environment.effective_assumptions)
+                if environment is not None
+                else ()
+            )
             assumptions = compile_environment_assumptions(
                 bindings=bindings,
                 effective_assumptions=effective_assumptions,
@@ -2003,33 +2231,65 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
                     effective_assumptions=effective_assumptions,
                     assumptions=assumptions,
                 ),
-                lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
+                lifting_system=leaf_lifting_system(context_id)
+                if context_id is not None
+                else None,
                 policy=policy,
             )
 
         def close(self) -> None:
             return None
 
-    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr(
+        "propstore.repository.Repository.find", lambda start=None: FakeRepo()
+    )
     monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
 
     interventions_result = runner.invoke(
         cli,
-        ["world", "atms", "interventions", "claim_future", "x=1", "--target-status", "IN", "--queryable", "y=2", "--queryable", "z=3"],
+        [
+            "world",
+            "atms",
+            "interventions",
+            "claim_future",
+            "x=1",
+            "--target-status",
+            "IN",
+            "--queryable",
+            "y=2",
+            "--queryable",
+            "z=3",
+        ],
     )
     next_query_result = runner.invoke(
         cli,
-        ["world", "atms", "next-query", "claim_future", "x=1", "--target-status", "IN", "--queryable", "y=2", "--queryable", "z=3"],
+        [
+            "world",
+            "atms",
+            "next-query",
+            "claim_future",
+            "x=1",
+            "--target-status",
+            "IN",
+            "--queryable",
+            "y=2",
+            "--queryable",
+            "z=3",
+        ],
     )
 
     assert interventions_result.exit_code == 0, interventions_result.output
-    assert "bounded additive plans over declared queryables" in interventions_result.output
+    assert (
+        "bounded additive plans over declared queryables" in interventions_result.output
+    )
     assert "not revision/contraction" in interventions_result.output
     assert "plan [y == '2'] -> IN" in interventions_result.output
     assert next_query_result.exit_code == 0, next_query_result.output
-    assert "derived from bounded additive intervention plans" in next_query_result.output
+    assert (
+        "derived from bounded additive intervention plans" in next_query_result.output
+    )
     assert "y == '2': coverage=1 smallest_plan_size=1" in next_query_result.output
 
 

@@ -240,14 +240,24 @@ if not TYPE_CHECKING:
     ContextRef = single_field_ref_type("ContextRef", "name", module=__name__)
     FormRef = single_field_ref_type("FormRef", "name", module=__name__)
     WorldlineRef = single_field_ref_type("WorldlineRef", "name", module=__name__)
-    CanonicalSourceRef = single_field_ref_type("CanonicalSourceRef", "name", module=__name__)
+    CanonicalSourceRef = single_field_ref_type(
+        "CanonicalSourceRef", "name", module=__name__
+    )
     ClaimRef = single_field_ref_type("ClaimRef", "artifact_id", module=__name__)
-    MicropublicationRef = single_field_ref_type("MicropublicationRef", "artifact_id", module=__name__)
+    MicropublicationRef = single_field_ref_type(
+        "MicropublicationRef", "artifact_id", module=__name__
+    )
     ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
-    JustificationRef = single_field_ref_type("JustificationRef", "artifact_id", module=__name__)
-    PredicateRef = single_field_ref_type("PredicateRef", "predicate_id", module=__name__)
+    JustificationRef = single_field_ref_type(
+        "JustificationRef", "artifact_id", module=__name__
+    )
+    PredicateRef = single_field_ref_type(
+        "PredicateRef", "predicate_id", module=__name__
+    )
     RuleRef = single_field_ref_type("RuleRef", "rule_id", module=__name__)
-    RuleSuperiorityRef = single_field_ref_type("RuleSuperiorityRef", "artifact_id", module=__name__)
+    RuleSuperiorityRef = single_field_ref_type(
+        "RuleSuperiorityRef", "artifact_id", module=__name__
+    )
 
     @dataclass(frozen=True)
     class PredicateProposalRef:
@@ -259,8 +269,12 @@ if not TYPE_CHECKING:
         rule_id: str
 
     StanceRef = single_field_ref_type("StanceRef", "artifact_id", module=__name__)
-    SameAsAssertionRef = single_field_ref_type("SameAsAssertionRef", "artifact_id", module=__name__)
-    ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
+    SameAsAssertionRef = single_field_ref_type(
+        "SameAsAssertionRef", "artifact_id", module=__name__
+    )
+    ConceptAlignmentRef = single_field_ref_type(
+        "ConceptAlignmentRef", "slug", module=__name__
+    )
     MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
     SchemaRef = singleton_ref_type("SchemaRef", module=__name__)
 
@@ -312,10 +326,16 @@ SOURCE_BRANCH = BranchPlacement(
     codec="safe_slug",
     collision_suffix="sha256",
 )
-PROPOSAL_STANCE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/stances")
-PROPOSAL_PREDICATE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/predicates")
+PROPOSAL_STANCE_BRANCH = BranchPlacement(
+    policy="fixed", fixed_branch="proposal/stances"
+)
+PROPOSAL_PREDICATE_BRANCH = BranchPlacement(
+    policy="fixed", fixed_branch="proposal/predicates"
+)
 PROPOSAL_RULE_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/rules")
-PROPOSAL_CONCEPT_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/concepts")
+PROPOSAL_CONCEPT_BRANCH = BranchPlacement(
+    policy="fixed", fixed_branch="proposal/concepts"
+)
 
 
 def _callable_id(callback: object) -> str:
@@ -364,7 +384,9 @@ CANONICAL_SOURCE_PLACEMENT = FlatYamlPlacement["Repository", CanonicalSourceRef]
     ref_field="name",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-MICROPUBLICATION_PLACEMENT = HashScatteredYamlPlacement["Repository", MicropublicationRef](
+MICROPUBLICATION_PLACEMENT = HashScatteredYamlPlacement[
+    "Repository", MicropublicationRef
+](
     "micropubs",
     MicropublicationRef,
     ref_field="artifact_id",
@@ -388,7 +410,9 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
     render_document=render_concept_document,
 )
 
-CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, SourceDocument](
+CANONICAL_SOURCE_FAMILY = ArtifactFamily[
+    "Repository", CanonicalSourceRef, SourceDocument
+](
     "canonical_source",
     SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION,
     SourceDocument,
@@ -399,12 +423,15 @@ CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, Sourc
 )
 
 
-MICROPUBLICATION_FAMILY = ArtifactFamily["Repository", MicropublicationRef, MicropublicationDocument](
+MICROPUBLICATION_FAMILY = ArtifactFamily[
+    "Repository", MicropublicationRef, MicropublicationDocument
+](
     "micropublication",
     MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
     MicropublicationDocument,
     MICROPUBLICATION_PLACEMENT,
 )
+
 
 def _semantic_metadata(
     *,
@@ -762,7 +789,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             artifact_family=batch_artifact_family(
                 name="source_justifications",
                 contract_version=SOURCE_BATCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-                placement=FixedFilePlacement("justifications.yaml", branch=SOURCE_BRANCH),
+                placement=FixedFilePlacement(
+                    "justifications.yaml", branch=SOURCE_BRANCH
+                ),
                 batch_spec=SOURCE_JUSTIFICATION_BATCH_SPEC,
             ),
         ),
@@ -902,7 +931,11 @@ def semantic_family_by_name(name: str) -> FamilyDefinition[Any, Any, Any, Any]:
 
 
 def semantic_init_roots() -> tuple[str, ...]:
-    return tuple(family.storage_root() for family in semantic_families() if _semantic_init_directory(family))
+    return tuple(
+        family.storage_root()
+        for family in semantic_families()
+        if _semantic_init_directory(family)
+    )
 
 
 def semantic_import_roots() -> tuple[str, ...]:
@@ -923,7 +956,9 @@ def semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
     return tuple(sorted(specs, key=lambda spec: spec.name))
 
 
-def semantic_address_path(name: str, repo: Repository, ref: object) -> SemanticFamilyAddress:
+def semantic_address_path(
+    name: str, repo: Repository, ref: object
+) -> SemanticFamilyAddress:
     family = semantic_family_by_name(name).artifact_family
     return SemanticFamilyAddress(family.address_for(repo, ref).require_path())
 
@@ -937,7 +972,9 @@ def world_charters() -> tuple[FamilyCharter, ...]:
     embeddings = import_module("propstore.families.embeddings.declaration")
     forms = import_module("propstore.families.forms.models")
     meta = import_module("propstore.families.meta.declaration")
-    micropublications = import_module("propstore.families.micropublications.declaration")
+    micropublications = import_module(
+        "propstore.families.micropublications.declaration"
+    )
     merge = import_module("propstore.families.merge.declaration")
     predicates = import_module("propstore.families.predicates.declaration")
     relations = import_module("propstore.families.relations.declaration")

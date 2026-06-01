@@ -49,7 +49,9 @@ def test_project_belief_base_exposes_essential_support_for_assertion_atoms() -> 
     assert base.essential_support[atom_id] == (assumption_id,)
 
 
-def test_projected_support_metadata_is_deterministic_under_claim_order_variation() -> None:
+def test_projected_support_metadata_is_deterministic_under_claim_order_variation() -> (
+    None
+):
     claims = [
         make_claim(
             claim_id="claim_b",
@@ -65,8 +67,12 @@ def test_projected_support_metadata_is_deterministic_under_claim_order_variation
         ),
     ]
 
-    base_a = project_belief_base(_make_bound(_RevisionStore(claims=claims), bindings={"x": 1}))
-    base_b = project_belief_base(_make_bound(_RevisionStore(claims=list(reversed(claims))), bindings={"x": 1}))
+    base_a = project_belief_base(
+        _make_bound(_RevisionStore(claims=claims), bindings={"x": 1})
+    )
+    base_b = project_belief_base(
+        _make_bound(_RevisionStore(claims=list(reversed(claims))), bindings={"x": 1})
+    )
 
     assert base_a.support_sets == base_b.support_sets
     assert base_a.essential_support == base_b.essential_support

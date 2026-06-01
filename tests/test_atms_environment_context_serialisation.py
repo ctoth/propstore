@@ -60,6 +60,9 @@ def test_ws_i_environment_serialization_preserves_assumptions_and_contexts() -> 
     )
 
     assert engine._serialize_future_entry(future)["essential_support"] == expected
-    assert engine._serialize_future_report(future_report)["futures"][0][
-        "essential_support"
-    ] == expected
+    assert (
+        engine._serialize_future_report(future_report)["futures"][0][
+            "essential_support"
+        ]
+        == expected
+    )

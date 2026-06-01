@@ -45,7 +45,11 @@ def reachable_concepts(
             concept_ids_json = param.concept_ids
             if not concept_ids_json:
                 continue
-            input_ids = json.loads(concept_ids_json) if isinstance(concept_ids_json, str) else concept_ids_json
+            input_ids = (
+                json.loads(concept_ids_json)
+                if isinstance(concept_ids_json, str)
+                else concept_ids_json
+            )
             for iid in input_ids:
                 if iid != cid and iid not in visited:
                     queue.append(iid)

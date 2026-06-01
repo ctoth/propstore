@@ -20,7 +20,9 @@ from propstore.families.sources.declaration import (
 
 
 def normalize_source_slug(name: str) -> str:
-    cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in name.strip())
+    cleaned = "".join(
+        ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in name.strip()
+    )
     cleaned = cleaned.strip("._-")
     return cleaned or "source"
 
@@ -86,7 +88,9 @@ def initial_source_document(
             type=origin_type,
             value=origin_value,
             retrieved=utc_now(),
-            content_ref=ni_uri_for_file(content_file) if content_file is not None else None,
+            content_ref=ni_uri_for_file(content_file)
+            if content_file is not None
+            else None,
         ),
         trust=SourceTrustDocument(
             status=ProvenanceStatus.DEFAULTED,

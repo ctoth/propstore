@@ -2,6 +2,7 @@
 
 Exposes top-level commands for validation, sidecar builds, and alias export.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,7 +30,11 @@ _PHI_GROUP_GLOSSES = {
 def _emit_workflow_messages(messages) -> None:
     for message in messages:
         label = message.level.upper()
-        family = "authoring" if message.code.startswith("authoring.") else message.family.value
+        family = (
+            "authoring"
+            if message.code.startswith("authoring.")
+            else message.family.value
+        )
         emit_error(f"{label} ({family}): {message.render()}")
 
 
@@ -54,7 +59,8 @@ def validate(obj: dict) -> None:
     if report.ok:
         emit_success(
             f"Validation passed: {report.concept_count} concept(s), "
-            f"{report.claim_file_count} claim file(s)")
+            f"{report.claim_file_count} claim file(s)"
+        )
     else:
         emit_error(f"Validation FAILED: {len(report.errors)} error(s)")
         exit_with_code(EXIT_VALIDATION)
@@ -130,7 +136,8 @@ def build(
     emit(
         f"Build {status}: {report.concept_count} concepts, "
         f"{report.claim_count} claims, {report.conflict_count} hard conflicts, "
-        f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
+        f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings"
+    )
     if report.derived_store is not None:
         handle = report.derived_store
         emit(
@@ -141,8 +148,13 @@ def build(
 
 
 @click.command("export-aliases")
-@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text",
-              help="Output format")
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
+)
 @click.pass_obj
 def export_aliases(obj: dict, fmt: str) -> None:
     """Export the alias lookup table."""
@@ -153,10 +165,12 @@ def export_aliases(obj: dict, fmt: str) -> None:
         fail("No concepts directory.")
 
     if fmt == "json":
-        emit(json.dumps(
-            {alias: entry.to_dict() for alias, entry in aliases.items()},
-            indent=2,
-        ))
+        emit(
+            json.dumps(
+                {alias: entry.to_dict() for alias, entry in aliases.items()},
+                indent=2,
+            )
+        )
     else:
         for alias_name, info in sorted(aliases.items()):
             emit(f"{alias_name} -> {info.logical_id} ({info.name})")

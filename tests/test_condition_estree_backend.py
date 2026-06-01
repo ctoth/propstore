@@ -125,7 +125,9 @@ def test_estree_backend_agrees_with_python_backend(
 
     estree_expression = condition_ir_to_estree(condition)
 
-    assert evaluate_estree_expression(estree_expression, bindings) == evaluate_condition_ir(
+    assert evaluate_estree_expression(
+        estree_expression, bindings
+    ) == evaluate_condition_ir(
         condition,
         bindings,
     )

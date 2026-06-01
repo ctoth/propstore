@@ -17,7 +17,10 @@ def _imports_af_revision(path: Path) -> bool:
         if isinstance(node, ast.Import):
             if any(alias.name == "argumentation.af_revision" for alias in node.names):
                 return True
-        elif isinstance(node, ast.ImportFrom) and node.module == "argumentation.af_revision":
+        elif (
+            isinstance(node, ast.ImportFrom)
+            and node.module == "argumentation.af_revision"
+        ):
             return True
     return False
 

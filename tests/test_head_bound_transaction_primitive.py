@@ -17,7 +17,9 @@ def test_head_bound_transaction_captures_head_and_threads_expected_head(
     seen: list[tuple[str | None, str | None]] = []
     original_commit_batch = type(repo.git).commit_batch
 
-    def commit_batch_spy(self, adds, deletes, message, *, branch=None, expected_head=None):
+    def commit_batch_spy(
+        self, adds, deletes, message, *, branch=None, expected_head=None
+    ):
         seen.append((branch, expected_head))
         return original_commit_batch(
             self,
@@ -71,7 +73,9 @@ def test_head_bound_transaction_discards_post_commit_hooks_on_stale_head(
     captured_head = repo.git.branch_sha("master")
     applied: list[str] = []
 
-    def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):
+    def stale_commit_batch(
+        self, adds, deletes, message, *, branch=None, expected_head=None
+    ):
         raise HeadMismatchError(
             branch=branch,
             expected_head=expected_head,

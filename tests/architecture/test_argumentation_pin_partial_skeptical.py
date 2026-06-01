@@ -14,11 +14,14 @@ def test_argumentation_pin_partial_af_splits_skeptical_acceptance_modes() -> Non
         non_attacks=frozenset({("a", "a"), ("b", "b")}),
     )
 
-    assert accepted_arguments(
-        framework,
-        semantics="grounded",
-        mode="necessary_skeptical",
-    ) == frozenset()
+    assert (
+        accepted_arguments(
+            framework,
+            semantics="grounded",
+            mode="necessary_skeptical",
+        )
+        == frozenset()
+    )
     assert accepted_arguments(
         framework,
         semantics="grounded",

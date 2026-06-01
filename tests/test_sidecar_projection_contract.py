@@ -75,7 +75,9 @@ def test_world_charter_maps_models_and_round_trips_rows(tmp_path: Path) -> None:
     assert row.trust == SourceTrustDocument(status=ProvenanceStatus.STATED)
 
 
-def test_world_charter_store_validation_reports_missing_tables_and_columns(tmp_path: Path) -> None:
+def test_world_charter_store_validation_reports_missing_tables_and_columns(
+    tmp_path: Path,
+) -> None:
     schema = world_schema()
     db_path = tmp_path / "world.sqlite"
 
@@ -94,7 +96,9 @@ def test_world_charter_store_validation_reports_missing_tables_and_columns(tmp_p
         conn.commit()
     finally:
         conn.close()
-    with pytest.raises(ValueError, match=r"table 'meta' missing column\(s\) schema_version"):
+    with pytest.raises(
+        ValueError, match=r"table 'meta' missing column\(s\) schema_version"
+    ):
         validate_sqlalchemy_store(missing_column, schema)
 
 
@@ -104,7 +108,12 @@ def test_world_charter_fts_indexes_are_generated_from_source_queries() -> None:
     claim_fts = schema.fts_index("claim_fts")
 
     assert concept_fts.entity_id_field == "concept_id"
-    assert concept_fts.fields == ("canonical_name", "aliases", "definition", "conditions")
+    assert concept_fts.fields == (
+        "canonical_name",
+        "aliases",
+        "definition",
+        "conditions",
+    )
     assert concept_fts.source_query is not None
     assert "FROM concept c" in concept_fts.source_query
     assert tuple(schema.fts_table("concept_fts").c.keys())[1:] == (
@@ -159,7 +168,9 @@ def test_world_charter_store_creates_schema_catalog(tmp_path: Path) -> None:
         assert "quire_schema_catalog" in inspector.get_table_names()
         with engine.connect() as conn:
             row = conn.execute(
-                text("SELECT schema_hash FROM quire_schema_catalog WHERE key = 'default'")
+                text(
+                    "SELECT schema_hash FROM quire_schema_catalog WHERE key = 'default'"
+                )
             ).first()
     finally:
         engine.dispose()

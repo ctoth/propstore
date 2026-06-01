@@ -53,9 +53,9 @@ def test_ws_i_cycle_whose_external_support_is_nogood_is_nogood_pruned() -> None:
         value=2.0,
         parameterization_index=2,
     )
-    engine.nogoods = NogoodSet([
-        EnvironmentKey((AssumptionId("cycle_a"), AssumptionId("cycle_b")))
-    ])
+    engine.nogoods = NogoodSet(
+        [EnvironmentKey((AssumptionId("cycle_a"), AssumptionId("cycle_b")))]
+    )
     engine._add_justification(
         antecedent_ids=(node_a, d2),
         consequent_id=d1,

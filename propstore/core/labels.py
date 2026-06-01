@@ -43,7 +43,13 @@ class EnvironmentKey:
     context_ids: tuple[ContextId, ...] = ()
 
     def __post_init__(self) -> None:
-        normalized = tuple(sorted(dict.fromkeys(tuple(AssumptionId(value) for value in self.assumption_ids))))
+        normalized = tuple(
+            sorted(
+                dict.fromkeys(
+                    tuple(AssumptionId(value) for value in self.assumption_ids)
+                )
+            )
+        )
         object.__setattr__(self, "assumption_ids", normalized)
         normalized_contexts = tuple(
             sorted(dict.fromkeys(ContextId(value) for value in self.context_ids))
@@ -57,10 +63,9 @@ class EnvironmentKey:
         )
 
     def subsumes(self, other: EnvironmentKey) -> bool:
-        return (
-            set(self.assumption_ids).issubset(other.assumption_ids)
-            and set(self.context_ids).issubset(other.context_ids)
-        )
+        return set(self.assumption_ids).issubset(other.assumption_ids) and set(
+            self.context_ids
+        ).issubset(other.context_ids)
 
 
 @dataclass(frozen=True, init=False)
@@ -290,8 +295,14 @@ def merge_labels(
     support = ProvenancePolynomial.zero()
     for label in labels:
         support = support + label.support.polynomial
-    environments = normalize_environments(_polynomial_to_environments(support), nogoods=nogoods)
-    return Label(support=SupportEvidence(_environments_to_polynomial(environments), SupportQuality.EXACT))
+    environments = normalize_environments(
+        _polynomial_to_environments(support), nogoods=nogoods
+    )
+    return Label(
+        support=SupportEvidence(
+            _environments_to_polynomial(environments), SupportQuality.EXACT
+        )
+    )
 
 
 _ASSUMPTION_VAR_PREFIX = "ps:source:assumption:"
@@ -346,7 +357,9 @@ def _context_variable(context_id: ContextId) -> SourceVariableId:
     return SourceVariableId(f"{_CONTEXT_VAR_PREFIX}{context_id}")
 
 
-def _variable_to_environment_piece(variable: SourceVariableId) -> tuple[AssumptionId | None, ContextId | None]:
+def _variable_to_environment_piece(
+    variable: SourceVariableId,
+) -> tuple[AssumptionId | None, ContextId | None]:
     value = str(variable)
     if value.startswith(_ASSUMPTION_VAR_PREFIX):
         return AssumptionId(value.removeprefix(_ASSUMPTION_VAR_PREFIX)), None
@@ -358,20 +371,26 @@ def _variable_to_environment_piece(variable: SourceVariableId) -> tuple[Assumpti
 def _environment_to_polynomial(environment: EnvironmentKey) -> ProvenancePolynomial:
     support = ProvenancePolynomial.one()
     for assumption_id in environment.assumption_ids:
-        support = support * ProvenancePolynomial.variable(_assumption_variable(assumption_id))
+        support = support * ProvenancePolynomial.variable(
+            _assumption_variable(assumption_id)
+        )
     for context_id in environment.context_ids:
         support = support * ProvenancePolynomial.variable(_context_variable(context_id))
     return support
 
 
-def _environments_to_polynomial(environments: Iterable[EnvironmentKey]) -> ProvenancePolynomial:
+def _environments_to_polynomial(
+    environments: Iterable[EnvironmentKey],
+) -> ProvenancePolynomial:
     support = ProvenancePolynomial.zero()
     for environment in environments:
         support = support + _environment_to_polynomial(environment)
     return support
 
 
-def _polynomial_to_environments(poly: ProvenancePolynomial) -> tuple[EnvironmentKey, ...]:
+def _polynomial_to_environments(
+    poly: ProvenancePolynomial,
+) -> tuple[EnvironmentKey, ...]:
     environments: list[EnvironmentKey] = []
     for term in poly.terms:
         assumptions: list[AssumptionId] = []
@@ -382,7 +401,9 @@ def _polynomial_to_environments(poly: ProvenancePolynomial) -> tuple[Environment
                 assumptions.append(assumption)
             if context is not None:
                 contexts.append(context)
-        environments.append(EnvironmentKey(tuple(assumptions), context_ids=tuple(contexts)))
+        environments.append(
+            EnvironmentKey(tuple(assumptions), context_ids=tuple(contexts))
+        )
     return normalize_environments(environments)
 
 

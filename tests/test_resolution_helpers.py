@@ -89,7 +89,11 @@ class _AspicView:
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
+        return [
+            claim
+            for claim in self._claims
+            if _claim_value_concept_id(claim) == concept_id
+        ]
 
     def claim_support(self, claim: Claim):
         return None, None
@@ -155,13 +159,21 @@ class _GlobalAssignmentSelectionView:
         return ValueResult(
             concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
-            claims=[claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id],
+            claims=[
+                claim
+                for claim in self._claims
+                if _claim_value_concept_id(claim) == concept_id
+            ],
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
+        return [
+            claim
+            for claim in self._claims
+            if _claim_value_concept_id(claim) == concept_id
+        ]
 
 
 class _DuplicateSourceAssignmentSelectionView:
@@ -176,13 +188,21 @@ class _DuplicateSourceAssignmentSelectionView:
         return ValueResult(
             concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
-            claims=[claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id],
+            claims=[
+                claim
+                for claim in self._claims
+                if _claim_value_concept_id(claim) == concept_id
+            ],
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
+        return [
+            claim
+            for claim in self._claims
+            if _claim_value_concept_id(claim) == concept_id
+        ]
 
 
 class _AssignmentSelectionView:
@@ -203,7 +223,11 @@ class _AssignmentSelectionView:
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
+        return [
+            claim
+            for claim in self._claims
+            if _claim_value_concept_id(claim) == concept_id
+        ]
 
 
 def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> None:
@@ -396,15 +420,19 @@ def test_aspic_resolution_property_threads_selected_preference_config(
     assert calls[0]["link"] == link
 
 
-def test_structured_resolution_grounded_respects_attack_conflict_freeness(monkeypatch) -> None:
+def test_structured_resolution_grounded_respects_attack_conflict_freeness(
+    monkeypatch,
+) -> None:
     projection = SimpleNamespace(
         framework=ArgumentationFramework(
             arguments=frozenset({"arg:a", "arg:b"}),
             defeats=frozenset(),
-            attacks=frozenset({
-                ("arg:a", "arg:b"),
-                ("arg:b", "arg:a"),
-            }),
+            attacks=frozenset(
+                {
+                    ("arg:a", "arg:b"),
+                    ("arg:b", "arg:a"),
+                }
+            ),
         ),
         claim_to_argument_ids={
             "claim_a": ("arg:a",),
@@ -459,7 +487,9 @@ def test_assignment_selection_resolution_reports_no_admissible_assignments() -> 
     assert result.reason == "no admissible assignments"
 
 
-def test_global_assignment_selection_resolution_reads_target_from_global_assignment() -> None:
+def test_global_assignment_selection_resolution_reads_target_from_global_assignment() -> (
+    None
+):
     result = resolve(
         cast(BeliefSpace, _GlobalAssignmentSelectionView()),
         "concept1",
@@ -482,7 +512,9 @@ def test_global_assignment_selection_resolution_reads_target_from_global_assignm
     assert result.value == 0.0
 
 
-def test_global_assignment_selection_branch_filter_changes_sources_not_projection_logic() -> None:
+def test_global_assignment_selection_branch_filter_changes_sources_not_projection_logic() -> (
+    None
+):
     result = resolve(
         cast(BeliefSpace, _GlobalAssignmentSelectionView()),
         "concept1",
@@ -505,7 +537,9 @@ def test_global_assignment_selection_branch_filter_changes_sources_not_projectio
     assert result.reason == "no admissible assignments"
 
 
-def test_global_assignment_selection_reports_duplicate_claims_per_source_explicitly() -> None:
+def test_global_assignment_selection_reports_duplicate_claims_per_source_explicitly() -> (
+    None
+):
     result = resolve(
         cast(BeliefSpace, _DuplicateSourceAssignmentSelectionView()),
         "concept1",
@@ -515,4 +549,6 @@ def test_global_assignment_selection_reports_duplicate_claims_per_source_explici
     )
 
     assert result.status == "conflicted"
-    assert result.reason == "source 'a' has multiple active claims for concept 'concept1'"
+    assert (
+        result.reason == "source 'a' has multiple active claims for concept 'concept1'"
+    )

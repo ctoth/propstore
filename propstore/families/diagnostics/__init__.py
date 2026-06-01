@@ -1,2 +1,1 @@
 """Diagnostics family declaration exports."""
-

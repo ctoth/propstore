@@ -59,16 +59,16 @@ def _condition_binary_to_sql(condition: ConditionBinary) -> SqlConditionFragment
     )
 
 
-def _condition_membership_to_sql(condition: ConditionMembership) -> SqlConditionFragment:
+def _condition_membership_to_sql(
+    condition: ConditionMembership,
+) -> SqlConditionFragment:
     element = condition_ir_to_sql(condition.element)
     if not condition.options:
         return SqlConditionFragment("(0 = 1)", element.parameters)
     options = tuple(condition_ir_to_sql(option) for option in condition.options)
     option_sql = ", ".join(option.sql for option in options)
     parameters = element.parameters + tuple(
-        parameter
-        for option in options
-        for parameter in option.parameters
+        parameter for option in options for parameter in option.parameters
     )
     return SqlConditionFragment(
         f"({element.sql} IN ({option_sql}))",

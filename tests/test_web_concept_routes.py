@@ -154,7 +154,7 @@ def test_concept_html_route_renders_accessible_literals(
     assert "known" in html
     assert "missing" in html
     assert "/claim/claim1" in html
-    assert "<th scope=\"col\">Claim</th>" in html
+    assert '<th scope="col">Claim</th>' in html
 
 
 def test_concept_json_route_uses_same_report(
@@ -186,7 +186,7 @@ def test_concept_route_maps_unknown_concept_to_accessible_error(
     json_response = client.get("/concept/missing.json")
 
     assert html_response.status_code == 404
-    assert "<h1 id=\"error-heading\">Concept Not Found</h1>" in html_response.text
+    assert '<h1 id="error-heading">Concept Not Found</h1>' in html_response.text
     assert "Concept 'missing' not found." in unescape(html_response.text)
     assert json_response.status_code == 404
     assert json_response.json()["error"]["title"] == "Concept Not Found"
@@ -204,4 +204,7 @@ def test_concept_route_rejects_unsupported_repository_view(client: TestClient) -
 
     assert response.status_code == 400
     assert response.json()["error"]["title"] == "Unsupported Repository State"
-    assert response.json()["error"]["message"] == "branch-qualified views are not implemented"
+    assert (
+        response.json()["error"]["message"]
+        == "branch-qualified views are not implemented"
+    )

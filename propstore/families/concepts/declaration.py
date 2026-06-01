@@ -26,7 +26,10 @@ from propstore.core.conditions import (
     checked_condition_set,
     checked_condition_set_to_json,
 )
-from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
+from propstore.core.conditions.registry import (
+    ConceptInfo,
+    with_standard_synthetic_bindings,
+)
 from propstore.core.exactness_types import Exactness
 from propstore.core.id_types import ConceptId
 from propstore.core.lemon.description_kinds import DescriptionKind
@@ -491,7 +494,8 @@ class SourceConceptEntryDocument(CharterDoc, kw_only=True):
     ] = ()
     form_parameters: SourceConceptFormParametersDocument | None = None
     parameterization_relationships: Annotated[
-        tuple[SourceParameterizationRelationshipDocument, ...], charter_field(nullable=True)
+        tuple[SourceParameterizationRelationshipDocument, ...],
+        charter_field(nullable=True),
     ] = ()
     status: str | None = None
     registry_match: SourceConceptRegistryMatchDocument | None = None
@@ -675,7 +679,9 @@ class Parameterization_groupDocument(CharterDoc):
     group_id: Annotated[int, charter_field(nullable=False)]
 
 
-PARAMETERIZATION_GROUP_CHARTER: FamilyCharter = Parameterization_groupDocument.__charter__
+PARAMETERIZATION_GROUP_CHARTER: FamilyCharter = (
+    Parameterization_groupDocument.__charter__
+)
 
 
 @charter(
@@ -749,15 +755,13 @@ def compile_concept_sidecar_rows(
         content_hash = record.version_id.removeprefix("sha256:")[:16]
         form_definition = form_registry.get(record.form)
         is_dimensionless = (
-            1
-            if form_definition is not None and form_definition.is_dimensionless
-            else 0
+            1 if form_definition is not None and form_definition.is_dimensionless else 0
         )
-        unit_symbol = form_definition.unit_symbol if form_definition is not None else None
+        unit_symbol = (
+            form_definition.unit_symbol if form_definition is not None else None
+        )
         form_parameters_json = (
-            json.dumps(record.form_parameters)
-            if record.form_parameters
-            else None
+            json.dumps(record.form_parameters) if record.form_parameters else None
         )
         range_min = None if record.range is None else record.range[0]
         range_max = None if record.range is None else record.range[1]
@@ -830,9 +834,13 @@ def compile_concept_sidecar_rows(
 
         for parameterization in record.parameterizations:
             if parameterization.formula is None:
-                raise ValueError(f"Parameterization for {concept_id} is missing formula")
+                raise ValueError(
+                    f"Parameterization for {concept_id} is missing formula"
+                )
             if parameterization.exactness is None:
-                raise ValueError(f"Parameterization for {concept_id} is missing exactness")
+                raise ValueError(
+                    f"Parameterization for {concept_id} is missing exactness"
+                )
             inputs = [str(input_id) for input_id in parameterization.inputs]
             conditions_json = (
                 json.dumps(list(parameterization.conditions))
@@ -867,7 +875,9 @@ def compile_concept_sidecar_rows(
     from propstore.parameterization_groups import build_groups
 
     groups = build_groups(concepts)
-    for group_id, group_members in enumerate(sorted(groups, key=lambda group: min(group))):
+    for group_id, group_members in enumerate(
+        sorted(groups, key=lambda group: min(group))
+    ):
         for concept_id in sorted(group_members):
             parameterization_group_rows.append(
                 ParameterizationGroup(

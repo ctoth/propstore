@@ -11,7 +11,10 @@ from pathlib import Path
 
 
 def _has_worker_arg(args: list[str]) -> bool:
-    return any(arg in {"-n", "--numprocesses"} or arg.startswith("--numprocesses=") for arg in args)
+    return any(
+        arg in {"-n", "--numprocesses"} or arg.startswith("--numprocesses=")
+        for arg in args
+    )
 
 
 def _default_pytest_args(pytest_args: list[str]) -> list[str]:

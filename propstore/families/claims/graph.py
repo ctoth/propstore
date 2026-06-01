@@ -125,7 +125,9 @@ def synthetic_claim_to_claim(
     )
     conditions_cel = json.dumps(synthetic.conditions) if synthetic.conditions else None
     conditions_ir = _conditions_ir_json(condition_set)
-    existing_numeric = None if existing_claim is None else existing_claim.numeric_payload
+    existing_numeric = (
+        None if existing_claim is None else existing_claim.numeric_payload
+    )
     existing_text = None if existing_claim is None else existing_claim.text_payload
     claim = Claim(
         id=synthetic.id,
@@ -206,7 +208,9 @@ def synthetic_claim_to_claim(
             if isinstance(synthetic.value, str)
             else (None if existing_text is None else existing_text.expression)
         ),
-        sympy_generated=None if existing_text is None else existing_text.sympy_generated,
+        sympy_generated=None
+        if existing_text is None
+        else existing_text.sympy_generated,
         sympy_error=None if existing_text is None else existing_text.sympy_error,
         name=None if existing_text is None else existing_text.name,
         measure=None if existing_text is None else existing_text.measure,
@@ -221,7 +225,9 @@ def synthetic_claim_to_claim(
     claim.concept_links = list(_synthetic_concept_links(synthetic))
     claim.numeric_payload = numeric_payload
     claim.text_payload = text_payload
-    claim.algorithm_payload = None if existing_claim is None else existing_claim.algorithm_payload
+    claim.algorithm_payload = (
+        None if existing_claim is None else existing_claim.algorithm_payload
+    )
     claim.source_assertions = (
         [] if existing_claim is None else list(existing_claim.source_assertions)
     )

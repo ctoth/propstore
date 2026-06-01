@@ -12,7 +12,9 @@ WHY_SET = st.sets(st.text(min_size=1, max_size=8), min_size=0, max_size=5)
 
 @given(WHY_SET, WHY_SET)
 @pytest.mark.property
-def test_why_support_api_name_matches_set_inclusion(left: set[str], right: set[str]) -> None:
+def test_why_support_api_name_matches_set_inclusion(
+    left: set[str], right: set[str]
+) -> None:
     support = WhySupport(tuple(sorted(left)))
     other = WhySupport(tuple(sorted(right)))
 

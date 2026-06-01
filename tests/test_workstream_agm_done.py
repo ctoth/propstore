@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 def test_agm_workstream_is_closed_with_required_sentinels() -> None:
-    workstream = Path("reviews/2026-05-05-agm-proposal/workstreams/WS-AGM-propstore-belief-set-cutover.md")
+    workstream = Path(
+        "reviews/2026-05-05-agm-proposal/workstreams/WS-AGM-propstore-belief-set-cutover.md"
+    )
     text = workstream.read_text(encoding="utf-8")
 
     assert "**Status**: CLOSED " in text
@@ -17,7 +19,9 @@ def test_agm_workstream_is_closed_with_required_sentinels() -> None:
 
 
 def test_agm_proposal_records_implemented_cutover() -> None:
-    proposal = Path("proposals/true-agm-revision-proposal.md").read_text(encoding="utf-8")
+    proposal = Path("proposals/true-agm-revision-proposal.md").read_text(
+        encoding="utf-8"
+    )
 
     assert "**Status:** Implemented for the Propstore cutover." in proposal
     assert "propstore.support_revision.belief_set_adapter" in proposal

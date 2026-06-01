@@ -7,7 +7,11 @@ from __future__ import annotations
 
 import pytest
 
-from argumentation.dung import ArgumentationFramework, grounded_extension, preferred_extensions
+from argumentation.dung import (
+    ArgumentationFramework,
+    grounded_extension,
+    preferred_extensions,
+)
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
 from propstore.families.claims.types import ClaimType
 from propstore.families.relations.declaration import Stance
@@ -56,9 +60,7 @@ def _claim_with_metadata(**metadata: object) -> ClaimNode:
             _test_provenance("test_claim_opinion"),
         )
     attributes = tuple(
-        (key, value)
-        for key, value in metadata.items()
-        if key not in opinion_keys
+        (key, value) for key, value in metadata.items() if key not in opinion_keys
     )
     return ClaimNode(
         claim_id=ClaimId("test_claim"),
@@ -81,15 +83,19 @@ def ProbabilisticAF(
     return ArgumentationProbabilisticAF(
         framework=framework,
         p_args={arg: _probability(probability) for arg, probability in p_args.items()},
-        p_defeats={edge: _probability(probability) for edge, probability in p_defeats.items()},
-        p_attacks=None if p_attacks is None else {
-            edge: _probability(probability)
-            for edge, probability in p_attacks.items()
+        p_defeats={
+            edge: _probability(probability) for edge, probability in p_defeats.items()
+        },
+        p_attacks=None
+        if p_attacks is None
+        else {
+            edge: _probability(probability) for edge, probability in p_attacks.items()
         },
         supports=supports,
-        p_supports=None if p_supports is None else {
-            edge: _probability(probability)
-            for edge, probability in p_supports.items()
+        p_supports=None
+        if p_supports is None
+        else {
+            edge: _probability(probability) for edge, probability in p_supports.items()
         },
         base_defeats=base_defeats,
     )
@@ -136,7 +142,10 @@ def test_praf_dataclass_construction():
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b")}),
     )
-    p_args = {"a": Opinion.dogmatic_true(_TEST_BASE_RATE), "b": Opinion.dogmatic_true(_TEST_BASE_RATE)}
+    p_args = {
+        "a": Opinion.dogmatic_true(_TEST_BASE_RATE),
+        "b": Opinion.dogmatic_true(_TEST_BASE_RATE),
+    }
     p_defeats = {("a", "b"): Opinion.dogmatic_true(_TEST_BASE_RATE)}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
@@ -198,12 +207,18 @@ def test_mc_convergence():
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result_coarse = compute_probabilistic_acceptance(
-        praf, semantics="grounded", strategy="mc",
-        mc_epsilon=0.1, rng_seed=42,
+        praf,
+        semantics="grounded",
+        strategy="mc",
+        mc_epsilon=0.1,
+        rng_seed=42,
     )
     result_fine = compute_probabilistic_acceptance(
-        praf, semantics="grounded", strategy="mc",
-        mc_epsilon=0.01, rng_seed=42,
+        praf,
+        semantics="grounded",
+        strategy="mc",
+        mc_epsilon=0.01,
+        rng_seed=42,
     )
 
     assert result_coarse.samples is not None
@@ -228,8 +243,12 @@ def test_public_exact_alias_routes_to_exact_enumeration():
         p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
-    aliased = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact")
-    direct = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact_enum")
+    aliased = compute_probabilistic_acceptance(
+        praf, semantics="grounded", strategy="exact"
+    )
+    direct = compute_probabilistic_acceptance(
+        praf, semantics="grounded", strategy="exact_enum"
+    )
 
     assert aliased.acceptance_probs == direct.acceptance_probs
     assert aliased.strategy_requested == "exact"
@@ -268,14 +287,20 @@ def test_mc_seeded_reproducibility():
     p_defeats = {("a", "b"): from_probability(0.7, 5)}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
-    r1 = compute_probabilistic_acceptance(praf, strategy="mc", mc_epsilon=0.05, rng_seed=123)
-    r2 = compute_probabilistic_acceptance(praf, strategy="mc", mc_epsilon=0.05, rng_seed=123)
+    r1 = compute_probabilistic_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05, rng_seed=123
+    )
+    r2 = compute_probabilistic_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05, rng_seed=123
+    )
 
     assert r1.acceptance_probs == r2.acceptance_probs
     assert r1.samples == r2.samples
 
     # Different seed — probs should be similar but possibly different sample counts
-    r3 = compute_probabilistic_acceptance(praf, strategy="mc", mc_epsilon=0.05, rng_seed=999)
+    r3 = compute_probabilistic_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05, rng_seed=999
+    )
     for arg in af.arguments:
         assert abs(r1.acceptance_probs[arg] - r3.acceptance_probs[arg]) < 0.15
 
@@ -354,7 +379,9 @@ def test_auto_does_not_round_near_certain_probabilities_to_deterministic():
     exact = compute_probabilistic_acceptance(praf, strategy="exact_enum")
 
     assert auto.strategy_used != "deterministic"
-    assert auto.acceptance_probs["A"] == pytest.approx(exact.acceptance_probs["A"], abs=1e-12)
+    assert auto.acceptance_probs["A"] == pytest.approx(
+        exact.acceptance_probs["A"], abs=1e-12
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +413,9 @@ def test_mc_known_example():
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     # Exact enumeration for ground truth
-    exact = compute_probabilistic_acceptance(praf, semantics="grounded", strategy="exact_enum")
+    exact = compute_probabilistic_acceptance(
+        praf, semantics="grounded", strategy="exact_enum"
+    )
     # P(A accepted) = 1.0 (always in grounded when present, which is always)
     assert abs(exact.acceptance_probs["a"] - 1.0) < 1e-6
     # P(B accepted) = 1 - P_D_exp (defeat absent => B in grounded)
@@ -394,8 +423,11 @@ def test_mc_known_example():
 
     # MC should agree within epsilon
     mc = compute_probabilistic_acceptance(
-        praf, semantics="grounded", strategy="mc",
-        mc_epsilon=0.02, rng_seed=42,
+        praf,
+        semantics="grounded",
+        strategy="mc",
+        mc_epsilon=0.02,
+        rng_seed=42,
     )
     assert abs(mc.acceptance_probs["a"] - exact.acceptance_probs["a"]) < 0.05
     assert abs(mc.acceptance_probs["b"] - exact.acceptance_probs["b"]) < 0.05
@@ -416,7 +448,9 @@ def test_mc_per_argument_acceptance():
     p_defeats = {d: from_probability(0.7, 5) for d in af.defeats}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
-    result = compute_probabilistic_acceptance(praf, strategy="mc", mc_epsilon=0.05, rng_seed=42)
+    result = compute_probabilistic_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05, rng_seed=42
+    )
 
     # All arguments should have acceptance probs
     assert set(result.acceptance_probs.keys()) == {"a", "b", "c"}
@@ -451,7 +485,9 @@ def test_connected_component_decomposition():
         ("c", "d"): from_probability(0.7, 5),
     }
     praf1 = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats_1)
-    r1 = compute_probabilistic_acceptance(praf1, strategy="mc", mc_epsilon=0.03, rng_seed=42)
+    r1 = compute_probabilistic_acceptance(
+        praf1, strategy="mc", mc_epsilon=0.03, rng_seed=42
+    )
 
     # Run 2: change component 1's P_D to 0.3, keep component 2 same
     p_defeats_2 = {
@@ -459,7 +495,9 @@ def test_connected_component_decomposition():
         ("c", "d"): from_probability(0.7, 5),
     }
     praf2 = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats_2)
-    r2 = compute_probabilistic_acceptance(praf2, strategy="mc", mc_epsilon=0.03, rng_seed=42)
+    r2 = compute_probabilistic_acceptance(
+        praf2, strategy="mc", mc_epsilon=0.03, rng_seed=42
+    )
 
     # Component 2 (c, d) should be unaffected
     assert abs(r1.acceptance_probs["c"] - r2.acceptance_probs["c"]) < 0.07
@@ -560,8 +598,16 @@ def test_build_praf_from_store():
 
 def test_build_praf_omits_uncalibrated_relation_from_probability_envelope():
     """A bare stance may remain deterministic claim-graph structure, but not PrAF certainty."""
-    from propstore.argumentation import build_praf_from_shared_input, shared_analyzer_input_from_active_graph
-    from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph, RelationEdge
+    from propstore.argumentation import (
+        build_praf_from_shared_input,
+        shared_analyzer_input_from_active_graph,
+    )
+    from propstore.core.graph_types import (
+        WorldActivationGraph,
+        ClaimNode,
+        CompiledWorldGraph,
+        RelationEdge,
+    )
 
     graph = WorldActivationGraph(
         compiled=CompiledWorldGraph(
@@ -632,7 +678,10 @@ def test_all_vacuous_defeats():
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result = compute_probabilistic_acceptance(
-        praf, strategy="mc", mc_epsilon=0.05, rng_seed=42,
+        praf,
+        strategy="mc",
+        mc_epsilon=0.05,
+        rng_seed=42,
     )
 
     # With P_D ~ 0.5, b is sometimes defeated, sometimes not
@@ -670,7 +719,10 @@ def test_acceptance_probs_sum_constraint():
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result = compute_probabilistic_acceptance(
-        praf, strategy="mc", mc_epsilon=0.03, rng_seed=42,
+        praf,
+        strategy="mc",
+        mc_epsilon=0.03,
+        rng_seed=42,
     )
 
     # With mutual attack under grounded semantics:
@@ -714,16 +766,19 @@ def test_mc_pa_lt_one_acceptance_bounded():
     )
     # Varying sub-unity existence probabilities
     p_args = {
-        "a": from_probability(0.3, 10),   # E ~ 0.30
-        "b": from_probability(0.7, 10),   # E ~ 0.70
-        "c": Opinion.dogmatic_true(_TEST_BASE_RATE),     # E = 1.0 (control)
+        "a": from_probability(0.3, 10),  # E ~ 0.30
+        "b": from_probability(0.7, 10),  # E ~ 0.70
+        "c": Opinion.dogmatic_true(_TEST_BASE_RATE),  # E = 1.0 (control)
     }
     p_defeats: dict[tuple[str, str], Opinion] = {}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result = compute_probabilistic_acceptance(
-        praf, semantics="grounded", strategy="mc",
-        mc_epsilon=0.02, rng_seed=42,
+        praf,
+        semantics="grounded",
+        strategy="mc",
+        mc_epsilon=0.02,
+        rng_seed=42,
     )
 
     # Core invariant: acceptance <= existence probability
@@ -765,8 +820,11 @@ def test_mc_pa_lt_one_with_defeats():
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result = compute_probabilistic_acceptance(
-        praf, semantics="grounded", strategy="mc",
-        mc_epsilon=0.02, rng_seed=42,
+        praf,
+        semantics="grounded",
+        strategy="mc",
+        mc_epsilon=0.02,
+        rng_seed=42,
     )
 
     # Core invariant: acceptance <= P_A for each argument
@@ -807,12 +865,18 @@ def test_mc_confidence_affects_ci_width():
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
     result_95 = compute_probabilistic_acceptance(
-        praf, strategy="mc", mc_epsilon=0.05,
-        mc_confidence=0.95, rng_seed=42,
+        praf,
+        strategy="mc",
+        mc_epsilon=0.05,
+        mc_confidence=0.95,
+        rng_seed=42,
     )
     result_99 = compute_probabilistic_acceptance(
-        praf, strategy="mc", mc_epsilon=0.05,
-        mc_confidence=0.99, rng_seed=42,
+        praf,
+        strategy="mc",
+        mc_epsilon=0.05,
+        mc_confidence=0.99,
+        rng_seed=42,
     )
 
     assert result_95.confidence_interval_half is not None
@@ -875,7 +939,10 @@ def test_component_praf_with_missing_p_defeats_keys():
     # is skipped) AND a defeat ("a","c") in framework.defeats that is
     # missing from p_defeats. _sample_subgraph crashes on lookup.
     result = compute_probabilistic_acceptance(
-        praf, strategy="mc", mc_epsilon=0.05, rng_seed=42,
+        praf,
+        strategy="mc",
+        mc_epsilon=0.05,
+        rng_seed=42,
     )
 
     # Primary assertion: no KeyError crash.  Deterministic defeat a->c is
@@ -916,7 +983,10 @@ def test_component_p_defeats_mismatch_direct():
         arguments=frozenset({"x", "y"}),
         defeats=frozenset({("x", "y")}),
     )
-    p_args = {"x": Opinion.dogmatic_true(_TEST_BASE_RATE), "y": Opinion.dogmatic_true(_TEST_BASE_RATE)}
+    p_args = {
+        "x": Opinion.dogmatic_true(_TEST_BASE_RATE),
+        "y": Opinion.dogmatic_true(_TEST_BASE_RATE),
+    }
     # p_defeats is EMPTY — the defeat ("x", "y") has no entry
     p_defeats: dict[tuple[str, str], Opinion] = {}
 
@@ -1086,6 +1156,7 @@ def _small_praf_strategy():
     random P_A opinions.  All P_D are dogmatic (certain defeats) so the
     COH constraint is purely about P_A values.
     """
+
     @st.composite
     def build(draw):
 
@@ -1177,10 +1248,7 @@ def _small_deterministic_praf_strategy():
         n_args = draw(st.integers(min_value=2, max_value=4))
         arg_names = [f"det{i}" for i in range(n_args)]
         possible_edges = [
-            (src, tgt)
-            for src in arg_names
-            for tgt in arg_names
-            if src != tgt
+            (src, tgt) for src in arg_names for tgt in arg_names if src != tgt
         ]
         defeats = frozenset(
             draw(
@@ -1196,7 +1264,9 @@ def _small_deterministic_praf_strategy():
                 defeats=defeats,
             ),
             p_args={arg: Opinion.dogmatic_true(_TEST_BASE_RATE) for arg in arg_names},
-            p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in defeats},
+            p_defeats={
+                edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in defeats
+            },
         )
 
     return build()
@@ -1277,9 +1347,7 @@ def test_coh_idempotent(praf):
     for arg in praf.framework.arguments:
         p1 = once.p_args[arg].expectation()
         p2 = twice.p_args[arg].expectation()
-        assert abs(p1 - p2) < 1e-6, (
-            f"arg {arg}: once={p1:.6f} vs twice={p2:.6f}"
-        )
+        assert abs(p1 - p2) < 1e-6, f"arg {arg}: once={p1:.6f} vs twice={p2:.6f}"
 
 
 # ---------------------------------------------------------------------------
@@ -1389,7 +1457,9 @@ def test_exact_dp_rejects_unsupported_skeptical_acceptance_mode():
         p_defeats={edge: Opinion.dogmatic_true(_TEST_BASE_RATE) for edge in af.defeats},
     )
 
-    with pytest.raises(ValueError, match="exact_dp only supports credulous argument acceptance queries"):
+    with pytest.raises(
+        ValueError, match="exact_dp only supports credulous argument acceptance queries"
+    ):
         compute_probabilistic_acceptance(
             praf,
             semantics="preferred",
@@ -1424,10 +1494,13 @@ def test_exact_dp_capability_surface_does_not_claim_extension_probability():
     """Exact-DP support flags must match the implementation we actually expose."""
     from argumentation.probabilistic import _exact_dp_supports_query
 
-    assert _exact_dp_supports_query(
-        query_kind="extension_probability",
-        inference_mode=None,
-    ) is False
+    assert (
+        _exact_dp_supports_query(
+            query_kind="extension_probability",
+            inference_mode=None,
+        )
+        is False
+    )
 
 
 def test_query_kind_argument_acceptance_requires_inference_mode():
@@ -1494,7 +1567,9 @@ def test_skeptical_acceptance_probability_never_exceeds_credulous(praf):
     )
 
     for arg in praf.framework.arguments:
-        assert skeptical.acceptance_probs[arg] <= credulous.acceptance_probs[arg] + 1e-12
+        assert (
+            skeptical.acceptance_probs[arg] <= credulous.acceptance_probs[arg] + 1e-12
+        )
 
 
 @pytest.mark.property
@@ -1538,11 +1613,11 @@ def test_deterministic_preferred_query_modes_match_extension_membership_property
     )
 
     extensions = preferred_extensions(praf.framework)
-    credulous_members = set().union(*(set(ext) for ext in extensions)) if extensions else set()
+    credulous_members = (
+        set().union(*(set(ext) for ext in extensions)) if extensions else set()
+    )
     skeptical_members = (
-        set.intersection(*(set(ext) for ext in extensions))
-        if extensions
-        else set()
+        set.intersection(*(set(ext) for ext in extensions)) if extensions else set()
     )
 
     for arg in praf.framework.arguments:
@@ -1569,7 +1644,11 @@ def test_coh_minimality_no_unnecessary_adjustment(praf):
     """
     from propstore.praf import enforce_coh
 
-    attacks = praf.framework.attacks if praf.framework.attacks is not None else praf.framework.defeats
+    attacks = (
+        praf.framework.attacks
+        if praf.framework.attacks is not None
+        else praf.framework.defeats
+    )
 
     result = enforce_coh(praf)
 
@@ -1623,9 +1702,7 @@ def test_coh_expectation_bounds(praf):
     result = enforce_coh(praf)
     for arg, op in result.p_args.items():
         e = op.expectation()
-        assert -1e-9 <= e <= 1.0 + 1e-9, (
-            f"{arg}: E(ω) = {e} out of [0, 1]"
-        )
+        assert -1e-9 <= e <= 1.0 + 1e-9, f"{arg}: E(ω) = {e} out of [0, 1]"
 
 
 # ── PrAF edge case property tests (audit-2026-03-28) ─────────────
@@ -1633,6 +1710,7 @@ def test_coh_expectation_bounds(praf):
 
 def _make_praf_with_self_attacks():
     """Strategy: PrAF with 2-3 args where self-attacks are possible."""
+
     @st.composite
     def build(draw):
 
@@ -1680,13 +1758,15 @@ def test_coh_self_attack_constrains_to_half(praf):
     from propstore.praf import enforce_coh
 
     result = enforce_coh(praf)
-    attacks = result.framework.attacks if result.framework.attacks is not None else result.framework.defeats
+    attacks = (
+        result.framework.attacks
+        if result.framework.attacks is not None
+        else result.framework.defeats
+    )
     for src, tgt in attacks:
         if src == tgt:
             e = result.p_args[src].expectation()
-            assert e <= 0.5 + 1e-9, (
-                f"Self-attacking arg {src}: E={e} > 0.5 after COH"
-            )
+            assert e <= 0.5 + 1e-9, f"Self-attacking arg {src}: E={e} > 0.5 after COH"
 
 
 @pytest.mark.property
@@ -1701,9 +1781,7 @@ def test_coh_with_self_attacks_idempotent(praf):
     for arg in praf.framework.arguments:
         p1 = once.p_args[arg].expectation()
         p2 = twice.p_args[arg].expectation()
-        assert abs(p1 - p2) < 1e-6, (
-            f"arg {arg}: once={p1:.6f} vs twice={p2:.6f}"
-        )
+        assert abs(p1 - p2) < 1e-6, f"arg {arg}: once={p1:.6f} vs twice={p2:.6f}"
 
 
 def test_praf_vacuous_argument_existence():
@@ -1726,7 +1804,10 @@ def test_praf_vacuous_argument_existence():
     p_defeats = {("a", "b"): Opinion.dogmatic_true(_TEST_BASE_RATE)}
     praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
     result = compute_probabilistic_acceptance(
-        praf, strategy="mc", mc_epsilon=0.05, rng_seed=42,
+        praf,
+        strategy="mc",
+        mc_epsilon=0.05,
+        rng_seed=42,
     )
     # With vacuous A (E=0.5), A exists ~50% of the time.
     # When A exists, it defeats B. When A absent, B is undefeated.
@@ -1747,8 +1828,3 @@ def test_praf_empty_framework():
     praf = ProbabilisticAF(framework=af, p_args={}, p_defeats={})
     result = compute_probabilistic_acceptance(praf, semantics="grounded")
     assert result.acceptance_probs == {}
-
-
-
-
-

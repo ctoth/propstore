@@ -108,7 +108,9 @@ def test_p5_at_journal_step_matches_direct_dispatch(triple) -> None:
                 continue
             if atom.atom_id not in accepted_atom_ids:
                 continue
-            ground_truth_claim_ids.update(str(claim_id) for claim_id in atom.source_claim_ids)
+            ground_truth_claim_ids.update(
+                str(claim_id) for claim_id in atom.source_claim_ids
+            )
         # Sanity check: the oracle path uses dispatch, the SUT uses snapshot_to_claim_ids
         # over the journal entry's state_out. They MUST agree on the claim-id set.
         view = at_journal_step(space, journal, k)

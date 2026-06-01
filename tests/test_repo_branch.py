@@ -9,6 +9,7 @@ Literature grounding:
 - Bonanno 2007: Backward Uniqueness (BU) — linear history per branch
 - Konieczny & Pino Pérez 2002: IC merging at merge points
 """
+
 from __future__ import annotations
 
 import pytest
@@ -89,7 +90,10 @@ def test_create_branch_kinds(tmp_path):
     kr.create_branch("agent/bar")
     kr.create_branch("hypothesis/baz")
 
-    branches = {b.name: b for b in RepositorySnapshot(Repository(tmp_path / "knowledge")).iter_branches()}
+    branches = {
+        b.name: b
+        for b in RepositorySnapshot(Repository(tmp_path / "knowledge")).iter_branches()
+    }
     assert branches["paper/foo"].kind == "paper"
     assert branches["agent/bar"].kind == "agent"
     assert branches["hypothesis/baz"].kind == "hypothesis"
@@ -212,7 +216,9 @@ def test_parallel_branch_divergence(tmp_path):
 
     # Diverge: B on master, C on branch
     kr.commit_files({"b.yaml": b"master-only\n"}, "commit B on master")
-    kr.commit_files({"c.yaml": b"branch-only\n"}, "commit C on branch", branch="paper/diverge")
+    kr.commit_files(
+        {"c.yaml": b"branch-only\n"}, "commit C on branch", branch="paper/diverge"
+    )
 
     # Master has A + B, not C
     assert kr.read_file("a.yaml") == b"shared\n"
@@ -277,7 +283,9 @@ def test_merge_base_deep_history(tmp_path):
 
     shas = []
     for i in range(5):
-        sha = kr.commit_files({f"f{i}.yaml": f"v: {i}\n".encode()}, f"master commit {i}")
+        sha = kr.commit_files(
+            {f"f{i}.yaml": f"v: {i}\n".encode()}, f"master commit {i}"
+        )
         shas.append(sha)
 
     # Branch at commit 3 (index 2, zero-based)
@@ -285,8 +293,12 @@ def test_merge_base_deep_history(tmp_path):
 
     # Two more on master (already have shas[3] and shas[4])
     # Two more on branch
-    kr.commit_files({"branch_1.yaml": b"b: 1\n"}, "branch commit 1", branch="paper/deep")
-    kr.commit_files({"branch_2.yaml": b"b: 2\n"}, "branch commit 2", branch="paper/deep")
+    kr.commit_files(
+        {"branch_1.yaml": b"b: 1\n"}, "branch commit 1", branch="paper/deep"
+    )
+    kr.commit_files(
+        {"branch_2.yaml": b"b: 2\n"}, "branch commit 2", branch="paper/deep"
+    )
 
     result = kr.merge_base("master", "paper/deep")
     assert result == shas[2]

@@ -17,7 +17,9 @@ def test_initialize_project_seeds_packaged_artifacts(tmp_path: Path) -> None:
     repo = Repository.find(root)
     entries = repo.git.flat_tree_entries()
     assert any(path.startswith("forms/") and path.endswith(".yaml") for path in entries)
-    assert any(path.startswith("concepts/") and path.endswith(".yaml") for path in entries)
+    assert any(
+        path.startswith("concepts/") and path.endswith(".yaml") for path in entries
+    )
 
 
 def test_initialize_project_reports_existing_project(tmp_path: Path) -> None:

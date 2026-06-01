@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from sqlalchemy import select
 from propstore.families.contexts.lifting import (
     IstProposition,
@@ -17,7 +21,11 @@ from propstore.families.contexts.declaration import (
 )
 from propstore.families.registry import world_schema
 from propstore.core.conditions.registry import ConceptInfo, KindType
-from propstore.core.conditions.solver import SolverSat, SolverUnknown, SolverUnknownReason
+from propstore.core.conditions.solver import (
+    SolverSat,
+    SolverUnknown,
+    SolverUnknownReason,
+)
 
 
 class _ConditionSolver:
@@ -53,7 +61,9 @@ def _system(condition: str) -> LiftingSystem:
     )
 
 
-def test_sidecar_materialization_rows_persist_decision_status_and_witness_reference() -> None:
+def test_sidecar_materialization_rows_persist_decision_status_and_witness_reference() -> (
+    None
+):
     assertion = IstProposition(
         context=ContextReference("ctx_source"),
         proposition_id="claim_alpha",
@@ -99,7 +109,9 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
     assert old_row.provenance_json != new_row.provenance_json
 
 
-def test_context_lifting_materialization_round_trips_through_sqlalchemy(tmp_path) -> None:
+def test_context_lifting_materialization_round_trips_through_sqlalchemy(
+    tmp_path,
+) -> None:
     schema = world_schema()
     assertion = IstProposition(
         context=ContextReference("ctx_source"),

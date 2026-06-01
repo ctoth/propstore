@@ -6,7 +6,10 @@ from pathlib import Path
 from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.entrenchment import compute_entrenchment
 from propstore.support_revision.state import BeliefBase, RevisionScope
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
+from tests.support_revision.revision_assertion_helpers import (
+    make_assertion_atom,
+    make_assumption_atom,
+)
 
 
 class _BoundStub:
@@ -15,7 +18,9 @@ class _BoundStub:
 
 
 def test_compute_entrenchment_source_override_outranks_default_ordering() -> None:
-    alpha = make_assertion_atom("alpha", source_paper="paper_alpha", label=Label.empty())
+    alpha = make_assertion_atom(
+        "alpha", source_paper="paper_alpha", label=Label.empty()
+    )
     beta = make_assertion_atom("beta", source_paper="paper_beta", label=Label.empty())
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
@@ -65,7 +70,10 @@ def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
     )
 
     assert report.ranked_atom_ids[0] == "assumption:env:x_eq_1"
-    assert report.reasons["assumption:env:x_eq_1"].override_priority == "protect-assumptions"
+    assert (
+        report.reasons["assumption:env:x_eq_1"].override_priority
+        == "protect-assumptions"
+    )
     assert report.reasons["assumption:env:x_eq_1"].override_key == "kind:assumption"
 
 

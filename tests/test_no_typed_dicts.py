@@ -10,9 +10,7 @@ PROPSTORE = ROOT / "propstore"
 
 def _production_files() -> list[Path]:
     return sorted(
-        path
-        for path in PROPSTORE.rglob("*.py")
-        if "__pycache__" not in path.parts
+        path for path in PROPSTORE.rglob("*.py") if "__pycache__" not in path.parts
     )
 
 
@@ -28,21 +26,42 @@ def test_production_code_does_not_use_typed_dicts() -> None:
             if isinstance(node, ast.ImportFrom):
                 for alias in node.names:
                     if alias.name == "TypedDict":
-                        offenders.append((_relative(path), node.lineno, "import TypedDict"))
+                        offenders.append(
+                            (_relative(path), node.lineno, "import TypedDict")
+                        )
             elif isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name == "typing":
-                        offenders.append((_relative(path), node.lineno, "import typing"))
+                        offenders.append(
+                            (_relative(path), node.lineno, "import typing")
+                        )
             elif isinstance(node, ast.ClassDef):
                 for base in node.bases:
                     if isinstance(base, ast.Name) and base.id == "TypedDict":
-                        offenders.append((_relative(path), node.lineno, f"class {node.name}(TypedDict)"))
+                        offenders.append(
+                            (
+                                _relative(path),
+                                node.lineno,
+                                f"class {node.name}(TypedDict)",
+                            )
+                        )
                     elif isinstance(base, ast.Attribute) and base.attr == "TypedDict":
-                        offenders.append((_relative(path), node.lineno, f"class {node.name}(typing.TypedDict)"))
+                        offenders.append(
+                            (
+                                _relative(path),
+                                node.lineno,
+                                f"class {node.name}(typing.TypedDict)",
+                            )
+                        )
             elif isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name) and node.func.id == "TypedDict":
                     offenders.append((_relative(path), node.lineno, "TypedDict(...)"))
-                elif isinstance(node.func, ast.Attribute) and node.func.attr == "TypedDict":
-                    offenders.append((_relative(path), node.lineno, "typing.TypedDict(...)"))
+                elif (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "TypedDict"
+                ):
+                    offenders.append(
+                        (_relative(path), node.lineno, "typing.TypedDict(...)")
+                    )
 
     assert offenders == []

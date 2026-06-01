@@ -13,7 +13,11 @@ def _is_opinion_call(node: ast.Call) -> bool:
 
 
 def _is_zero_literal(node: ast.AST) -> bool:
-    return isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and node.value == 0
+    return (
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, (int, float))
+        and node.value == 0
+    )
 
 
 def _dogmatic_uncertainty_argument(node: ast.Call) -> bool:
@@ -26,7 +30,9 @@ def _dogmatic_uncertainty_argument(node: ast.Call) -> bool:
 def _has_explicit_dogmatic_allowance(node: ast.Call) -> bool:
     for keyword in node.keywords:
         if keyword.arg == "allow_dogmatic":
-            return isinstance(keyword.value, ast.Constant) and keyword.value.value is True
+            return (
+                isinstance(keyword.value, ast.Constant) and keyword.value.value is True
+            )
     return False
 
 
@@ -60,6 +66,8 @@ def test_dogmatic_opinion_constructors_are_explicitly_cited() -> None:
                 violations.append(f"{path}:{node.lineno} missing allow_dogmatic=True")
                 continue
             if not _allowance_line_has_tautology_citation(node, source_lines):
-                violations.append(f"{path}:{node.lineno} missing same-line Josang 2001 tautology citation")
+                violations.append(
+                    f"{path}:{node.lineno} missing same-line Josang 2001 tautology citation"
+                )
 
     assert violations == []

@@ -29,7 +29,9 @@ def debug_context_fixture() -> None:
         forms.mkdir(parents=True)
         (counters / "global.next").write_text("2\n", encoding="utf-8")
         (forms / "structural.yaml").write_text(
-            yaml.dump({"name": "structural", "dimensionless": True}, default_flow_style=False),
+            yaml.dump(
+                {"name": "structural", "dimensionless": True}, default_flow_style=False
+            ),
             encoding="utf-8",
         )
 
@@ -48,7 +50,9 @@ def debug_context_fixture() -> None:
             default_domain="test",
         )[0]
         concept_path = concepts / "test_concept.yaml"
-        concept_path.write_text(yaml.dump(concept_payload, default_flow_style=False), encoding="utf-8")
+        concept_path.write_text(
+            yaml.dump(concept_payload, default_flow_style=False), encoding="utf-8"
+        )
 
         loaded = load_document(concept_path, ConceptDocument, knowledge_root=knowledge)
         normalized = normalize_loaded_concepts([loaded])[0]
@@ -182,8 +186,18 @@ def debug_physics_parameterizations() -> None:
 
         conn = sqlite3.connect(repo.sidecar_path)
         conn.row_factory = sqlite3.Row
-        concepts = [dict(row) for row in conn.execute("SELECT id, canonical_name, logical_ids_json FROM concept ORDER BY id")]
-        params = [dict(row) for row in conn.execute("SELECT * FROM parameterization ORDER BY output_concept_id")]
+        concepts = [
+            dict(row)
+            for row in conn.execute(
+                "SELECT id, canonical_name, logical_ids_json FROM concept ORDER BY id"
+            )
+        ]
+        params = [
+            dict(row)
+            for row in conn.execute(
+                "SELECT * FROM parameterization ORDER BY output_concept_id"
+            )
+        ]
         conn.close()
         print("== physics concepts ==")
         print(json.dumps(concepts, indent=2, sort_keys=True))

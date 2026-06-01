@@ -51,7 +51,9 @@ class MicropublicationBehavior:
     def claim_ids(self) -> tuple[str, ...]:
         return tuple(
             link.claim_id
-            for link in sorted(self.claim_links, key=lambda link: (link.seq, link.claim_id))
+            for link in sorted(
+                self.claim_links, key=lambda link: (link.seq, link.claim_id)
+            )
         )
 
 
@@ -145,7 +147,9 @@ class MicropublicationDocument(CharterDoc):
         ProvenanceDocument | None,
         charter_field(column_name="provenance_json", json=True, nullable=True),
     ] = None
-    source: Annotated[str | None, charter_field(column_name="source_slug", nullable=True)] = None
+    source: Annotated[
+        str | None, charter_field(column_name="source_slug", nullable=True)
+    ] = None
 
 
 MICROPUBLICATION_CHARTER: FamilyCharter = MicropublicationDocument.__charter__
@@ -207,7 +211,9 @@ class Micropublication_claimDocument(CharterDoc):
     seq: Annotated[int, charter_field(nullable=False)]
 
 
-MICROPUBLICATION_CLAIM_CHARTER: FamilyCharter = Micropublication_claimDocument.__charter__
+MICROPUBLICATION_CLAIM_CHARTER: FamilyCharter = (
+    Micropublication_claimDocument.__charter__
+)
 
 
 SOURCE_MICROPUBLICATION_BATCH_SPEC = DocumentBatchSpec(
@@ -286,12 +292,10 @@ def compile_micropublication_models_with_diagnostics(
                 evidence_json=micropub.evidence,
                 stance=None if micropub.stance is None else str(micropub.stance),
                 provenance_json=(
-                    None
-                    if micropub.provenance is None
-                    else micropub.provenance
+                    None if micropub.provenance is None else micropub.provenance
                 ),
                 source_slug=micropub.source,
-            )
+            ),
         )
         for seq, claim_id in enumerate(resolved_claims, start=1):
             claim_links.setdefault(
@@ -300,7 +304,7 @@ def compile_micropublication_models_with_diagnostics(
                     micropublication_id=micropub.artifact_id,
                     claim_id=claim_id,
                     seq=seq,
-                )
+                ),
             )
 
     return (

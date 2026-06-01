@@ -146,8 +146,12 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
     )
     assert promote.exit_code == 0, promote.output
 
-    promoted_claims = [handle.document for handle in repo.families.claims.iter_handles()]
-    promoted_statements = {claim.statement for claim in promoted_claims if claim.statement}
+    promoted_claims = [
+        handle.document for handle in repo.families.claims.iter_handles()
+    ]
+    promoted_statements = {
+        claim.statement for claim in promoted_claims if claim.statement
+    }
     assert promoted_statements == {"Known concept observation."}
 
     store_path = materialized_world_store_path(

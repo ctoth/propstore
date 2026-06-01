@@ -215,9 +215,7 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
     """
 
     if not isinstance(spec, str) or spec == "":
-        raise DerivedFromParseError(
-            "derived_from spec must be a non-empty string"
-        )
+        raise DerivedFromParseError("derived_from spec must be a non-empty string")
 
     if spec == "claim.context":
         return DerivedFromSpec(kind="claim_context")
@@ -290,9 +288,7 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
 
     if prefix == "claim.role":
         if remainder == "":
-            raise DerivedFromParseError(
-                f"claim.role spec has empty role: {spec!r}"
-            )
+            raise DerivedFromParseError(f"claim.role spec has empty role: {spec!r}")
         if ":" in remainder:
             raise DerivedFromParseError(
                 f"claim.role spec has extra ':' in role: {spec!r}"
@@ -316,9 +312,7 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
             provenance_field=remainder,
         )
 
-    raise DerivedFromParseError(
-        f"unknown derived_from prefix {prefix!r}: {spec!r}"
-    )
+    raise DerivedFromParseError(f"unknown derived_from prefix {prefix!r}: {spec!r}")
 
 
 class PredicateRegistry:

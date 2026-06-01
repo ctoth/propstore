@@ -40,7 +40,9 @@ class ProposalPromotionResult(Generic[RefT]):
 
 
 class UnknownProposalPath(ValueError):
-    def __init__(self, requested_path: str, available_filenames: tuple[str, ...]) -> None:
+    def __init__(
+        self, requested_path: str, available_filenames: tuple[str, ...]
+    ) -> None:
         self.requested_path = requested_path
         self.available_filenames = available_filenames
         available = ", ".join(available_filenames) if available_filenames else "<none>"

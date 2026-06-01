@@ -17,6 +17,7 @@ from propstore.families.claims.types import ClaimType
 from propstore.core.id_types import ConceptId
 from propstore.families.claims.declaration import VariableBindingDocument
 
+
 class ClaimStage(StrEnum):
     AUTHORED = "claim.authored"
     CHECKED = "claim.checked"
@@ -31,7 +32,9 @@ class ClaimAlgorithmVariable:
         metadata={"payload": "concept"},
     )
     role: str | None = field(default=None, metadata={"payload": "role"})
-    attributes: Mapping[str, Any] = field(default_factory=dict, metadata={"payload_rest": True})
+    attributes: Mapping[str, Any] = field(
+        default_factory=dict, metadata={"payload_rest": True}
+    )
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "attributes", dict(self.attributes))
@@ -105,7 +108,9 @@ def parse_claim_algorithm_variables(
         except json.JSONDecodeError:
             return ()
     if isinstance(loaded, Mapping):
-        raise ValueError("algorithm claim variables must be a list of variable bindings")
+        raise ValueError(
+            "algorithm claim variables must be a list of variable bindings"
+        )
     if isinstance(loaded, list):
         variables: list[ClaimAlgorithmVariable] = []
         for entry in loaded:

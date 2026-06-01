@@ -10,7 +10,13 @@ from quire import canonical_json_sha256
 
 from propstore.families.identity import logical_ids
 
-CLAIM_VERSION_ID_EXCLUDED_FIELDS = ("artifact_id", "version_id", "id", "source_local_id", "source")
+CLAIM_VERSION_ID_EXCLUDED_FIELDS = (
+    "artifact_id",
+    "version_id",
+    "id",
+    "source_local_id",
+    "source",
+)
 CLAIM_SOURCE_LOCAL_FIELDS = ("id", "source_local_id", "artifact_code")
 DEFAULT_CLAIM_NAMESPACE = "source"
 DEFAULT_CLAIM_HANDLE_PREFIX = "claim"
@@ -149,7 +155,9 @@ def _normalize_claim_file_entry(
         default_namespace=default_namespace,
     )
 
-    primary_namespace, primary_value = _primary_logical_handle(normalized["logical_ids"])
+    primary_namespace, primary_value = _primary_logical_handle(
+        normalized["logical_ids"]
+    )
     artifact_id = normalized.get("artifact_id")
     if not isinstance(artifact_id, str) or not artifact_id:
         artifact_id = derive_claim_artifact_id(primary_namespace, primary_value)
@@ -218,7 +226,9 @@ def _primary_logical_handle(entries: list[dict[str, str]]) -> tuple[str, str]:
     return str(first["namespace"]), str(first["value"])
 
 
-def _rewrite_stance_targets(claim: dict[str, Any], local_handle_map: dict[str, str]) -> None:
+def _rewrite_stance_targets(
+    claim: dict[str, Any], local_handle_map: dict[str, str]
+) -> None:
     stances = claim.get("stances")
     if not isinstance(stances, list):
         return
@@ -250,8 +260,12 @@ def _canonical_logical_ids(value: object) -> list[dict[str, str]]:
         namespace = entry.get("namespace")
         logical_value = entry.get("value")
         if isinstance(namespace, str) and isinstance(logical_value, str):
-            normalized_handles.append({
-                "namespace": namespace,
-                "value": logical_value,
-            })
-    return sorted(normalized_handles, key=lambda item: (item["namespace"], item["value"]))
+            normalized_handles.append(
+                {
+                    "namespace": namespace,
+                    "value": logical_value,
+                }
+            )
+    return sorted(
+        normalized_handles, key=lambda item: (item["namespace"], item["value"])
+    )

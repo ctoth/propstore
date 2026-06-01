@@ -5,7 +5,9 @@ from tests.support_revision.revision_assertion_helpers import make_assertion_ato
 from tests.test_revision_iterated import _history_sensitive_base
 
 
-def test_iterated_revision_uses_adapter_formal_decision_and_support_realization() -> None:
+def test_iterated_revision_uses_adapter_formal_decision_and_support_realization() -> (
+    None
+):
     base, entrenchment, _, ids = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
     new_atom = make_assertion_atom("new")

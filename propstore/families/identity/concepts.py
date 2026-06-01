@@ -129,7 +129,9 @@ def normalize_canonical_concept_payload(
     return normalized
 
 
-def concept_reference_keys(data: dict[str, Any], *, raw_id: str | None = None) -> set[str]:
+def concept_reference_keys(
+    data: dict[str, Any], *, raw_id: str | None = None
+) -> set[str]:
     reference_keys: set[str] = set()
     _add_reference_key(reference_keys, data.get("artifact_id"))
     _add_reference_key(reference_keys, data.get("canonical_name"))
@@ -165,11 +167,15 @@ def _canonical_logical_ids(value: object) -> list[dict[str, str]]:
         namespace = entry.get("namespace")
         logical_value = entry.get("value")
         if isinstance(namespace, str) and isinstance(logical_value, str):
-            normalized_handles.append({
-                "namespace": namespace,
-                "value": logical_value,
-            })
-    return sorted(normalized_handles, key=lambda item: (item["namespace"], item["value"]))
+            normalized_handles.append(
+                {
+                    "namespace": namespace,
+                    "value": logical_value,
+                }
+            )
+    return sorted(
+        normalized_handles, key=lambda item: (item["namespace"], item["value"])
+    )
 
 
 def _sorted_dicts(value: list[object]) -> list[dict[str, Any]]:

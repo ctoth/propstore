@@ -3,6 +3,7 @@
 This module owns validation/build orchestration. CLI modules are responsible
 for presenting these reports, not for deciding which compiler passes run.
 """
+
 from __future__ import annotations
 
 import os
@@ -27,7 +28,11 @@ from propstore.compiler.context import (
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.references import build_claim_file_reference_index
-from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle, ClaimStage
+from propstore.families.claims.stages import (
+    ClaimAuthoredFiles,
+    ClaimCheckedBundle,
+    ClaimStage,
+)
 from propstore.families.claims.declaration import (
     compile_authored_justification_models_with_diagnostics,
     compile_claim_models,
@@ -479,9 +484,7 @@ def _write_repository_world_store_file(
                 claim_checked_bundle = claim_pipeline_result.output
                 claim_bundle = claim_checked_bundle.bundle
     normalized_claim_files = (
-        tuple(claim_bundle.normalized_claim_files)
-        if claim_bundle is not None
-        else None
+        tuple(claim_bundle.normalized_claim_files) if claim_bundle is not None else None
     )
     source_models = compile_source_models(
         (
@@ -608,7 +611,9 @@ def _write_repository_world_store_file(
                 derived.add_all(concept_models.concept_rows)
                 derived.add_all(concept_models.alias_rows)
                 derived.add_all(concept_models.relationship_rows)
-                derived.add_family_all("relation_edge", concept_models.relation_edge_rows)
+                derived.add_family_all(
+                    "relation_edge", concept_models.relation_edge_rows
+                )
                 derived.add_all(concept_models.parameterization_rows)
                 derived.add_all(concept_models.parameterization_group_rows)
                 derived.add_all(concept_models.form_algebra_rows)
@@ -752,11 +757,17 @@ def _enforce_cel_structural_invariants(
         iter_context_assumption_expressions,
         validate_cel_expressions,
     )
-    from propstore.claims import claim_file_claims, claim_file_source_paper, claim_file_filename
+    from propstore.claims import (
+        claim_file_claims,
+        claim_file_source_paper,
+        claim_file_filename,
+    )
 
     diagnostics: list[PassDiagnostic] = []
 
-    def _record(family, stage, message: str, *, filename: str | None, artifact_id: str | None):
+    def _record(
+        family, stage, message: str, *, filename: str | None, artifact_id: str | None
+    ):
         diagnostics.append(
             PassDiagnostic(
                 level="error",
@@ -1072,7 +1083,9 @@ def build_repository(
                     message=str(exc),
                     family=PropstoreFamily.CLAIMS,
                     stage=ClaimStage.AUTHORED,
-                    filename=repo.families.claims.address(ref, commit=hash_key).require_path(),
+                    filename=repo.families.claims.address(
+                        ref, commit=hash_key
+                    ).require_path(),
                     artifact_id=artifact_id,
                     pass_name="compiler.build_repository",
                 )
@@ -1203,8 +1216,7 @@ def build_repository(
     )
     if strict_authoring and authoring_lints:
         authoring_errors = tuple(
-            replace(diagnostic, level="error")
-            for diagnostic in authoring_lints
+            replace(diagnostic, level="error") for diagnostic in authoring_lints
         )
         raise CompilerWorkflowError(
             f"Build aborted: {len(authoring_errors)} authoring error(s)",
@@ -1256,7 +1268,10 @@ def build_repository(
         real_conflicts: list[BuildConflictLine] = []
         for conflict in conflicts:
             warning_class = conflict.warning_class
-            if warning_class in (ConflictClass.PHI_NODE, ConflictClass.CONTEXT_PHI_NODE):
+            if warning_class in (
+                ConflictClass.PHI_NODE,
+                ConflictClass.CONTEXT_PHI_NODE,
+            ):
                 key = f"{warning_class.value}: {conflict.concept_id}"
                 phi_groups[key].add(str(conflict.claim_a_id))
                 phi_groups[key].add(str(conflict.claim_b_id))

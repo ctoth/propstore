@@ -22,8 +22,12 @@ class MaterializeRequest:
     force: bool = False
 
 
-def materialize_repository(repo: Repository, request: MaterializeRequest) -> MaterializeReport:
-    target_repo = Repository.find(request.directory) if request.directory is not None else repo
+def materialize_repository(
+    repo: Repository, request: MaterializeRequest
+) -> MaterializeReport:
+    target_repo = (
+        Repository.find(request.directory) if request.directory is not None else repo
+    )
     try:
         return target_repo.snapshot.materialize(
             commit=request.commit,

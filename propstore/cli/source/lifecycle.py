@@ -6,7 +6,13 @@ from pathlib import Path
 
 import click
 
-from propstore.cli.output import emit, emit_error, emit_success, emit_table, emit_warning
+from propstore.cli.output import (
+    emit,
+    emit_error,
+    emit_success,
+    emit_table,
+    emit_warning,
+)
 from propstore.compiler.errors import CompilerWorkflowError
 
 from propstore.app.sources import (
@@ -40,7 +46,9 @@ def _emit_workflow_messages(messages) -> None:
 @click.option("--kind", "kind_name", required=True)
 @click.option("--origin-type", required=True)
 @click.option("--origin-value", required=True)
-@click.option("--content-file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--content-file", type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
 @click.pass_obj
 def source_init(
     obj: dict,
@@ -153,7 +161,9 @@ def source_status(obj: dict, name: str) -> None:
             rows.append((row.claim_id, row.promotion_status, "(no diagnostic)"))
             continue
         for diag in row.diagnostics:
-            rows.append((row.claim_id, row.promotion_status, f"[{diag.kind}] {diag.message}"))
+            rows.append(
+                (row.claim_id, row.promotion_status, f"[{diag.kind}] {diag.message}")
+            )
     emit_table(("CLAIM ID", "STATUS", "MESSAGE"), rows)
 
 
@@ -170,9 +180,7 @@ def source_list(obj: dict) -> None:
     if not report.items:
         emit("No source branches.")
         return
-    rows = tuple(
-        (item.name, item.branch, item.tip_sha[:12]) for item in report.items
-    )
+    rows = tuple((item.name, item.branch, item.tip_sha[:12]) for item in report.items)
     emit_table(("NAME", "BRANCH", "TIP"), rows)
 
 
@@ -194,10 +202,22 @@ def sync(obj: dict, name: str, output_dir: Path | None) -> None:
 
 @source.command("stamp-provenance")
 @click.argument("name")
-@click.option("--file", "file_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--file",
+    "file_path",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
 @click.option("--agent", required=True)
 @click.option("--skill", "skill_name", required=True)
-@click.option("--status", "status_value", required=True, type=click.Choice([status.value for status in ProvenanceStatus], case_sensitive=False))
+@click.option(
+    "--status",
+    "status_value",
+    required=True,
+    type=click.Choice(
+        [status.value for status in ProvenanceStatus], case_sensitive=False
+    ),
+)
 @click.option("--plugin-version", required=False)
 def stamp_provenance(
     name: str,

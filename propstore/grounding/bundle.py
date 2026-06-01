@@ -48,7 +48,9 @@ if TYPE_CHECKING:
     from gunray import Argument, GroundingInspection
 
 
-def _build_empty_sections() -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
+def _build_empty_sections() -> Mapping[
+    str, Mapping[str, frozenset[tuple[Scalar, ...]]]
+]:
     """Return a read-only four-valued section map with every bucket empty.
 
     Garcia & Simari 2004 §4 (p.25): the four-valued answer system
@@ -94,10 +96,7 @@ class GroundingProjectionFrame:
             self,
             "substitutions",
             tuple(
-                tuple(
-                    (str(name), value)
-                    for name, value in substitution
-                )
+                tuple((str(name), value) for name, value in substitution)
                 for substitution in self.substitutions
             ),
         )
@@ -148,7 +147,9 @@ class GroundedRulesBundle:
     source_superiority: tuple[RuleSuperiorityDocument, ...] = ()
     arguments: tuple["Argument", ...] = field(default_factory=tuple)
     grounding_inspection: "GroundingInspection | None" = None
-    projection_frames: tuple[GroundingProjectionFrame, ...] = field(default_factory=tuple)
+    projection_frames: tuple[GroundingProjectionFrame, ...] = field(
+        default_factory=tuple
+    )
     status: str = "complete"
     budget_reason: str | None = None
 

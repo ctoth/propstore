@@ -59,7 +59,9 @@ class _World:
         ]
         if concept_id is None:
             return rows
-        return [claim for claim in rows if str(claim.value_concept_id or "") == concept_id]
+        return [
+            claim for claim in rows if str(claim.value_concept_id or "") == concept_id
+        ]
 
     def all_claim_stances(self) -> list[Stance]:
         return list(self.stances)
@@ -128,7 +130,9 @@ def test_claim_neighborhood_reports_moves_edges_and_rows(
             _stance("attacker", "rebuts", "focus"),
         ),
     )
-    monkeypatch.setattr(neighborhoods, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        neighborhoods, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     report = build_semantic_neighborhood(
         _repo(),
@@ -151,7 +155,9 @@ def test_claim_neighborhood_marks_blocked_focus(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _World(claims=(_claim("focus"),), visible_ids=())
-    monkeypatch.setattr(neighborhoods, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        neighborhoods, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     with pytest.raises(ClaimViewBlockedError, match="Not Found"):
         build_semantic_neighborhood(
@@ -172,7 +178,9 @@ def test_claim_neighborhood_reports_unknown_claim(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _World(claims=())
-    monkeypatch.setattr(neighborhoods, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        neighborhoods, "open_app_world_model", lambda repo: _open_world(world)
+    )
 
     with pytest.raises(ClaimViewUnknownClaimError, match="missing"):
         build_semantic_neighborhood(

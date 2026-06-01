@@ -53,11 +53,16 @@ def test_condition_ir_projects_decidable_fragment_to_z3() -> None:
 
     expression = condition_ir_to_z3(condition)
     solver = z3.Solver()
-    solver.add(*z3_bindings_for_values(condition, {
-        "temperature": 22,
-        "humid": True,
-        "phase": "draft",
-    }))
+    solver.add(
+        *z3_bindings_for_values(
+            condition,
+            {
+                "temperature": 22,
+                "humid": True,
+                "phase": "draft",
+            },
+        )
+    )
     solver.add(expression)
 
     assert solver.check() == z3.sat

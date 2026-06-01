@@ -44,7 +44,9 @@ def _predicate_fixture() -> str:
     )
 
 
-def test_propose_predicates_commits_only_to_proposal_branch(monkeypatch, tmp_path) -> None:
+def test_propose_predicates_commits_only_to_proposal_branch(
+    monkeypatch, tmp_path
+) -> None:
     from propstore.heuristic import predicate_extraction
 
     repo = Repository.init(tmp_path / "knowledge")
@@ -61,7 +63,12 @@ def test_propose_predicates_commits_only_to_proposal_branch(monkeypatch, tmp_pat
     )
 
     assert result.commit_sha is not None
-    assert repo.families.predicates.load(predicate_extraction.canonical_predicate_ref(PAPER)) is None
+    assert (
+        repo.families.predicates.load(
+            predicate_extraction.canonical_predicate_ref(PAPER)
+        )
+        is None
+    )
     document = repo.families.proposal_predicates.require(
         PredicateProposalRef(PAPER),
         commit=result.commit_sha,
@@ -105,4 +112,6 @@ def test_propose_predicates_dry_run_does_not_commit(monkeypatch, tmp_path) -> No
 
     assert result.commit_sha is None
     assert len(result.declarations) == 4
-    assert repo.git.branch_sha(predicate_extraction.predicate_proposal_branch()) == before
+    assert (
+        repo.git.branch_sha(predicate_extraction.predicate_proposal_branch()) == before
+    )

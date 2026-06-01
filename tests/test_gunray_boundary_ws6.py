@@ -66,6 +66,11 @@ def test_ws6_grounder_bundle_carries_typed_grounding_substitutions() -> None:
     assert bundle.grounding_inspection is not None
     instances = bundle.grounding_inspection.defeasible_rules
     assert [
-        (instance.rule_id, instance.head.predicate, instance.head.arguments, instance.substitution)
+        (
+            instance.rule_id,
+            instance.head.predicate,
+            instance.head.arguments,
+            instance.substitution,
+        )
         for instance in instances
     ] == [("birds_fly", "flies", ("tweety",), (("X", "tweety"),))]

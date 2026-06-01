@@ -1,4 +1,5 @@
 """pks — the propstore CLI."""
+
 from __future__ import annotations
 
 import os
@@ -13,37 +14,89 @@ if TYPE_CHECKING:
     from propstore.repository import Repository
 
 _COMMANDS: dict[str, tuple[str, str, str]] = {
-    "build": ("propstore.cli.compiler_cmds", "build", "Validate, build sidecar, and run conflict detection."),
-    "checkout": ("propstore.cli.history_cmds", "checkout_cmd", "Checkout a repository commit."),
+    "build": (
+        "propstore.cli.compiler_cmds",
+        "build",
+        "Validate, build sidecar, and run conflict detection.",
+    ),
+    "checkout": (
+        "propstore.cli.history_cmds",
+        "checkout_cmd",
+        "Checkout a repository commit.",
+    ),
     "claim": ("propstore.cli.claim", "claim", "Manage claims."),
     "concept": ("propstore.cli.concept", "concept", "Manage concepts in the registry."),
-    "contract-manifest": ("propstore.cli.contracts", "contract_manifest", "Render or write contract manifest."),
+    "contract-manifest": (
+        "propstore.cli.contracts",
+        "contract_manifest",
+        "Render or write contract manifest.",
+    ),
     "context": ("propstore.cli.context", "context", "Manage contexts."),
     "diff": ("propstore.cli.history_cmds", "diff_cmd", "Show repository changes."),
-    "export-aliases": ("propstore.cli.compiler_cmds", "export_aliases", "Export concept aliases."),
+    "export-aliases": (
+        "propstore.cli.compiler_cmds",
+        "export_aliases",
+        "Export concept aliases.",
+    ),
     "form": ("propstore.cli.form", "form", "Manage form definitions."),
-    "grounding": ("propstore.cli.grounding_cmds", "grounding", "Inspect grounding artifacts."),
+    "grounding": (
+        "propstore.cli.grounding_cmds",
+        "grounding",
+        "Inspect grounding artifacts.",
+    ),
     "import-repository": (
         "propstore.cli.repository_import_cmd",
         "import_repository_cmd",
         "Import a repository snapshot.",
     ),
-    "init": ("propstore.cli.init", "init", "Initialize a propstore knowledge repository."),
-    "log": ("propstore.cli.history_cmds", "log_cmd", "Show knowledge repository history."),
-    "materialize": ("propstore.cli.materialize", "materialize_cmd", "Project committed artifacts to loose files."),
+    "init": (
+        "propstore.cli.init",
+        "init",
+        "Initialize a propstore knowledge repository.",
+    ),
+    "log": (
+        "propstore.cli.history_cmds",
+        "log_cmd",
+        "Show knowledge repository history.",
+    ),
+    "materialize": (
+        "propstore.cli.materialize",
+        "materialize_cmd",
+        "Project committed artifacts to loose files.",
+    ),
     "merge": ("propstore.cli.merge_cmds", "merge", "Merge repository branches."),
     "micropub": ("propstore.cli.micropub", "micropub", "Manage micropublications."),
-    "observatory": ("propstore.cli.observatory", "observatory", "Run epistemic observatory fixtures."),
-    "predicate": ("propstore.cli.predicate", "predicate", "Declare DeLP/Datalog predicates."),
+    "observatory": (
+        "propstore.cli.observatory",
+        "observatory",
+        "Run epistemic observatory fixtures.",
+    ),
+    "predicate": (
+        "propstore.cli.predicate",
+        "predicate",
+        "Declare DeLP/Datalog predicates.",
+    ),
     "proposal": ("propstore.cli.proposal", "proposal", "Manage proposal artifacts."),
     "rule": ("propstore.cli.rule", "rule", "Author DeLP rules."),
     "show": ("propstore.cli.history_cmds", "show_cmd", "Show a repository commit."),
-    "source": ("propstore.cli.source", "source", "Manage source-local authoring state."),
-    "validate": ("propstore.cli.compiler_cmds", "validate", "Validate concepts and claims."),
+    "source": (
+        "propstore.cli.source",
+        "source",
+        "Manage source-local authoring state.",
+    ),
+    "validate": (
+        "propstore.cli.compiler_cmds",
+        "validate",
+        "Validate concepts and claims.",
+    ),
     "verify": ("propstore.cli.verify", "verify", "Verify repository evidence."),
     "web": ("propstore.cli.web", "web", "Serve the propstore web UI."),
     "world": ("propstore.cli.world", "world", "Query the world model."),
-    "worldline": ("propstore.cli.worldline", "worldline", "Manage materialized query artifacts."),
+    "worldline": (
+        "propstore.cli.worldline",
+        "worldline",
+        "Manage materialized query artifacts.",
+    ),
 }
 
 _QUICKSTART_COMMANDS = (
@@ -129,7 +182,9 @@ class _LazyCLIGroup(click.Group):
             module = import_module("propstore.cli.world.query")
             command = getattr(module, "world_status")
             if not isinstance(command, click.Command):
-                raise TypeError("propstore.cli.world.query.world_status is not a click command")
+                raise TypeError(
+                    "propstore.cli.world.query.world_status is not a click command"
+                )
             return command
         spec = _COMMANDS.get(command_name)
         if spec is None:
@@ -141,13 +196,15 @@ class _LazyCLIGroup(click.Group):
             raise TypeError(f"{module_name}.{attribute_name} is not a click command")
         return command
 
-    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_commands(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         rows = [
             (
                 name,
                 "Show knowledge base stats and authored reasoning inventory."
                 if name == "status"
-                else _COMMANDS[name][2]
+                else _COMMANDS[name][2],
             )
             for name in _QUICKSTART_COMMANDS
         ]
@@ -180,7 +237,9 @@ class _AdvancedCLIGroup(click.Group):
             raise TypeError(f"{module_name}.{attribute_name} is not a click command")
         return command
 
-    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_commands(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         rows = [(name, _COMMANDS[name][2]) for name in _ADVANCED_COMMANDS]
         if rows:
             with formatter.section("Commands"):
@@ -213,8 +272,13 @@ def _render_expected_cli_error(exc: BaseException) -> str:
 
 
 @click.group(cls=_LazyCLIGroup)
-@click.option("-C", "--directory", default=None, type=click.Path(file_okay=False),
-              help="Run as if pks was started in this directory.")
+@click.option(
+    "-C",
+    "--directory",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Run as if pks was started in this directory.",
+)
 @click.option(
     "--traceback",
     "traceback_enabled",

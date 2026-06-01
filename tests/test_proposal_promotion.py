@@ -8,7 +8,10 @@ from click.testing import CliRunner
 from propstore.app.proposals import ProposalPromotionItem, ProposalPromotionPlanReport
 from propstore.cli.proposal import promote
 from propstore.families.claims.declaration import ClaimDocument
-from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
+from propstore.families.contexts.declaration import (
+    ContextDocument,
+    ContextReferenceDocument,
+)
 from propstore.families.registry import ClaimRef, ContextRef
 from propstore.families.stances.lifecycle import (
     commit_stance_proposals,
@@ -75,7 +78,10 @@ def test_stance_proposal_promotion_plan_selects_committed_proposals(tmp_path) ->
     assert len(plan.items) == 1
     assert plan.items[0].artifact_id
     assert plan.items[0].source_claim == "claim_a"
-    assert plan.items[0].source_relpath == f"proposal/stances:stances/{plan.items[0].filename}"
+    assert (
+        plan.items[0].source_relpath
+        == f"proposal/stances:stances/{plan.items[0].filename}"
+    )
     assert plan.items[0].target_path == repo.root / "stances" / plan.items[0].filename
 
 
@@ -90,7 +96,9 @@ def test_stance_proposal_promotion_commits_to_master(tmp_path) -> None:
     assert plan.items[0].filename in repo.git.iter_dir("stances")
 
 
-def test_commit_planned_canonical_artifacts_saves_multiple_refs_in_one_transaction() -> None:
+def test_commit_planned_canonical_artifacts_saves_multiple_refs_in_one_transaction() -> (
+    None
+):
     class FakeWriter:
         def __init__(self) -> None:
             self.saved: list[tuple[str, str]] = []
@@ -141,9 +149,15 @@ def test_commit_planned_canonical_artifacts_saves_multiple_refs_in_one_transacti
 
 def test_proposal_promotion_modules_use_shared_transaction_helper() -> None:
     proposal_sources = {
-        "stances": Path("propstore/families/stances/lifecycle.py").read_text(encoding="utf-8"),
-        "predicates": Path("propstore/families/predicates/lifecycle.py").read_text(encoding="utf-8"),
-        "rules": Path("propstore/families/rules/lifecycle.py").read_text(encoding="utf-8"),
+        "stances": Path("propstore/families/stances/lifecycle.py").read_text(
+            encoding="utf-8"
+        ),
+        "predicates": Path("propstore/families/predicates/lifecycle.py").read_text(
+            encoding="utf-8"
+        ),
+        "rules": Path("propstore/families/rules/lifecycle.py").read_text(
+            encoding="utf-8"
+        ),
     }
 
     assert "run_transition_batch(" in proposal_sources["stances"]

@@ -60,9 +60,7 @@ def build_render_policy(request: AppRenderPolicyRequest) -> RenderPolicy:
         reasoning_backend = parse_reasoning_backend(request.reasoning_backend)
         semantics = parse_argumentation_semantics(request.semantics)
         strategy = (
-            None
-            if request.strategy is None
-            else ResolutionStrategy(request.strategy)
+            None if request.strategy is None else ResolutionStrategy(request.strategy)
         )
         return RenderPolicy(
             reasoning_backend=reasoning_backend,

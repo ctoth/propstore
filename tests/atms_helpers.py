@@ -43,7 +43,9 @@ def condition_registry_for_sources(sources: Iterable[str]) -> dict[str, ConceptI
         for name in _NAME_RE.findall(source):
             quoted = f"{name} == '" in source or f'{name} == "' in source
             quoted = quoted or f"{name} != '" in source or f'{name} != "' in source
-            names[name] = KindType.CATEGORY if quoted else names.get(name, KindType.QUANTITY)
+            names[name] = (
+                KindType.CATEGORY if quoted else names.get(name, KindType.QUANTITY)
+            )
     return with_standard_synthetic_bindings(
         {
             name: ConceptInfo(
@@ -64,8 +66,7 @@ def condition_ir_json(value: object, registry: Mapping[str, ConceptInfo]) -> str
     return json.dumps(
         checked_condition_set_to_json(
             checked_condition_set(
-                check_condition_ir(source, registry)
-                for source in sources
+                check_condition_ir(source, registry) for source in sources
             )
         ),
         sort_keys=True,

@@ -166,9 +166,7 @@ def test_recent_activity_entry_construction() -> None:
 def test_recent_activity_with_entries() -> None:
     activity = RecentActivity(
         state="known",
-        entries=(
-            RecentActivityEntry(when="2026-05-02", what="x", href=None),
-        ),
+        entries=(RecentActivityEntry(when="2026-05-02", what="x", href=None),),
         sentence="1 recent change.",
     )
 
@@ -191,9 +189,7 @@ def test_notable_conflict_pointer_construction() -> None:
 def test_notable_conflicts_with_pointers() -> None:
     conflicts = NotableConflicts(
         state="known",
-        entries=(
-            NotableConflictPointer(claim_id="c1", sentence="x", href=None),
-        ),
+        entries=(NotableConflictPointer(claim_id="c1", sentence="x", href=None),),
         sentence="1 contested claim.",
     )
 
@@ -596,7 +592,10 @@ def test_overview_recent_activity_is_vacuous_when_branch_not_found(
 
     activity = report.recent_activity
     assert activity.state == "vacuous"
-    assert "branch" in activity.sentence.lower() or "not found" in activity.sentence.lower()
+    assert (
+        "branch" in activity.sentence.lower()
+        or "not found" in activity.sentence.lower()
+    )
 
 
 def test_overview_source_pointers_empty_when_list_sources_returns_empty(
@@ -729,7 +728,9 @@ def test_notable_conflicts_lists_top_contested_claims() -> None:
     assert len(conflicts.entries) > 0
     for entry in conflicts.entries:
         assert entry.claim_id
-        assert "attack" in entry.sentence.lower() or "conflict" in entry.sentence.lower()
+        assert (
+            "attack" in entry.sentence.lower() or "conflict" in entry.sentence.lower()
+        )
 
 
 @pytest.mark.skip(
@@ -779,9 +780,7 @@ def _claim_summary_entry(claim_id: str) -> ClaimSummaryEntry:
 
 def _isolate_to_kind(monkeypatch: pytest.MonkeyPatch, kind: str) -> None:
     """Replace KIND_REGISTRY with only the contributor for the named kind."""
-    target = next(
-        kc for kc in repository_overview.KIND_REGISTRY if kc.kind == kind
-    )
+    target = next(kc for kc in repository_overview.KIND_REGISTRY if kc.kind == kind)
     monkeypatch.setattr(repository_overview, "KIND_REGISTRY", (target,))
 
 

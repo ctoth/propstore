@@ -123,14 +123,19 @@ def test_concept_document_round_trips_phase3_sense_semantics(tmp_path) -> None:
     assert loaded_sense.description_kind is not None
     assert loaded_sense.description_kind.slots[0].name == "instrument"
     assert loaded_sense.role_bundles is not None
-    assert loaded_sense.role_bundles["instrument"].proto_agent_entailments[0].value == 0.75
+    assert (
+        loaded_sense.role_bundles["instrument"].proto_agent_entailments[0].value == 0.75
+    )
 
     rendered = document_to_payload(document)
     rendered_sense = rendered["lexical_entry"]["senses"][0]
     assert rendered_sense["qualia"]["telic"][0]["provenance"]["status"] == "stated"
-    assert rendered_sense["description_kind"]["slots"][0]["proto_role_bundle"][
-        "proto_agent_entailments"
-    ][0]["property"] == "causation"
+    assert (
+        rendered_sense["description_kind"]["slots"][0]["proto_role_bundle"][
+            "proto_agent_entailments"
+        ][0]["property"]
+        == "causation"
+    )
 
 
 def test_phase3_qualia_reference_requires_provenance(tmp_path) -> None:

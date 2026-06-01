@@ -39,8 +39,22 @@ def conn():
 
 def _insert_claims(conn):
     """Insert two claims for FK targets."""
-    insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
-    insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+    insert_claim(
+        conn,
+        "c1",
+        claim_type="parameter",
+        concept_id="concept1",
+        value=1.0,
+        source_paper="paper1",
+    )
+    insert_claim(
+        conn,
+        "c2",
+        claim_type="parameter",
+        concept_id="concept1",
+        value=2.0,
+        source_paper="paper1",
+    )
 
 
 def _select_opinion(conn) -> Opinion | None:
@@ -105,8 +119,12 @@ class TestOpinionSchemaColumn:
         _insert_claims(conn)
 
         insert_stance(
-            conn, "c1", "c2", "supports",
-            confidence=0.8, opinion=Opinion(0.7, 0.1, 0.2, 0.5),
+            conn,
+            "c1",
+            "c2",
+            "supports",
+            confidence=0.8,
+            opinion=Opinion(0.7, 0.1, 0.2, 0.5),
         )
 
         restored = _select_opinion(conn)
@@ -132,7 +150,10 @@ class TestOpinionSchemaColumn:
         create_argumentation_schema(conn)
         _insert_claims(conn)
         insert_stance(
-            conn, "c1", "c2", "supports",
+            conn,
+            "c1",
+            "c2",
+            "supports",
             confidence=opinion.expectation(),
             opinion=opinion,
         )
@@ -160,8 +181,12 @@ class TestOpinionSchemaColumn:
         _insert_claims(conn)
 
         insert_stance(
-            conn, "c1", "c2", "supports",
-            confidence=0.85, opinion=Opinion(0.6, 0.2, 0.2, 0.5),
+            conn,
+            "c1",
+            "c2",
+            "supports",
+            confidence=0.85,
+            opinion=Opinion(0.6, 0.2, 0.2, 0.5),
         )
 
         row = conn.execute(

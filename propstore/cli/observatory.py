@@ -35,7 +35,9 @@ def observatory() -> None:
     show_default=True,
 )
 @click.pass_obj
-def run_cmd(obj: dict[str, Any], fixture_paths: tuple[Path, ...], output_format: str) -> None:
+def run_cmd(
+    obj: dict[str, Any], fixture_paths: tuple[Path, ...], output_format: str
+) -> None:
     """Run scenario fixtures through the observatory harness."""
     repo: Repository = obj["repo"]
     request = AppObservatoryRunRequest(

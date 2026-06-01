@@ -121,14 +121,18 @@ class JustifiableException:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_claim", str(self.target_claim))
-        object.__setattr__(self, "exception_pattern", to_cel_expr(self.exception_pattern))
+        object.__setattr__(
+            self, "exception_pattern", to_cel_expr(self.exception_pattern)
+        )
         object.__setattr__(
             self,
             "justification_claims",
             tuple(str(claim) for claim in self.justification_claims),
         )
         object.__setattr__(self, "context", str(self.context))
-        object.__setattr__(self, "decidability_status", DecidabilityStatus(self.decidability_status))
+        object.__setattr__(
+            self, "decidability_status", DecidabilityStatus(self.decidability_status)
+        )
         if not isinstance(self.support, SupportEvidence):
             raise TypeError("JustifiableException support must be SupportEvidence")
 
@@ -183,11 +187,15 @@ class ContextualClaimResult:
     def __post_init__(self) -> None:
         if not isinstance(self.use, ContextualClaimUse):
             raise TypeError("ContextualClaimResult use must be ContextualClaimUse")
-        object.__setattr__(self, "applicability", ClaimApplicability(self.applicability))
+        object.__setattr__(
+            self, "applicability", ClaimApplicability(self.applicability)
+        )
         object.__setattr__(self, "applied_exceptions", tuple(self.applied_exceptions))
         object.__setattr__(self, "defeats", tuple(self.defeats))
         object.__setattr__(self, "policy_issues", tuple(self.policy_issues))
-        object.__setattr__(self, "decidability_status", DecidabilityStatus(self.decidability_status))
+        object.__setattr__(
+            self, "decidability_status", DecidabilityStatus(self.decidability_status)
+        )
 
 
 def exception_live_support(
@@ -196,7 +204,9 @@ def exception_live_support(
 ) -> SupportEvidence:
     if not exception.justification_claims:
         return SupportEvidence(ProvenancePolynomial.zero(), exception.support.quality)
-    return SupportEvidence(live(exception.support.polynomial, nogoods), exception.support.quality)
+    return SupportEvidence(
+        live(exception.support.polynomial, nogoods), exception.support.quality
+    )
 
 
 def exception_is_applied(
@@ -217,7 +227,9 @@ def lift_exception(
         context=lifting_rule.target_context,
         support=SupportEvidence(
             exception.support.polynomial * lifting_rule.support.polynomial,
-            _compose_support_quality(exception.support.quality, lifting_rule.support.quality),
+            _compose_support_quality(
+                exception.support.quality, lifting_rule.support.quality
+            ),
         ),
     )
 
@@ -500,7 +512,9 @@ def _collect_condition_ir_names(condition: ConditionIR, names: set[str]) -> None
         _collect_condition_ir_names(condition.when_false, names)
 
 
-def _compose_support_quality(left: SupportQuality, right: SupportQuality) -> SupportQuality:
+def _compose_support_quality(
+    left: SupportQuality, right: SupportQuality
+) -> SupportQuality:
     left = SupportQuality(left)
     right = SupportQuality(right)
     if left is right:

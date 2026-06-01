@@ -5,7 +5,9 @@ import sys
 query = "Karacapilidis+Papadias+computer+supported+argumentation+collaborative+decision"
 url = f"https://api.crossref.org/works?query={query}&rows=5"
 
-req = urllib.request.Request(url, headers={"User-Agent": "propstore/1.0 (mailto:research@example.com)"})
+req = urllib.request.Request(
+    url, headers={"User-Agent": "propstore/1.0 (mailto:research@example.com)"}
+)
 with urllib.request.urlopen(req, timeout=30) as resp:
     data = json.loads(resp.read())
 

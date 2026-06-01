@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR, DEFAULT_MAX_ALPHABET_SIZE
+from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_ITERATED_OPERATOR,
+    DEFAULT_MAX_ALPHABET_SIZE,
+)
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     JournalOperator,
@@ -16,7 +19,11 @@ from propstore.support_revision.input_normalization import (
     normalize_revision_input,
 )
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
-from propstore.support_revision.state import EpistemicState, RevisionEvent, RevisionResult
+from propstore.support_revision.state import (
+    EpistemicState,
+    RevisionEvent,
+    RevisionResult,
+)
 from propstore.worldline.definition import WorldlineRevisionQuery
 from propstore.worldline.interfaces import WorldlineBoundView
 from propstore.worldline.revision_types import (
@@ -55,7 +62,9 @@ def capture_revision_state(
             ),
         )
     if operation == "contract":
-        result = bound.contract(_required_revision_target(revision_query.target), max_candidates=1024)
+        result = bound.contract(
+            _required_revision_target(revision_query.target), max_candidates=1024
+        )
         return WorldlineRevisionState(
             operation=operation,
             input_atom_id=None,
@@ -212,13 +221,19 @@ def _revision_state_snapshot(
 ) -> Mapping[str, Any]:
     snapshot = getattr(bound, "revision_state_snapshot", None)
     if not callable(snapshot):
-        raise TypeError("revision capture requires bound.revision_state_snapshot(state)")
+        raise TypeError(
+            "revision capture requires bound.revision_state_snapshot(state)"
+        )
     snapshot_payload = getattr(snapshot(state), "to_dict", None)
     if not callable(snapshot_payload):
-        raise TypeError("bound.revision_state_snapshot(state) must return a snapshot payload")
+        raise TypeError(
+            "bound.revision_state_snapshot(state) must return a snapshot payload"
+        )
     payload = snapshot_payload()
     if not isinstance(payload, Mapping):
-        raise TypeError("bound.revision_state_snapshot(state) must return a mapping payload")
+        raise TypeError(
+            "bound.revision_state_snapshot(state) must return a mapping payload"
+        )
     return dict(payload)
 
 
@@ -299,16 +314,27 @@ def _journal_operator_input(
             },
         )
     if operation == "ic_merge":
-        profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in revision_query.profile_atom_ids)
+        profile_atom_ids = tuple(
+            tuple(str(atom_id) for atom_id in profile)
+            for profile in revision_query.profile_atom_ids
+        )
         if not profile_atom_ids:
             raise ValueError("IC merge journal capture requires profile_atom_ids")
         integrity_constraint = revision_query.integrity_constraint
         if not isinstance(integrity_constraint, Mapping):
             raise ValueError("IC merge journal capture requires integrity_constraint")
-        merge_parent_commits = tuple(revision_query.merge_parent_commits or state.scope.merge_parent_commits)
+        merge_parent_commits = tuple(
+            revision_query.merge_parent_commits or state.scope.merge_parent_commits
+        )
         merge_operator = revision_query.merge_operator or "sigma"
-        max_alphabet_size = revision_query.max_alphabet_size or DEFAULT_MAX_ALPHABET_SIZE
-        target_atom_ids = tuple(dict.fromkeys(atom_id for profile in profile_atom_ids for atom_id in profile))
+        max_alphabet_size = (
+            revision_query.max_alphabet_size or DEFAULT_MAX_ALPHABET_SIZE
+        )
+        target_atom_ids = tuple(
+            dict.fromkeys(
+                atom_id for profile in profile_atom_ids for atom_id in profile
+            )
+        )
         operator_input = {
             "profile_atom_ids": profile_atom_ids,
             "merge_parent_commits": merge_parent_commits,
@@ -347,11 +373,15 @@ def _query_target_atom_ids(target: str | None) -> list[str]:
     if isinstance(target, str):
         if target.startswith("ps:assertion:") or target.startswith("assumption:"):
             return [target]
-        raise ValueError(f"Worldline revision target must be an assertion or assumption atom id: {target}")
+        raise ValueError(
+            f"Worldline revision target must be an assertion or assumption atom id: {target}"
+        )
     return [str(target)]
 
 
-def _query_conflict_target_atom_ids(revision_query: WorldlineRevisionQuery) -> list[str]:
+def _query_conflict_target_atom_ids(
+    revision_query: WorldlineRevisionQuery,
+) -> list[str]:
     input_atom_id = _query_atom_id(revision_query.atom)
     if input_atom_id is None:
         return []

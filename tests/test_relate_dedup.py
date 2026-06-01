@@ -14,6 +14,7 @@ from hypothesis import strategies as st
 # The dedup function under test (extracted for testability)
 # ---------------------------------------------------------------------------
 
+
 def _dedup_pairs(
     pairs: list[tuple[str, str, float]],
 ) -> list[tuple[str, str, float, float | None]]:
@@ -30,6 +31,7 @@ def _dedup_pairs(
 # ---------------------------------------------------------------------------
 # Example tests
 # ---------------------------------------------------------------------------
+
 
 class TestDedupRemovesMirrorPairs:
     def test_ab_ba_deduplicates_to_one(self):

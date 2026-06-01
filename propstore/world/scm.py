@@ -60,30 +60,32 @@ class StructuralCausalModel:
 
     def __post_init__(self) -> None:
         equations = {
-            str(target): equation
-            for target, equation in self.equations.items()
+            str(target): equation for target, equation in self.equations.items()
         }
-        endogenous = frozenset(str(value) for value in self.endogenous) | frozenset(equations)
+        endogenous = frozenset(str(value) for value in self.endogenous) | frozenset(
+            equations
+        )
         exogenous_assignment = {
-            str(name): value
-            for name, value in self.exogenous_assignment.items()
+            str(name): value for name, value in self.exogenous_assignment.items()
         }
         exogenous = (
             frozenset(str(value) for value in self.exogenous)
             | frozenset(exogenous_assignment)
         ) - endogenous
-        domains = {
-            str(name): tuple(values)
-            for name, values in self.domains.items()
-        }
-        for name, value in {**exogenous_assignment, **self._constant_values(equations)}.items():
+        domains = {str(name): tuple(values) for name, values in self.domains.items()}
+        for name, value in {
+            **exogenous_assignment,
+            **self._constant_values(equations),
+        }.items():
             domain = domains.get(name, ())
             if value not in domain:
                 domains[name] = (*domain, value)
         for equation in equations.values():
             if equation.domain:
                 domain = domains.get(equation.target, ())
-                domains[equation.target] = tuple(dict.fromkeys((*domain, *equation.domain)))
+                domains[equation.target] = tuple(
+                    dict.fromkeys((*domain, *equation.domain))
+                )
         object.__setattr__(self, "exogenous", exogenous)
         object.__setattr__(self, "endogenous", endogenous)
         object.__setattr__(self, "equations", equations)
@@ -116,7 +118,9 @@ class StructuralCausalModel:
             for edge in graph.parameterizations
             if edge.sympy
         }
-        endogenous = frozenset(str(edge.output_concept_id) for edge in graph.parameterizations)
+        endogenous = frozenset(
+            str(edge.output_concept_id) for edge in graph.parameterizations
+        )
         parent_ids = frozenset(
             str(parent)
             for edge in graph.parameterizations
@@ -133,10 +137,7 @@ class StructuralCausalModel:
         self,
         assignment: Mapping[str, Value],
     ) -> StructuralCausalModel:
-        normalized = {
-            str(name): value
-            for name, value in assignment.items()
-        }
+        normalized = {str(name): value for name, value in assignment.items()}
         equations = dict(self.equations)
         exogenous_assignment = dict(self.exogenous_assignment)
         endogenous = set(self.endogenous)
@@ -182,7 +183,9 @@ class StructuralCausalModel:
             try:
                 for parent in equation.parents:
                     resolve(parent)
-                value = equation.evaluate({str(key): item for key, item in values.items()})
+                value = equation.evaluate(
+                    {str(key): item for key, item in values.items()}
+                )
                 values[name] = value
                 return value
             finally:
@@ -217,7 +220,9 @@ class StructuralCausalModel:
 
 
 def _structural_equation_from_edge(edge: ParameterizationEdge) -> StructuralEquation:
-    def evaluate(values: Mapping[str, Value], *, edge: ParameterizationEdge = edge) -> Value:
+    def evaluate(
+        values: Mapping[str, Value], *, edge: ParameterizationEdge = edge
+    ) -> Value:
         from propstore.propagation import (
             ParameterizationEvaluationStatus,
             evaluate_parameterization,
@@ -229,7 +234,9 @@ def _structural_equation_from_edge(edge: ParameterizationEdge) -> StructuralEqua
             if parent_id not in values:
                 continue
             parent_value = values[parent_id]
-            if isinstance(parent_value, bool) or not isinstance(parent_value, int | float):
+            if isinstance(parent_value, bool) or not isinstance(
+                parent_value, int | float
+            ):
                 raise TypeError(
                     f"Structural equation parent {parent_id} must be numeric"
                 )

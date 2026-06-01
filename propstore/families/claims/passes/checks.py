@@ -69,79 +69,93 @@ def _validate_logical_ids(
 ) -> set[str]:
     formatted_ids: set[str] = set()
     if not isinstance(logical_ids, list) or not logical_ids:
-        diagnostics.append(claim_diagnostic(
-            level="error",
-            message=f"claim '{artifact_id}' must define a non-empty logical_ids list",
-            filename=filename,
-            artifact_id=artifact_id,
-        ))
+        diagnostics.append(
+            claim_diagnostic(
+                level="error",
+                message=f"claim '{artifact_id}' must define a non-empty logical_ids list",
+                filename=filename,
+                artifact_id=artifact_id,
+            )
+        )
         return formatted_ids
 
     for index, entry in enumerate(logical_ids, start=1):
         if not isinstance(entry, dict):
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=f"claim '{artifact_id}' logical_ids entry #{index} must be a mapping",
-                filename=filename,
-                artifact_id=artifact_id,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=f"claim '{artifact_id}' logical_ids entry #{index} must be a mapping",
+                    filename=filename,
+                    artifact_id=artifact_id,
+                )
+            )
             continue
 
         namespace = entry.get("namespace")
         value = entry.get("value")
         if not isinstance(namespace, str) or not LOGICAL_NAMESPACE_RE.match(namespace):
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"claim '{artifact_id}' logical_ids entry #{index} "
-                    f"uses invalid namespace {namespace!r}"
-                ),
-                filename=filename,
-                artifact_id=artifact_id,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{artifact_id}' logical_ids entry #{index} "
+                        f"uses invalid namespace {namespace!r}"
+                    ),
+                    filename=filename,
+                    artifact_id=artifact_id,
+                )
+            )
             continue
         if not isinstance(value, str) or not LOGICAL_VALUE_RE.match(value):
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"claim '{artifact_id}' logical_ids entry #{index} "
-                    f"uses invalid value {value!r}"
-                ),
-                filename=filename,
-                artifact_id=artifact_id,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{artifact_id}' logical_ids entry #{index} "
+                        f"uses invalid value {value!r}"
+                    ),
+                    filename=filename,
+                    artifact_id=artifact_id,
+                )
+            )
             continue
 
         formatted = format_logical_id(entry)
         if formatted is None:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"claim '{artifact_id}' logical_ids entry #{index} "
-                    "must serialize as namespace:value"
-                ),
-                filename=filename,
-                artifact_id=artifact_id,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{artifact_id}' logical_ids entry #{index} "
+                        "must serialize as namespace:value"
+                    ),
+                    filename=filename,
+                    artifact_id=artifact_id,
+                )
+            )
             continue
         if formatted in formatted_ids:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=f"claim '{artifact_id}' duplicates logical ID '{formatted}'",
-                filename=filename,
-                artifact_id=artifact_id,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=f"claim '{artifact_id}' duplicates logical ID '{formatted}'",
+                    filename=filename,
+                    artifact_id=artifact_id,
+                )
+            )
             continue
         if formatted in seen_logical_ids:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"duplicate logical ID '{formatted}' "
-                    f"(also in {seen_logical_ids[formatted]})"
-                ),
-                filename=filename,
-                artifact_id=artifact_id,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"duplicate logical ID '{formatted}' "
+                        f"(also in {seen_logical_ids[formatted]})"
+                    ),
+                    filename=filename,
+                    artifact_id=artifact_id,
+                )
+            )
             continue
         formatted_ids.add(formatted)
         seen_logical_ids[formatted] = filename
@@ -158,118 +172,144 @@ def _validate_stances(
 ) -> None:
     stances = claim.get("stances") or []
     if not isinstance(stances, list):
-        diagnostics.append(claim_diagnostic(
-            level="error",
-            message=f"claim '{cid}' stances must be a list",
-            filename=filename,
-            artifact_id=cid,
-        ))
+        diagnostics.append(
+            claim_diagnostic(
+                level="error",
+                message=f"claim '{cid}' stances must be a list",
+                filename=filename,
+                artifact_id=cid,
+            )
+        )
         return
 
     for index, stance in enumerate(stances, start=1):
         if not isinstance(stance, dict):
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=f"claim '{cid}' stance #{index} must be a mapping",
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=f"claim '{cid}' stance #{index} must be a mapping",
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
             continue
 
         stance_type = stance.get("type")
         target_claim_id = stance.get("target")
 
         if not stance_type:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=f"claim '{cid}' stance #{index} missing type",
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=f"claim '{cid}' stance #{index} missing type",
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
         elif stance_type not in VALID_STANCE_TYPES:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"claim '{cid}' stance #{index} uses unrecognized "
-                    f"type '{stance_type}'"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
-
-        if not target_claim_id:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=f"claim '{cid}' stance #{index} missing target",
-                filename=filename,
-                artifact_id=cid,
-            ))
-        elif target_claim_id not in extant_claim_ids:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"claim '{cid}' stance #{index} references "
-                    f"nonexistent target claim '{target_claim_id}'"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
-
-        target_justification_id = stance.get("target_justification_id")
-        if target_justification_id is not None:
-            if not isinstance(target_justification_id, str) or not target_justification_id:
-                diagnostics.append(claim_diagnostic(
+            diagnostics.append(
+                claim_diagnostic(
                     level="error",
                     message=(
-                        f"claim '{cid}' stance #{index} "
-                        "target_justification_id must be a non-empty string"
+                        f"claim '{cid}' stance #{index} uses unrecognized "
+                        f"type '{stance_type}'"
                     ),
                     filename=filename,
                     artifact_id=cid,
-                ))
+                )
+            )
+
+        if not target_claim_id:
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=f"claim '{cid}' stance #{index} missing target",
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
+        elif target_claim_id not in extant_claim_ids:
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{cid}' stance #{index} references "
+                        f"nonexistent target claim '{target_claim_id}'"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
+
+        target_justification_id = stance.get("target_justification_id")
+        if target_justification_id is not None:
+            if (
+                not isinstance(target_justification_id, str)
+                or not target_justification_id
+            ):
+                diagnostics.append(
+                    claim_diagnostic(
+                        level="error",
+                        message=(
+                            f"claim '{cid}' stance #{index} "
+                            "target_justification_id must be a non-empty string"
+                        ),
+                        filename=filename,
+                        artifact_id=cid,
+                    )
+                )
 
         conditions_differ = stance.get("conditions_differ")
         if conditions_differ is not None and not isinstance(conditions_differ, str):
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"claim '{cid}' stance #{index} "
-                    "conditions_differ must be a string"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{cid}' stance #{index} "
+                        "conditions_differ must be a string"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
 
         resolution = stance.get("resolution")
         if resolution is not None:
             if not isinstance(resolution, dict):
-                diagnostics.append(claim_diagnostic(
-                    level="error",
-                    message=(
-                        f"claim '{cid}' stance #{index} "
-                        "resolution must be a mapping"
-                    ),
-                    filename=filename,
-                    artifact_id=cid,
-                ))
+                diagnostics.append(
+                    claim_diagnostic(
+                        level="error",
+                        message=(
+                            f"claim '{cid}' stance #{index} "
+                            "resolution must be a mapping"
+                        ),
+                        filename=filename,
+                        artifact_id=cid,
+                    )
+                )
                 continue
 
             method = resolution.get("method")
             if not isinstance(method, str) or not method:
-                diagnostics.append(claim_diagnostic(
-                    level="error",
-                    message=(
-                        f"claim '{cid}' stance #{index} "
-                        "resolution.method must be a non-empty string"
-                    ),
-                    filename=filename,
-                    artifact_id=cid,
-                ))
+                diagnostics.append(
+                    claim_diagnostic(
+                        level="error",
+                        message=(
+                            f"claim '{cid}' stance #{index} "
+                            "resolution.method must be a non-empty string"
+                        ),
+                        filename=filename,
+                        artifact_id=cid,
+                    )
+                )
 
 
 def _validate_value_fields(
-    claim: dict, cid: str, filename: str,
-    label: str, diagnostics: list[PassDiagnostic],
+    claim: dict,
+    cid: str,
+    filename: str,
+    label: str,
+    diagnostics: list[PassDiagnostic],
     value_group: ClaimValueGroupDeclaration,
 ) -> None:
     """Validate value, bounds, and uncertainty fields shared by parameter and measurement claims."""
@@ -282,75 +322,87 @@ def _validate_value_fields(
     has_upper = upper_bound is not None
 
     if not has_value and not has_lower and not has_upper:
-        diagnostics.append(claim_diagnostic(
-            level="error",
-            message=(
-                f"{label} claim '{cid}' missing '{value_group.value_field}' "
-                f"(must have {value_group.value_field} or "
-                f"{value_group.lower_bound_field}+{value_group.upper_bound_field})"
-            ),
-            filename=filename,
-            artifact_id=cid,
-        ))
+        diagnostics.append(
+            claim_diagnostic(
+                level="error",
+                message=(
+                    f"{label} claim '{cid}' missing '{value_group.value_field}' "
+                    f"(must have {value_group.value_field} or "
+                    f"{value_group.lower_bound_field}+{value_group.upper_bound_field})"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+        )
 
     if has_lower and not has_upper:
-        diagnostics.append(claim_diagnostic(
-            level="error",
-            message=(
-                f"{label} claim '{cid}' has {value_group.lower_bound_field} "
-                f"without {value_group.upper_bound_field}"
-            ),
-            filename=filename,
-            artifact_id=cid,
-        ))
+        diagnostics.append(
+            claim_diagnostic(
+                level="error",
+                message=(
+                    f"{label} claim '{cid}' has {value_group.lower_bound_field} "
+                    f"without {value_group.upper_bound_field}"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+        )
     if has_upper and not has_lower:
-        diagnostics.append(claim_diagnostic(
-            level="error",
-            message=(
-                f"{label} claim '{cid}' has {value_group.upper_bound_field} "
-                f"without {value_group.lower_bound_field}"
-            ),
-            filename=filename,
-            artifact_id=cid,
-        ))
+        diagnostics.append(
+            claim_diagnostic(
+                level="error",
+                message=(
+                    f"{label} claim '{cid}' has {value_group.upper_bound_field} "
+                    f"without {value_group.lower_bound_field}"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+        )
 
     if has_lower and has_upper:
         try:
             lb = float(lower_bound)
         except (TypeError, ValueError):
             lb = None
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"{label} claim '{cid}' has non-numeric "
-                    f"{value_group.lower_bound_field}: {lower_bound!r}"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"{label} claim '{cid}' has non-numeric "
+                        f"{value_group.lower_bound_field}: {lower_bound!r}"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
         try:
             ub = float(upper_bound)
         except (TypeError, ValueError):
             ub = None
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"{label} claim '{cid}' has non-numeric "
-                    f"{value_group.upper_bound_field}: {upper_bound!r}"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"{label} claim '{cid}' has non-numeric "
+                        f"{value_group.upper_bound_field}: {upper_bound!r}"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
         if lb is not None and ub is not None and lb > ub:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"{label} claim '{cid}' {value_group.lower_bound_field} "
-                    f"> {value_group.upper_bound_field}"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"{label} claim '{cid}' {value_group.lower_bound_field} "
+                        f"> {value_group.upper_bound_field}"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
 
     uncertainty = claim.get(value_group.uncertainty_field)
     uncertainty_type = claim.get(value_group.uncertainty_type_field)
@@ -358,50 +410,58 @@ def _validate_value_fields(
     has_uncertainty_type = uncertainty_type is not None
 
     if has_uncertainty_type and not has_uncertainty:
-        diagnostics.append(claim_diagnostic(
-            level="error",
-            message=(
-                f"{label} claim '{cid}' has {value_group.uncertainty_type_field} "
-                f"without {value_group.uncertainty_field}"
-            ),
-            filename=filename,
-            artifact_id=cid,
-        ))
+        diagnostics.append(
+            claim_diagnostic(
+                level="error",
+                message=(
+                    f"{label} claim '{cid}' has {value_group.uncertainty_type_field} "
+                    f"without {value_group.uncertainty_field}"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+        )
     if has_uncertainty and not has_uncertainty_type:
-        diagnostics.append(claim_diagnostic(
-            level="error",
-            message=(
-                f"{label} claim '{cid}' has {value_group.uncertainty_field} "
-                f"without {value_group.uncertainty_type_field}"
-            ),
-            filename=filename,
-            artifact_id=cid,
-        ))
+        diagnostics.append(
+            claim_diagnostic(
+                level="error",
+                message=(
+                    f"{label} claim '{cid}' has {value_group.uncertainty_field} "
+                    f"without {value_group.uncertainty_type_field}"
+                ),
+                filename=filename,
+                artifact_id=cid,
+            )
+        )
 
     if has_uncertainty:
         try:
             uval = float(uncertainty)
         except (TypeError, ValueError):
             uval = None
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"{label} claim '{cid}' has non-numeric "
-                    f"{value_group.uncertainty_field}: {uncertainty!r}"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"{label} claim '{cid}' has non-numeric "
+                        f"{value_group.uncertainty_field}: {uncertainty!r}"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
         if uval is not None and uval < 0:
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"{label} claim '{cid}' "
-                    f"{value_group.uncertainty_field} must be >= 0"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"{label} claim '{cid}' "
+                        f"{value_group.uncertainty_field} must be >= 0"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )
 
 
 def _has_concepts(context: CompilationContext) -> bool:
@@ -527,7 +587,11 @@ def _validate_concept_link_declaration(
 ) -> None:
     if source == "scalar":
         concept_ref = claim.get(field)
-        if concept_ref and _has_concepts(context) and not _concept_resolves(concept_ref, context):
+        if (
+            concept_ref
+            and _has_concepts(context)
+            and not _concept_resolves(concept_ref, context)
+        ):
             _record(
                 diagnostics,
                 message=f"{label} claim '{cid}' references nonexistent concept '{concept_ref}'",
@@ -561,7 +625,11 @@ def _validate_concept_link_declaration(
             if not isinstance(entry, dict):
                 continue
             concept_ref = entry.get("concept")
-            if concept_ref and _has_concepts(context) and not _concept_resolves(concept_ref, context):
+            if (
+                concept_ref
+                and _has_concepts(context)
+                and not _concept_resolves(concept_ref, context)
+            ):
                 subject = "" if message_subject is None else f" {message_subject}"
                 _record(
                     diagnostics,
@@ -708,7 +776,9 @@ def _validate_unit_policy(
                 artifact_id=cid,
             )
             return
-        _validate_unit_against_form(unit, form_def, cid, concept_ref or "", filename, diagnostics)
+        _validate_unit_against_form(
+            unit, form_def, cid, concept_ref or "", filename, diagnostics
+        )
 
 
 def _run_claim_semantic_checks(
@@ -815,7 +885,11 @@ def _validate_equation_dimensional_consistency(
                 continue
             var_concept = var.get("concept")
             var_symbol = var.get("symbol")
-            if not var_concept or not _has_concepts(context) or not _concept_resolves(var_concept, context):
+            if (
+                not var_concept
+                or not _has_concepts(context)
+                or not _concept_resolves(var_concept, context)
+            ):
                 continue
             form_def = _concept_form_definition(var_concept, context)
             if form_def is None:
@@ -923,7 +997,9 @@ def _validate_algorithm_unbound_names(
 
     body = claim.get("body")
     if body and tree is not None:
-        referenced_names = extract_free_variables(tree) | _algorithm_parameter_names(tree)
+        referenced_names = extract_free_variables(tree) | _algorithm_parameter_names(
+            tree
+        )
         unbound = referenced_names - declared_names
         for name in sorted(unbound):
             _record(
@@ -955,8 +1031,12 @@ def _algorithm_parameter_names(tree: Any) -> set[str]:
 
 
 def _validate_unit_against_form(
-    unit: str, form_def: FormDefinition, cid: str, concept: str,
-    filename: str, diagnostics: list[PassDiagnostic],
+    unit: str,
+    form_def: FormDefinition,
+    cid: str,
+    concept: str,
+    filename: str,
+    diagnostics: list[PassDiagnostic],
 ) -> None:
     """Check a claim unit against the concept's form definition.
 
@@ -974,16 +1054,18 @@ def _validate_unit_against_form(
         unit_dims = resolve_unit_dimensions(unit)
         if unit_dims is not None:
             if not dimensions_compatible(unit_dims, form_dims):
-                diagnostics.append(claim_diagnostic(
-                    level="error",
-                    message=(
-                        f"parameter claim '{cid}' unit '{unit}' has dimensions "
-                        f"{unit_dims or 'dimensionless'} but concept '{concept}' expects "
-                        f"{form_dims or 'dimensionless'}"
-                    ),
-                    filename=filename,
-                    artifact_id=cid,
-                ))
+                diagnostics.append(
+                    claim_diagnostic(
+                        level="error",
+                        message=(
+                            f"parameter claim '{cid}' unit '{unit}' has dimensions "
+                            f"{unit_dims or 'dimensionless'} but concept '{concept}' expects "
+                            f"{form_dims or 'dimensionless'}"
+                        ),
+                        filename=filename,
+                        artifact_id=cid,
+                    )
+                )
             return  # dimensional check passed or errored — done
         # Unit not in lookup table — fall through to whitelist
 
@@ -993,12 +1075,14 @@ def _validate_unit_against_form(
         if unit not in form_def.allowed_units:
             if can_convert_unit_to(unit, form_def.unit_symbol):
                 return
-            diagnostics.append(claim_diagnostic(
-                level="error",
-                message=(
-                    f"parameter claim '{cid}' unit '{unit}' does not match "
-                    f"concept '{concept}' allowed units {sorted(form_def.allowed_units)}"
-                ),
-                filename=filename,
-                artifact_id=cid,
-            ))
+            diagnostics.append(
+                claim_diagnostic(
+                    level="error",
+                    message=(
+                        f"parameter claim '{cid}' unit '{unit}' does not match "
+                        f"concept '{concept}' allowed units {sorted(form_def.allowed_units)}"
+                    ),
+                    filename=filename,
+                    artifact_id=cid,
+                )
+            )

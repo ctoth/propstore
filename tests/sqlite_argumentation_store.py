@@ -60,10 +60,7 @@ class SQLiteArgumentationStore:
             """,  # noqa: S608
             list(claim_ids),
         )
-        return {
-            str(row["id"]): claim_from_test_payload(row)
-            for row in rows
-        }
+        return {str(row["id"]): claim_from_test_payload(row) for row in rows}
 
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         if not claim_ids:

@@ -46,8 +46,12 @@ class ConceptViewUnknownConceptError(ConceptViewAppError):
 @dataclass(frozen=True)
 class ConceptViewRequest:
     concept_id_or_name: str
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -143,7 +147,9 @@ class ConceptViewReport:
     related_claim_links: tuple[ConceptRelatedClaimLink, ...]
 
 
-def build_concept_view(repo: Repository, request: ConceptViewRequest) -> ConceptViewReport:
+def build_concept_view(
+    repo: Repository, request: ConceptViewRequest
+) -> ConceptViewReport:
     repository_state = repository_view_label(request.repository_view)
     policy = build_render_policy(request.render_policy)
     with open_app_world_model(repo) as world:
@@ -168,7 +174,11 @@ def build_concept_view(repo: Repository, request: ConceptViewRequest) -> Concept
             else visible_claims
         )
 
-    artifact_id = str(concept_entry.record.artifact_id) if concept_entry is not None else concept_id
+    artifact_id = (
+        str(concept_entry.record.artifact_id)
+        if concept_entry is not None
+        else concept_id
+    )
     version_id = None if concept_entry is None else concept_entry.record.version_id
     logical_id = (
         concept_entry.record.primary_logical_id
@@ -270,14 +280,20 @@ def _claim_groups(all_claims, visible_claims) -> tuple[ConceptClaimGroup, ...]:
         visible_entries = tuple(
             _concept_claim_entry(claim)
             for claim in sorted(
-                (claim for claim in all_groups[claim_type] if str(claim.id) in visible_by_id),
+                (
+                    claim
+                    for claim in all_groups[claim_type]
+                    if str(claim.id) in visible_by_id
+                ),
                 key=_claim_sort_key,
             )
         )
         visible_count = len(visible_entries)
         blocked_count = blocked_counts[claim_type]
         if blocked_count == 0:
-            sentence = f"{visible_count} visible {claim_type} claims refer to this concept."
+            sentence = (
+                f"{visible_count} visible {claim_type} claims refer to this concept."
+            )
         else:
             sentence = (
                 f"{visible_count} visible {claim_type} claims and {blocked_count} blocked "
@@ -395,7 +411,9 @@ def _provenance_summary(visible_claims) -> ConceptProvenanceSummary:
     )
 
 
-def _related_claim_links(concept_id: str, visible_claims) -> tuple[ConceptRelatedClaimLink, ...]:
+def _related_claim_links(
+    concept_id: str, visible_claims
+) -> tuple[ConceptRelatedClaimLink, ...]:
     links: list[ConceptRelatedClaimLink] = []
     for claim in sorted(visible_claims, key=_claim_sort_key):
         display_id = claim.primary_logical_id or claim.id
@@ -458,4 +476,7 @@ def _claim_has_role_concept(
     role: ClaimConceptLinkRole,
     concept_id: str,
 ) -> bool:
-    return any(link.role == role and str(link.concept_id) == concept_id for link in claim.concept_links)
+    return any(
+        link.role == role and str(link.concept_id) == concept_id
+        for link in claim.concept_links
+    )

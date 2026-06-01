@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 def test_workstream_q_cas_done() -> None:
-    ws_file = Path("reviews/2026-04-26-claude/workstreams/WS-Q-cas-branch-head-discipline.md")
+    ws_file = Path(
+        "reviews/2026-04-26-claude/workstreams/WS-Q-cas-branch-head-discipline.md"
+    )
     index_file = Path("reviews/2026-04-26-claude/workstreams/INDEX.md")
     gaps_file = Path("docs/gaps.md")
 
@@ -13,5 +15,8 @@ def test_workstream_q_cas_done() -> None:
     gaps_text = gaps_file.read_text(encoding="utf-8")
 
     assert "**Status**: CLOSED" in ws_text
-    assert "| **WS-Q-cas** | Branch-head CAS discipline at propstore call sites | CLOSED" in index_text
+    assert (
+        "| **WS-Q-cas** | Branch-head CAS discipline at propstore call sites | CLOSED"
+        in index_text
+    )
     assert "WS-Q-cas branch-head CAS discipline" in gaps_text

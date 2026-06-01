@@ -38,7 +38,9 @@ def _table_names(conn: Connection) -> set[str]:
 
 def test_world_query_fixture_schema_is_built_from_world_schema() -> None:
     assert not hasattr(project_conftest, "create_world_model_schema")
-    assert not (Path(__file__).parents[1] / "propstore" / "sidecar" / "schema.py").exists()
+    assert not (
+        Path(__file__).parents[1] / "propstore" / "sidecar" / "schema.py"
+    ).exists()
 
 
 def test_minimal_world_model_schema_matches_production_builders() -> None:
@@ -63,4 +65,6 @@ def test_minimal_world_model_schema_matches_production_builders() -> None:
     for table in sorted(_table_names(production_conn)):
         assert _table_info(fixture_conn, table) == _table_info(production_conn, table)
         assert _index_list(fixture_conn, table) == _index_list(production_conn, table)
-        assert _foreign_key_list(fixture_conn, table) == _foreign_key_list(production_conn, table)
+        assert _foreign_key_list(fixture_conn, table) == _foreign_key_list(
+            production_conn, table
+        )

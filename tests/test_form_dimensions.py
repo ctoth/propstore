@@ -5,6 +5,7 @@ SI base dimension symbols (L, M, T, I, Theta, N, J) to integer exponents.
 These tests are written BEFORE implementation and should fail until the
 dimensions feature is built.
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -73,21 +74,29 @@ class TestDimensionsDocumentValidation:
 
     def test_form_with_dimensions_validates(self, tmp_path: Path) -> None:
         """Form with dimensions: {T: -1} validates as non-dimensionless."""
-        _write_form_yaml(tmp_path, "test_freq", {
-            "name": "test_freq",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-            "dimensions": {"T": -1},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "test_freq",
+            {
+                "name": "test_freq",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+                "dimensions": {"T": -1},
+            },
+        )
         assert validate_form_files(tmp_path).errors == []
 
     def test_form_with_empty_dimensions_validates(self, tmp_path: Path) -> None:
         """Form with dimensions: {} validates as dimensionless."""
-        _write_form_yaml(tmp_path, "test_ratio", {
-            "name": "test_ratio",
-            "dimensionless": True,
-            "dimensions": {},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "test_ratio",
+            {
+                "name": "test_ratio",
+                "dimensionless": True,
+                "dimensions": {},
+            },
+        )
         assert validate_form_files(tmp_path).errors == []
 
     def test_dimensions_conflict_nonempty_but_dimensionless(self) -> None:
@@ -98,46 +107,58 @@ class TestDimensionsDocumentValidation:
         """
         pass
 
-    def test_form_without_dimensions_still_validates(
-        self, tmp_path: Path
-    ) -> None:
+    def test_form_without_dimensions_still_validates(self, tmp_path: Path) -> None:
         """Form with no dimensions field still validates."""
-        _write_form_yaml(tmp_path, "test_legacy", {
-            "name": "test_legacy",
-            "dimensionless": False,
-            "unit_symbol": "Pa",
-        })
+        _write_form_yaml(
+            tmp_path,
+            "test_legacy",
+            {
+                "name": "test_legacy",
+                "dimensionless": False,
+                "unit_symbol": "Pa",
+            },
+        )
         assert validate_form_files(tmp_path).errors == []
 
-    def test_dimensions_rejects_non_integer_exponent(
-        self, tmp_path: Path
-    ) -> None:
+    def test_dimensions_rejects_non_integer_exponent(self, tmp_path: Path) -> None:
         """Dimension exponents must be integers; floats should fail."""
-        _write_form_yaml(tmp_path, "test_bad_exp", {
-            "name": "test_bad_exp",
-            "dimensionless": False,
-            "dimensions": {"T": -1.5},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "test_bad_exp",
+            {
+                "name": "test_bad_exp",
+                "dimensionless": False,
+                "dimensions": {"T": -1.5},
+            },
+        )
         assert validate_form_files(tmp_path).errors
 
     def test_dimensions_rejects_invalid_key(self, tmp_path: Path) -> None:
         """Dimension keys must be identifiers; '123' is invalid."""
-        _write_form_yaml(tmp_path, "test_bad_key", {
-            "name": "test_bad_key",
-            "dimensionless": False,
-            "dimensions": {"123": 1},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "test_bad_key",
+            {
+                "name": "test_bad_key",
+                "dimensionless": False,
+                "dimensions": {"123": 1},
+            },
+        )
         result = validate_form_files(tmp_path)
         assert result.errors
         assert any("dimension key" in error for error in result.errors)
 
     def test_dimensions_accepts_custom_key(self, tmp_path: Path) -> None:
         """Dimension keys can be any valid identifier, not just SI symbols."""
-        _write_form_yaml(tmp_path, "test_custom", {
-            "name": "test_custom",
-            "dimensionless": False,
-            "dimensions": {"Currency": 1, "Quantity": -1},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "test_custom",
+            {
+                "name": "test_custom",
+                "dimensionless": False,
+                "dimensions": {"Currency": 1, "Quantity": -1},
+            },
+        )
         assert validate_form_files(tmp_path).errors == []
 
 
@@ -148,11 +169,15 @@ class TestDimensionsValidationLogic:
         self, tmp_path: Path
     ) -> None:
         """validate_form_files rejects dimensionless=true with non-empty dimensions."""
-        _write_form_yaml(tmp_path, "bad_form", {
-            "name": "bad_form",
-            "dimensionless": True,
-            "dimensions": {"T": -1},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "bad_form",
+            {
+                "name": "bad_form",
+                "dimensionless": True,
+                "dimensions": {"T": -1},
+            },
+        )
         result = validate_form_files(tmp_path)
         assert len(result.errors) > 0
         # At least one error should mention the conflict
@@ -167,12 +192,16 @@ class TestDimensionsValidationLogic:
         A quantity form that claims to not be dimensionless must have at least
         one non-zero dimension exponent. (Category/structural forms are exempt.)
         """
-        _write_form_yaml(tmp_path, "bad_qty", {
-            "name": "bad_qty",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-            "dimensions": {},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "bad_qty",
+            {
+                "name": "bad_qty",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+                "dimensions": {},
+            },
+        )
         result = validate_form_files(tmp_path)
         assert len(result.errors) > 0
         combined = " ".join(result.errors)
@@ -180,22 +209,30 @@ class TestDimensionsValidationLogic:
 
     def test_valid_form_passes_validation(self, tmp_path: Path) -> None:
         """A correctly configured form passes validate_form_files."""
-        _write_form_yaml(tmp_path, "good_form", {
-            "name": "good_form",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-            "dimensions": {"T": -1},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "good_form",
+            {
+                "name": "good_form",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+                "dimensions": {"T": -1},
+            },
+        )
         result = validate_form_files(tmp_path)
         assert result.ok
 
     def test_no_dimensions_field_passes_validation(self, tmp_path: Path) -> None:
         """Backward compat: form without dimensions field still passes."""
-        _write_form_yaml(tmp_path, "legacy", {
-            "name": "legacy",
-            "dimensionless": False,
-            "unit_symbol": "Pa",
-        })
+        _write_form_yaml(
+            tmp_path,
+            "legacy",
+            {
+                "name": "legacy",
+                "dimensionless": False,
+                "unit_symbol": "Pa",
+            },
+        )
         result = validate_form_files(tmp_path)
         assert result.ok
 
@@ -205,38 +242,48 @@ class TestFormDefinitionDimensions:
 
     def test_load_form_with_dimensions(self, tmp_path: Path) -> None:
         """load_form populates dimensions on FormDefinition."""
-        _write_form_yaml(tmp_path, "freq_test", {
-            "name": "freq_test",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-            "dimensions": {"T": -1},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "freq_test",
+            {
+                "name": "freq_test",
+                "dimensionless": False,
+                "unit_symbol": "Hz",
+                "dimensions": {"T": -1},
+            },
+        )
         fd = load_form(tmp_path, "freq_test")
         assert fd is not None
         assert hasattr(fd, "dimensions")
         assert fd.dimensions == {"T": -1}
 
-    def test_load_form_dimensionless_has_empty_dimensions(
-        self, tmp_path: Path
-    ) -> None:
+    def test_load_form_dimensionless_has_empty_dimensions(self, tmp_path: Path) -> None:
         """Dimensionless form gets dimensions={}."""
-        _write_form_yaml(tmp_path, "ratio_test", {
-            "name": "ratio_test",
-            "dimensionless": True,
-            "base": "ratio",
-            "dimensions": {},
-        })
+        _write_form_yaml(
+            tmp_path,
+            "ratio_test",
+            {
+                "name": "ratio_test",
+                "dimensionless": True,
+                "base": "ratio",
+                "dimensions": {},
+            },
+        )
         fd = load_form(tmp_path, "ratio_test")
         assert fd is not None
         assert fd.dimensions == {}
 
     def test_load_form_without_dimensions_field(self, tmp_path: Path) -> None:
         """Form without explicit dimensions field gets None or empty dict."""
-        _write_form_yaml(tmp_path, "legacy_test", {
-            "name": "legacy_test",
-            "dimensionless": False,
-            "unit_symbol": "Pa",
-        })
+        _write_form_yaml(
+            tmp_path,
+            "legacy_test",
+            {
+                "name": "legacy_test",
+                "dimensionless": False,
+                "unit_symbol": "Pa",
+            },
+        )
         fd = load_form(tmp_path, "legacy_test")
         assert fd is not None
         # Missing dimensions are represented as absent or as an empty mapping.
@@ -256,9 +303,12 @@ class TestFormAddCLIDimensions:
         result = runner.invoke(
             add,
             [
-                "--name", "test_form",
-                "--dimensions", '{"T": -1}',
-                "--dimensionless", "false",
+                "--name",
+                "test_form",
+                "--dimensions",
+                '{"T": -1}',
+                "--dimensionless",
+                "false",
             ],
             obj={"repo": repo},
         )
@@ -271,9 +321,7 @@ class TestFormAddCLIDimensions:
         assert data["dimensionless"] is False
         assert data["name"] == "test_form"
 
-    def test_form_add_dimensionless_with_empty_dimensions(
-        self, tmp_path: Path
-    ) -> None:
+    def test_form_add_dimensionless_with_empty_dimensions(self, tmp_path: Path) -> None:
         """form add for dimensionless form creates dimensions: {}."""
         from click.testing import CliRunner
         from propstore.cli.form import add
@@ -283,9 +331,12 @@ class TestFormAddCLIDimensions:
         result = runner.invoke(
             add,
             [
-                "--name", "test_dimless",
-                "--dimensions", "{}",
-                "--dimensionless", "true",
+                "--name",
+                "test_dimless",
+                "--dimensions",
+                "{}",
+                "--dimensionless",
+                "true",
             ],
             obj={"repo": repo},
         )
@@ -318,7 +369,8 @@ class TestDimensionsPropertyBased:
     @given(dimensions=_dimensions_strategy)
     @settings()
     def test_nonempty_dimensions_implies_not_dimensionless(
-        self, dimensions: dict[str, int],
+        self,
+        dimensions: dict[str, int],
     ) -> None:
         """If dimensions is non-empty, form must not be dimensionless."""
         assume(len(dimensions) > 0)
@@ -339,7 +391,8 @@ class TestDimensionsPropertyBased:
     @given(dimensions=_dimensions_strategy)
     @settings(suppress_health_check=[HealthCheck.filter_too_much])
     def test_dimensionless_implies_empty_or_absent_dimensions(
-        self, dimensions: dict[str, int],
+        self,
+        dimensions: dict[str, int],
     ) -> None:
         """If dimensionless is true, dimensions must be {} or absent."""
         # Only test with truly empty dimensions (all zeros count as empty
@@ -357,8 +410,10 @@ class TestDimensionsPropertyBased:
         assert fd is not None
         assert fd.is_dimensionless is True
         # Dimensions should be empty or absent
-        assert fd.dimensions is None or fd.dimensions == {} or all(
-            v == 0 for v in fd.dimensions.values()
+        assert (
+            fd.dimensions is None
+            or fd.dimensions == {}
+            or all(v == 0 for v in fd.dimensions.values())
         )
 
     @pytest.mark.property
@@ -372,33 +427,49 @@ class TestDimensionsPropertyBased:
     )
     @settings(deadline=None)
     def test_non_integer_exponents_rejected(
-        self, exponent: Any,
+        self,
+        exponent: Any,
     ) -> None:
         """Dimension exponents must be integers; non-integers fail document validation."""
         td = Path(tempfile.mkdtemp())
-        _write_form_yaml(td, "bad_exp", {
-            "name": "bad_exp",
-            "dimensionless": False,
-            "dimensions": {"T": exponent},
-        })
+        _write_form_yaml(
+            td,
+            "bad_exp",
+            {
+                "name": "bad_exp",
+                "dimensionless": False,
+                "dimensions": {"T": exponent},
+            },
+        )
         assert validate_form_files(td).errors
 
     @pytest.mark.property
-    @given(key=st.text(min_size=1, max_size=10).filter(
-        lambda k: not k or not k[0].isalpha() or not all(c.isalnum() or c == '_' for c in k)
-    ))
+    @given(
+        key=st.text(min_size=1, max_size=10).filter(
+            lambda k: (
+                not k
+                or not k[0].isalpha()
+                or not all(c.isalnum() or c == "_" for c in k)
+            )
+        )
+    )
     @settings()
     def test_invalid_dimension_keys_rejected(
-        self, key: str,
+        self,
+        key: str,
     ) -> None:
         """Dimension keys must be valid identifiers (start with letter, alphanumeric/underscore)."""
         assume(len(key) > 0)
         td = Path(tempfile.mkdtemp())
-        _write_form_yaml(td, "bad_key", {
-            "name": "bad_key",
-            "dimensionless": False,
-            "dimensions": {key: 1},
-        })
+        _write_form_yaml(
+            td,
+            "bad_key",
+            {
+                "name": "bad_key",
+                "dimensionless": False,
+                "dimensions": {key: 1},
+            },
+        )
         result = validate_form_files(td)
         assert result.errors
         assert any("dimension key" in error for error in result.errors)
@@ -407,27 +478,35 @@ class TestDimensionsPropertyBased:
     @given(dimensions=_dimensions_strategy.filter(lambda d: len(d) > 0))
     @settings()
     def test_forms_with_same_dimensions_compatible(
-        self, dimensions: dict[str, int],
+        self,
+        dimensions: dict[str, int],
     ) -> None:
         """Two forms with identical dimensions represent the same physical kind."""
         td = Path(tempfile.mkdtemp())
-        _write_form_yaml(td, "form_a", {
-            "name": "form_a",
-            "dimensionless": False,
-            "unit_symbol": "X",
-            "dimensions": dimensions,
-        })
-        _write_form_yaml(td, "form_b", {
-            "name": "form_b",
-            "dimensionless": False,
-            "unit_symbol": "Y",
-            "dimensions": dimensions,
-        })
+        _write_form_yaml(
+            td,
+            "form_a",
+            {
+                "name": "form_a",
+                "dimensionless": False,
+                "unit_symbol": "X",
+                "dimensions": dimensions,
+            },
+        )
+        _write_form_yaml(
+            td,
+            "form_b",
+            {
+                "name": "form_b",
+                "dimensionless": False,
+                "unit_symbol": "Y",
+                "dimensions": dimensions,
+            },
+        )
         fd_a = load_form(td, "form_a")
         fd_b = load_form(td, "form_b")
         assert fd_a is not None and fd_b is not None
         assert fd_a.dimensions == fd_b.dimensions
-
 
 
 class TestSymbolTableReset:
@@ -454,6 +533,7 @@ class TestSymbolTableReset:
         # After clearing, the internal _symbol_table should be None
         # (so next _get_symbol_table() call re-loads from disk)
         import propstore.unit_dimensions as ud
+
         assert ud._symbol_table is None
 
     def test_clear_symbol_table_removes_registered_form_units(
@@ -467,16 +547,20 @@ class TestSymbolTableReset:
         )
 
         # Write a form with a custom extra_unit
-        _write_form_yaml(tmp_path, "custom_form", {
-            "name": "custom_form",
-            "kind": "quantity",
-            "dimensionless": False,
-            "unit_symbol": "X",
-            "dimensions": {"L": 1},
-            "extra_units": [
-                {"symbol": "cX", "dimensions": {"L": 1}},
-            ],
-        })
+        _write_form_yaml(
+            tmp_path,
+            "custom_form",
+            {
+                "name": "custom_form",
+                "kind": "quantity",
+                "dimensionless": False,
+                "unit_symbol": "X",
+                "dimensions": {"L": 1},
+                "extra_units": [
+                    {"symbol": "cX", "dimensions": {"L": 1}},
+                ],
+            },
+        )
 
         # Register the custom unit
         register_form_units(tmp_path)

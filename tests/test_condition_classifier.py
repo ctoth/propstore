@@ -1,4 +1,5 @@
 """Tests for condition classification semantics and exception handling."""
+
 from unittest.mock import patch
 
 import pytest
@@ -9,7 +10,10 @@ from propstore.conflict_detector.models import ConflictClass
 def _make_registry():
     """Minimal CEL registry for testing."""
     from propstore.core.conditions.registry import ConceptInfo, KindType
-    return {"freq": ConceptInfo(id="freq", canonical_name="freq", kind=KindType.QUANTITY)}
+
+    return {
+        "freq": ConceptInfo(id="freq", canonical_name="freq", kind=KindType.QUANTITY)
+    }
 
 
 def _make_open_category_registry():
@@ -61,17 +65,27 @@ class TestZ3ExceptionHandling:
     def test_z3_translation_error_propagates(self):
         """Z3TranslationError should propagate; there is no fallback path."""
         from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
+
         registry = _make_registry()
         solver = ConditionSolver(registry)
-        with patch.object(solver, 'are_equivalent_result', side_effect=Z3TranslationError("test")):
+        with patch.object(
+            solver, "are_equivalent_result", side_effect=Z3TranslationError("test")
+        ):
             with pytest.raises(Z3TranslationError, match="test"):
-                _try_z3_classify(["freq > 100"], ["freq > 200"], registry, solver=solver)
+                _try_z3_classify(
+                    ["freq > 100"], ["freq > 200"], registry, solver=solver
+                )
 
     def test_unexpected_error_propagates(self):
         """RuntimeError should NOT be caught — must propagate."""
         from propstore.core.conditions.solver import ConditionSolver
+
         registry = _make_registry()
         solver = ConditionSolver(registry)
-        with patch.object(solver, 'are_equivalent_result', side_effect=RuntimeError("unexpected")):
+        with patch.object(
+            solver, "are_equivalent_result", side_effect=RuntimeError("unexpected")
+        ):
             with pytest.raises(RuntimeError, match="unexpected"):
-                _try_z3_classify(["freq > 100"], ["freq > 200"], registry, solver=solver)
+                _try_z3_classify(
+                    ["freq > 100"], ["freq > 200"], registry, solver=solver
+                )

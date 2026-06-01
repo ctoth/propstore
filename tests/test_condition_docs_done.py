@@ -15,9 +15,7 @@ DOC_PATHS = (
 
 def test_condition_docs_name_target_condition_surface() -> None:
     combined = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in DOC_PATHS
-        if path.exists()
+        path.read_text(encoding="utf-8") for path in DOC_PATHS if path.exists()
     )
 
     assert "propstore.core.conditions" in combined

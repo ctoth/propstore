@@ -35,5 +35,7 @@ def test_argumentation_pin_encodes_literals_as_asp_constants() -> None:
     }
 
     assert literal_ids
-    assert all(re.fullmatch(r"[a-z][A-Za-z0-9_]*", literal_id) for literal_id in literal_ids)
+    assert all(
+        re.fullmatch(r"[a-z][A-Za-z0-9_]*", literal_id) for literal_id in literal_ids
+    )
     assert set(encoding.literal_by_id) >= literal_ids

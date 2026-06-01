@@ -33,6 +33,7 @@ Labelling = dict[str, Label]
 # Grounded extension on a concrete (non-probabilistic) AF
 # ---------------------------------------------------------------------------
 
+
 def grounded_extension(args: set[str], defeats: set[tuple[str, str]]) -> frozenset[str]:
     """Compute the unique grounded extension via iterated characteristic fn.
 
@@ -47,11 +48,9 @@ def grounded_extension(args: set[str], defeats: set[tuple[str, str]]) -> frozens
     while True:
         # F(S) = {a in args | every attacker of a is defeated by some member of S}
         next_s = frozenset(
-            a for a in args
-            if all(
-                any((d, att) in defeats for d in s)
-                for att in attackers_of[a]
-            )
+            a
+            for a in args
+            if all(any((d, att) in defeats for d in s) for att in attackers_of[a])
         )
         if next_s == s:
             break
@@ -62,6 +61,7 @@ def grounded_extension(args: set[str], defeats: set[tuple[str, str]]) -> frozens
 # ---------------------------------------------------------------------------
 # Brute-force reference: enumerate all 2^|defeats| subgraphs
 # ---------------------------------------------------------------------------
+
 
 def brute_force_acceptance(
     args: set[str],
@@ -90,7 +90,7 @@ def brute_force_acceptance(
                 prob *= p
                 active_defeats.add(d)
             else:
-                prob *= (1.0 - p)
+                prob *= 1.0 - p
 
         if prob < 1e-18:
             continue
@@ -106,6 +106,7 @@ def brute_force_acceptance(
 # ---------------------------------------------------------------------------
 # I/O/U labelling-based computation (the "toy DP")
 # ---------------------------------------------------------------------------
+
 
 def _is_valid_complete_labelling(
     labelling: Labelling,
@@ -210,7 +211,7 @@ def toy_dp_acceptance(
                 prob *= p
                 active_defeats.add(d)
             else:
-                prob *= (1.0 - p)
+                prob *= 1.0 - p
 
         if prob < 1e-18:
             continue
@@ -259,6 +260,7 @@ def toy_dp_acceptance(
 # Alternative: pure labelling enumeration (3^n * 2^|D|) — for witness tests
 # ---------------------------------------------------------------------------
 
+
 def toy_dp_labelling_enum(
     args: set[str],
     defeats: set[tuple[str, str]],
@@ -293,7 +295,7 @@ def toy_dp_labelling_enum(
                 prob *= p
                 active_defeats.add(d)
             else:
-                prob *= (1.0 - p)
+                prob *= 1.0 - p
 
         if prob < 1e-18:
             continue
@@ -328,9 +330,7 @@ def toy_dp_labelling_enum(
                     else:
                         # No witness: just need SOME potential attacker
                         # (even if edge not realized) — THIS IS WRONG
-                        potential_attackers = {
-                            src for src, tgt in defeats if tgt == a
-                        }
+                        potential_attackers = {src for src, tgt in defeats if tgt == a}
                         if not any(
                             labelling[att] == "I"
                             for att in potential_attackers
@@ -365,6 +365,7 @@ def toy_dp_labelling_enum(
 # Hypothesis strategies
 # ===========================================================================
 
+
 @st.composite
 def random_small_af(draw: st.DrawFn) -> dict[str, Any]:
     """Generate a random small AF with 2-5 args and probabilistic defeats."""
@@ -394,6 +395,7 @@ def random_small_af(draw: st.DrawFn) -> dict[str, Any]:
 # ===========================================================================
 # Property-based tests
 # ===========================================================================
+
 
 class TestHypothesisDP:
     """Property-based tests: toy DP must match brute force."""
@@ -447,14 +449,13 @@ class TestHypothesisDP:
             af["args"], af["defeats"], af["p_defeats"], "grounded"
         )
         for a, p in result.items():
-            assert 0.0 - 1e-12 <= p <= 1.0 + 1e-12, (
-                f"P({a}) = {p} out of range"
-            )
+            assert 0.0 - 1e-12 <= p <= 1.0 + 1e-12, f"P({a}) = {p} out of range"
 
 
 # ===========================================================================
 # Explicit small test cases
 # ===========================================================================
+
 
 class TestExplicitCases:
     """Hand-crafted AFs with known answers."""
@@ -576,6 +577,7 @@ class TestExplicitCases:
 # ===========================================================================
 # Witness mechanism tests
 # ===========================================================================
+
 
 class TestWitnessMechanism:
     """Tests that verify the witness mechanism is necessary for correctness."""

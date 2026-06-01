@@ -107,7 +107,9 @@ def _seed_direct_proposal(repo: Repository, *, paper: str, predicate_id: str) ->
     return commit_sha
 
 
-def _seed_canonical_predicate(repo: Repository, *, file_name: str, predicate_id: str) -> None:
+def _seed_canonical_predicate(
+    repo: Repository, *, file_name: str, predicate_id: str
+) -> None:
     repo.families.predicates.save(
         PredicateRef(predicate_id),
         PredicateDocument(
@@ -153,7 +155,9 @@ def test_promote_predicate_proposal_writes_canonical_and_is_idempotent(
 
 
 def test_plan_predicate_proposal_unknown_paper_raises(monkeypatch, tmp_path) -> None:
-    from propstore.families.predicates.lifecycle import plan_predicate_proposal_promotion
+    from propstore.families.predicates.lifecycle import (
+        plan_predicate_proposal_promotion,
+    )
 
     repo = Repository.init(tmp_path / "knowledge")
     _seed_proposal(monkeypatch, repo)

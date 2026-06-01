@@ -128,8 +128,7 @@ def _build_rule_document(
     from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
     body_literals = tuple(
-        BodyLiteralDocument(kind="positive", atom=atom)
-        for atom in body
+        BodyLiteralDocument(kind="positive", atom=atom) for atom in body
     )
 
     return RuleDocument(
@@ -395,9 +394,7 @@ def test_grounder_only_facts_no_rules_yes_equals_input(facts) -> None:
         assert tuple(atom.arguments) in {tuple(row) for row in rows}
 
     # And the yes section carries no rows the input didn't.
-    total_yes_rows = sum(
-        len(rows) for rows in bundle.sections["yes"].values()
-    )
+    total_yes_rows = sum(len(rows) for rows in bundle.sections["yes"].values())
     assert total_yes_rows == len(facts)
 
 
@@ -575,8 +572,7 @@ def test_grounder_multiple_facts_same_predicate_all_grounded() -> None:
     bundle = ground(rules, facts, _bird_registry())
 
     flies_rows = {
-        tuple(row)
-        for row in bundle.sections["yes"].get("flies", frozenset())
+        tuple(row) for row in bundle.sections["yes"].get("flies", frozenset())
     }
     assert ("tweety",) in flies_rows
     assert ("opus",) in flies_rows
@@ -624,10 +620,7 @@ def test_grounder_marking_policy_is_configurable() -> None:
     )
     assert set(bundle_blocking.sections.keys()) == set(_FOUR_SECTIONS)
     flies_rows = {
-        tuple(row)
-        for row in bundle_blocking.sections["yes"].get(
-            "flies", frozenset()
-        )
+        tuple(row) for row in bundle_blocking.sections["yes"].get("flies", frozenset())
     }
     assert ("tweety",) in flies_rows
 
@@ -635,10 +628,7 @@ def test_grounder_marking_policy_is_configurable() -> None:
     # canonical warranted row.
     bundle_default = ground(rules, facts, _bird_registry())
     default_flies_rows = {
-        tuple(row)
-        for row in bundle_default.sections["yes"].get(
-            "flies", frozenset()
-        )
+        tuple(row) for row in bundle_default.sections["yes"].get("flies", frozenset())
     }
     assert ("tweety",) in default_flies_rows
 
@@ -761,8 +751,7 @@ def test_ground_projection_frames_preserve_backend_atom_and_sources() -> None:
     bundle = ground(rules, facts, _bird_registry())
 
     by_predicate = {
-        frame.backend_atom.predicate: frame
-        for frame in bundle.projection_frames
+        frame.backend_atom.predicate: frame for frame in bundle.projection_frames
     }
     assert by_predicate["bird"].source_fact_ids
     assert by_predicate["bird"].backend_atom_id
@@ -802,8 +791,7 @@ def test_ground_return_arguments_populates_tuple() -> None:
     for arg in bundle.arguments:
         assert isinstance(arg, gunray.Argument)
     conclusions = {
-        (arg.conclusion.predicate, arg.conclusion.arguments)
-        for arg in bundle.arguments
+        (arg.conclusion.predicate, arg.conclusion.arguments) for arg in bundle.arguments
     }
     assert ("flies", ("tweety",)) in conclusions
 
@@ -847,9 +835,7 @@ def test_ground_return_arguments_is_deterministic() -> None:
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much],
     max_examples=200,
 )
-def test_hypothesis_ground_return_arguments_is_deterministic(
-    rule_files, facts
-) -> None:
+def test_hypothesis_ground_return_arguments_is_deterministic(rule_files, facts) -> None:
     """Property: ``ground(..., return_arguments=True)`` is a pure function.
 
     Diller, Borg, Bex 2025 §3 Definition 9: the ground substitution

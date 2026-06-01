@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from argumentation.aspic import GroundAtom
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from tests.family_helpers import world_query_from_sqlite_path
 
 
@@ -102,9 +106,7 @@ def _bundle_with_four_statuses():
                 "undecided": MappingProxyType(
                     {"contested": frozenset({("claim-flight",)})}
                 ),
-                "unknown": MappingProxyType(
-                    {"flies": frozenset({("tweety",)})}
-                ),
+                "unknown": MappingProxyType({"flies": frozenset({("tweety",)})}),
             }
         ),
     )

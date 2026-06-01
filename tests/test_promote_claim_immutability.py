@@ -4,7 +4,9 @@ import ast
 from pathlib import Path
 
 
-def test_promote_source_branch_rebuilds_claim_payloads_without_in_place_mutation() -> None:
+def test_promote_source_branch_rebuilds_claim_payloads_without_in_place_mutation() -> (
+    None
+):
     tree = ast.parse(Path("propstore/source/promote.py").read_text(encoding="utf-8"))
     offenders: list[str] = []
     for node in ast.walk(tree):

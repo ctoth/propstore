@@ -37,7 +37,11 @@ from tests.git_store_helpers import init_store
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 from propstore.world import WorldQuery
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
+from tests.conftest import (
+    normalize_claims_payload,
+    normalize_concept_payloads,
+    write_test_context,
+)
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -168,15 +172,29 @@ def worldline_yaml_with_results(worldline_yaml_question):
                 "formula": "mass * acceleration",
                 "inputs_used": {
                     "mass": {"value": 10.0, "source": "override"},
-                    "acceleration": {"value": 9.807, "source": "claim", "claim_id": "g_earth"},
+                    "acceleration": {
+                        "value": 9.807,
+                        "source": "claim",
+                        "claim_id": "g_earth",
+                    },
                 },
             },
         },
         "steps": [
             {"concept": "location", "value": "earth", "source": "binding"},
-            {"concept": "gravitational_acceleration", "value": 9.807, "source": "claim", "claim_id": "g_earth"},
+            {
+                "concept": "gravitational_acceleration",
+                "value": 9.807,
+                "source": "claim",
+                "claim_id": "g_earth",
+            },
             {"concept": "mass", "value": 10.0, "source": "override"},
-            {"concept": "force", "value": 98.07, "source": "derived", "formula": "mass * acceleration"},
+            {
+                "concept": "force",
+                "value": 98.07,
+                "source": "derived",
+                "formula": "mass * acceleration",
+            },
         ],
         "dependencies": {
             "claims": ["g_earth"],
@@ -214,7 +232,14 @@ def physics_knowledge(tmp_path_factory):
 
     forms_dir = root / "forms"
     forms_dir.mkdir(exist_ok=True)
-    for form_name in ("acceleration", "force", "mass", "velocity", "energy", "category"):
+    for form_name in (
+        "acceleration",
+        "force",
+        "mass",
+        "velocity",
+        "energy",
+        "category",
+    ):
         data = {"name": form_name, "dimensionless": False, "kind": "quantity"}
         if form_name == "category":
             data["kind"] = "category"
@@ -223,52 +248,91 @@ def physics_knowledge(tmp_path_factory):
 
     def write_concept(name, data):
         with open(concepts_dir / f"{name}.yaml", "w") as f:
-            yaml.dump(normalize_concept_payloads([data])[0], f, default_flow_style=False)
+            yaml.dump(
+                normalize_concept_payloads([data])[0], f, default_flow_style=False
+            )
 
-    write_concept("mass", {
-        "id": "concept1", "canonical_name": "mass",
-        "status": "accepted", "definition": "Mass.", "form": "mass",
-    })
-    write_concept("acceleration", {
-        "id": "concept2", "canonical_name": "acceleration",
-        "status": "accepted", "definition": "Acceleration.", "form": "acceleration",
-    })
-    write_concept("force", {
-        "id": "concept3", "canonical_name": "force",
-        "status": "accepted", "definition": "Force.",
-        "form": "force",
-        "parameterization_relationships": [{
-            "formula": "F = m * a",
-            "inputs": ["concept1", "concept2"],
-            "sympy": "Eq(concept3, concept1 * concept2)",
-            "exactness": "exact",
-            "source": "Newton",
-            "bidirectional": True,
-        }],
-    })
-    write_concept("velocity", {
-        "id": "concept4", "canonical_name": "velocity",
-        "status": "accepted", "definition": "Velocity.", "form": "velocity",
-    })
-    write_concept("kinetic_energy", {
-        "id": "concept5", "canonical_name": "kinetic_energy",
-        "status": "accepted", "definition": "Kinetic energy.",
-        "form": "energy",
-        "parameterization_relationships": [{
-            "formula": "E = 0.5 * m * v^2",
-            "inputs": ["concept1", "concept4"],
-            "sympy": "Eq(concept5, 0.5 * concept1 * concept4**2)",
-            "exactness": "exact",
-            "source": "textbook",
-            "bidirectional": True,
-        }],
-    })
-    write_concept("location", {
-        "id": "concept6", "canonical_name": "location",
-        "status": "accepted", "definition": "Location.",
-        "form": "category",
-        "form_parameters": {"values": ["earth", "moon"], "extensible": False},
-    })
+    write_concept(
+        "mass",
+        {
+            "id": "concept1",
+            "canonical_name": "mass",
+            "status": "accepted",
+            "definition": "Mass.",
+            "form": "mass",
+        },
+    )
+    write_concept(
+        "acceleration",
+        {
+            "id": "concept2",
+            "canonical_name": "acceleration",
+            "status": "accepted",
+            "definition": "Acceleration.",
+            "form": "acceleration",
+        },
+    )
+    write_concept(
+        "force",
+        {
+            "id": "concept3",
+            "canonical_name": "force",
+            "status": "accepted",
+            "definition": "Force.",
+            "form": "force",
+            "parameterization_relationships": [
+                {
+                    "formula": "F = m * a",
+                    "inputs": ["concept1", "concept2"],
+                    "sympy": "Eq(concept3, concept1 * concept2)",
+                    "exactness": "exact",
+                    "source": "Newton",
+                    "bidirectional": True,
+                }
+            ],
+        },
+    )
+    write_concept(
+        "velocity",
+        {
+            "id": "concept4",
+            "canonical_name": "velocity",
+            "status": "accepted",
+            "definition": "Velocity.",
+            "form": "velocity",
+        },
+    )
+    write_concept(
+        "kinetic_energy",
+        {
+            "id": "concept5",
+            "canonical_name": "kinetic_energy",
+            "status": "accepted",
+            "definition": "Kinetic energy.",
+            "form": "energy",
+            "parameterization_relationships": [
+                {
+                    "formula": "E = 0.5 * m * v^2",
+                    "inputs": ["concept1", "concept4"],
+                    "sympy": "Eq(concept5, 0.5 * concept1 * concept4**2)",
+                    "exactness": "exact",
+                    "source": "textbook",
+                    "bidirectional": True,
+                }
+            ],
+        },
+    )
+    write_concept(
+        "location",
+        {
+            "id": "concept6",
+            "canonical_name": "location",
+            "status": "accepted",
+            "definition": "Location.",
+            "form": "category",
+            "form_parameters": {"values": ["earth", "moon"], "extensible": False},
+        },
+    )
 
     _write_claim_artifacts(
         repo,
@@ -338,40 +402,70 @@ def chained_physics_knowledge(tmp_path_factory):
 
     def write_concept(name, data):
         with open(concepts_dir / f"{name}.yaml", "w", encoding="utf-8") as f:
-            yaml.dump(normalize_concept_payloads([data])[0], f, default_flow_style=False)
+            yaml.dump(
+                normalize_concept_payloads([data])[0], f, default_flow_style=False
+            )
 
-    write_concept("mass", {
-        "id": "concept1", "canonical_name": "mass",
-        "status": "accepted", "definition": "Mass.", "form": "mass",
-    })
-    write_concept("gravitational_source", {
-        "id": "concept2", "canonical_name": "gravitational_source",
-        "status": "accepted", "definition": "Source gravity.", "form": "acceleration",
-    })
-    write_concept("acceleration", {
-        "id": "concept3", "canonical_name": "acceleration",
-        "status": "accepted", "definition": "Acceleration.", "form": "acceleration",
-        "parameterization_relationships": [{
-            "formula": "a = g",
-            "inputs": ["concept2"],
-            "sympy": "Eq(concept3, concept2)",
-            "exactness": "exact",
-            "source": "test",
-            "bidirectional": True,
-        }],
-    })
-    write_concept("force", {
-        "id": "concept4", "canonical_name": "force",
-        "status": "accepted", "definition": "Force.", "form": "force",
-        "parameterization_relationships": [{
-            "formula": "F = m * a",
-            "inputs": ["concept1", "concept3"],
-            "sympy": "Eq(concept4, concept1 * concept3)",
-            "exactness": "exact",
-            "source": "test",
-            "bidirectional": True,
-        }],
-    })
+    write_concept(
+        "mass",
+        {
+            "id": "concept1",
+            "canonical_name": "mass",
+            "status": "accepted",
+            "definition": "Mass.",
+            "form": "mass",
+        },
+    )
+    write_concept(
+        "gravitational_source",
+        {
+            "id": "concept2",
+            "canonical_name": "gravitational_source",
+            "status": "accepted",
+            "definition": "Source gravity.",
+            "form": "acceleration",
+        },
+    )
+    write_concept(
+        "acceleration",
+        {
+            "id": "concept3",
+            "canonical_name": "acceleration",
+            "status": "accepted",
+            "definition": "Acceleration.",
+            "form": "acceleration",
+            "parameterization_relationships": [
+                {
+                    "formula": "a = g",
+                    "inputs": ["concept2"],
+                    "sympy": "Eq(concept3, concept2)",
+                    "exactness": "exact",
+                    "source": "test",
+                    "bidirectional": True,
+                }
+            ],
+        },
+    )
+    write_concept(
+        "force",
+        {
+            "id": "concept4",
+            "canonical_name": "force",
+            "status": "accepted",
+            "definition": "Force.",
+            "form": "force",
+            "parameterization_relationships": [
+                {
+                    "formula": "F = m * a",
+                    "inputs": ["concept1", "concept3"],
+                    "sympy": "Eq(concept4, concept1 * concept3)",
+                    "exactness": "exact",
+                    "source": "test",
+                    "bidirectional": True,
+                }
+            ],
+        },
+    )
 
     _write_claim_artifacts(
         repo,
@@ -413,6 +507,7 @@ class TestWorldlineDefinition:
     def test_worldline_definition_from_yaml(self, worldline_yaml_question):
         """Can parse a worldline YAML dict into a WorldlineDefinition."""
         from propstore.worldline import WorldlineDefinition
+
         wl = WorldlineDefinition.from_dict(worldline_yaml_question)
         assert wl.id == "test_wl_1"
         assert wl.targets == ["force", "gravitational_acceleration"]
@@ -425,18 +520,20 @@ class TestWorldlineDefinition:
         """Worldlines should store the shared runtime Environment and RenderPolicy objects."""
         from propstore.worldline import WorldlineDefinition
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "canonical_types",
-            "targets": ["force"],
-            "inputs": {
-                "bindings": {"location": "earth"},
-                "context_id": "ctx_physics",
-            },
-            "policy": {
-                "strategy": "argumentation",
-                "reasoning_backend": "atms",
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "canonical_types",
+                "targets": ["force"],
+                "inputs": {
+                    "bindings": {"location": "earth"},
+                    "context_id": "ctx_physics",
+                },
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "atms",
+                },
+            }
+        )
 
         assert isinstance(wl.inputs.environment, Environment)
         assert wl.inputs.environment.context_id == "ctx_physics"
@@ -445,15 +542,21 @@ class TestWorldlineDefinition:
     def test_worldline_definition_from_file(self, worldline_yaml_file):
         """Can load a WorldlineDefinition from a typed YAML document."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.families.worldlines.declaration import WorldlineDefinitionDocument
+        from propstore.families.worldlines.declaration import (
+            WorldlineDefinitionDocument,
+        )
 
-        document = decode_document_path(worldline_yaml_file, WorldlineDefinitionDocument)
+        document = decode_document_path(
+            worldline_yaml_file, WorldlineDefinitionDocument
+        )
         wl = WorldlineDefinition.from_document(document)
         assert wl.id == "test_wl_1"
 
     def test_worldline_definition_from_file_rejects_unknown_fields(self, tmp_path):
         from propstore.worldline import WorldlineDefinition
-        from propstore.families.worldlines.declaration import WorldlineDefinitionDocument
+        from propstore.families.worldlines.declaration import (
+            WorldlineDefinitionDocument,
+        )
 
         path = tmp_path / "worldlines" / "bad.yaml"
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -476,6 +579,7 @@ class TestWorldlineDefinition:
     def test_worldline_definition_roundtrip(self, worldline_yaml_question):
         """Save → load → save produces equivalent data."""
         from propstore.worldline import WorldlineDefinition
+
         wl = WorldlineDefinition.from_dict(worldline_yaml_question)
         exported = wl.to_dict()
         wl2 = WorldlineDefinition.from_dict(exported)
@@ -487,35 +591,44 @@ class TestWorldlineDefinition:
     def test_worldline_definition_requires_id(self):
         """A worldline without an id is rejected."""
         from propstore.worldline import WorldlineDefinition
+
         with pytest.raises((ValueError, KeyError)):
-            WorldlineDefinition.from_dict({
-                "name": "no id",
-                "targets": ["force"],
-            })
+            WorldlineDefinition.from_dict(
+                {
+                    "name": "no id",
+                    "targets": ["force"],
+                }
+            )
 
     def test_worldline_definition_requires_targets(self):
         """A worldline without targets is rejected."""
         from propstore.worldline import WorldlineDefinition
+
         with pytest.raises((ValueError, KeyError)):
-            WorldlineDefinition.from_dict({
-                "id": "no_targets",
-                "name": "no targets",
-            })
+            WorldlineDefinition.from_dict(
+                {
+                    "id": "no_targets",
+                    "name": "no targets",
+                }
+            )
 
     def test_worldline_definition_rejects_unknown_reasoning_backend(self):
         """Unknown semantic backends fail during worldline parsing, not execution."""
         from propstore.worldline import WorldlineDefinition
 
         with pytest.raises(ValueError, match="Unknown reasoning_backend"):
-            WorldlineDefinition.from_dict({
-                "id": "bad_backend",
-                "targets": ["force"],
-                "policy": {"reasoning_backend": "not_real"},
-            })
+            WorldlineDefinition.from_dict(
+                {
+                    "id": "bad_backend",
+                    "targets": ["force"],
+                    "policy": {"reasoning_backend": "not_real"},
+                }
+            )
 
     def test_worldline_result_from_yaml(self, worldline_yaml_with_results):
         """Can parse a worldline YAML with results into a WorldlineResult."""
         from propstore.worldline import WorldlineDefinition
+
         wl = WorldlineDefinition.from_dict(worldline_yaml_with_results)
         assert wl.results is not None
         assert "force" in wl.results.values
@@ -524,6 +637,7 @@ class TestWorldlineDefinition:
     def test_worldline_has_no_results_initially(self, worldline_yaml_question):
         """A question-only worldline has no results."""
         from propstore.worldline import WorldlineDefinition
+
         wl = WorldlineDefinition.from_dict(worldline_yaml_question)
         assert wl.results is None
 
@@ -541,11 +655,13 @@ class TestWorldlineRunner:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_run",
-            "targets": ["acceleration"],
-            "inputs": {"bindings": {"location": "earth"}},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_run",
+                "targets": ["acceleration"],
+                "inputs": {"bindings": {"location": "earth"}},
+            }
+        )
         result = run_worldline(wl, physics_world)
         assert result is not None
         assert "acceleration" in result.values
@@ -555,14 +671,16 @@ class TestWorldlineRunner:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_derive",
-            "targets": ["force"],
-            "inputs": {
-                "bindings": {"location": "earth"},
-                "overrides": {"mass": 10.0},
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_derive",
+                "targets": ["force"],
+                "inputs": {
+                    "bindings": {"location": "earth"},
+                    "overrides": {"mass": 10.0},
+                },
+            }
+        )
         result = run_worldline(wl, physics_world)
         assert "force" in result.values
         force = result.values["force"]
@@ -574,14 +692,16 @@ class TestWorldlineRunner:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_deps",
-            "targets": ["force"],
-            "inputs": {
-                "bindings": {"location": "earth"},
-                "overrides": {"mass": 10.0},
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_deps",
+                "targets": ["force"],
+                "inputs": {
+                    "bindings": {"location": "earth"},
+                    "overrides": {"mass": 10.0},
+                },
+            }
+        )
         result = run_worldline(wl, physics_world)
         assert "test:g_earth" in result.dependencies.claims
 
@@ -590,14 +710,21 @@ class TestWorldlineRunner:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_partial",
-            "targets": ["kinetic_energy"],  # needs velocity, which has no claims or overrides
-            "inputs": {},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_partial",
+                "targets": [
+                    "kinetic_energy"
+                ],  # needs velocity, which has no claims or overrides
+                "inputs": {},
+            }
+        )
         result = run_worldline(wl, physics_world)
         assert "kinetic_energy" in result.values
-        assert result.values["kinetic_energy"].status in ("underspecified", "no_relationship")
+        assert result.values["kinetic_energy"].status in (
+            "underspecified",
+            "no_relationship",
+        )
 
     def test_run_override_precedence(self, physics_world):
         """Override value takes precedence over claims."""
@@ -605,11 +732,13 @@ class TestWorldlineRunner:
         from propstore.worldline import run_worldline
 
         # mass has a claim (mass_5kg = 5.0), but override says 99.0
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_override",
-            "targets": ["mass"],
-            "inputs": {"overrides": {"mass": 99.0}},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_override",
+                "targets": ["mass"],
+                "inputs": {"overrides": {"mass": 99.0}},
+            }
+        )
         result = run_worldline(wl, physics_world)
         assert result.values["mass"].value == 99.0
         assert result.values["mass"].source == "override"
@@ -619,14 +748,16 @@ class TestWorldlineRunner:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_det",
-            "targets": ["force"],
-            "inputs": {
-                "bindings": {"location": "earth"},
-                "overrides": {"mass": 10.0},
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_det",
+                "targets": ["force"],
+                "inputs": {
+                    "bindings": {"location": "earth"},
+                    "overrides": {"mass": 10.0},
+                },
+            }
+        )
         r1 = run_worldline(wl, physics_world)
         r2 = run_worldline(wl, physics_world)
         assert r1.values == r2.values
@@ -638,11 +769,16 @@ class TestWorldlineRunner:
         from propstore.worldline import run_worldline
 
         targets = ["force", "kinetic_energy", "acceleration"]
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_all_targets",
-            "targets": targets,
-            "inputs": {"bindings": {"location": "earth"}, "overrides": {"mass": 10.0}},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_all_targets",
+                "targets": targets,
+                "inputs": {
+                    "bindings": {"location": "earth"},
+                    "overrides": {"mass": 10.0},
+                },
+            }
+        )
         result = run_worldline(wl, physics_world)
         for t in targets:
             assert t in result.values, f"Target {t} missing from results"
@@ -653,14 +789,16 @@ class TestWorldlineRunner:
         from propstore.worldline import run_worldline
         from sympy.parsing.sympy_parser import parse_expr
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_accuracy",
-            "targets": ["force"],
-            "inputs": {
-                "bindings": {"location": "earth"},
-                "overrides": {"mass": 10.0},
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_accuracy",
+                "targets": ["force"],
+                "inputs": {
+                    "bindings": {"location": "earth"},
+                    "overrides": {"mass": 10.0},
+                },
+            }
+        )
         result = run_worldline(wl, physics_world)
         force = result.values["force"]
         if force.status == "derived" and force.formula:
@@ -670,7 +808,9 @@ class TestWorldlineRunner:
                 for key, input_source in force.inputs_used.items()
             }
             # The formula uses concept IDs, so we verify numerically
-            expected = inputs.get("concept1", inputs.get("mass", 10.0)) * inputs.get("concept2", inputs.get("acceleration", 9.807))
+            expected = inputs.get("concept1", inputs.get("mass", 10.0)) * inputs.get(
+                "concept2", inputs.get("acceleration", 9.807)
+            )
             assert abs(force.value - expected) < 1e-9
 
     def test_run_uses_world_context_scope(self):
@@ -698,7 +838,9 @@ class TestWorldlineRunner:
                 return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
         class FakeWorld:
             def __init__(self):
@@ -719,11 +861,13 @@ class TestWorldlineRunner:
             def get_claim(self, claim_id):
                 return None
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_context",
-            "targets": ["target"],
-            "inputs": {"context_id": "ctx_physics"},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_context",
+                "targets": ["target"],
+                "inputs": {"context_id": "ctx_physics"},
+            }
+        )
         world = FakeWorld()
 
         result = run_worldline(wl, world)
@@ -738,11 +882,13 @@ class TestWorldlineRunner:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_transitive_deps",
-            "targets": ["force"],
-            "inputs": {"overrides": {"mass": 10.0}},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_transitive_deps",
+                "targets": ["force"],
+                "inputs": {"overrides": {"mass": 10.0}},
+            }
+        )
 
         result = run_worldline(wl, chained_physics_world)
 
@@ -766,11 +912,13 @@ class TestWorldlineStaleness:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_fresh",
-            "targets": ["acceleration"],
-            "inputs": {"bindings": {"location": "earth"}},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_fresh",
+                "targets": ["acceleration"],
+                "inputs": {"bindings": {"location": "earth"}},
+            }
+        )
         result = run_worldline(wl, physics_world)
         wl.results = result
         assert not wl.is_stale(physics_world)
@@ -780,11 +928,16 @@ class TestWorldlineStaleness:
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "test_targets_present",
-            "targets": ["force", "acceleration"],
-            "inputs": {"bindings": {"location": "earth"}, "overrides": {"mass": 5.0}},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "test_targets_present",
+                "targets": ["force", "acceleration"],
+                "inputs": {
+                    "bindings": {"location": "earth"},
+                    "overrides": {"mass": 5.0},
+                },
+            }
+        )
         result = run_worldline(wl, physics_world)
         for t in ["force", "acceleration"]:
             assert t in result.values
@@ -803,10 +956,16 @@ class TestWorldlineDependencyLiveness:
                 self._bindings = {}
 
             def value_of(self, concept_id):
-                return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=self._claims)
+                return ValueResult(
+                    concept_id=concept_id,
+                    status=ValueStatus.CONFLICTED,
+                    claims=self._claims,
+                )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
             def active_claims(self, concept_id=None):
                 return list(self._claims)
@@ -846,11 +1005,13 @@ class TestWorldlineDependencyLiveness:
             def parameterizations_for(self, concept_id):
                 return []
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "recency_liveness",
-            "targets": ["target"],
-            "policy": {"strategy": "recency"},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "recency_liveness",
+                "targets": ["target"],
+                "policy": {"strategy": "recency"},
+            }
+        )
         original_world = FakeWorld("2024-01-01")
         changed_world = FakeWorld("2026-01-01")
 
@@ -862,9 +1023,15 @@ class TestWorldlineDependencyLiveness:
         assert sorted(result.dependencies.claims) == ["claim_new", "claim_old"]
         assert wl.is_stale(changed_world)
 
-    def test_argumentation_worldline_records_stance_dependencies_and_detects_staleness(self, monkeypatch):
+    def test_argumentation_worldline_records_stance_dependencies_and_detects_staleness(
+        self, monkeypatch
+    ):
         """Argumentation-sensitive worldlines must record stance inputs and go stale when they flip."""
-        from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
+        from propstore.core.results import (
+            AnalyzerResult,
+            ClaimProjection,
+            ExtensionResult,
+        )
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
@@ -875,10 +1042,16 @@ class TestWorldlineDependencyLiveness:
                 self._bindings = {}
 
             def value_of(self, concept_id):
-                return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=self._claims)
+                return ValueResult(
+                    concept_id=concept_id,
+                    status=ValueStatus.CONFLICTED,
+                    claims=self._claims,
+                )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
             def active_claims(self, concept_id=None):
                 return list(self._claims)
@@ -908,7 +1081,9 @@ class TestWorldlineDependencyLiveness:
                 return name == "relation_edge"
 
             def claims_by_ids(self, claim_ids):
-                return {cid: self._claims[cid] for cid in claim_ids if cid in self._claims}
+                return {
+                    cid: self._claims[cid] for cid in claim_ids if cid in self._claims
+                }
 
             def stances_between(self, claim_ids):
                 if {"claim_a", "claim_b"}.issubset(claim_ids):
@@ -940,7 +1115,9 @@ class TestWorldlineDependencyLiveness:
             lambda world, active_claim_ids, **kwargs: world,
         )
 
-        def fake_analyze_claim_graph(world, *, semantics="grounded", target_claim_ids=None):
+        def fake_analyze_claim_graph(
+            world, *, semantics="grounded", target_claim_ids=None
+        ):
             target_ids = tuple(sorted(target_claim_ids or ()))
             survivor_ids = ()
             if world._winner_id in target_ids:
@@ -966,11 +1143,13 @@ class TestWorldlineDependencyLiveness:
             fake_analyze_claim_graph,
         )
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "argumentation_liveness",
-            "targets": ["target"],
-            "policy": {"strategy": "argumentation"},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "argumentation_liveness",
+                "targets": ["target"],
+                "policy": {"strategy": "argumentation"},
+            }
+        )
         original_world = FakeWorld("claim_a", "rebuts")
         changed_world = FakeWorld("claim_b", "supports")
 
@@ -981,7 +1160,9 @@ class TestWorldlineDependencyLiveness:
         assert result.dependencies.stances
         assert wl.is_stale(changed_world)
 
-    def test_context_sensitive_worldline_detects_staleness_when_context_behavior_changes(self):
+    def test_context_sensitive_worldline_detects_staleness_when_context_behavior_changes(
+        self,
+    ):
         """Context-scoped worldlines must become stale when that context resolves differently."""
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
@@ -1009,7 +1190,9 @@ class TestWorldlineDependencyLiveness:
                 return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
             def active_claims(self, concept_id=None):
                 if self._context_id == "ctx_physics" and self._active:
@@ -1042,11 +1225,13 @@ class TestWorldlineDependencyLiveness:
             def has_table(self, name):
                 return False
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "context_liveness",
-            "targets": ["target"],
-            "inputs": {"context_id": "ctx_physics"},
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "context_liveness",
+                "targets": ["target"],
+                "inputs": {"context_id": "ctx_physics"},
+            }
+        )
         original_world = FakeWorld(True)
         changed_world = FakeWorld(False)
 
@@ -1075,7 +1260,9 @@ class TestWorldlineDependencyLiveness:
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
             def active_claims(self, concept_id=None):
                 return [self._claim]
@@ -1097,10 +1284,12 @@ class TestWorldlineDependencyLiveness:
             def has_table(self, name):
                 return False
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "interface_lookup",
-            "targets": ["target"],
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "interface_lookup",
+                "targets": ["target"],
+            }
+        )
 
         result = run_worldline(wl, MinimalWorld())
         assert result.values["target"].value == 42.0
@@ -1171,7 +1360,9 @@ class TestSemanticCorePhase7Worldlines:
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
             def active_claims(self, concept_id=None):
                 return [self._claims[claim_id] for claim_id in self._claim_order]
@@ -1182,7 +1373,11 @@ class TestSemanticCorePhase7Worldlines:
 
             def bind(self, environment=None, *, policy=None, **conditions):
                 self._bind_calls += 1
-                order = ["claim_a", "claim_b"] if self._bind_calls % 2 else ["claim_b", "claim_a"]
+                order = (
+                    ["claim_a", "claim_b"]
+                    if self._bind_calls % 2
+                    else ["claim_b", "claim_a"]
+                )
                 return _Bound(order)
 
             def get_concept(self, concept_id):
@@ -1205,7 +1400,11 @@ class TestSemanticCorePhase7Worldlines:
         self,
         monkeypatch,
     ):
-        from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
+        from propstore.core.results import (
+            AnalyzerResult,
+            ClaimProjection,
+            ExtensionResult,
+        )
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
@@ -1228,7 +1427,9 @@ class TestSemanticCorePhase7Worldlines:
             return AnalyzerResult(
                 backend="claim_graph",
                 semantics=semantics,
-                extensions=(ExtensionResult(name=semantics, accepted_claim_ids=("claim_a",)),),
+                extensions=(
+                    ExtensionResult(name=semantics, accepted_claim_ids=("claim_a",)),
+                ),
                 projection=projection,
             )
 
@@ -1242,15 +1443,17 @@ class TestSemanticCorePhase7Worldlines:
         )
 
         result = run_worldline(
-            WorldlineDefinition.from_dict({
-                "id": "phase7_claim_graph",
-                "targets": ["target"],
-                "policy": {
-                    "strategy": "argumentation",
-                    "reasoning_backend": "claim_graph",
-                    "semantics": "grounded",
-                },
-            }),
+            WorldlineDefinition.from_dict(
+                {
+                    "id": "phase7_claim_graph",
+                    "targets": ["target"],
+                    "policy": {
+                        "strategy": "argumentation",
+                        "reasoning_backend": "claim_graph",
+                        "semantics": "grounded",
+                    },
+                }
+            ),
             world,
         )
 
@@ -1334,23 +1537,28 @@ class TestSemanticCorePhase7Worldlines:
         )
 
         result = run_worldline(
-            WorldlineDefinition.from_dict({
-                "id": "phase7_praf",
-                "targets": ["target"],
-                "policy": {
-                    "strategy": "argumentation",
-                    "reasoning_backend": "praf",
-                    "semantics": "grounded",
-                    "praf_strategy": "exact_enum",
-                },
-            }),
+            WorldlineDefinition.from_dict(
+                {
+                    "id": "phase7_praf",
+                    "targets": ["target"],
+                    "policy": {
+                        "strategy": "argumentation",
+                        "reasoning_backend": "praf",
+                        "semantics": "grounded",
+                        "praf_strategy": "exact_enum",
+                    },
+                }
+            ),
             world,
         )
 
         assert result.values["target"].value == 10.0
         assert result.argumentation is not None
         assert result.argumentation.backend == "praf"
-        assert result.argumentation.acceptance_probs == {"claim_a": 0.75, "claim_b": 0.25}
+        assert result.argumentation.acceptance_probs == {
+            "claim_a": 0.75,
+            "claim_b": 0.25,
+        }
         assert result.dependencies.stances
 
     def test_worldline_grounded_has_single_canonical_meaning(
@@ -1377,7 +1585,9 @@ class TestSemanticCorePhase7Worldlines:
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
             def active_claims(self, concept_id=None):
                 return [self._claims["claim_a"], self._claims["claim_b"]]
@@ -1414,10 +1624,12 @@ class TestSemanticCorePhase7Worldlines:
                 "framework": ArgumentationFramework(
                     arguments=frozenset({"arg:a", "arg:b"}),
                     defeats=frozenset(),
-                    attacks=frozenset({
-                        ("arg:a", "arg:b"),
-                        ("arg:b", "arg:a"),
-                    }),
+                    attacks=frozenset(
+                        {
+                            ("arg:a", "arg:b"),
+                            ("arg:b", "arg:a"),
+                        }
+                    ),
                 ),
                 "claim_to_argument_ids": {
                     "claim_a": ("arg:a",),
@@ -1435,15 +1647,17 @@ class TestSemanticCorePhase7Worldlines:
         )
 
         grounded = run_worldline(
-            WorldlineDefinition.from_dict({
-                "id": "phase7_structured_grounded",
-                "targets": ["target"],
-                "policy": {
-                    "strategy": "argumentation",
-                    "reasoning_backend": "aspic",
-                    "semantics": "grounded",
-                },
-            }),
+            WorldlineDefinition.from_dict(
+                {
+                    "id": "phase7_structured_grounded",
+                    "targets": ["target"],
+                    "policy": {
+                        "strategy": "argumentation",
+                        "reasoning_backend": "aspic",
+                        "semantics": "grounded",
+                    },
+                }
+            ),
             _World(),
         )
 
@@ -1455,7 +1669,11 @@ class TestSemanticCorePhase7Worldlines:
         self,
         monkeypatch,
     ):
-        from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
+        from propstore.core.results import (
+            AnalyzerResult,
+            ClaimProjection,
+            ExtensionResult,
+        )
         from propstore.worldline import WorldlineDefinition, WorldlineResult
         from propstore.worldline import run_worldline
 
@@ -1467,31 +1685,39 @@ class TestSemanticCorePhase7Worldlines:
         )
         monkeypatch.setattr(
             "propstore.argumentation.analyze_claim_graph",
-            lambda shared, *, semantics="grounded", target_claim_ids=None: AnalyzerResult(
-                backend="claim_graph",
-                semantics=semantics,
-                extensions=(ExtensionResult(name=semantics, accepted_claim_ids=("claim_a",)),),
-                projection=(
-                    None
-                    if target_claim_ids is None
-                    else ClaimProjection(
-                        target_claim_ids=tuple(sorted(target_claim_ids)),
-                        survivor_claim_ids=("claim_a",),
-                        witness_claim_ids=tuple(sorted(target_claim_ids)),
-                    )
-                ),
+            lambda shared, *, semantics="grounded", target_claim_ids=None: (
+                AnalyzerResult(
+                    backend="claim_graph",
+                    semantics=semantics,
+                    extensions=(
+                        ExtensionResult(
+                            name=semantics, accepted_claim_ids=("claim_a",)
+                        ),
+                    ),
+                    projection=(
+                        None
+                        if target_claim_ids is None
+                        else ClaimProjection(
+                            target_claim_ids=tuple(sorted(target_claim_ids)),
+                            survivor_claim_ids=("claim_a",),
+                            witness_claim_ids=tuple(sorted(target_claim_ids)),
+                        )
+                    ),
+                )
             ),
         )
 
-        definition = WorldlineDefinition.from_dict({
-            "id": "phase7_stability",
-            "targets": ["target"],
-            "policy": {
-                "strategy": "argumentation",
-                "reasoning_backend": "claim_graph",
-                "semantics": "grounded",
-            },
-        })
+        definition = WorldlineDefinition.from_dict(
+            {
+                "id": "phase7_stability",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "claim_graph",
+                    "semantics": "grounded",
+                },
+            }
+        )
 
         result_a = run_worldline(definition, world)
         result_b = run_worldline(definition, world)
@@ -1508,7 +1734,9 @@ class TestSemanticCorePhase7Worldlines:
 class TestWorldlineCliParsing:
     def test_parse_kv_args_coerces_scalar_bindings(self):
         """CLI bindings preserve basic scalar types instead of stringifying all input."""
-        parsed = _parse_kv_args(("count=10", "enabled=true", "place=earth", "ratio=0.5"))
+        parsed = _parse_kv_args(
+            ("count=10", "enabled=true", "place=earth", "ratio=0.5")
+        )
 
         assert parsed == {
             "count": 10,
@@ -1549,7 +1777,9 @@ class TestWorldlineFailureModes:
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
             def active_claims(self, concept_id=None):
                 return [self._claim]
@@ -1569,16 +1799,20 @@ class TestWorldlineFailureModes:
             def has_table(self, name):
                 return False
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "algorithm_target",
-            "targets": ["target"],
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "algorithm_target",
+                "targets": ["target"],
+            }
+        )
 
         result = run_worldline(wl, FakeWorld())
 
         assert result.values["target"].status == "determined"
         assert result.values["target"].claim_type == "algorithm"
-        assert result.values["target"].body == "def compute(sr, ws):\n    return sr / ws\n"
+        assert (
+            result.values["target"].body == "def compute(sr, ws):\n    return sr / ws\n"
+        )
 
     def test_run_worldline_surfaces_chain_query_failures(self):
         """Engine failures should not be reported as ordinary underspecification."""
@@ -1594,7 +1828,9 @@ class TestWorldlineFailureModes:
                 return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
+                return DerivedResult(
+                    concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
+                )
 
         class FakeWorld:
             def bind(self, environment=None, *, policy=None, **conditions):
@@ -1608,10 +1844,12 @@ class TestWorldlineFailureModes:
             def chain_query(self, concept_id, strategy=None, **bindings):
                 raise RuntimeError("solver exploded")
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "chain_failure",
-            "targets": ["target"],
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "chain_failure",
+                "targets": ["target"],
+            }
+        )
 
         result = run_worldline(wl, FakeWorld())
 
@@ -1658,10 +1896,12 @@ class TestSilentExceptionLogging:
             def has_table(self, name):
                 return False
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "sensitivity_fail",
-            "targets": ["target"],
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "sensitivity_fail",
+                "targets": ["target"],
+            }
+        )
 
         with caplog.at_level(logging.WARNING, logger="propstore.worldline.runner"):
             with patch(
@@ -1679,9 +1919,9 @@ class TestSilentExceptionLogging:
         # The worldline should still succeed (sensitivity is optional)
         assert result.values["target"].status == "derived"
         # But a warning must have been logged
-        assert any(
-            "sensitivity" in rec.message.lower() for rec in caplog.records
-        ), f"Expected a warning about sensitivity failure, got: {[r.message for r in caplog.records]}"
+        assert any("sensitivity" in rec.message.lower() for rec in caplog.records), (
+            f"Expected a warning about sensitivity failure, got: {[r.message for r in caplog.records]}"
+        )
 
     def test_argumentation_failure_logs_warning(self, caplog):
         """When argumentation capture raises, a warning must be logged."""
@@ -1724,15 +1964,17 @@ class TestSilentExceptionLogging:
             def parameterizations_for(self, concept_id):
                 return []
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "arg_fail",
-            "targets": ["target"],
-            "policy": {
-                "strategy": "argumentation",
-                "reasoning_backend": "claim_graph",
-                "semantics": "grounded",
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "arg_fail",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "claim_graph",
+                    "semantics": "grounded",
+                },
+            }
+        )
 
         with caplog.at_level(logging.WARNING, logger="propstore.worldline.runner"):
             result = run_worldline(wl, FakeWorld())
@@ -1740,9 +1982,9 @@ class TestSilentExceptionLogging:
         # The worldline should still succeed
         assert result.values["target"].status == "derived"
         # But a warning must have been logged
-        assert any(
-            "argumentation" in rec.message.lower() for rec in caplog.records
-        ), f"Expected a warning about argumentation failure, got: {[r.message for r in caplog.records]}"
+        assert any("argumentation" in rec.message.lower() for rec in caplog.records), (
+            f"Expected a warning about argumentation failure, got: {[r.message for r in caplog.records]}"
+        )
 
 
 class TestWorldlineCLIFlags:
@@ -1756,8 +1998,7 @@ class TestWorldlineCLIFlags:
         from propstore.cli.worldline.materialize import worldline_refresh, worldline_run
 
         semantics_option = next(
-            param for param in worldline_run.params
-            if param.name == "semantics"
+            param for param in worldline_run.params if param.name == "semantics"
         )
         monkeypatch.setattr(semantics_option, "default", "preferred")
 
@@ -1801,12 +2042,19 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--reasoning-backend", "aspic",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--reasoning-backend",
+                "aspic",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
@@ -1831,12 +2079,19 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--semantics", "preferred",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--semantics",
+                "preferred",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
@@ -1861,13 +2116,21 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--reasoning-backend", "claim_graph",
-            "--semantics", "d-preferred",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--reasoning-backend",
+                "claim_graph",
+                "--semantics",
+                "d-preferred",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
@@ -1892,13 +2155,21 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--reasoning-backend", "aspic",
-            "--semantics", "d-preferred",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--reasoning-backend",
+                "aspic",
+                "--semantics",
+                "d-preferred",
+            ],
+        )
         assert result.exit_code != 0
         assert "does not support semantics" in result.output
 
@@ -1921,12 +2192,19 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--set-comparison", "democratic",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--set-comparison",
+                "democratic",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
@@ -1951,13 +2229,21 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--reasoning-backend", "aspic",
-            "--link-principle", "weakest",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--reasoning-backend",
+                "aspic",
+                "--link-principle",
+                "weakest",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
@@ -1983,13 +2269,21 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--decision-criterion", "hurwicz",
-            "--pessimism-index", "0.3",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--decision-criterion",
+                "hurwicz",
+                "--pessimism-index",
+                "0.3",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
@@ -2015,16 +2309,27 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_create, "create")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "create", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--reasoning-backend", "praf",
-            "--praf-strategy", "mc",
-            "--praf-epsilon", "0.05",
-            "--praf-confidence", "0.99",
-            "--praf-seed", "42",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--reasoning-backend",
+                "praf",
+                "--praf-strategy",
+                "mc",
+                "--praf-epsilon",
+                "0.05",
+                "--praf-confidence",
+                "0.99",
+                "--praf-seed",
+                "42",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
@@ -2056,20 +2361,35 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_run, "run")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "run", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--reasoning-backend", "aspic",
-            "--semantics", "preferred",
-            "--set-comparison", "democratic",
-            "--decision-criterion", "hurwicz",
-            "--pessimism-index", "0.7",
-            "--praf-strategy", "exact",
-            "--praf-epsilon", "0.02",
-            "--praf-confidence", "0.90",
-            "--praf-seed", "123",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "run",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--reasoning-backend",
+                "aspic",
+                "--semantics",
+                "preferred",
+                "--set-comparison",
+                "democratic",
+                "--decision-criterion",
+                "hurwicz",
+                "--pessimism-index",
+                "0.7",
+                "--praf-strategy",
+                "exact",
+                "--praf-epsilon",
+                "0.02",
+                "--praf-confidence",
+                "0.90",
+                "--praf-seed",
+                "123",
+            ],
+        )
         # Should fail on sidecar, NOT on "no such option"
         assert "no such option" not in (result.output or "").lower(), (
             f"Flag not accepted: {result.output}"
@@ -2094,13 +2414,21 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_run, "run")
 
         runner = CliRunner()
-        result = runner.invoke(fake_cli, [
-            "run", "test-wl",
-            "--target", "concept1",
-            "--strategy", "argumentation",
-            "--reasoning-backend", "praf",
-            "--praf-strategy", "exact_dp",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "run",
+                "test-wl",
+                "--target",
+                "concept1",
+                "--strategy",
+                "argumentation",
+                "--reasoning-backend",
+                "praf",
+                "--praf-strategy",
+                "exact_dp",
+            ],
+        )
 
         assert result.exit_code != 0
         assert "Invalid value for '--praf-strategy'" in result.output
@@ -2108,16 +2436,18 @@ class TestWorldlineCLIFlags:
     def test_worldline_definition_roundtrip_preserves_link(self):
         from propstore.worldline import WorldlineDefinition
 
-        wl = WorldlineDefinition.from_dict({
-            "id": "wl_link",
-            "targets": ["concept1"],
-            "policy": {
-                "reasoning_backend": "aspic",
-                "strategy": "argumentation",
-                "comparison": "democratic",
-                "link": "weakest",
-            },
-        })
+        wl = WorldlineDefinition.from_dict(
+            {
+                "id": "wl_link",
+                "targets": ["concept1"],
+                "policy": {
+                    "reasoning_backend": "aspic",
+                    "strategy": "argumentation",
+                    "comparison": "democratic",
+                    "link": "weakest",
+                },
+            }
+        )
 
         restored = WorldlineDefinition.from_dict(wl.to_dict())
 
@@ -2144,13 +2474,21 @@ class TestWorldlineCLIFlags:
         runner = CliRunner()
         synthetic_id = "ps:assertion:synthetic"
         legacy_id = "ps:assertion:legacy"
-        result = runner.invoke(fake_cli, [
-            "create", "revision-wl",
-            "--target", "concept1",
-            "--revision-operation", "revise",
-            "--revision-atom", f'{{"kind":"assertion","id":"{synthetic_id}","value":9.0}}',
-            "--revision-conflict", f"{synthetic_id}={legacy_id}",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "create",
+                "revision-wl",
+                "--target",
+                "concept1",
+                "--revision-operation",
+                "revise",
+                "--revision-atom",
+                f'{{"kind":"assertion","id":"{synthetic_id}","value":9.0}}',
+                "--revision-conflict",
+                f"{synthetic_id}={legacy_id}",
+            ],
+        )
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "revision-wl.yaml").read_text())
@@ -2158,7 +2496,9 @@ class TestWorldlineCLIFlags:
         assert written["revision"]["atom"]["id"] == synthetic_id
         assert written["revision"]["conflicts"] == {synthetic_id: [legacy_id]}
 
-    def test_run_revision_flags_pass_revision_query_to_runner(self, tmp_path, monkeypatch):
+    def test_run_revision_flags_pass_revision_query_to_runner(
+        self, tmp_path, monkeypatch
+    ):
         import click
         from click.testing import CliRunner
 
@@ -2177,9 +2517,14 @@ class TestWorldlineCLIFlags:
                 return None
 
         def fake_run_worldline(definition, world):
-            seen["revision"] = None if definition.revision is None else definition.revision.to_dict()
+            seen["revision"] = (
+                None if definition.revision is None else definition.revision.to_dict()
+            )
             from propstore.worldline import WorldlineResult
-            from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
+            from propstore.worldline.result_types import (
+                WorldlineDependencies,
+                WorldlineTargetValue,
+            )
 
             return WorldlineResult(
                 computed="2026-03-29T00:00:00Z",
@@ -2192,7 +2537,9 @@ class TestWorldlineCLIFlags:
             )
 
         monkeypatch.setattr("propstore.world.model.WorldQuery", _FakeWorldQuery)
-        monkeypatch.setattr("propstore.worldline.runner.run_worldline", fake_run_worldline)
+        monkeypatch.setattr(
+            "propstore.worldline.runner.run_worldline", fake_run_worldline
+        )
 
         @click.group()
         @click.pass_context
@@ -2205,14 +2552,23 @@ class TestWorldlineCLIFlags:
         runner = CliRunner()
         new_id = "ps:assertion:new"
         legacy_id = "ps:assertion:legacy"
-        result = runner.invoke(fake_cli, [
-            "run", "revision-run",
-            "--target", "concept1",
-            "--revision-operation", "iterated_revise",
-            "--revision-atom", f'{{"kind":"assertion","id":"{new_id}","value":9.0}}',
-            "--revision-conflict", f"{new_id}={legacy_id}",
-            "--revision-operator", "lexicographic",
-        ])
+        result = runner.invoke(
+            fake_cli,
+            [
+                "run",
+                "revision-run",
+                "--target",
+                "concept1",
+                "--revision-operation",
+                "iterated_revise",
+                "--revision-atom",
+                f'{{"kind":"assertion","id":"{new_id}","value":9.0}}',
+                "--revision-conflict",
+                f"{new_id}={legacy_id}",
+                "--revision-operator",
+                "lexicographic",
+            ],
+        )
         assert result.exit_code == 0, result.output
         assert seen["revision"] == {
             "operation": "iterated_revise",
@@ -2231,33 +2587,38 @@ class TestWorldlineCLIFlags:
         wl_dir.mkdir()
         synthetic_id = "ps:assertion:synthetic"
         legacy_id = "ps:assertion:legacy"
-        (wl_dir / "revision-show.yaml").write_text(yaml.safe_dump({
-            "id": "revision-show",
-            "targets": ["concept1"],
-            "revision": {
-                "operation": "revise",
-                "atom": {"kind": "assertion", "id": synthetic_id, "value": 9.0},
-                "conflicts": {synthetic_id: [legacy_id]},
-            },
-            "results": {
-                "computed": "2026-03-29T00:00:00Z",
-                "content_hash": "abc123",
-                "values": {"concept1": {"status": "determined", "value": 1.0}},
-                "steps": [],
-                "dependencies": {"claims": [], "stances": [], "contexts": []},
-                "revision": {
-                    "operation": "revise",
-                    "input_atom_id": synthetic_id,
-                    "target_atom_ids": [legacy_id],
-                    "result": {
-                        "accepted_atom_ids": [synthetic_id],
-                        "rejected_atom_ids": [legacy_id],
-                        "incision_set": ["assumption:shared_weak"],
-                        "explanation": {legacy_id: {"reason": "support_lost"}},
+        (wl_dir / "revision-show.yaml").write_text(
+            yaml.safe_dump(
+                {
+                    "id": "revision-show",
+                    "targets": ["concept1"],
+                    "revision": {
+                        "operation": "revise",
+                        "atom": {"kind": "assertion", "id": synthetic_id, "value": 9.0},
+                        "conflicts": {synthetic_id: [legacy_id]},
                     },
-                },
-            },
-        }), encoding="utf-8")
+                    "results": {
+                        "computed": "2026-03-29T00:00:00Z",
+                        "content_hash": "abc123",
+                        "values": {"concept1": {"status": "determined", "value": 1.0}},
+                        "steps": [],
+                        "dependencies": {"claims": [], "stances": [], "contexts": []},
+                        "revision": {
+                            "operation": "revise",
+                            "input_atom_id": synthetic_id,
+                            "target_atom_ids": [legacy_id],
+                            "result": {
+                                "accepted_atom_ids": [synthetic_id],
+                                "rejected_atom_ids": [legacy_id],
+                                "incision_set": ["assumption:shared_weak"],
+                                "explanation": {legacy_id: {"reason": "support_lost"}},
+                            },
+                        },
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
 
         @click.group()
         @click.pass_context
@@ -2275,7 +2636,9 @@ class TestWorldlineCLIFlags:
         assert f"Input atom: {synthetic_id}" in result.output
         assert f"Rejected atoms: {legacy_id}" in result.output
 
-    def test_run_show_and_list_share_materialized_worldline_surface(self, tmp_path, monkeypatch):
+    def test_run_show_and_list_share_materialized_worldline_surface(
+        self, tmp_path, monkeypatch
+    ):
         import click
         from click.testing import CliRunner
 
@@ -2323,7 +2686,9 @@ class TestWorldlineCLIFlags:
             )
 
         monkeypatch.setattr("propstore.world.model.WorldQuery", _FakeWorldQuery)
-        monkeypatch.setattr("propstore.worldline.runner.run_worldline", fake_run_worldline)
+        monkeypatch.setattr(
+            "propstore.worldline.runner.run_worldline", fake_run_worldline
+        )
         fake_repo = _FakeWorldlineRepo(wl_dir)
 
         @click.group()
@@ -2337,12 +2702,18 @@ class TestWorldlineCLIFlags:
         fake_cli.add_command(worldline_list, "list")
 
         runner = CliRunner()
-        run_result = runner.invoke(fake_cli, ["run", "shared-surface", "--target", "concept1"])
+        run_result = runner.invoke(
+            fake_cli, ["run", "shared-surface", "--target", "concept1"]
+        )
         assert run_result.exit_code == 0, run_result.output
-        assert "Worldline 'shared-surface' materialized (1 targets)" in run_result.output
+        assert (
+            "Worldline 'shared-surface' materialized (1 targets)" in run_result.output
+        )
         assert "concept1: 1.0 (determined, claim)" in run_result.output
 
-        written = yaml.safe_load((wl_dir / "shared-surface.yaml").read_text(encoding="utf-8"))
+        written = yaml.safe_load(
+            (wl_dir / "shared-surface.yaml").read_text(encoding="utf-8")
+        )
         assert written["results"]["values"]["concept1"]["status"] == "determined"
         assert written["results"]["values"]["concept1"]["value"] == 1.0
         assert written["results"]["dependencies"]["claims"] == ["claim:one"]
@@ -2355,4 +2726,3 @@ class TestWorldlineCLIFlags:
         list_result = runner.invoke(fake_cli, ["list"])
         assert list_result.exit_code == 0, list_result.output
         assert "shared-surface: materialized" in list_result.output
-

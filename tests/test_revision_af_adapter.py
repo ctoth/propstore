@@ -18,8 +18,12 @@ from tests.test_revision_phase1 import _RevisionStore, _make_bound
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
-def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims() -> (
+    None
+):
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     bound = _operator_bound()
     atom = make_assertion_atom("synthetic", value=9.0)
@@ -44,8 +48,12 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
     assert af.arguments == frozenset(view.active_claim_ids)
 
 
-def test_project_epistemic_state_builds_structured_inputs_with_exact_support_metadata() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+def test_project_epistemic_state_builds_structured_inputs_with_exact_support_metadata() -> (
+    None
+):
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     store = _RevisionStore(
         claims=[
@@ -67,7 +75,9 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
         bundle=_EMPTY_BUNDLE,
         support_metadata=dict(view.support_metadata),
     )
-    argument = next(arg for arg in projection.arguments if arg.claim_id == "claim_exact")
+    argument = next(
+        arg for arg in projection.arguments if arg.claim_id == "claim_exact"
+    )
 
     assert set(view.active_claim_ids) == {"claim_exact"}
     assert {str(claim.id) for claim in view.active_claims} == {"claim_exact"}

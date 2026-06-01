@@ -94,15 +94,11 @@ def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
     return GroundingSurface(
         predicate_files=tuple(
             sorted(
-                f"{ref.predicate_id}.yaml"
-                for ref in repo.families.predicates.iter()
+                f"{ref.predicate_id}.yaml" for ref in repo.families.predicates.iter()
             )
         ),
         rule_files=tuple(
-            sorted(
-                f"{ref.rule_id}.yaml"
-                for ref in repo.families.rules.iter()
-            )
+            sorted(f"{ref.rule_id}.yaml" for ref in repo.families.rules.iter())
         ),
     )
 
@@ -142,15 +138,20 @@ def _section_atom_count(bundle: "GroundedRulesBundle", name: str) -> int:
     return sum(len(rows) for rows in bundle.sections[name].values())
 
 
-def _matched_sections(bundle: "GroundedRulesBundle", atom: GroundAtom) -> tuple[str, ...]:
+def _matched_sections(
+    bundle: "GroundedRulesBundle", atom: GroundAtom
+) -> tuple[str, ...]:
     return tuple(
         name
         for name in SECTION_ORDER
-        if tuple(atom.arguments) in bundle.sections[name].get(atom.predicate, frozenset())
+        if tuple(atom.arguments)
+        in bundle.sections[name].get(atom.predicate, frozenset())
     )
 
 
-def _grounded_rules(bundle: "GroundedRulesBundle") -> tuple["GroundDefeasibleRule", ...]:
+def _grounded_rules(
+    bundle: "GroundedRulesBundle",
+) -> tuple["GroundDefeasibleRule", ...]:
     seen: dict[
         tuple[str, str, str, tuple[str, ...]],
         "GroundDefeasibleRule",
@@ -189,10 +190,13 @@ def format_ground_rule(rule: "GroundDefeasibleRule") -> str:
         "defeasible": "-<",
         "defeater": "~<",
     }.get(rule.kind, "<-")
-    body = ", ".join(
-        format_ground_atom(atom.predicate, tuple(atom.arguments))
-        for atom in rule.body
-    ) or "true"
+    body = (
+        ", ".join(
+            format_ground_atom(atom.predicate, tuple(atom.arguments))
+            for atom in rule.body
+        )
+        or "true"
+    )
     head = format_ground_atom(rule.head.predicate, tuple(rule.head.arguments))
     return f"{rule.rule_id}: {head} {arrow} {body}"
 
@@ -204,9 +208,7 @@ def format_argument(argument: "Argument") -> str:
     )
     if not argument.rules:
         return f"{conclusion} <= fact"
-    rules = ", ".join(
-        sorted(rule.rule_id for rule in argument.rules)
-    )
+    rules = ", ".join(sorted(rule.rule_id for rule in argument.rules))
     return f"{conclusion} <= {rules}"
 
 
@@ -283,8 +285,7 @@ def inspect_grounding_status(repo: "Repository") -> GroundingStatusReport:
         message=None,
         facts_count=len(bundle.source_facts),
         section_counts=tuple(
-            (section, _section_atom_count(bundle, section))
-            for section in SECTION_ORDER
+            (section, _section_atom_count(bundle, section)) for section in SECTION_ORDER
         ),
     )
 

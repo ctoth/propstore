@@ -114,7 +114,9 @@ def condition_ir_to_estree(condition: ConditionIR) -> EstreeExpression:
         return EstreeCallExpression(
             callee=EstreeMemberExpression(
                 object=EstreeArrayExpression(
-                    tuple(condition_ir_to_estree(option) for option in condition.options)
+                    tuple(
+                        condition_ir_to_estree(option) for option in condition.options
+                    )
                 ),
                 property=EstreeIdentifier("includes"),
                 computed=False,
@@ -150,14 +152,21 @@ def evaluate_estree_expression(
     if isinstance(expression, EstreeLogicalExpression):
         left = evaluate_estree_expression(expression.left, bindings)
         if expression.operator == "&&":
-            return bool(left) and bool(evaluate_estree_expression(expression.right, bindings))
+            return bool(left) and bool(
+                evaluate_estree_expression(expression.right, bindings)
+            )
         if expression.operator == "||":
-            return bool(left) or bool(evaluate_estree_expression(expression.right, bindings))
+            return bool(left) or bool(
+                evaluate_estree_expression(expression.right, bindings)
+            )
         raise ValueError(f"unsupported ESTree logical operator: {expression.operator}")
     if isinstance(expression, EstreeBinaryExpression):
         return _evaluate_binary_expression(expression, bindings)
     if isinstance(expression, EstreeArrayExpression):
-        return tuple(evaluate_estree_expression(element, bindings) for element in expression.elements)
+        return tuple(
+            evaluate_estree_expression(element, bindings)
+            for element in expression.elements
+        )
     if isinstance(expression, EstreeMemberExpression):
         return _evaluate_member_expression(expression, bindings)
     if isinstance(expression, EstreeCallExpression):

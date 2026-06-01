@@ -342,11 +342,13 @@ def _projection_frames(
 def _inspection_rule_instances(
     inspection: "gunray.GroundingInspection",
 ) -> tuple["gunray.GroundRuleInstance", ...]:
-    return tuple(
-        getattr(inspection, name, ())
-        for name in ("strict_rules", "defeasible_rules", "defeater_rules")
-    )[0] + tuple(getattr(inspection, "defeasible_rules", ())) + tuple(
-        getattr(inspection, "defeater_rules", ())
+    return (
+        tuple(
+            getattr(inspection, name, ())
+            for name in ("strict_rules", "defeasible_rules", "defeater_rules")
+        )[0]
+        + tuple(getattr(inspection, "defeasible_rules", ()))
+        + tuple(getattr(inspection, "defeater_rules", ()))
     )
 
 

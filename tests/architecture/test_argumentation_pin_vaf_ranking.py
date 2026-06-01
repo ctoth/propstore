@@ -41,8 +41,12 @@ def test_argumentation_pin_exposes_vaf_objective_and_subjective_acceptance() -> 
         valuation={"A": "red", "B": "blue", "C": "blue"},
     )
 
-    assert vaf.preferred_extensions_for_audience(("red", "blue")) == [frozenset({"A", "C"})]
-    assert vaf.preferred_extensions_for_audience(("blue", "red")) == [frozenset({"A", "B"})]
+    assert vaf.preferred_extensions_for_audience(("red", "blue")) == [
+        frozenset({"A", "C"})
+    ]
+    assert vaf.preferred_extensions_for_audience(("blue", "red")) == [
+        frozenset({"A", "B"})
+    ]
     assert vaf.objectively_acceptable() == frozenset({"A"})
     assert vaf.subjectively_acceptable() == frozenset({"A", "B", "C"})
 
@@ -126,6 +130,7 @@ def test_argumentation_pin_exposes_atkinson_cq11_objection_generation() -> None:
 
     objections = critical_question_objections(system, argument, "CQ11")
 
-    assert [(objection.alternative_action, objection.promoted_value) for objection in objections] == [
-        ("alternative", "friendship")
-    ]
+    assert [
+        (objection.alternative_action, objection.promoted_value)
+        for objection in objections
+    ] == [("alternative", "friendship")]

@@ -1,4 +1,5 @@
 """World consistency owner APIs."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

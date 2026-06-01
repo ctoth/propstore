@@ -65,7 +65,9 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
     assert lifted.provenance == projected.projection.provenance
 
 
-def test_grounded_backend_projection_has_typed_loss_witness_when_source_assertion_missing() -> None:
+def test_grounded_backend_projection_has_typed_loss_witness_when_source_assertion_missing() -> (
+    None
+):
     bundle = _make_grounded_bundle(
         rules=(
             _make_rule_document(

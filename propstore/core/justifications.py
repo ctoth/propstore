@@ -36,7 +36,9 @@ class Justification(FamilyModel):
         else:
             to_payload = getattr(raw, "to_payload", None)
             if not callable(to_payload):
-                raise ValueError("justification provenance_json must decode to a mapping")
+                raise ValueError(
+                    "justification provenance_json must decode to a mapping"
+                )
             loaded = to_payload()
         if not isinstance(loaded, Mapping):
             raise ValueError("justification provenance_json must decode to a mapping")
@@ -72,7 +74,11 @@ class CanonicalJustification:
     attributes: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "premise_claim_ids", tuple(str(item) for item in self.premise_claim_ids))
+        object.__setattr__(
+            self,
+            "premise_claim_ids",
+            tuple(str(item) for item in self.premise_claim_ids),
+        )
         object.__setattr__(self, "attributes", tuple(self.attributes))
 
     @classmethod
@@ -125,7 +131,9 @@ class CanonicalJustification:
         return cls.from_components(
             justification_id=str(data["justification_id"]),
             conclusion_claim_id=str(data["conclusion_claim_id"]),
-            premise_claim_ids=tuple(str(item) for item in data.get("premise_claim_ids") or ()),
+            premise_claim_ids=tuple(
+                str(item) for item in data.get("premise_claim_ids") or ()
+            ),
             rule_kind=str(data.get("rule_kind") or "reported_claim"),
             rule_strength=str(data.get("rule_strength") or "defeasible"),
             provenance=(

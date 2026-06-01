@@ -9,7 +9,9 @@ def test_grounder_default_uses_trace_and_returns_arguments(monkeypatch) -> None:
     import propstore.grounding.grounder as grounder
 
     calls: list[tuple[str, int | None]] = []
-    monkeypatch.setattr(grounder, "translate_to_theory", lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        grounder, "translate_to_theory", lambda *args, **kwargs: object()
+    )
 
     class FakeEvaluator:
         def evaluate_with_trace(self, *args, max_arguments=None, **kwargs):

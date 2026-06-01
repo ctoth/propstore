@@ -188,9 +188,18 @@ def compare_algorithm_claims(
     if claim_b is None:
         raise UnknownClaimError(request.claim_b_id)
 
-    body_a = None if claim_a.algorithm_payload is None else claim_a.algorithm_payload.body
-    body_b = None if claim_b.algorithm_payload is None else claim_b.algorithm_payload.body
-    if not isinstance(body_a, str) or not isinstance(body_b, str) or not body_a or not body_b:
+    body_a = (
+        None if claim_a.algorithm_payload is None else claim_a.algorithm_payload.body
+    )
+    body_b = (
+        None if claim_b.algorithm_payload is None else claim_b.algorithm_payload.body
+    )
+    if (
+        not isinstance(body_a, str)
+        or not isinstance(body_b, str)
+        or not body_a
+        or not body_b
+    ):
         raise ClaimComparisonError("Both claims must be algorithm claims with a body.")
 
     try:
@@ -202,7 +211,9 @@ def compare_algorithm_claims(
             known_values=dict(request.known_values) if request.known_values else None,
         )
     except RecursionError as exc:
-        raise ClaimComparisonError("Algorithm comparison exceeded recursion depth.") from exc
+        raise ClaimComparisonError(
+            "Algorithm comparison exceeded recursion depth."
+        ) from exc
     return ClaimCompareReport(
         tier=result.tier,
         equivalent=result.equivalent,
@@ -276,7 +287,9 @@ def validate_claim_files(
                     ),
                     key=lambda child: child.as_posix(),
                 )
-                for claim_file in load_claim_batch_file(entry, knowledge_root=claims_root.parent)
+                for claim_file in load_claim_batch_file(
+                    entry, knowledge_root=claims_root.parent
+                )
             ]
         if concepts_root is None:
             context = build_compilation_context_from_repo(repo, claim_files=files)
@@ -374,11 +387,7 @@ def detect_claim_conflicts(
         )
         for handle in repo.families.contexts.iter_handles()
     ]
-    lifting_system = (
-        loaded_contexts_to_lifting_system(contexts)
-        if contexts
-        else None
-    )
+    lifting_system = loaded_contexts_to_lifting_system(contexts) if contexts else None
     records = detect_conflicts(
         conflict_claims_from_claim_files(files),
         registry,
@@ -496,8 +505,7 @@ def embed_claim_embeddings(
             "no models registered. Run embed with a specific model first."
         ) from exc
     reports = [
-        _claim_embed_model_report(model_name, result)
-        for model_name, result in results
+        _claim_embed_model_report(model_name, result) for model_name, result in results
     ]
     return ClaimEmbedReport(results=tuple(reports))
 

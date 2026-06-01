@@ -1,4 +1,5 @@
 """Tests for pks init."""
+
 from __future__ import annotations
 
 import builtins
@@ -38,7 +39,8 @@ def _assert_native_git_does_not_report_deletions(root: Path) -> None:
         assert "work tree" in error or "bare" in error
         return
     deleted = [
-        line for line in status.stdout.splitlines()
+        line
+        for line in status.stdout.splitlines()
         if len(line) >= 2 and "D" in line[:2]
     ]
     assert deleted == []
@@ -52,7 +54,9 @@ def empty_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 class TestInit:
-    def test_preference_import_does_not_require_world_layer(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_preference_import_does_not_require_world_layer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Kernel submodules should import without package root pulling in world machinery."""
         blocked = {
             "propstore.world.bound",
@@ -90,7 +94,9 @@ class TestInit:
             0.8,
         )
 
-    def test_root_exports_still_resolve_lazily(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_root_exports_still_resolve_lazily(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Public package-root exports should remain available after lazy-loading."""
         for module_name in list(sys.modules):
             if module_name == "propstore" or module_name.startswith("propstore.world"):
@@ -112,7 +118,9 @@ class TestInit:
         assert not (root / "concepts").exists()
         assert not (root / "forms").exists()
         assert not (root / "claims").exists()
-        assert "concepts/measurement.yaml" in Repository.find(root).git.flat_tree_entries()
+        assert (
+            "concepts/measurement.yaml" in Repository.find(root).git.flat_tree_entries()
+        )
         assert "forms/frequency.yaml" in Repository.find(root).git.flat_tree_entries()
         assert _visible_paths(root) == set()
 
@@ -125,7 +133,9 @@ class TestInit:
         root = empty_workspace / "myproject"
         assert (root / ".git").is_dir()
         assert not (root / "concepts").exists()
-        assert "concepts/measurement.yaml" in Repository.find(root).git.flat_tree_entries()
+        assert (
+            "concepts/measurement.yaml" in Repository.find(root).git.flat_tree_entries()
+        )
 
     def test_already_initialized(self, empty_workspace: Path) -> None:
         runner = CliRunner()
@@ -145,11 +155,14 @@ class TestInit:
         # Since -C requires exists=True and we use CliRunner,
         # we chdir manually and invoke validate directly.
         import os
+
         os.chdir(empty_workspace / "proj")
         result = runner.invoke(cli, ["validate"])
         assert result.exit_code == 0, result.output
 
-    def test_init_seeds_phase3_description_kind_concepts_in_store(self, empty_workspace: Path) -> None:
+    def test_init_seeds_phase3_description_kind_concepts_in_store(
+        self, empty_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
@@ -177,18 +190,24 @@ class TestInit:
             assert description_kind["slots"], f"{name} has no participant slots"
             assert all("type_constraint" in slot for slot in description_kind["slots"])
 
-    def test_init_seeds_qualia_and_causal_connection_examples_in_store(self, empty_workspace: Path) -> None:
+    def test_init_seeds_qualia_and_causal_connection_examples_in_store(
+        self, empty_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
 
         repo = Repository.find(empty_workspace / "knowledge")
-        instrument = yaml.safe_load(repo.git.read_file("concepts/measurement_instrument.yaml"))
+        instrument = yaml.safe_load(
+            repo.git.read_file("concepts/measurement_instrument.yaml")
+        )
         measurement = yaml.safe_load(repo.git.read_file("concepts/measurement.yaml"))
         instrument_sense = instrument["lexical_entry"]["senses"][0]
         telic = instrument_sense["qualia"]["telic"][0]
         assert telic["reference"]["uri"] == measurement["artifact_id"]
-        assert telic["type_constraint"]["reference"]["uri"] == measurement["artifact_id"]
+        assert (
+            telic["type_constraint"]["reference"]["uri"] == measurement["artifact_id"]
+        )
         assert telic["provenance"]["status"] == "stated"
 
         causal = yaml.safe_load(repo.git.read_file("concepts/causal_connection.yaml"))
@@ -220,7 +239,9 @@ class TestInit:
         repo_root = root / "new_knowledge"
         assert (repo_root / ".git").is_dir()
         assert not (repo_root / "concepts").exists()
-        assert "forms/frequency.yaml" in Repository.find(repo_root).git.flat_tree_entries()
+        assert (
+            "forms/frequency.yaml" in Repository.find(repo_root).git.flat_tree_entries()
+        )
 
     def test_seed_form_blobs_are_valid_yaml(self, empty_workspace: Path) -> None:
         """Generated form files should be valid YAML with at least a 'name' field."""
@@ -245,7 +266,9 @@ class TestInit:
                 f"{form_path}: name field '{data['name']}' != stem '{stem}'"
             )
 
-    def test_init_does_not_materialize_semantic_directory_structure(self, empty_workspace: Path) -> None:
+    def test_init_does_not_materialize_semantic_directory_structure(
+        self, empty_workspace: Path
+    ) -> None:
         """init should create the store, not a materialized knowledge tree."""
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
@@ -267,7 +290,9 @@ class TestInit:
         assert all(not (root / name).exists() for name in semantic_roots)
         assert _visible_paths(root) == set()
 
-    def test_semantic_mutation_does_not_change_loose_files_until_materialize(self, empty_workspace: Path) -> None:
+    def test_semantic_mutation_does_not_change_loose_files_until_materialize(
+        self, empty_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
@@ -294,19 +319,26 @@ class TestInit:
 
         assert result.exit_code == 0, result.output
         assert _visible_paths(root) == before
-        assert "concepts/store_only_mutation.yaml" in Repository.find(root).git.flat_tree_entries()
+        assert (
+            "concepts/store_only_mutation.yaml"
+            in Repository.find(root).git.flat_tree_entries()
+        )
 
         result = runner.invoke(cli, ["-C", str(root), "materialize"])
         assert result.exit_code == 0, result.output
         assert (root / "concepts" / "store_only_mutation.yaml").is_file()
 
-    def test_native_git_status_does_not_report_seed_deletions(self, empty_workspace: Path) -> None:
+    def test_native_git_status_does_not_report_seed_deletions(
+        self, empty_workspace: Path
+    ) -> None:
         result = CliRunner().invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
 
         _assert_native_git_does_not_report_deletions(empty_workspace / "knowledge")
 
-    def test_native_empty_commit_cannot_destroy_seed_store(self, empty_workspace: Path) -> None:
+    def test_native_empty_commit_cannot_destroy_seed_store(
+        self, empty_workspace: Path
+    ) -> None:
         result = CliRunner().invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
         root = empty_workspace / "knowledge"
@@ -342,7 +374,9 @@ class TestInit:
         assert "forms/frequency.yaml" in entries
         assert "concepts/measurement.yaml" in entries
 
-    def test_materialize_clean_after_build_preserves_runtime_outputs(self, empty_workspace: Path) -> None:
+    def test_materialize_clean_after_build_preserves_runtime_outputs(
+        self, empty_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
@@ -374,7 +408,9 @@ class TestInit:
         assert wal_path.read_bytes() == b"wal runtime\n"
         assert provenance_path.read_bytes() == b"provenance runtime\n"
 
-    def test_materialize_projects_seed_artifacts_to_loose_files(self, empty_workspace: Path) -> None:
+    def test_materialize_projects_seed_artifacts_to_loose_files(
+        self, empty_workspace: Path
+    ) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
@@ -420,10 +456,19 @@ def test_ordinary_app_workflow_modules_do_not_sync_or_materialize_loose_files() 
             if isinstance(node, ast.Call):
                 func = node.func
                 if isinstance(func, ast.Attribute) and func.attr == "sync_worktree":
-                    violations.append(f"{path.relative_to(root)}:{node.lineno}: sync_worktree")
+                    violations.append(
+                        f"{path.relative_to(root)}:{node.lineno}: sync_worktree"
+                    )
                 if isinstance(func, ast.Name) and func.id == "sync_worktree":
-                    violations.append(f"{path.relative_to(root)}:{node.lineno}: sync_worktree")
-            if isinstance(node, ast.ImportFrom) and node.module == "propstore.app.materialize":
-                violations.append(f"{path.relative_to(root)}:{node.lineno}: propstore.app.materialize")
+                    violations.append(
+                        f"{path.relative_to(root)}:{node.lineno}: sync_worktree"
+                    )
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module == "propstore.app.materialize"
+            ):
+                violations.append(
+                    f"{path.relative_to(root)}:{node.lineno}: propstore.app.materialize"
+                )
 
     assert violations == []

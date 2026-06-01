@@ -27,7 +27,11 @@ from propstore.conflict_detector.models import ConflictClaim
 from propstore.claims import loaded_claim_file_from_payload
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.families.contexts.stages import LoadedContext
-from tests.conftest import make_cel_registry, make_concept_identity, make_concept_registry
+from tests.conftest import (
+    make_cel_registry,
+    make_concept_identity,
+    make_concept_registry,
+)
 
 
 # ── Test helpers ─────────────────────────────────────────────────────
@@ -108,10 +112,12 @@ class TestConflictClassification:
     def test_compatible_same_value_different_conditions(self):
         """Same value even with different conditions -> COMPATIBLE."""
         claims = [
-            make_parameter_claim("claim1", "concept1", 200.0,
-                                 conditions=["task == 'speech'"]),
-            make_parameter_claim("claim2", "concept1", 200.0,
-                                 conditions=["task == 'singing'"]),
+            make_parameter_claim(
+                "claim1", "concept1", 200.0, conditions=["task == 'speech'"]
+            ),
+            make_parameter_claim(
+                "claim2", "concept1", 200.0, conditions=["task == 'singing'"]
+            ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -136,10 +142,12 @@ class TestConflictRegistryProjection:
     def test_conflict_same_conditions_different_values(self):
         """Same concept, same conditions, different values -> CONFLICT."""
         claims = [
-            make_parameter_claim("claim1", "concept1", 200.0,
-                                 conditions=["task == 'speech'"]),
-            make_parameter_claim("claim2", "concept1", 350.0,
-                                 conditions=["task == 'speech'"]),
+            make_parameter_claim(
+                "claim1", "concept1", 200.0, conditions=["task == 'speech'"]
+            ),
+            make_parameter_claim(
+                "claim2", "concept1", 350.0, conditions=["task == 'speech'"]
+            ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -160,10 +168,12 @@ class TestConflictRegistryProjection:
     def test_phi_node_different_conditions(self):
         """Same concept, different conditions, different values -> PHI_NODE."""
         claims = [
-            make_parameter_claim("claim1", "concept1", 200.0,
-                                 conditions=["task == 'speech'"]),
-            make_parameter_claim("claim2", "concept1", 350.0,
-                                 conditions=["task == 'singing'"]),
+            make_parameter_claim(
+                "claim1", "concept1", 200.0, conditions=["task == 'speech'"]
+            ),
+            make_parameter_claim(
+                "claim2", "concept1", 350.0, conditions=["task == 'singing'"]
+            ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -173,10 +183,18 @@ class TestConflictRegistryProjection:
     def test_phi_node_disjoint_conditions(self):
         """Fully disjoint condition sets -> PHI_NODE."""
         claims = [
-            make_parameter_claim("claim1", "concept1", 200.0,
-                                 conditions=["task == 'speech'", "fundamental_frequency > 100"]),
-            make_parameter_claim("claim2", "concept1", 350.0,
-                                 conditions=["task == 'singing'", "subglottal_pressure < 500"]),
+            make_parameter_claim(
+                "claim1",
+                "concept1",
+                200.0,
+                conditions=["task == 'speech'", "fundamental_frequency > 100"],
+            ),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                350.0,
+                conditions=["task == 'singing'", "subglottal_pressure < 500"],
+            ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -186,10 +204,18 @@ class TestConflictRegistryProjection:
     def test_overlap_partial_conditions(self):
         """Partially overlapping conditions -> OVERLAP."""
         claims = [
-            make_parameter_claim("claim1", "concept1", 200.0,
-                                 conditions=["task == 'speech'", "fundamental_frequency > 100"]),
-            make_parameter_claim("claim2", "concept1", 350.0,
-                                 conditions=["task == 'speech'", "subglottal_pressure < 500"]),
+            make_parameter_claim(
+                "claim1",
+                "concept1",
+                200.0,
+                conditions=["task == 'speech'", "fundamental_frequency > 100"],
+            ),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                350.0,
+                conditions=["task == 'speech'", "subglottal_pressure < 500"],
+            ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -348,7 +374,9 @@ class TestParameterizationConflict:
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], registry)
         # Should find PARAM_CONFLICT: derived ra = 1/10 = 0.1, but claimed ra = 5.0
-        param_conflicts = [r for r in records if r.warning_class == ConflictClass.PARAM_CONFLICT]
+        param_conflicts = [
+            r for r in records if r.warning_class == ConflictClass.PARAM_CONFLICT
+        ]
         assert len(param_conflicts) >= 1
         assert param_conflicts[0].concept_id == concept10_id
         assert param_conflicts[0].derivation_chain is not None
@@ -408,7 +436,9 @@ class TestParameterizationConflict:
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], registry)
-        param_conflicts = [r for r in records if r.warning_class == ConflictClass.PARAM_CONFLICT]
+        param_conflicts = [
+            r for r in records if r.warning_class == ConflictClass.PARAM_CONFLICT
+        ]
         assert len(param_conflicts) == 0
 
 
@@ -418,8 +448,12 @@ class TestParameterizationConflict:
 class TestSymmetry:
     @pytest.mark.property
     @given(
-        val_a=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
-        val_b=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
+        val_a=st.floats(
+            min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False
+        ),
+        val_b=st.floats(
+            min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False
+        ),
     )
     @settings()
     def test_classification_symmetric(self, val_a, val_b):
@@ -446,7 +480,9 @@ class TestSymmetry:
 
     @pytest.mark.property
     @given(
-        val=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
+        val=st.floats(
+            min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False
+        ),
     )
     @settings()
     def test_compatible_is_reflexive(self, val):
@@ -469,10 +505,12 @@ class TestRecordFields:
     def test_conflict_record_has_correct_fields(self):
         """ConflictRecord should have all expected fields."""
         claims = [
-            make_parameter_claim("claim1", "concept1", 200.0,
-                                 conditions=["task == 'speech'"]),
-            make_parameter_claim("claim2", "concept1", 350.0,
-                                 conditions=["task == 'speech'"]),
+            make_parameter_claim(
+                "claim1", "concept1", 200.0, conditions=["task == 'speech'"]
+            ),
+            make_parameter_claim(
+                "claim2", "concept1", 350.0, conditions=["task == 'speech'"]
+            ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -602,8 +640,9 @@ class TestNamedValueConflicts:
 # ── Measurement claim conflict detection ─────────────────────────────
 
 
-def _make_measurement_claim(id, target_concept, measure, value, unit="ratio",
-                            conditions=None, **fields):
+def _make_measurement_claim(
+    id, target_concept, measure, value, unit="ratio", conditions=None, **fields
+):
     """Build a measurement claim dict for testing."""
     c = {
         "id": id,
@@ -658,10 +697,20 @@ class TestMeasurementConflicts:
     def test_measurement_different_listener_population_phi_node(self):
         """Two measurements: same target + measure, different listener_population -> PHI_NODE."""
         claims = [
-            _make_measurement_claim("claim1", "concept2", "jnd_absolute", 0.14,
-                                    listener_population="native_english"),
-            _make_measurement_claim("claim2", "concept2", "jnd_absolute", 0.25,
-                                    listener_population="native_mandarin"),
+            _make_measurement_claim(
+                "claim1",
+                "concept2",
+                "jnd_absolute",
+                0.14,
+                listener_population="native_english",
+            ),
+            _make_measurement_claim(
+                "claim2",
+                "concept2",
+                "jnd_absolute",
+                0.25,
+                listener_population="native_mandarin",
+            ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -970,7 +1019,9 @@ class TestAlgorithmConflicts:
         var_b=st.sampled_from(["value", "frame", "obs"]),
     )
     @settings()
-    def test_algorithm_output_ownership_independent_of_variable_names(self, var_a, var_b):
+    def test_algorithm_output_ownership_independent_of_variable_names(
+        self, var_a, var_b
+    ):
         """Output-concept ownership survives variable renaming."""
         claims = [
             _make_algorithm_claim(
@@ -1086,13 +1137,15 @@ class TestTransitiveContextSemantics:
                 concept_out["artifact_id"],
                 100.0,
                 conditions=["task == 'speech'"],
-            ) | {"context": "ctx_root"},
+            )
+            | {"context": "ctx_root"},
             make_parameter_claim(
                 "source_in",
                 concept_in["artifact_id"],
                 10.0,
                 conditions=["task == 'speech'"],
-            ) | {"context": "ctx_other"},
+            )
+            | {"context": "ctx_other"},
         ]
         cf = make_claim_file(claims)
         lifting_system = LiftingSystem(
@@ -1116,13 +1169,19 @@ class TestTransitiveContextSemantics:
 
         claims = [
             make_parameter_claim(
-                "claim_a", "concept1", 200.0,
+                "claim_a",
+                "concept1",
+                200.0,
                 conditions=["task == 'speech'"],
-            ) | {"context": "ctx_alpha"},
+            )
+            | {"context": "ctx_alpha"},
             make_parameter_claim(
-                "claim_b", "concept1", 350.0,
+                "claim_b",
+                "concept1",
+                350.0,
                 conditions=["task == 'speech'"],
-            ) | {"context": "ctx_beta"},
+            )
+            | {"context": "ctx_beta"},
         ]
         cf = make_claim_file(claims)
         lifting_system = LiftingSystem(
@@ -1153,7 +1212,8 @@ class TestTransitiveContextSemantics:
                     "concept1",
                     200.0,
                     conditions=["task == 'speech'"],
-                ) | {"context": "ctx_alpha"},
+                )
+                | {"context": "ctx_alpha"},
             ],
             filename="paper_a",
         )
@@ -1164,7 +1224,8 @@ class TestTransitiveContextSemantics:
                     "concept1",
                     350.0,
                     conditions=["task == 'singing'"],
-                ) | {"context": "ctx_beta"},
+                )
+                | {"context": "ctx_beta"},
             ],
             filename="paper_b",
         )
@@ -1200,8 +1261,7 @@ class TestTransitiveContextSemantics:
         )
 
         assert any(
-            record.warning_class == ConflictClass.CONTEXT_PHI_NODE
-            for record in records
+            record.warning_class == ConflictClass.CONTEXT_PHI_NODE for record in records
         )
         lifted_conflicts = [
             record
@@ -1229,7 +1289,8 @@ class TestTransitiveContextSemantics:
                     "concept1",
                     200.0,
                     conditions=["task == 'speech'"],
-                ) | {"context": "ctx_alpha"},
+                )
+                | {"context": "ctx_alpha"},
             ],
             filename="paper_a",
         )
@@ -1240,7 +1301,8 @@ class TestTransitiveContextSemantics:
                     "concept1",
                     350.0,
                     conditions=["task == 'singing'"],
-                ) | {"context": "ctx_beta"},
+                )
+                | {"context": "ctx_beta"},
             ],
             filename="paper_b",
         )
@@ -1307,7 +1369,8 @@ class TestTransitiveContextSemantics:
                     "concept1",
                     200.0,
                     conditions=["task == 'speech'"],
-                ) | {"context": "ctx_alpha"},
+                )
+                | {"context": "ctx_alpha"},
             ],
             filename="paper_a",
         )
@@ -1318,7 +1381,8 @@ class TestTransitiveContextSemantics:
                     "concept1",
                     350.0,
                     conditions=["task == 'singing'"],
-                ) | {"context": "ctx_beta"},
+                )
+                | {"context": "ctx_beta"},
             ],
             filename="paper_b",
         )
@@ -1358,8 +1422,7 @@ class TestTransitiveContextSemantics:
 
         assert all(record.warning_class != ConflictClass.CONFLICT for record in records)
         assert any(
-            record.warning_class == ConflictClass.CONTEXT_PHI_NODE
-            for record in records
+            record.warning_class == ConflictClass.CONTEXT_PHI_NODE for record in records
         )
 
 
@@ -1380,25 +1443,31 @@ class TestAlgorithmExceptionHandling:
         from ast_equiv import AlgorithmParseError
         from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
 
-        cf = make_claim_file([
-            {
-                "id": "alg1",
-                "type": "algorithm",
-                "output_concept": "concept_algo",
-                "body": "x + 1",
-                "variables": [{"name": "x", "concept": "input"}],
-            },
-            {
-                "id": "alg2",
-                "type": "algorithm",
-                "output_concept": "concept_algo",
-                "body": "x + 2",
-                "variables": [{"name": "x", "concept": "input"}],
-            },
-        ])
-        registry = {"concept_algo": ConceptInfo(
-            id="concept_algo", canonical_name="concept_algo", kind=KindType.QUANTITY,
-        )}
+        cf = make_claim_file(
+            [
+                {
+                    "id": "alg1",
+                    "type": "algorithm",
+                    "output_concept": "concept_algo",
+                    "body": "x + 1",
+                    "variables": [{"name": "x", "concept": "input"}],
+                },
+                {
+                    "id": "alg2",
+                    "type": "algorithm",
+                    "output_concept": "concept_algo",
+                    "body": "x + 2",
+                    "variables": [{"name": "x", "concept": "input"}],
+                },
+            ]
+        )
+        registry = {
+            "concept_algo": ConceptInfo(
+                id="concept_algo",
+                canonical_name="concept_algo",
+                kind=KindType.QUANTITY,
+            )
+        }
         side_effect = (
             AlgorithmParseError("bad algorithm")
             if exc == "algorithm_parse"
@@ -1418,25 +1487,31 @@ class TestAlgorithmExceptionHandling:
         from unittest.mock import patch
         from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
 
-        cf = make_claim_file([
-            {
-                "id": "alg1",
-                "type": "algorithm",
-                "output_concept": "concept_algo",
-                "body": "x + 1",
-                "variables": [{"name": "x", "concept": "input"}],
-            },
-            {
-                "id": "alg2",
-                "type": "algorithm",
-                "output_concept": "concept_algo",
-                "body": "x + 2",
-                "variables": [{"name": "x", "concept": "input"}],
-            },
-        ])
-        registry = {"concept_algo": ConceptInfo(
-            id="concept_algo", canonical_name="concept_algo", kind=KindType.QUANTITY,
-        )}
+        cf = make_claim_file(
+            [
+                {
+                    "id": "alg1",
+                    "type": "algorithm",
+                    "output_concept": "concept_algo",
+                    "body": "x + 1",
+                    "variables": [{"name": "x", "concept": "input"}],
+                },
+                {
+                    "id": "alg2",
+                    "type": "algorithm",
+                    "output_concept": "concept_algo",
+                    "body": "x + 2",
+                    "variables": [{"name": "x", "concept": "input"}],
+                },
+            ]
+        )
+        registry = {
+            "concept_algo": ConceptInfo(
+                id="concept_algo",
+                canonical_name="concept_algo",
+                kind=KindType.QUANTITY,
+            )
+        }
 
         with patch(
             "propstore.conflict_detector.algorithms.ast_compare",
@@ -1452,25 +1527,31 @@ class TestAlgorithmExceptionHandling:
         from unittest.mock import patch
         from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
 
-        cf = make_claim_file([
-            {
-                "id": "alg1",
-                "type": "algorithm",
-                "output_concept": "concept_algo",
-                "body": "x + 1",
-                "variables": [{"name": "x", "concept": "input"}],
-            },
-            {
-                "id": "alg2",
-                "type": "algorithm",
-                "output_concept": "concept_algo",
-                "body": "x + 2",
-                "variables": [{"name": "x", "concept": "input"}],
-            },
-        ])
-        registry = {"concept_algo": ConceptInfo(
-            id="concept_algo", canonical_name="concept_algo", kind=KindType.QUANTITY,
-        )}
+        cf = make_claim_file(
+            [
+                {
+                    "id": "alg1",
+                    "type": "algorithm",
+                    "output_concept": "concept_algo",
+                    "body": "x + 1",
+                    "variables": [{"name": "x", "concept": "input"}],
+                },
+                {
+                    "id": "alg2",
+                    "type": "algorithm",
+                    "output_concept": "concept_algo",
+                    "body": "x + 2",
+                    "variables": [{"name": "x", "concept": "input"}],
+                },
+            ]
+        )
+        registry = {
+            "concept_algo": ConceptInfo(
+                id="concept_algo",
+                canonical_name="concept_algo",
+                kind=KindType.QUANTITY,
+            )
+        }
 
         with patch(
             "propstore.conflict_detector.algorithms.ast_compare",
@@ -1485,11 +1566,15 @@ class TestParameterZ3FailureHandling:
         """Z3 partition failure should raise; there is no pairwise fallback."""
         from unittest.mock import patch
         from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
-        from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
+        from propstore.conflict_detector.parameter_claims import (
+            detect_parameter_conflicts,
+        )
 
         cel_registry = {
             "freq": ConceptInfo(
-                id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+                id="freq",
+                canonical_name="freq",
+                kind=KindType.QUANTITY,
             ),
             "source": ConceptInfo(
                 id="source",
@@ -1502,29 +1587,56 @@ class TestParameterZ3FailureHandling:
         solver = ConditionSolver(cel_registry)
 
         # 3 claims triggers the Z3 partition path
-        cf = make_claim_file([
-            {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
-            {"id": "p2", "type": "parameter", "output_concept": "freq", "body": "200", "conditions": ["freq > 50"]},
-            {"id": "p3", "type": "parameter", "output_concept": "freq", "body": "300", "conditions": ["freq > 50"]},
-        ])
+        cf = make_claim_file(
+            [
+                {
+                    "id": "p1",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "100",
+                    "conditions": ["freq > 50"],
+                },
+                {
+                    "id": "p2",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "200",
+                    "conditions": ["freq > 50"],
+                },
+                {
+                    "id": "p3",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "300",
+                    "conditions": ["freq > 50"],
+                },
+            ]
+        )
 
         with patch.object(
             solver,
             "partition_equivalence_classes",
             side_effect=Z3TranslationError("partition failed"),
         ):
-            with pytest.raises(RuntimeError, match="Z3 partitioning failed during parameter conflict detection"):
+            with pytest.raises(
+                RuntimeError,
+                match="Z3 partitioning failed during parameter conflict detection",
+            ):
                 detect_parameter_conflicts(cf, cel_registry, solver=solver)
 
     def test_z3_partition_unexpected_error_propagates(self):
         """RuntimeError in partition should propagate."""
         from unittest.mock import patch
         from propstore.core.conditions.solver import ConditionSolver
-        from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
+        from propstore.conflict_detector.parameter_claims import (
+            detect_parameter_conflicts,
+        )
 
         cel_registry = {
             "freq": ConceptInfo(
-                id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+                id="freq",
+                canonical_name="freq",
+                kind=KindType.QUANTITY,
             ),
             "source": ConceptInfo(
                 id="source",
@@ -1536,11 +1648,31 @@ class TestParameterZ3FailureHandling:
         }
         solver = ConditionSolver(cel_registry)
 
-        cf = make_claim_file([
-            {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
-            {"id": "p2", "type": "parameter", "output_concept": "freq", "body": "200", "conditions": ["freq > 50"]},
-            {"id": "p3", "type": "parameter", "output_concept": "freq", "body": "300", "conditions": ["freq > 50"]},
-        ])
+        cf = make_claim_file(
+            [
+                {
+                    "id": "p1",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "100",
+                    "conditions": ["freq > 50"],
+                },
+                {
+                    "id": "p2",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "200",
+                    "conditions": ["freq > 50"],
+                },
+                {
+                    "id": "p3",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "300",
+                    "conditions": ["freq > 50"],
+                },
+            ]
+        )
 
         with patch.object(
             solver,
@@ -1554,11 +1686,15 @@ class TestParameterZ3FailureHandling:
         """RuntimeError in are_disjoint should propagate, not be swallowed."""
         from unittest.mock import patch
         from propstore.core.conditions.solver import ConditionSolver
-        from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
+        from propstore.conflict_detector.parameter_claims import (
+            detect_parameter_conflicts,
+        )
 
         cel_registry = {
             "freq": ConceptInfo(
-                id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+                id="freq",
+                canonical_name="freq",
+                kind=KindType.QUANTITY,
             ),
             "source": ConceptInfo(
                 id="source",
@@ -1570,20 +1706,43 @@ class TestParameterZ3FailureHandling:
         }
         solver = ConditionSolver(cel_registry)
 
-        cf = make_claim_file([
-            {"id": "p1", "type": "parameter", "output_concept": "freq", "body": "100", "conditions": ["freq > 50"]},
-            {"id": "p2", "type": "parameter", "output_concept": "freq", "body": "200", "conditions": ["freq > 50"]},
-            {"id": "p3", "type": "parameter", "output_concept": "freq", "body": "300", "conditions": ["freq < 10"]},
-        ])
+        cf = make_claim_file(
+            [
+                {
+                    "id": "p1",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "100",
+                    "conditions": ["freq > 50"],
+                },
+                {
+                    "id": "p2",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "200",
+                    "conditions": ["freq > 50"],
+                },
+                {
+                    "id": "p3",
+                    "type": "parameter",
+                    "output_concept": "freq",
+                    "body": "300",
+                    "conditions": ["freq < 10"],
+                },
+            ]
+        )
 
-        with patch.object(
-            solver,
-            "partition_equivalence_classes",
-            return_value=[[0, 1], [2]],
-        ), patch.object(
-            solver,
-            "are_disjoint_result",
-            side_effect=RuntimeError("unexpected"),
+        with (
+            patch.object(
+                solver,
+                "partition_equivalence_classes",
+                return_value=[[0, 1], [2]],
+            ),
+            patch.object(
+                solver,
+                "are_disjoint_result",
+                side_effect=RuntimeError("unexpected"),
+            ),
         ):
             with pytest.raises(RuntimeError, match="unexpected"):
                 detect_parameter_conflicts(cf, cel_registry, solver=solver)

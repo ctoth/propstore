@@ -24,15 +24,14 @@ DIMENSION_API = {
 
 
 def _production_files() -> list[Path]:
-    return sorted(
-        path
-        for path in PROPSTORE.rglob("*.py")
-        if _is_production_file(path)
-    )
+    return sorted(path for path in PROPSTORE.rglob("*.py") if _is_production_file(path))
 
 
 def _is_production_file(path: Path) -> bool:
-    return "__pycache__" not in path.parts and path.name != "_import_linter_negative_fixture.py"
+    return (
+        "__pycache__" not in path.parts
+        and path.name != "_import_linter_negative_fixture.py"
+    )
 
 
 def _parse(path: Path) -> ast.Module:

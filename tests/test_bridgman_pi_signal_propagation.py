@@ -6,7 +6,9 @@ from eq_equiv import (
     compare_equations,
 )
 
-from propstore.conflict_detector.equation_inputs import bound_equation_from_conflict_claim
+from propstore.conflict_detector.equation_inputs import (
+    bound_equation_from_conflict_claim,
+)
 from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
 from propstore.dimensional_invariants import (
     check_dimensionless_product,

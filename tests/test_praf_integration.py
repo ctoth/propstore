@@ -27,10 +27,13 @@ SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
 # Helpers: minimal mock store and belief space for resolution tests
 # ---------------------------------------------------------------------------
 
+
 class _MockStore:
     """Minimal WorldStore mock for PrAF integration tests."""
 
-    def __init__(self, claims: list[dict] | list[Claim], stances: list[dict] | list[Stance]):
+    def __init__(
+        self, claims: list[dict] | list[Claim], stances: list[dict] | list[Stance]
+    ):
         claim_nodes = tuple(
             claim_node_from_payload(claim)
             for claim in claims
@@ -53,7 +56,8 @@ class _MockStore:
 
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
-            s for s in self._stances
+            s
+            for s in self._stances
             if str(s.claim_id) in claim_ids and str(s.target_claim_id) in claim_ids
         ]
 
@@ -70,11 +74,7 @@ class _MockStore:
 
     def compiled_graph(self) -> CompiledWorldGraph:
         return CompiledWorldGraph(
-            claims=tuple(
-                node
-                for node in self._claim_nodes
-                if node is not None
-            ),
+            claims=tuple(node for node in self._claim_nodes if node is not None),
             relations=tuple(
                 RelationEdge(
                     source_id=str(stance.claim_id),
@@ -104,12 +104,17 @@ class _MockBeliefSpace:
 
     def value_of(self, concept_id: str):
         from propstore.world.types import ValueResult, ValueStatus
+
         matching = [c for c in self._claims if c.target_concept == concept_id]
         if len(matching) == 0:
             return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
         if len(matching) == 1:
-            return ValueResult(concept_id=concept_id, status=ValueStatus.DETERMINED, claims=matching)
-        return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=matching)
+            return ValueResult(
+                concept_id=concept_id, status=ValueStatus.DETERMINED, claims=matching
+            )
+        return ValueResult(
+            concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=matching
+        )
 
     def active_claims(self, concept_id: str | None = None) -> list[Claim]:
         if concept_id is None:
@@ -121,23 +126,42 @@ class _MockBeliefSpace:
 # Test data factories
 # ---------------------------------------------------------------------------
 
+
 def _make_claims_and_stances_deterministic():
     """Two claims for the same concept, one defeats the other, all opinions dogmatic.
 
     A rebuts B with opinion expectation ~1.0. Under grounded semantics, A wins.
     """
     claims = [
-        {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
-        {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
+        {
+            "id": "c1",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 100.0,
+            "sample_size": 50,
+            "claim_probability": 1.0,
+            "effective_sample_size": 50,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2024-01-01"}',
+        },
+        {
+            "id": "c2",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 200.0,
+            "sample_size": 10,
+            "claim_probability": 1.0,
+            "effective_sample_size": 10,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2023-01-01"}',
+        },
     ]
     stances = [
         {
-            "claim_id": "c1", "target_claim_id": "c2",
-            "stance_type": "rebuts", "confidence": 0.9,
+            "claim_id": "c1",
+            "target_claim_id": "c2",
+            "stance_type": "rebuts",
+            "confidence": 0.9,
             "opinion": Opinion(0.95, 0.03, 0.02, 0.5),
         },
     ]
@@ -152,23 +176,43 @@ def _make_claims_and_stances_uncertain():
     Under PrAF, c2 should often survive because c1's defeat of c2 rarely fires.
     """
     claims = [
-        {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
-        {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
+        {
+            "id": "c1",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 100.0,
+            "sample_size": 50,
+            "claim_probability": 1.0,
+            "effective_sample_size": 50,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2024-01-01"}',
+        },
+        {
+            "id": "c2",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 200.0,
+            "sample_size": 10,
+            "claim_probability": 1.0,
+            "effective_sample_size": 10,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2023-01-01"}',
+        },
     ]
     stances = [
         {
-            "claim_id": "c1", "target_claim_id": "c2",
-            "stance_type": "rebuts", "confidence": 0.3,
+            "claim_id": "c1",
+            "target_claim_id": "c2",
+            "stance_type": "rebuts",
+            "confidence": 0.3,
             "opinion": Opinion(0.2, 0.1, 0.7, 0.15),
             # E(omega) = 0.2 + 0.15 * 0.7 = 0.305
         },
         {
-            "claim_id": "c2", "target_claim_id": "c1",
-            "stance_type": "rebuts", "confidence": 0.95,
+            "claim_id": "c2",
+            "target_claim_id": "c1",
+            "stance_type": "rebuts",
+            "confidence": 0.95,
             "opinion": Opinion(0.90, 0.03, 0.07, 0.5),
             # E(omega) = 0.90 + 0.5 * 0.07 = 0.935
         },
@@ -507,23 +551,43 @@ def test_build_praf_uncertain_defeat_probabilities():
 
     # Override claims with equal sample_size so both rebuts pass preference filter
     claims = [
-        {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
-        {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
+        {
+            "id": "c1",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 100.0,
+            "sample_size": 50,
+            "claim_probability": 1.0,
+            "effective_sample_size": 50,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2024-01-01"}',
+        },
+        {
+            "id": "c2",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 200.0,
+            "sample_size": 50,
+            "claim_probability": 1.0,
+            "effective_sample_size": 50,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2023-01-01"}',
+        },
     ]
     stances = [
         {
-            "claim_id": "c1", "target_claim_id": "c2",
-            "stance_type": "rebuts", "confidence": 0.3,
+            "claim_id": "c1",
+            "target_claim_id": "c2",
+            "stance_type": "rebuts",
+            "confidence": 0.3,
             "opinion": Opinion(0.2, 0.1, 0.7, 0.15),
             # E(omega) = 0.2 + 0.15 * 0.7 = 0.305
         },
         {
-            "claim_id": "c2", "target_claim_id": "c1",
-            "stance_type": "rebuts", "confidence": 0.95,
+            "claim_id": "c2",
+            "target_claim_id": "c1",
+            "stance_type": "rebuts",
+            "confidence": 0.95,
             "opinion": Opinion(0.90, 0.03, 0.07, 0.5),
             # E(omega) = 0.90 + 0.5 * 0.07 = 0.935
         },
@@ -555,12 +619,28 @@ def test_build_praf_no_stances():
     from propstore.praf import build_praf
 
     claims = [
-        {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "claim_probability": 1.0, "effective_sample_size": 50,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2024-01-01"}'},
-        {"id": "c2", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 10, "claim_probability": 1.0, "effective_sample_size": 10,
-         "source_prior_base_rate": SOURCE_PRIOR_05, "provenance_json": '{"date": "2023-01-01"}'},
+        {
+            "id": "c1",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 100.0,
+            "sample_size": 50,
+            "claim_probability": 1.0,
+            "effective_sample_size": 50,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2024-01-01"}',
+        },
+        {
+            "id": "c2",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 200.0,
+            "sample_size": 10,
+            "claim_probability": 1.0,
+            "effective_sample_size": 10,
+            "source_prior_base_rate": SOURCE_PRIOR_05,
+            "provenance_json": '{"date": "2023-01-01"}',
+        },
     ]
     store = _MockStore(claims, stances=[])
 
@@ -600,6 +680,7 @@ def test_analyze_praf_metadata_exposes_query_kind_and_inference_mode():
 # Decision Criteria in Resolution (Phase 4 Red)
 # ---------------------------------------------------------------------------
 
+
 def _make_claims_and_stances_decision_criterion_tie():
     """Two claims that tie on PrAF acceptance probability but differ in opinion.
 
@@ -629,14 +710,30 @@ def _make_claims_and_stances_decision_criterion_tie():
     """
     # Equal sample_size so mutual rebuts both pass preference filter
     claims = [
-        {"id": "cA", "concept_id": "temp", "type": "parameter", "value": 100.0,
-         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}',
-         "opinion_belief": 0.6, "opinion_disbelief": 0.1,
-         "opinion_uncertainty": 0.3, "opinion_base_rate": 0.5},
-        {"id": "cB", "concept_id": "temp", "type": "parameter", "value": 200.0,
-         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}',
-         "opinion_belief": 0.7, "opinion_disbelief": 0.2,
-         "opinion_uncertainty": 0.1, "opinion_base_rate": 0.5},
+        {
+            "id": "cA",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 100.0,
+            "sample_size": 50,
+            "provenance_json": '{"date": "2024-01-01"}',
+            "opinion_belief": 0.6,
+            "opinion_disbelief": 0.1,
+            "opinion_uncertainty": 0.3,
+            "opinion_base_rate": 0.5,
+        },
+        {
+            "id": "cB",
+            "concept_id": "temp",
+            "type": "parameter",
+            "value": 200.0,
+            "sample_size": 50,
+            "provenance_json": '{"date": "2024-01-01"}',
+            "opinion_belief": 0.7,
+            "opinion_disbelief": 0.2,
+            "opinion_uncertainty": 0.1,
+            "opinion_base_rate": 0.5,
+        },
     ]
     # Symmetric mutual defeats with identical opinions — produces a PrAF tie
     symmetric_opinion = {
@@ -644,10 +741,18 @@ def _make_claims_and_stances_decision_criterion_tie():
         "confidence": 0.9,
     }
     stances = [
-        {"claim_id": "cA", "target_claim_id": "cB",
-         "stance_type": "rebuts", **symmetric_opinion},
-        {"claim_id": "cB", "target_claim_id": "cA",
-         "stance_type": "rebuts", **symmetric_opinion},
+        {
+            "claim_id": "cA",
+            "target_claim_id": "cB",
+            "stance_type": "rebuts",
+            **symmetric_opinion,
+        },
+        {
+            "claim_id": "cB",
+            "target_claim_id": "cA",
+            "stance_type": "rebuts",
+            **symmetric_opinion,
+        },
     ]
     return claims, stances
 
@@ -823,6 +928,7 @@ class TestDecisionCriteriaInResolution:
 # ---------------------------------------------------------------------------
 # Hypothesis property test: lower_bound <= pignistic <= upper_bound
 # ---------------------------------------------------------------------------
+
 
 class TestDecisionCriterionProperties:
     """Property-based tests for decision criterion ordering invariants.

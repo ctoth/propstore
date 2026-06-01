@@ -42,10 +42,15 @@ def test_split_workstream_checker_rejects_prose_prerequisites(tmp_path, capsys) 
 
     assert check_split_workstream(index, index.read_text(encoding="utf-8")) == 1
     output = capsys.readouterr().err
-    assert "02-quire-sqlalchemy-engine.md omits required earlier phase prerequisite: 01-quire-capability-and-charter.md" in output
+    assert (
+        "02-quire-sqlalchemy-engine.md omits required earlier phase prerequisite: 01-quire-capability-and-charter.md"
+        in output
+    )
 
 
-def test_split_workstream_checker_reads_prerequisite_gate_dependencies(tmp_path, capsys) -> None:
+def test_split_workstream_checker_reads_prerequisite_gate_dependencies(
+    tmp_path, capsys
+) -> None:
     index = tmp_path / "00-index.md"
     index.write_text(
         """# Index
@@ -82,10 +87,15 @@ def test_split_workstream_checker_reads_prerequisite_gate_dependencies(tmp_path,
     )
 
     assert check_split_workstream(index, index.read_text(encoding="utf-8")) == 1
-    assert "13-final-deletion-gates.md references prerequisite outside phase order: 99-missing.md" in capsys.readouterr().err
+    assert (
+        "13-final-deletion-gates.md references prerequisite outside phase order: 99-missing.md"
+        in capsys.readouterr().err
+    )
 
 
-def test_split_workstream_checker_requires_all_earlier_phase_prerequisites(tmp_path, capsys) -> None:
+def test_split_workstream_checker_requires_all_earlier_phase_prerequisites(
+    tmp_path, capsys
+) -> None:
     index = tmp_path / "00-index.md"
     index.write_text(
         """# Index
@@ -130,4 +140,7 @@ def test_split_workstream_checker_requires_all_earlier_phase_prerequisites(tmp_p
     )
 
     assert check_split_workstream(index, index.read_text(encoding="utf-8")) == 1
-    assert "03-quire-fts-vector.md omits required earlier phase prerequisite: 01-quire-capability-and-charter.md" in capsys.readouterr().err
+    assert (
+        "03-quire-fts-vector.md omits required earlier phase prerequisite: 01-quire-capability-and-charter.md"
+        in capsys.readouterr().err
+    )

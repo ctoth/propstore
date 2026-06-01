@@ -25,7 +25,9 @@ def validate_form_name(form: str, repo: Repository) -> None:
     if valid_forms is None:
         return
     if form not in valid_forms:
-        raise ValueError(f"Unknown form {form!r}. Valid forms: {', '.join(valid_forms)}")
+        raise ValueError(
+            f"Unknown form {form!r}. Valid forms: {', '.join(valid_forms)}"
+        )
 
 
 def normalize_source_concepts_document(
@@ -39,9 +41,13 @@ def normalize_source_concepts_document(
         definition = (entry.definition or "").strip()
         form = (entry.form or "").strip()
         if not all((local_name, proposed_name, definition, form)):
-            raise ValueError(f"concept #{index} is missing local_name/proposed_name/definition/form")
+            raise ValueError(
+                f"concept #{index} is missing local_name/proposed_name/definition/form"
+            )
         validate_form_name(form, repo)
-        registry_match = primary_branch_concept_match(repo, local_name) or primary_branch_concept_match(
+        registry_match = primary_branch_concept_match(
+            repo, local_name
+        ) or primary_branch_concept_match(
             repo,
             proposed_name,
         )
@@ -69,7 +75,9 @@ def normalize_source_concepts_document(
     return tuple(normalized_concepts)
 
 
-def commit_source_concepts_batch(repo: Repository, source_name: str, concepts_file: Path) -> str:
+def commit_source_concepts_batch(
+    repo: Repository, source_name: str, concepts_file: Path
+) -> str:
     loaded = decode_document_batch_bytes(
         concepts_file.read_bytes(),
         SOURCE_CONCEPT_BATCH_SPEC,
@@ -93,6 +101,7 @@ def commit_source_concept_proposal(
     form_parameters: SourceConceptFormParametersDocument | None = None,
 ) -> SourceConceptEntryDocument:
     validate_form_name(form, repo)
+
     def update(expected_head: str | None) -> tuple[SourceConceptEntryDocument, ...]:
         existing = repo.families.source_concepts.load(SourceRef(source_name)) or ()
         concepts = [entry for entry in existing if entry.local_name != local_name]
@@ -113,7 +122,9 @@ def commit_source_concept_proposal(
         )
         return doc
 
-    branch = repo.families.source_concepts.address(SourceRef(source_name)).require_branch()
+    branch = repo.families.source_concepts.address(
+        SourceRef(source_name)
+    ).require_branch()
     doc = retry_live_branch_update(repo, branch, update)
     for normalized_entry in doc:
         if normalized_entry.local_name == local_name:

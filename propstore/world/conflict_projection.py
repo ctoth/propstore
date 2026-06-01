@@ -47,7 +47,12 @@ def _world_concept_reference_keys(concept: Concept) -> tuple[str, ...]:
         add(logical_id.get("value"))
         namespace = logical_id.get("namespace")
         value = logical_id.get("value")
-        if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+        if (
+            isinstance(namespace, str)
+            and isinstance(value, str)
+            and namespace
+            and value
+        ):
             add(f"{namespace}:{value}")
     return tuple(keys)
 

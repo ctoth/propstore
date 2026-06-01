@@ -13,7 +13,11 @@ from hypothesis import strategies as st
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from propstore.families.rules.declaration import (
     load_grounded_sections,
     persist_grounded_bundle,
@@ -98,9 +102,7 @@ def bundles_with_facts() -> st.SearchStrategy[GroundedRulesBundle]:
 def _sections_as_plain_dict(
     bundle: GroundedRulesBundle,
 ) -> dict[str, dict[str, frozenset[tuple[object, ...]]]]:
-    return {
-        name: dict(inner.items()) for name, inner in bundle.sections.items()
-    }
+    return {name: dict(inner.items()) for name, inner in bundle.sections.items()}
 
 
 def test_grounded_fact_tables_are_declared_by_world_charter() -> None:
@@ -142,7 +144,9 @@ def test_persist_empty_bundle_inserts_zero_facts(tmp_path: Path) -> None:
 
     with readonly_session(sidecar_path, world_schema()) as derived:
         grounded_fact = derived.schema.table("grounded_fact")
-        count = derived.session.execute(select(func.count()).select_from(grounded_fact)).scalar_one()
+        count = derived.session.execute(
+            select(func.count()).select_from(grounded_fact)
+        ).scalar_one()
 
     assert inserted == 0
     assert count == 0
@@ -212,8 +216,9 @@ def test_persist_all_four_sections(tmp_path: Path) -> None:
     with readonly_session(sidecar_path, world_schema()) as derived:
         grounded_fact = derived.schema.table("grounded_fact")
         rows = derived.session.execute(
-            select(grounded_fact.c.section, func.count())
-            .group_by(grounded_fact.c.section)
+            select(grounded_fact.c.section, func.count()).group_by(
+                grounded_fact.c.section
+            )
         ).all()
 
     assert inserted == 4
@@ -249,7 +254,9 @@ def test_persisted_row_count_matches_section_content(
 
         with readonly_session(sidecar_path, world_schema()) as derived:
             grounded_fact = derived.schema.table("grounded_fact")
-            actual = derived.session.execute(select(func.count()).select_from(grounded_fact)).scalar_one()
+            actual = derived.session.execute(
+                select(func.count()).select_from(grounded_fact)
+            ).scalar_one()
 
     assert inserted == expected
     assert actual == expected

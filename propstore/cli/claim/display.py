@@ -19,7 +19,11 @@ from propstore.app.neighborhoods import (
     build_semantic_neighborhood,
 )
 from propstore.app.world import WorldSidecarMissingError
-from propstore.cli.claim import claim, claim_render_policy_options, claim_render_policy_request
+from propstore.cli.claim import (
+    claim,
+    claim_render_policy_options,
+    claim_render_policy_request,
+)
 from propstore.cli.helpers import fail
 from propstore.cli.output import emit, emit_section, emit_table
 from propstore.repository import Repository
@@ -146,7 +150,9 @@ def show(
 
 @claim.command("list")
 @click.option("--concept", default=None, help="Filter by concept id or canonical name.")
-@click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.option(
+    "--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show."
+)
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @claim_render_policy_options
 @click.pass_obj
@@ -199,7 +205,9 @@ def list_cmd(
 @claim.command("search")
 @click.argument("query")
 @click.option("--concept", default=None, help="Filter by concept id or canonical name.")
-@click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.option(
+    "--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show."
+)
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @claim_render_policy_options
 @click.pass_obj
@@ -253,7 +261,12 @@ def search(
 
 @claim.command("neighborhood")
 @click.argument("claim_id")
-@click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum neighborhood rows to show.")
+@click.option(
+    "--limit",
+    default=20,
+    type=click.IntRange(min=1),
+    help="Maximum neighborhood rows to show.",
+)
 @claim_render_policy_options
 @click.pass_obj
 def neighborhood(

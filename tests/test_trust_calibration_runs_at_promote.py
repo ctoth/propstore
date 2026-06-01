@@ -59,14 +59,18 @@ def test_trust_calibration_runs_at_promote(tmp_path: Path) -> None:
         SourceRef("direct_replication_source")
     ).branch
     source_head_before_promote = repo.git.branch_sha(branch)
-    source_before = yaml.safe_load(repo.git.read_file("source.yaml", commit=source_head_before_promote))
+    source_before = yaml.safe_load(
+        repo.git.read_file("source.yaml", commit=source_head_before_promote)
+    )
     assert source_before["trust"]["status"] == "defaulted"
     assert "prior_base_rate" not in source_before["trust"]
 
     promotion = promote_source_branch(repo, "direct_replication_source")
 
     source_head_after_promote = repo.git.branch_sha(branch)
-    source_after = yaml.safe_load(repo.git.read_file("source.yaml", commit=source_head_after_promote))
+    source_after = yaml.safe_load(
+        repo.git.read_file("source.yaml", commit=source_head_after_promote)
+    )
     assert promotion.commit_sha
     assert source_head_after_promote != source_head_before_promote
     assert source_after["trust"]["status"] == ProvenanceStatus.CALIBRATED.value

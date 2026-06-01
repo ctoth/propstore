@@ -32,7 +32,10 @@ from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
 )
-from propstore.families.identity.logical_ids import format_logical_id, normalize_logical_value
+from propstore.families.identity.logical_ids import (
+    format_logical_id,
+    normalize_logical_value,
+)
 from quire.tree_path import TreePath as KnowledgePath
 from quire.documents import LoadedDocument
 
@@ -48,6 +51,7 @@ def _string_list(value: object) -> tuple[str, ...]:
     if not isinstance(value, Sequence) or isinstance(value, str):
         return ()
     return tuple(item for item in value if isinstance(item, str) and item)
+
 
 def _mapping_to_builtin_dict(value: object) -> dict[str, Any] | None:
     builtins_value = to_document_builtins(value)
@@ -123,14 +127,23 @@ def normalize_concept_payload(data: Mapping[str, Any]) -> dict[str, Any]:
                 continue
             namespace = entry.get("namespace")
             value = entry.get("value")
-            if isinstance(namespace, str) and namespace and isinstance(value, str) and value:
+            if (
+                isinstance(namespace, str)
+                and namespace
+                and isinstance(value, str)
+                and value
+            ):
                 normalized_logical_ids.append({"namespace": namespace, "value": value})
 
     if not normalized_logical_ids:
-        normalized_logical_ids = [{"namespace": primary_namespace, "value": primary_value}]
+        normalized_logical_ids = [
+            {"namespace": primary_namespace, "value": primary_value}
+        ]
         propstore_local = normalize_logical_value(local_seed)
         if primary_namespace != "propstore" or propstore_local != primary_value:
-            normalized_logical_ids.append({"namespace": "propstore", "value": propstore_local})
+            normalized_logical_ids.append(
+                {"namespace": "propstore", "value": propstore_local}
+            )
     normalized["logical_ids"] = normalized_logical_ids
 
     artifact_id = normalized.get("artifact_id")
@@ -185,7 +198,12 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
             continue
         namespace = entry.get("namespace")
         value = entry.get("value")
-        if isinstance(namespace, str) and namespace and isinstance(value, str) and value:
+        if (
+            isinstance(namespace, str)
+            and namespace
+            and isinstance(value, str)
+            and value
+        ):
             logical_ids.append(LogicalId(namespace=namespace, value=value))
     if not logical_ids:
         raise ValueError(f"concept '{artifact_id}' requires logical_ids")
@@ -200,7 +218,9 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         aliases.append(
             ConceptAlias(
                 name=name,
-                source=alias.get("source") if isinstance(alias.get("source"), str) else None,
+                source=alias.get("source")
+                if isinstance(alias.get("source"), str)
+                else None,
                 note=alias.get("note") if isinstance(alias.get("note"), str) else None,
             )
         )
@@ -220,7 +240,9 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
                 relationship_type=ConceptRelationshipType(relationship_type),
                 target=ConceptId(target),
                 conditions=to_cel_exprs(_string_list(relationship.get("conditions"))),
-                note=relationship.get("note") if isinstance(relationship.get("note"), str) else None,
+                note=relationship.get("note")
+                if isinstance(relationship.get("note"), str)
+                else None,
             )
         )
 
@@ -232,9 +254,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         if not isinstance(raw_inputs, Sequence) or isinstance(raw_inputs, str):
             continue
         inputs = tuple(
-            ConceptId(value)
-            for value in raw_inputs
-            if isinstance(value, str) and value
+            ConceptId(value) for value in raw_inputs if isinstance(value, str) and value
         )
         if not inputs:
             continue
@@ -242,11 +262,21 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         parameterizations.append(
             ParameterizationSpec(
                 inputs=inputs,
-                formula=parameterization.get("formula") if isinstance(parameterization.get("formula"), str) else None,
-                sympy=parameterization.get("sympy") if isinstance(parameterization.get("sympy"), str) else None,
-                exactness=parameterization.get("exactness") if isinstance(parameterization.get("exactness"), str) else None,
-                conditions=to_cel_exprs(_string_list(parameterization.get("conditions"))),
-                source=parameterization.get("source") if isinstance(parameterization.get("source"), str) else None,
+                formula=parameterization.get("formula")
+                if isinstance(parameterization.get("formula"), str)
+                else None,
+                sympy=parameterization.get("sympy")
+                if isinstance(parameterization.get("sympy"), str)
+                else None,
+                exactness=parameterization.get("exactness")
+                if isinstance(parameterization.get("exactness"), str)
+                else None,
+                conditions=to_cel_exprs(
+                    _string_list(parameterization.get("conditions"))
+                ),
+                source=parameterization.get("source")
+                if isinstance(parameterization.get("source"), str)
+                else None,
                 bidirectional=(
                     parameterization.get("bidirectional")
                     if isinstance(parameterization.get("bidirectional"), bool)
@@ -262,7 +292,11 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
 
     range_value = normalized.get("range")
     parsed_range: tuple[float, float] | None = None
-    if isinstance(range_value, Sequence) and not isinstance(range_value, str) and len(range_value) >= 2:
+    if (
+        isinstance(range_value, Sequence)
+        and not isinstance(range_value, str)
+        and len(range_value) >= 2
+    ):
         start, end = range_value[0], range_value[1]
         if isinstance(start, (int, float)) and isinstance(end, (int, float)):
             parsed_range = (float(start), float(end))
@@ -272,9 +306,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
 
     replaced_by = normalized.get("replaced_by")
     parsed_replaced_by = (
-        ConceptId(replaced_by)
-        if isinstance(replaced_by, str) and replaced_by
-        else None
+        ConceptId(replaced_by) if isinstance(replaced_by, str) and replaced_by else None
     )
 
     return ConceptRecord(
@@ -285,7 +317,9 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         form=form,
         logical_ids=tuple(logical_ids),
         version_id=version_id,
-        domain=normalized.get("domain") if isinstance(normalized.get("domain"), str) else None,
+        domain=normalized.get("domain")
+        if isinstance(normalized.get("domain"), str)
+        else None,
         definition_source=(
             normalized.get("definition_source")
             if isinstance(normalized.get("definition_source"), str)
@@ -297,9 +331,15 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         relationships=tuple(relationships),
         parameterizations=tuple(parameterizations),
         replaced_by=parsed_replaced_by,
-        created_date=normalized.get("created_date") if isinstance(normalized.get("created_date"), str) else None,
-        last_modified=normalized.get("last_modified") if isinstance(normalized.get("last_modified"), str) else None,
-        notes=normalized.get("notes") if isinstance(normalized.get("notes"), str) else None,
+        created_date=normalized.get("created_date")
+        if isinstance(normalized.get("created_date"), str)
+        else None,
+        last_modified=normalized.get("last_modified")
+        if isinstance(normalized.get("last_modified"), str)
+        else None,
+        notes=normalized.get("notes")
+        if isinstance(normalized.get("notes"), str)
+        else None,
     )
 
 
@@ -400,7 +440,9 @@ def rewrite_concept_payload_refs(
                 continue
             updated = dict(relationship)
             original_target = updated.get("target")
-            updated["target"] = _rewrite_concept_reference(original_target, concept_ref_map)
+            updated["target"] = _rewrite_concept_reference(
+                original_target, concept_ref_map
+            )
             if updated["target"] != original_target:
                 changed = True
             updated_relationships.append(updated)
@@ -435,7 +477,9 @@ def normalize_loaded_concepts(
     concepts: Sequence[LoadedDocument[ConceptDocument]],
 ) -> list[LoadedConcept]:
     raw_to_artifact: dict[str, str] = {}
-    pending: list[tuple[LoadedDocument[ConceptDocument], dict[str, Any], str | None]] = []
+    pending: list[
+        tuple[LoadedDocument[ConceptDocument], dict[str, Any], str | None]
+    ] = []
 
     for concept in concepts:
         payload = concept_document_to_record_payload(concept.document)

@@ -25,7 +25,11 @@ from tests.family_helpers import materialized_world_store_path
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.world import WorldQuery
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads, make_test_context_commit_entry
+from tests.conftest import (
+    normalize_claims_payload,
+    normalize_concept_payloads,
+    make_test_context_commit_entry,
+)
 
 
 def _prior_payload(a: float = 0.62) -> dict[str, float]:
@@ -70,12 +74,16 @@ def _claim_with_metadata(**metadata: object) -> ClaimNode:
         claim_id=ClaimId("test_claim"),
         claim_type=ClaimType.OBSERVATION,
         source_prior_opinion=(
-            _opinion_from_payload(metadata["source_prior_base_rate"], "source_prior_base_rate")
+            _opinion_from_payload(
+                metadata["source_prior_base_rate"], "source_prior_base_rate"
+            )
             if "source_prior_base_rate" in metadata
             else None
         ),
         source_quality_opinion=(
-            _opinion_from_payload(metadata["source_quality_opinion"], "source_quality_opinion")
+            _opinion_from_payload(
+                metadata["source_quality_opinion"], "source_quality_opinion"
+            )
             if "source_quality_opinion" in metadata
             else None
         ),
@@ -120,7 +128,9 @@ def test_p_arg_from_claim_requires_prior_for_claim_evidence() -> None:
     assert "source_prior_base_rate" in result.missing_fields
 
 
-def test_initial_source_document_does_not_fabricate_default_prior(tmp_path: Path) -> None:
+def test_initial_source_document_does_not_fabricate_default_prior(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     source_doc = initial_source_document(
@@ -189,9 +199,15 @@ def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> N
 
 @pytest.mark.property
 @given(
-    prior=st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False),
-    probability=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
-    n_eff=st.floats(min_value=0.1, max_value=100.0, allow_nan=False, allow_infinity=False),
+    prior=st.floats(
+        min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False
+    ),
+    probability=st.floats(
+        min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
+    ),
+    n_eff=st.floats(
+        min_value=0.1, max_value=100.0, allow_nan=False, allow_infinity=False
+    ),
 )
 @settings(deadline=None)
 def test_p_arg_from_claim_expectation_stays_in_unit_interval(
@@ -255,7 +271,7 @@ def _seed_calibration_claim(repo: Repository) -> None:
                 concept,
                 sort_keys=False,
                 allow_unicode=True,
-            ).encode("utf-8")
+            ).encode("utf-8"),
         },
         deletes=[],
         message="Seed calibration concept",
@@ -305,7 +321,9 @@ def _seed_calibration_claim(repo: Repository) -> None:
     )
 
 
-def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_path: Path) -> None:
+def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     _seed_calibration_claim(repo)
     runner = CliRunner()
@@ -332,11 +350,21 @@ def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_p
 
     metadata_result = runner.invoke(
         cli,
-        ["-C", str(repo.root), "source", "write-metadata", "demo", "--file", str(metadata_file)],
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "write-metadata",
+            "demo",
+            "--file",
+            str(metadata_file),
+        ],
     )
     assert metadata_result.exit_code == 0, metadata_result.output
 
-    finalize_result = runner.invoke(cli, ["-C", str(repo.root), "source", "finalize", "demo"])
+    finalize_result = runner.invoke(
+        cli, ["-C", str(repo.root), "source", "finalize", "demo"]
+    )
     assert finalize_result.exit_code == 0, finalize_result.output
 
     branch_tip = repo.git.branch_sha("source/demo")
@@ -346,7 +374,9 @@ def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_p
     assert source_doc["trust"]["derived_from"] == []
 
 
-def test_world_query_claim_source_does_not_fabricate_source_prior(tmp_path: Path) -> None:
+def test_world_query_claim_source_does_not_fabricate_source_prior(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_batch(
         adds={
@@ -385,27 +415,41 @@ def test_world_query_claim_source_does_not_fabricate_source_prior(tmp_path: Path
         ],
     )
     assert init_result.exit_code == 0, init_result.output
-    assert runner.invoke(
-        cli,
-        ["-C", str(repo.root), "source", "write-metadata", "demo", "--file", str(metadata_file)],
-    ).exit_code == 0
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "write-metadata",
+                "demo",
+                "--file",
+                str(metadata_file),
+            ],
+        ).exit_code
+        == 0
+    )
 
-    assert runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "source",
-            "propose-concept",
-            "demo",
-            "--concept-name",
-            "base_replication_rate",
-            "--definition",
-            "Field-specific replication prior.",
-            "--form",
-            "ratio",
-        ],
-    ).exit_code == 0
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "propose-concept",
+                "demo",
+                "--concept-name",
+                "base_replication_rate",
+                "--definition",
+                "Field-specific replication prior.",
+                "--form",
+                "ratio",
+            ],
+        ).exit_code
+        == 0
+    )
 
     claims_file = tmp_path / "claims.yaml"
     claims_file.write_text(
@@ -428,12 +472,30 @@ def test_world_query_claim_source_does_not_fabricate_source_prior(tmp_path: Path
         ),
         encoding="utf-8",
     )
-    assert runner.invoke(
-        cli,
-        ["-C", str(repo.root), "source", "add-claim", "demo", "--batch", str(claims_file)],
-    ).exit_code == 0
-    assert runner.invoke(cli, ["-C", str(repo.root), "source", "finalize", "demo"]).exit_code == 0
-    promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "add-claim",
+                "demo",
+                "--batch",
+                str(claims_file),
+            ],
+        ).exit_code
+        == 0
+    )
+    assert (
+        runner.invoke(
+            cli, ["-C", str(repo.root), "source", "finalize", "demo"]
+        ).exit_code
+        == 0
+    )
+    promote_result = runner.invoke(
+        cli, ["-C", str(repo.root), "source", "promote", "demo"]
+    )
     assert promote_result.exit_code == 0, promote_result.output
 
     materialized_world_store_path(

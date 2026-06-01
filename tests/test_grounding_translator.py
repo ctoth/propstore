@@ -152,8 +152,7 @@ def _build_rule_document(
     from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
     body_literals = tuple(
-        BodyLiteralDocument(kind="positive", atom=atom)
-        for atom in body
+        BodyLiteralDocument(kind="positive", atom=atom) for atom in body
     )
 
     return RuleDocument(
@@ -362,9 +361,7 @@ def test_translate_preserves_fact_count(rule_files, facts) -> None:
 
     theory = translate_to_theory(rule_files, facts, _bird_registry())
 
-    total_rows = sum(
-        len(list(rows)) for rows in theory.facts.values()
-    )
+    total_rows = sum(len(list(rows)) for rows in theory.facts.values())
     assert total_rows == len(facts)
 
 
@@ -390,9 +387,7 @@ def test_translate_preserves_rule_count(rule_files, facts) -> None:
 
     input_rule_count = len(rule_files)
     total_output_rules = (
-        len(theory.strict_rules)
-        + len(theory.defeasible_rules)
-        + len(theory.defeaters)
+        len(theory.strict_rules) + len(theory.defeasible_rules) + len(theory.defeaters)
     )
     assert total_output_rules == input_rule_count
     assert theory.superiority == ()

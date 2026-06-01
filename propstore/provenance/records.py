@@ -63,8 +63,12 @@ class SourceVersionProvenanceRecord:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "source_id", _require_uri(self.source_id, "source_id"))
-        object.__setattr__(self, "version_id", _require_non_empty(self.version_id, "version_id"))
-        object.__setattr__(self, "content_hash", _require_content_hash(self.content_hash))
+        object.__setattr__(
+            self, "version_id", _require_non_empty(self.version_id, "version_id")
+        )
+        object.__setattr__(
+            self, "content_hash", _require_content_hash(self.content_hash)
+        )
         if self.retrieved_at is not None:
             object.__setattr__(
                 self,
@@ -104,7 +108,9 @@ class LicenseProvenanceRecord:
     uri: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "license_id", _require_uri(self.license_id, "license_id"))
+        object.__setattr__(
+            self, "license_id", _require_uri(self.license_id, "license_id")
+        )
         object.__setattr__(self, "label", _require_non_empty(self.label, "label"))
         if self.uri is not None:
             object.__setattr__(self, "uri", _require_uri(self.uri, "license uri"))
@@ -135,8 +141,12 @@ class ImportRunProvenanceRecord:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "run_id", _require_uri(self.run_id, "run_id"))
-        object.__setattr__(self, "importer_id", _require_uri(self.importer_id, "importer_id"))
-        object.__setattr__(self, "imported_at", _require_non_empty(self.imported_at, "imported_at"))
+        object.__setattr__(
+            self, "importer_id", _require_uri(self.importer_id, "importer_id")
+        )
+        object.__setattr__(
+            self, "imported_at", _require_non_empty(self.imported_at, "imported_at")
+        )
         if not isinstance(self.source, SourceVersionProvenanceRecord):
             raise TypeError("source must be SourceVersionProvenanceRecord")
         if not isinstance(self.license, LicenseProvenanceRecord):
@@ -168,7 +178,9 @@ class ProjectionFrameProvenanceRecord:
     def __post_init__(self) -> None:
         object.__setattr__(self, "frame_id", _require_uri(self.frame_id, "frame_id"))
         object.__setattr__(self, "backend", _require_non_empty(self.backend, "backend"))
-        object.__setattr__(self, "projected_at", _require_non_empty(self.projected_at, "projected_at"))
+        object.__setattr__(
+            self, "projected_at", _require_non_empty(self.projected_at, "projected_at")
+        )
         object.__setattr__(
             self,
             "source_assertion_ids",
@@ -176,7 +188,12 @@ class ProjectionFrameProvenanceRecord:
         )
 
     def identity_payload(self) -> tuple[str, str, str, tuple[str, ...]]:
-        return ("projection_frame", self.frame_id, self.backend, self.source_assertion_ids)
+        return (
+            "projection_frame",
+            self.frame_id,
+            self.backend,
+            self.source_assertion_ids,
+        )
 
     def to_payload(self) -> dict[str, Any]:
         return {
@@ -199,7 +216,9 @@ class ExternalStatementProvenanceRecord:
     authority_id: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "statement_id", _require_uri(self.statement_id, "statement_id"))
+        object.__setattr__(
+            self, "statement_id", _require_uri(self.statement_id, "statement_id")
+        )
         if not isinstance(self.source, SourceVersionProvenanceRecord):
             raise TypeError("source must be SourceVersionProvenanceRecord")
         object.__setattr__(self, "locator", _require_non_empty(self.locator, "locator"))
@@ -246,9 +265,13 @@ class ExternalInferenceProvenanceRecord:
     conclusion_statement_id: str
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "inference_id", _require_uri(self.inference_id, "inference_id"))
+        object.__setattr__(
+            self, "inference_id", _require_uri(self.inference_id, "inference_id")
+        )
         object.__setattr__(self, "engine", _require_non_empty(self.engine, "engine"))
-        object.__setattr__(self, "inferred_at", _require_non_empty(self.inferred_at, "inferred_at"))
+        object.__setattr__(
+            self, "inferred_at", _require_non_empty(self.inferred_at, "inferred_at")
+        )
         object.__setattr__(
             self,
             "premise_statement_ids",

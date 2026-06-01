@@ -55,8 +55,12 @@ def test_build_renders_phi_group_glosses_once_per_kind(
         "CONTEXT_PHI_NODE — concept slot with competing branches across "
         "different contexts"
     ) in result.stderr
-    assert "PHI_NODE: ps:concept:1 — 2 branches: ps:claim:1, ps:claim:2" in result.stderr
-    assert "PHI_NODE: ps:concept:2 — 2 branches: ps:claim:3, ps:claim:4" in result.stderr
+    assert (
+        "PHI_NODE: ps:concept:1 — 2 branches: ps:claim:1, ps:claim:2" in result.stderr
+    )
+    assert (
+        "PHI_NODE: ps:concept:2 — 2 branches: ps:claim:3, ps:claim:4" in result.stderr
+    )
 
 
 def test_build_strict_authoring_flag_reaches_owner(monkeypatch) -> None:

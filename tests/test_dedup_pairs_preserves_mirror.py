@@ -15,8 +15,12 @@ def test_dedup_pairs_preserves_forward_and_reverse_distances() -> None:
 
 @pytest.mark.property
 @given(
-    forward=st.floats(min_value=0.0, max_value=2.0, allow_nan=False, allow_infinity=False),
-    reverse=st.floats(min_value=0.0, max_value=2.0, allow_nan=False, allow_infinity=False),
+    forward=st.floats(
+        min_value=0.0, max_value=2.0, allow_nan=False, allow_infinity=False
+    ),
+    reverse=st.floats(
+        min_value=0.0, max_value=2.0, allow_nan=False, allow_infinity=False
+    ),
 )
 @settings(max_examples=100)
 def test_dedup_pairs_never_replaces_asymmetric_distances_with_minimum(

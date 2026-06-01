@@ -98,7 +98,9 @@ class DescriptionKindMergeProtocol:
             if argument_id not in self.argument_ids
         }
         if unknown:
-            raise ValueError(f"coreference attacks reference unknown arguments: {sorted(unknown)!r}")
+            raise ValueError(
+                f"coreference attacks reference unknown arguments: {sorted(unknown)!r}"
+            )
 
 
 def coreference_argument(

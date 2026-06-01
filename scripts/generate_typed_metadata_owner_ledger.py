@@ -52,31 +52,60 @@ def _summary(data: dict[str, Any]) -> dict[str, int]:
     raw = data.get("summary", {})
     if not isinstance(raw, dict):
         return {}
-    return {str(key): int(value) for key, value in raw.items() if isinstance(value, int)}
+    return {
+        str(key): int(value) for key, value in raw.items() if isinstance(value, int)
+    }
 
 
 def _target_for_name(name: str) -> tuple[str, str, str]:
     lower = name.lower()
-    if "concept" in lower or lower in {"alias", "form", "form_algebra", "parameterization", "parameterization_group"}:
+    if "concept" in lower or lower in {
+        "alias",
+        "form",
+        "form_algebra",
+        "parameterization",
+        "parameterization_group",
+    }:
         return ("concepts", "propstore/families/concepts/declaration.py", "concept")
     if "claim" in lower or lower in {"justification"}:
         return ("claims", "propstore/families/claims/declaration.py", "claim")
     if "context" in lower:
         return ("contexts", "propstore/families/contexts/declaration.py", "context")
-    if "relation" in lower or "conflict" in lower or "stance" in lower or "opinion" in lower:
+    if (
+        "relation" in lower
+        or "conflict" in lower
+        or "stance" in lower
+        or "opinion" in lower
+    ):
         return ("relations", "propstore/families/relations/declaration.py", "relation")
     if "micropublication" in lower:
-        return ("micropublications", "propstore/families/micropublications/declaration.py", "micropublication")
+        return (
+            "micropublications",
+            "propstore/families/micropublications/declaration.py",
+            "micropublication",
+        )
     if "source" in lower:
         return ("sources", "propstore/families/sources/declaration.py", "source")
     if "diagnostic" in lower or "quarantine" in lower:
-        return ("diagnostics", "propstore/families/diagnostics/declaration.py", "diagnostic")
+        return (
+            "diagnostics",
+            "propstore/families/diagnostics/declaration.py",
+            "diagnostic",
+        )
     if "grounded" in lower or "rule" in lower or "bundle" in lower:
         return ("rules", "propstore/families/rules/declaration.py", "rule")
     if "calibration" in lower:
-        return ("calibration", "propstore/families/calibration/declaration.py", "calibration")
+        return (
+            "calibration",
+            "propstore/families/calibration/declaration.py",
+            "calibration",
+        )
     if "embedding" in lower or "vec" in lower:
-        return ("embedding", "propstore/families/embeddings/declaration.py", "embedding")
+        return (
+            "embedding",
+            "propstore/families/embeddings/declaration.py",
+            "embedding",
+        )
     return ("world", "propstore/families/_generated/catalog.py", "catalog")
 
 
@@ -85,7 +114,11 @@ def _role_for_field(field_name: str, declaration_kind: str) -> str:
         return "search"
     if declaration_kind in {"vector_source"}:
         return "vector"
-    if declaration_kind in {"foreign_key"} or field_name.endswith("_id") or field_name in {"id"}:
+    if (
+        declaration_kind in {"foreign_key"}
+        or field_name.endswith("_id")
+        or field_name in {"id"}
+    ):
         return "reference"
     if "provenance" in field_name or "source" in field_name:
         return "provenance"
@@ -206,7 +239,9 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
                     quire_dependency_id="QD-002",
                 )
             )
-        for field_name in file_record.get("rowid_vec_projections", []) + file_record.get("embedding_status_projections", []):
+        for field_name in file_record.get(
+            "rowid_vec_projections", []
+        ) + file_record.get("embedding_status_projections", []):
             rows.append(
                 _row(
                     data=data,
@@ -230,7 +265,9 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
                         declaration_kind="sql_literal",
                         owner_category="typed-query-api",
                         metric_id="table_name_mentions_outside_sidecar",
-                        baseline_count=summary.get("table_name_mentions_outside_sidecar", 0),
+                        baseline_count=summary.get(
+                            "table_name_mentions_outside_sidecar", 0
+                        ),
                         target_count=0,
                         quire_dependency_id="QD-005",
                     )
@@ -239,7 +276,9 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
             owner_category = "typed-query-api"
             metric_id = "class_surfaces_total"
             target_count = summary.get("class_surfaces_total", 0)
-            if path.startswith("propstore/worldline/") or path.startswith("propstore/support_revision/"):
+            if path.startswith("propstore/worldline/") or path.startswith(
+                "propstore/support_revision/"
+            ):
                 owner_category = "runtime-wire-report"
             elif path.startswith("propstore/app/"):
                 owner_category = "presentation-adapter"
@@ -263,7 +302,9 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
         for method_name in file_record.get("codec_methods", []):
             metric_id = "codec_methods_total"
             target_count = summary.get(metric_id, 0)
-            if path.startswith("propstore/families/") or path.startswith("propstore/source/"):
+            if path.startswith("propstore/families/") or path.startswith(
+                "propstore/source/"
+            ):
                 metric_id = "codec_methods_families_source"
                 target_count = 0
             rows.append(
@@ -272,7 +313,9 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
                     field_name=str(method_name),
                     declaring_file=path,
                     declaration_kind="family_payload_field",
-                    owner_category="io-boundary-codec" if "source" in path else "propstore-semantic-declaration",
+                    owner_category="io-boundary-codec"
+                    if "source" in path
+                    else "propstore-semantic-declaration",
                     metric_id=metric_id,
                     baseline_count=summary.get(metric_id, 0),
                     target_count=target_count,
@@ -283,7 +326,9 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate typed metadata owner ledger CSV.")
+    parser = argparse.ArgumentParser(
+        description="Generate typed metadata owner ledger CSV."
+    )
     parser.add_argument("baseline", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()

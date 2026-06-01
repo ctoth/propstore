@@ -13,9 +13,7 @@ def test_stance_family_schema_conflict_is_not_silently_left_wins(tmp_path) -> No
         {
             **claim_payloads(kr, [obs_claim("base", "Base", ["concept_base"])]),
             "stances/ps__claim__base.yaml": (
-                b"source_claim: ps:claim:base\n"
-                b"target: ps:claim:base\n"
-                b"type: supports\n"
+                b"source_claim: ps:claim:base\ntarget: ps:claim:base\ntype: supports\n"
             ),
         },
         "seed",

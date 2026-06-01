@@ -7,7 +7,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from propstore.core.conditions import checked_condition_set, checked_condition_set_from_json
+from propstore.core.conditions import (
+    checked_condition_set,
+    checked_condition_set_from_json,
+)
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.cel_types import CelExpr
 from propstore.core.activation import is_claim_active
@@ -85,6 +88,7 @@ if TYPE_CHECKING:
     from propstore.core.graph_types import WorldActivationGraph
     from propstore.families.contexts.lifting import LiftingSystem
     from propstore.world.atms import ATMSEngine
+
 
 @runtime_checkable
 class _LiftingSystemLoader(Protocol):
@@ -291,7 +295,9 @@ class BoundWorld(BeliefSpace):
     def is_param_compatible(self, parameterization: Parameterization) -> bool:
         return self.is_parameterization_compatible(parameterization)
 
-    def is_parameterization_compatible(self, parameterization: Parameterization) -> bool:
+    def is_parameterization_compatible(
+        self, parameterization: Parameterization
+    ) -> bool:
         """Check if parameterization conditions are compatible with bindings."""
         if not parameterization.conditions_ir:
             if parameterization.conditions_cel:
@@ -321,7 +327,8 @@ class BoundWorld(BeliefSpace):
         all_claims = list(self._store.claims_for(concept_id))
         if self._active_claim_id_set is not None:
             return [
-                claim for claim in all_claims
+                claim
+                for claim in all_claims
                 if str(claim.id) in self._active_claim_id_set
             ]
         return [c for c in all_claims if self.is_active(c)]
@@ -330,7 +337,8 @@ class BoundWorld(BeliefSpace):
         all_claims = list(self._store.claims_for(concept_id))
         if self._inactive_claim_id_set is not None:
             return [
-                claim for claim in all_claims
+                claim
+                for claim in all_claims
                 if str(claim.id) in self._inactive_claim_id_set
             ]
         return [c for c in all_claims if not self.is_active(c)]
@@ -345,9 +353,8 @@ class BoundWorld(BeliefSpace):
         concept_row = self._store.get_concept(str(concept_id))
         if concept_row is None:
             for row in self._store.all_concepts():
-                if (
-                    str(row.concept_id) == str(concept_id)
-                    or row.canonical_name == str(concept_id)
+                if str(row.concept_id) == str(concept_id) or row.canonical_name == str(
+                    concept_id
                 ):
                     concept_row = row
                     break
@@ -373,7 +380,12 @@ class BoundWorld(BeliefSpace):
                 add(entry.get("value"))
                 namespace = entry.get("namespace")
                 value = entry.get("value")
-                if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+                if (
+                    isinstance(namespace, str)
+                    and isinstance(value, str)
+                    and namespace
+                    and value
+                ):
                     add(f"{namespace}:{value}")
         return candidates
 
@@ -396,10 +408,7 @@ class BoundWorld(BeliefSpace):
         active = self.active_claims(concept_id)
         if self._reasoning_backend() == "atms":
             supported_ids = self.atms_engine().supported_claim_ids(concept_id)
-            active = [
-                claim for claim in active
-                if str(claim.id) in supported_ids
-            ]
+            active = [claim for claim in active if str(claim.id) in supported_ids]
         result = self._resolver.value_of_from_active(active, concept_id)
         if self._reasoning_backend() == "atms":
             return self._attach_atms_value_label(result)
@@ -419,7 +428,9 @@ class BoundWorld(BeliefSpace):
         )
         if self._reasoning_backend() == "atms":
             return self._attach_atms_derived_label(result)
-        return self._attach_derived_label(result, override_values=normalized_override_values)
+        return self._attach_derived_label(
+            result, override_values=normalized_override_values
+        )
 
     def resolved_value(
         self,
@@ -432,7 +443,8 @@ class BoundWorld(BeliefSpace):
 
         effective_policy = policy or self._policy
         result = resolve(
-            self, concept_id,
+            self,
+            concept_id,
             strategy=strategy,
             policy=effective_policy,
             world=self._store,
@@ -454,7 +466,9 @@ class BoundWorld(BeliefSpace):
 
         return project_belief_base(self)
 
-    def revision_entrenchment(self, *, overrides: Mapping[str, Mapping[str, object]] | None = None):
+    def revision_entrenchment(
+        self, *, overrides: Mapping[str, Mapping[str, object]] | None = None
+    ):
         """Compute the current revision-facing entrenchment ordering."""
         from propstore.support_revision.entrenchment import compute_entrenchment
 
@@ -516,7 +530,9 @@ class BoundWorld(BeliefSpace):
             conflicts=(
                 ()
                 if conflicts is None
-                else tuple(str(conflict) for conflict in conflicts.get(normalized.atom_id, ()))
+                else tuple(
+                    str(conflict) for conflict in conflicts.get(normalized.atom_id, ())
+                )
             ),
             max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
         )
@@ -574,7 +590,9 @@ class BoundWorld(BeliefSpace):
         state=None,
     ):
         """Revise an explicit epistemic state using the selected iterated operator."""
-        from propstore.support_revision.iterated import iterated_revise as iterated_revise_state
+        from propstore.support_revision.iterated import (
+            iterated_revise as iterated_revise_state,
+        )
 
         current_state = state or self.epistemic_state(overrides=overrides)
         return iterated_revise_state(
@@ -607,6 +625,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def concept_future_statuses(
         self,
         concept_id: str,
@@ -622,8 +641,11 @@ class BoundWorld(BeliefSpace):
                 queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.id))
+            for claim in sorted(
+                self.active_claims(concept_id), key=lambda row: str(row.id)
+            )
         }
+
     def claim_stability(
         self,
         claim_id: str,
@@ -638,6 +660,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def claim_is_stable(
         self,
         claim_id: str,
@@ -652,6 +675,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def concept_stability(
         self,
         concept_id: str,
@@ -666,6 +690,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def concept_is_stable(
         self,
         concept_id: str,
@@ -680,6 +705,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def claim_relevance(
         self,
         claim_id: str,
@@ -694,6 +720,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def claim_relevant_queryables(
         self,
         claim_id: str,
@@ -708,6 +735,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def concept_relevance(
         self,
         concept_id: str,
@@ -722,6 +750,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def concept_relevant_queryables(
         self,
         concept_id: str,
@@ -736,6 +765,7 @@ class BoundWorld(BeliefSpace):
             queryables,
             limit=limit,
         )
+
     def claim_interventions(
         self,
         claim_id: str,
@@ -828,7 +858,9 @@ class BoundWorld(BeliefSpace):
                 queryables=queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.id))
+            for claim in sorted(
+                self.active_claims(concept_id), key=lambda row: str(row.id)
+            )
         }
         return ATMSConceptWhyOutReport(
             concept_id=concept_id,
@@ -883,7 +915,9 @@ class BoundWorld(BeliefSpace):
         and reach this helper through their own instance.
         """
         if self._conflict_inputs_cache is None:
-            self._conflict_inputs_cache = conflict_detector_inputs_for_world(self._store)
+            self._conflict_inputs_cache = conflict_detector_inputs_for_world(
+                self._store
+            )
         return self._conflict_inputs_cache
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
@@ -896,7 +930,9 @@ class BoundWorld(BeliefSpace):
         resolved_concept_id = (
             None
             if concept_id is None
-            else str(concept.id) if concept is not None else concept_id
+            else str(concept.id)
+            if concept is not None
+            else concept_id
         )
         if resolved_concept_id in self._conflicts_cache:
             return self._conflicts_cache[resolved_concept_id]
@@ -910,10 +946,17 @@ class BoundWorld(BeliefSpace):
         all_conflicts = list(self._store.conflicts())
         for conflict in all_conflicts:
             if conflict.claim_a_id in active_ids and conflict.claim_b_id in active_ids:
-                if resolved_concept_id is None or conflict.concept_id == resolved_concept_id:
+                if (
+                    resolved_concept_id is None
+                    or conflict.concept_id == resolved_concept_id
+                ):
                     result.append(conflict)
         seen = {
-            (str(conflict.claim_a_id), str(conflict.claim_b_id), str(conflict.concept_id) if conflict.concept_id is not None else None)
+            (
+                str(conflict.claim_a_id),
+                str(conflict.claim_b_id),
+                str(conflict.concept_id) if conflict.concept_id is not None else None,
+            )
             for conflict in result
         }
         if not isinstance(self._store, ConceptCatalogStore):
@@ -925,9 +968,15 @@ class BoundWorld(BeliefSpace):
             active_claims,
             precomputed_inputs=precomputed,
         ):
-            concept_key = str(conflict.concept_id) if conflict.concept_id is not None else None
+            concept_key = (
+                str(conflict.concept_id) if conflict.concept_id is not None else None
+            )
             key = (str(conflict.claim_a_id), str(conflict.claim_b_id), concept_key)
-            reverse_key = (str(conflict.claim_b_id), str(conflict.claim_a_id), concept_key)
+            reverse_key = (
+                str(conflict.claim_b_id),
+                str(conflict.claim_a_id),
+                concept_key,
+            )
             if key not in seen and reverse_key not in seen:
                 result.append(conflict)
                 seen.add(key)
@@ -1030,7 +1079,11 @@ class BoundWorld(BeliefSpace):
             return result
 
         winning_claim = next(
-            (claim for claim in result.claims if str(claim.id) == result.winning_claim_id),
+            (
+                claim
+                for claim in result.claims
+                if str(claim.id) == result.winning_claim_id
+            ),
             None,
         )
         if winning_claim is None:

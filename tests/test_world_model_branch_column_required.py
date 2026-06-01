@@ -94,9 +94,7 @@ def test_legacy_sidecar_without_branch_column_is_rejected(tmp_path: Path) -> Non
         world_query_from_sqlite_path(sidecar_path)
 
     message = str(excinfo.value)
-    assert "branch" in message, (
-        f"Expected 'branch' in error message, got: {message!r}"
-    )
+    assert "branch" in message, f"Expected 'branch' in error message, got: {message!r}"
     assert "claim_core" in message, (
         f"Expected 'claim_core' in error message, got: {message!r}"
     )

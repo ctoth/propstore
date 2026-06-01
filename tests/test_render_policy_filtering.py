@@ -124,7 +124,15 @@ def _insert_build_diagnostic(
             diagnostic_kind, severity, blocking, message
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (claim_id, source_kind, source_ref, diagnostic_kind, severity, blocking, message),
+        (
+            claim_id,
+            source_kind,
+            source_ref,
+            diagnostic_kind,
+            severity,
+            blocking,
+            message,
+        ),
     )
 
 

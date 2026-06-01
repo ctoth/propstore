@@ -33,10 +33,7 @@ def list_cmd(obj: dict) -> None:
         return
     emit_table(
         ("ARTIFACT ID", "CONTEXT", "SOURCE"),
-        [
-            (item.artifact_id, item.context_id, item.source or "")
-            for item in items
-        ],
+        [(item.artifact_id, item.context_id, item.source or "") for item in items],
     )
 
 

@@ -20,9 +20,13 @@ def test_ws_q_scoped_mutation_paths_do_not_bypass_head_bound_transaction() -> No
             if not isinstance(node, ast.Call):
                 continue
             if _is_repo_families_transact_call(node):
-                violations.append(f"{path}:{node.lineno} uses repo.families.transact directly")
+                violations.append(
+                    f"{path}:{node.lineno} uses repo.families.transact directly"
+                )
             if _is_git_commit_call(node):
-                violations.append(f"{path}:{node.lineno} uses git commit primitive directly")
+                violations.append(
+                    f"{path}:{node.lineno} uses git commit primitive directly"
+                )
 
     assert violations == []
 
@@ -54,7 +58,12 @@ def _is_git_commit_call(node: ast.Call) -> bool:
     func = node.func
     if not isinstance(func, ast.Attribute):
         return False
-    if func.attr not in {"commit_batch", "commit_files", "commit_deletes", "commit_flat_tree"}:
+    if func.attr not in {
+        "commit_batch",
+        "commit_files",
+        "commit_deletes",
+        "commit_flat_tree",
+    }:
         return False
     value = func.value
     return isinstance(value, ast.Attribute) and value.attr == "git"

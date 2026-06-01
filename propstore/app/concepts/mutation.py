@@ -23,13 +23,18 @@ from propstore.claims import (
     claim_file_payload,
     loaded_claim_file_from_payload,
 )
-from propstore.canonical_namespaces import assert_alias_does_not_target_reserved_namespace
+from propstore.canonical_namespaces import (
+    assert_alias_does_not_target_reserved_namespace,
+)
 from propstore.compiler.context import (
     build_compiler_claim_index,
     build_compilation_context_from_loaded,
 )
 from propstore.families.claims.passes import validate_claims
-from propstore.concept_ids import candidate_concept_id_for_repo, reserve_concept_id_candidate
+from propstore.concept_ids import (
+    candidate_concept_id_for_repo,
+    reserve_concept_id_candidate,
+)
 from propstore.families.concepts.types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
@@ -112,7 +117,9 @@ class ConceptDisplayError(ConceptWorkflowError):
 class ConceptSearchRequest:
     query: str
     limit: int = 20
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -134,7 +141,9 @@ class ConceptListRequest:
     domain: str | None = None
     status: str | None = None
     limit: int = 200
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -399,7 +408,11 @@ def list_concept_categories(repo: Repository) -> ConceptCategoriesReport:
         if document.lexical_entry.physical_dimension_form != "category":
             continue
         form_parameters = document.form_parameters
-        values = () if form_parameters is None or form_parameters.values is None else form_parameters.values
+        values = (
+            ()
+            if form_parameters is None or form_parameters.values is None
+            else form_parameters.values
+        )
         extensible = (
             True
             if form_parameters is None or form_parameters.extensible is None
@@ -434,7 +447,9 @@ def show_concept(
     concept_entry = _find_concept_entry(repo, handle)
     if concept_entry is None:
         raise UnknownConceptError(handle)
-    return ConceptShowReport(rendered=repo.families.concepts.render(concept_entry.document))
+    return ConceptShowReport(
+        rendered=repo.families.concepts.render(concept_entry.document)
+    )
 
 
 def build_concept_alignment(
@@ -605,9 +620,7 @@ def _rewrite_concept_conditions(
             rel.conditions, old_name, new_name
         )
         relationships.append(
-            replace_document(rel, conditions=tuple(rewritten))
-            if rel_changed
-            else rel
+            replace_document(rel, conditions=tuple(rewritten)) if rel_changed else rel
         )
         changed = changed or rel_changed
     parameterizations: list[ParameterizationRelationshipDocument] = []
@@ -682,7 +695,9 @@ def _normalize_concept_data(
     )
 
 
-def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> ConceptDocument:
+def _concept_document(
+    repo: Repository, ref: ConceptFileRef, data: dict
+) -> ConceptDocument:
     payload = _normalize_concept_data(data)
     return repo.families.concepts.coerce(
         payload,
@@ -690,9 +705,7 @@ def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> Conc
     )
 
 
-def _claims_document(
-    repo: Repository, ref: ClaimRef, data: dict
-) -> ClaimDocument:
+def _claims_document(repo: Repository, ref: ClaimRef, data: dict) -> ClaimDocument:
     return repo.families.claims.coerce(
         data,
         source=repo.families.claims.address(ref).require_path(),
@@ -705,12 +718,7 @@ def _concept_display_handle(document: ConceptDocument) -> str:
         first = document.logical_ids[0]
         logical_id = f"{first.namespace}:{first.value}"
     lexical_name = document.lexical_entry.canonical_form.written_rep
-    return (
-        logical_id
-        or lexical_name
-        or document.artifact_id
-        or "?"
-    )
+    return logical_id or lexical_name or document.artifact_id or "?"
 
 
 def _find_concept_entry(
@@ -862,7 +870,8 @@ def _validate_updated_concept(
             concepts.append(
                 LoadedDocument(
                     filename=loaded_ref.name,
-                    artifact_path=tree / repo.families.concepts.address(ref).require_path(),
+                    artifact_path=tree
+                    / repo.families.concepts.address(ref).require_path(),
                     store_root=tree,
                     document=document,
                 )
@@ -948,7 +957,10 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
 
         if request.dry_run:
             return ConceptMutationReport(
-                lines=(f"Would create {filepath}", repo.families.concepts.render(document))
+                lines=(
+                    f"Would create {filepath}",
+                    repo.families.concepts.render(document),
+                )
             )
 
         concepts = _loaded_concepts(repo)
@@ -972,8 +984,7 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
             ref,
             document,
             message=(
-                f"Add concept: {request.name} "
-                f"({_concept_display_handle(document)})"
+                f"Add concept: {request.name} ({_concept_display_handle(document)})"
             ),
         )
         return ConceptMutationReport(
@@ -1141,10 +1152,7 @@ def rename_concept(
         concept_validation,
         message="Rename validation failed. No changes written.",
     )
-    warnings = [
-        _render_diagnostic(warning)
-        for warning in concept_validation.warnings
-    ]
+    warnings = [_render_diagnostic(warning) for warning in concept_validation.warnings]
 
     updated_claim_files: list[tuple[ClaimRef, LoadedClaimsFile]] = []
     changed_claim_refs: set[ClaimRef] = set()
@@ -1284,15 +1292,21 @@ def deprecate_concept(
 
 
 @_serialized_concept_mutation
-def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutationReport:
+def link_concepts(
+    repo: Repository, request: ConceptLinkRequest
+) -> ConceptMutationReport:
     if request.rel_type not in RELATIONSHIP_TYPES:
         raise ConceptMutationError(f"invalid relationship type: {request.rel_type}")
     snapshot = _require_snapshot(repo)
-    concept_entry = _require_concept_entry(repo, request.source_id, label="Source concept")
+    concept_entry = _require_concept_entry(
+        repo, request.source_id, label="Source concept"
+    )
     ref = _concept_ref(concept_entry)
     filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
 
-    target_entry = _require_concept_entry(repo, request.target_id, label="Target concept")
+    target_entry = _require_concept_entry(
+        repo, request.target_id, label="Target concept"
+    )
     target_document = target_entry.document
     target_artifact_id = target_document.artifact_id
     if not isinstance(target_artifact_id, str) or not target_artifact_id:
@@ -1314,9 +1328,7 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
 
     if request.dry_run:
         return ConceptMutationReport(
-            lines=(
-                f"Would add relationship to {filepath.stem}: {relationship}",
-            )
+            lines=(f"Would add relationship to {filepath.stem}: {relationship}",)
         )
 
     updated_document = replace_document(
@@ -1335,9 +1347,7 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
                 / repo.families.concepts.address(concept_ref).require_path(),
                 store_root=loaded_document.store_root,
                 document=(
-                    updated_document
-                    if concept_ref == ref
-                    else loaded_document.document
+                    updated_document if concept_ref == ref else loaded_document.document
                 ),
             )
         )
@@ -1617,9 +1627,7 @@ def add_concept_value(
 
     form_parameters = document.form_parameters or ConceptFormParametersDocument()
     extensible = (
-        True
-        if form_parameters.extensible is None
-        else form_parameters.extensible
+        True if form_parameters.extensible is None else form_parameters.extensible
     )
     if not extensible:
         raise ConceptMutationError(

@@ -182,16 +182,22 @@ def claim_graph(draw, min_claims=2, max_claims=5):
     claims = []
     for cid in ids:
         premise_kind = draw(st.sampled_from(["ordinary", "necessary"]))
-        sample_size = draw(st.one_of(st.none(), st.integers(min_value=1, max_value=1000)))
-        uncertainty = draw(st.one_of(st.none(), st.floats(min_value=0.01, max_value=1.0)))
+        sample_size = draw(
+            st.one_of(st.none(), st.integers(min_value=1, max_value=1000))
+        )
+        uncertainty = draw(
+            st.one_of(st.none(), st.floats(min_value=0.01, max_value=1.0))
+        )
         confidence = draw(st.one_of(st.none(), st.floats(min_value=0.0, max_value=1.0)))
-        claims.append(_make_claim(
-            cid,
-            sample_size=sample_size,
-            uncertainty=uncertainty,
-            confidence=confidence,
-            premise_kind=premise_kind,
-        ))
+        claims.append(
+            _make_claim(
+                cid,
+                sample_size=sample_size,
+                uncertainty=uncertainty,
+                confidence=confidence,
+                premise_kind=premise_kind,
+            )
+        )
 
     # Every claim gets a reported_claim justification
     justifications = [
@@ -211,7 +217,9 @@ def claim_graph(draw, min_claims=2, max_claims=5):
         available_premises = [cid for cid in ids if cid != conclusion]
         if not available_premises:
             continue
-        n_premises = draw(st.integers(min_value=1, max_value=min(2, len(available_premises))))
+        n_premises = draw(
+            st.integers(min_value=1, max_value=min(2, len(available_premises)))
+        )
         premises = draw(
             st.lists(
                 st.sampled_from(available_premises),
@@ -221,17 +229,26 @@ def claim_graph(draw, min_claims=2, max_claims=5):
             )
         )
         rule_strength = draw(st.sampled_from(["strict", "defeasible"]))
-        rule_kind = draw(st.sampled_from([
-            "support", "explanation", "empirical_support",
-            "causal_explanation", "statistical_inference",
-        ]))
-        justifications.append(_make_justification(
-            f"just_{i}:{','.join(premises)}->{conclusion}",
-            conclusion,
-            tuple(premises),
-            rule_kind=rule_kind,
-            rule_strength=rule_strength,
-        ))
+        rule_kind = draw(
+            st.sampled_from(
+                [
+                    "support",
+                    "explanation",
+                    "empirical_support",
+                    "causal_explanation",
+                    "statistical_inference",
+                ]
+            )
+        )
+        justifications.append(
+            _make_justification(
+                f"just_{i}:{','.join(premises)}->{conclusion}",
+                conclusion,
+                tuple(premises),
+                rule_kind=rule_kind,
+                rule_strength=rule_strength,
+            )
+        )
 
     # Generate attack stances (0 to len(ids)-1)
     n_attacks = draw(st.integers(min_value=0, max_value=max(0, len(ids) - 1)))
@@ -275,9 +292,7 @@ class TestClaimsToLiterals:
         literals = claims_to_literals(claims)
         for claim in claims:
             claim_id = _claim_id(claim)
-            assert claim_key(claim_id) in literals, (
-                f"Claim {claim_id} has no literal"
-            )
+            assert claim_key(claim_id) in literals, f"Claim {claim_id} has no literal"
 
     @pytest.mark.property
     @given(claim_graph())
@@ -354,9 +369,7 @@ class TestJustificationsToRules:
         literals = claims_to_literals(claims)
         strict, _defeasible = justifications_to_rules(justifications, literals)
         for rule in strict:
-            assert rule.name is None, (
-                f"Strict rule has name={rule.name}"
-            )
+            assert rule.name is None, f"Strict rule has name={rule.name}"
             assert rule.kind == "strict"
 
     @pytest.mark.property
@@ -386,14 +399,18 @@ class TestJustificationsToRules:
         strict, defeasible = justifications_to_rules(justifications, literals)
         all_rules = strict | defeasible
         inference_justs = [
-            j for j in justifications
+            j
+            for j in justifications
             if j.rule_kind != "reported_claim" and j.premise_claim_ids
         ]
         # Each inference justification should have a matching rule
         for j in inference_justs:
-            expected_antes = tuple(literals[claim_key(pid)] for pid in j.premise_claim_ids)
+            expected_antes = tuple(
+                literals[claim_key(pid)] for pid in j.premise_claim_ids
+            )
             matching = [
-                r for r in all_rules
+                r
+                for r in all_rules
                 if set(r.antecedents) == set(expected_antes)
                 and r.consequent == literals[claim_key(j.conclusion_claim_id)]
             ]
@@ -427,7 +444,10 @@ class TestStancesToContrariness:
         }
         for stance in stances:
             if _stance_type(stance) == "rebuts":
-                if (_stance_target_id(stance), _stance_source_id(stance)) in directional_pairs:
+                if (
+                    _stance_target_id(stance),
+                    _stance_source_id(stance),
+                ) in directional_pairs:
                     continue
                 tgt = literals[claim_key(_stance_target_id(stance))]
                 src = literals[claim_key(_stance_source_id(stance))]
@@ -463,7 +483,10 @@ class TestStancesToContrariness:
         }
         for stance in stances:
             if _stance_type(stance) == "supersedes":
-                if (_stance_source_id(stance), _stance_target_id(stance)) in rebut_pairs:
+                if (
+                    _stance_source_id(stance),
+                    _stance_target_id(stance),
+                ) in rebut_pairs:
                     continue
                 tgt = literals[claim_key(_stance_target_id(stance))]
                 src = literals[claim_key(_stance_source_id(stance))]
@@ -471,7 +494,10 @@ class TestStancesToContrariness:
                     f"supersedes {src}->{tgt} not in contrariness"
                 )
                 assert not cfn.is_contradictory(src, tgt)
-                if (_stance_target_id(stance), _stance_source_id(stance)) not in directional_pairs:
+                if (
+                    _stance_target_id(stance),
+                    _stance_source_id(stance),
+                ) not in directional_pairs:
                     assert not cfn.is_contrary(tgt, src)
 
     @pytest.mark.property
@@ -654,9 +680,7 @@ class TestClaimsToKb:
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
         kb = claims_to_kb(claims, justifications, literals)
-        assert not (kb.axioms & kb.premises), (
-            f"K_n ∩ K_p = {kb.axioms & kb.premises}"
-        )
+        assert not (kb.axioms & kb.premises), f"K_n ∩ K_p = {kb.axioms & kb.premises}"
 
     @pytest.mark.property
     @given(claim_graph())
@@ -670,9 +694,7 @@ class TestClaimsToKb:
             claim_id = _claim_id(claim)
             lit = literals[claim_key(claim_id)]
             if claim.premise_kind == "necessary":
-                assert lit in kb.axioms, (
-                    f"Necessary claim {claim_id} not in K_n"
-                )
+                assert lit in kb.axioms, f"Necessary claim {claim_id} not in K_n"
 
     @pytest.mark.property
     @given(claim_graph())
@@ -686,9 +708,7 @@ class TestClaimsToKb:
             claim_id = _claim_id(claim)
             lit = literals[claim_key(claim_id)]
             if claim.premise_kind == "ordinary":
-                assert lit in kb.premises, (
-                    f"Ordinary claim {claim_id} not in K_p"
-                )
+                assert lit in kb.premises, f"Ordinary claim {claim_id} not in K_p"
 
     @pytest.mark.property
     @given(claim_graph())
@@ -762,9 +782,7 @@ class TestPreferenceConfig:
         _strict, defeasible = justifications_to_rules(justifications, literals)
         pref = build_preference_config(claims, literals, defeasible)
         for weaker, stronger in pref.rule_order:
-            assert weaker != stronger, (
-                f"Rule order is reflexive: {weaker} < {weaker}"
-            )
+            assert weaker != stronger, f"Rule order is reflexive: {weaker} < {weaker}"
 
     def test_grounded_rule_superiority_reaches_preference_config(self):
         """Rule-superiority artifacts become ASPIC+ ``rule_order``.
@@ -814,7 +832,9 @@ class TestPreferenceConfig:
                 GroundAtom("penguin", ("tweety",)),
             ),
             PredicateRegistry(()),
-            superiority=(RuleSuperiorityDocument(superior_rule_id="r2", inferior_rule_id="r1"),),
+            superiority=(
+                RuleSuperiorityDocument(superior_rule_id="r2", inferior_rule_id="r1"),
+            ),
             return_arguments=True,
         )
 
@@ -874,7 +894,9 @@ class TestBuildBridgeCsaf:
         """If no attack stances, there should be no defeats."""
         claims, justifications, _stances = graph
         # Pass empty stances
-        csaf = build_bridge_csaf(claims, justifications, [], bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, [], bundle=GroundedRulesBundle.empty()
+        )
         assert len(csaf.defeats) == 0, (
             f"Got {len(csaf.defeats)} defeats with no attack stances"
         )
@@ -885,11 +907,14 @@ class TestBuildBridgeCsaf:
     def test_no_attacks_all_claims_justified(self, graph):
         """With no attacks, all claims survive in grounded extension."""
         claims, justifications, _stances = graph
-        csaf = build_bridge_csaf(claims, justifications, [], bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, [], bundle=GroundedRulesBundle.empty()
+        )
         grounded = grounded_extension(csaf.framework)
         # Every reported claim should have an argument in the grounded extension
         reported_claim_ids = {
-            j.conclusion_claim_id for j in justifications
+            j.conclusion_claim_id
+            for j in justifications
             if j.rule_kind == "reported_claim"
         }
         justified_claim_ids = set()
@@ -909,11 +934,15 @@ class TestBuildBridgeCsaf:
     def test_framework_is_valid_dung_af(self, graph):
         """The CSAF's framework is a well-formed Dung AF."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         af = csaf.framework
         # All defeat endpoints are valid arguments
         for attacker, target in af.defeats:
-            assert attacker in af.arguments, f"Defeat attacker {attacker} not in arguments"
+            assert attacker in af.arguments, (
+                f"Defeat attacker {attacker} not in arguments"
+            )
             assert target in af.arguments, f"Defeat target {target} not in arguments"
         # All attack endpoints are valid arguments
         if af.attacks is not None:
@@ -950,7 +979,9 @@ class TestBridgeRationalityPostulates:
         then A' is also in E.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         for ext_ids in _bounded_complete_extensions(csaf):
             for aid in ext_ids:
                 arg = csaf.id_to_arg[aid]
@@ -972,17 +1003,21 @@ class TestBridgeRationalityPostulates:
         closure of K_n must not contain contraries/contradictories.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         # Postulate only holds for axiom-consistent c-SAFs (Def 12)
-        assume(is_c_consistent(
-            csaf.kb.axioms | csaf.kb.premises,
-            csaf.system.strict_rules,
-            csaf.system.contrariness,
-        ))
+        assume(
+            is_c_consistent(
+                csaf.kb.axioms | csaf.kb.premises,
+                csaf.system.strict_rules,
+                csaf.system.contrariness,
+            )
+        )
         for ext_ids in _bounded_complete_extensions(csaf):
             conclusions = [conc(csaf.id_to_arg[aid]) for aid in ext_ids]
             for i, c1 in enumerate(conclusions):
-                for c2 in conclusions[i + 1:]:
+                for c2 in conclusions[i + 1 :]:
                     assert not csaf.system.contrariness.is_contradictory(c1, c2), (
                         f"Direct inconsistency: {c1} and {c2}"
                     )
@@ -999,7 +1034,9 @@ class TestBridgeRationalityPostulates:
         Every complete extension is conflict-free w.r.t. attacks.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         if csaf.framework.attacks is None:
             return  # no attacks to check
         for ext_ids in _bounded_complete_extensions(csaf):
@@ -1013,7 +1050,9 @@ class TestBridgeRationalityPostulates:
     def test_undercutting_always_defeats(self, graph):
         """Postulate 6 — Undercutting always defeats (Def 9, p.12)."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         for atk in csaf.attacks:
             if atk.kind == "undercutting":
                 pair = (csaf.arg_to_id[atk.attacker], csaf.arg_to_id[atk.target])
@@ -1027,10 +1066,11 @@ class TestBridgeRationalityPostulates:
     def test_firm_strict_in_every_complete(self, graph):
         """Postulate 5 — Firm+strict in every complete extension (Def 18)."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         firm_strict_ids = {
-            csaf.arg_to_id[a] for a in csaf.arguments
-            if is_firm(a) and is_strict(a)
+            csaf.arg_to_id[a] for a in csaf.arguments if is_firm(a) and is_strict(a)
         }
         for ext_ids in _bounded_complete_extensions(csaf):
             assert firm_strict_ids <= ext_ids, (
@@ -1048,7 +1088,9 @@ class TestCsafToProjection:
     @pytest.mark.property
     @given(claim_graph(max_claims=4))
     @settings(deadline=None, max_examples=50)
-    def test_projection_arguments_preserve_claim_or_canonical_conclusion_identity(self, graph):
+    def test_projection_arguments_preserve_claim_or_canonical_conclusion_identity(
+        self, graph
+    ):
         """Projected arguments must have a stable identity surface.
 
         Claim-backed arguments map to authored claim ids. Grounded-only
@@ -1057,7 +1099,9 @@ class TestCsafToProjection:
         authored claim set.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         projection = csaf_to_projection(csaf, claims)
         claim_ids = {_claim_id(claim) for claim in claims}
         for arg in projection.arguments:
@@ -1077,18 +1121,20 @@ class TestCsafToProjection:
     def test_justified_claims_subset_of_active(self, graph):
         """Justified claims are a subset of active claims."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         projection = csaf_to_projection(csaf, claims)
         assume(len(projection.framework.arguments) <= 12)
         # Use compute_structured_justified_arguments which handles hybrid AFs
-        grounded = compute_structured_justified_arguments(projection, semantics="grounded")
+        grounded = compute_structured_justified_arguments(
+            projection, semantics="grounded"
+        )
         claim_ids = {_claim_id(claim) for claim in claims}
         for arg_id in grounded:
             if arg_id in projection.argument_to_claim_id:
                 cid = projection.argument_to_claim_id[arg_id]
-                assert cid in claim_ids, (
-                    f"Justified claim {cid} not in active claims"
-                )
+                assert cid in claim_ids, f"Justified claim {cid} not in active claims"
 
     @pytest.mark.property
     @given(claim_graph(max_claims=4))
@@ -1096,7 +1142,9 @@ class TestCsafToProjection:
     def test_projection_framework_matches_csaf(self, graph):
         """The projection's Dung AF is derived from the CSAF."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         projection = csaf_to_projection(csaf, claims)
         # The projection framework should be a valid AF
         af = projection.framework
@@ -1124,10 +1172,14 @@ class TestBridgeConcrete:
         stances = [
             _make_stance("A", "B", "rebuts"),
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         grounded = grounded_extension(csaf.framework)
 
-        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        justified_claims = {
+            _conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded
+        }
         assert "A" in justified_claims, "Stronger claim A should be justified"
         assert "B" not in justified_claims, "Weaker claim B should be defeated"
 
@@ -1148,22 +1200,27 @@ class TestBridgeConcrete:
             _make_justification("reported:attacker", "attacker"),
             # Strict rule: premise -> derived
             _make_justification(
-                "strict:premise->derived", "derived",
-                ("premise",), "definition_application", "strict",
+                "strict:premise->derived",
+                "derived",
+                ("premise",),
+                "definition_application",
+                "strict",
             ),
         ]
         stances = [
             # attacker tries to undercut the strict inference
             _make_stance("attacker", "derived", "undercuts"),
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         grounded = grounded_extension(csaf.framework)
 
-        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        justified_claims = {
+            _conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded
+        }
         # derived should survive — strict rules can't be undercut
-        assert "derived" in justified_claims, (
-            "Strict inference should not be undercut"
-        )
+        assert "derived" in justified_claims, "Strict inference should not be undercut"
 
     def test_necessary_premise_not_undermined(self):
         """A necessary premise (K_n) cannot be undermined.
@@ -1182,13 +1239,15 @@ class TestBridgeConcrete:
         stances = [
             _make_stance("attacker", "axiom", "undermines"),
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         grounded = grounded_extension(csaf.framework)
 
-        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
-        assert "axiom" in justified_claims, (
-            "Axiom premise should not be undermined"
-        )
+        justified_claims = {
+            _conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded
+        }
+        assert "axiom" in justified_claims, "Axiom premise should not be undermined"
 
     def test_support_chain_with_attack(self):
         """A supports B via defeasible rule. C rebuts B.
@@ -1218,17 +1277,24 @@ class TestBridgeConcrete:
             _make_justification("reported:B", "B"),
             _make_justification("reported:C", "C"),
             _make_justification(
-                "just:A->B", "B", ("A",),
-                "empirical_support", "defeasible",
+                "just:A->B",
+                "B",
+                ("A",),
+                "empirical_support",
+                "defeasible",
             ),
         ]
         stances = [
             _make_stance("C", "B", "rebuts"),
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, stances, bundle=GroundedRulesBundle.empty()
+        )
         grounded = grounded_extension(csaf.framework)
 
-        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        justified_claims = {
+            _conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded
+        }
         assert "A" in justified_claims, "A should survive (not attacked)"
         # Under last-link with no rule ordering, the defeasible arg for B
         # and C's premise arg are in mutual defeat — grounded is conservative.
@@ -1252,10 +1318,14 @@ class TestBridgeConcrete:
             _make_justification("reported:Y", "Y"),
             _make_justification("reported:Z", "Z"),
         ]
-        csaf = build_bridge_csaf(claims, justifications, [], bundle=GroundedRulesBundle.empty())
+        csaf = build_bridge_csaf(
+            claims, justifications, [], bundle=GroundedRulesBundle.empty()
+        )
         grounded = grounded_extension(csaf.framework)
 
-        justified_claims = {_conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded}
+        justified_claims = {
+            _conclusion_claim_id(csaf.id_to_arg[aid]) for aid in grounded
+        }
         assert justified_claims >= {"X", "Y", "Z"}, (
             f"All claims should survive, got {justified_claims}"
         )
@@ -1305,14 +1375,18 @@ class TestBuildAspicProjection:
             _make_claim("B"),
         ]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty()
+        )
         assert isinstance(projection, StructuredProjection)
 
     def test_projection_has_required_fields(self):
         """Projection has .arguments, .framework, .claim_to_argument_ids, .argument_to_claim_id."""
         claims = [_make_claim("X")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty()
+        )
 
         assert hasattr(projection, "arguments")
         assert hasattr(projection, "framework")
@@ -1327,7 +1401,9 @@ class TestBuildAspicProjection:
         """Every element of .arguments is a StructuredArgument."""
         claims = [_make_claim("P"), _make_claim("Q")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty()
+        )
 
         for arg in projection.arguments:
             assert isinstance(arg, StructuredArgument)
@@ -1340,8 +1416,12 @@ class TestBuildAspicProjection:
             _make_claim("Z"),
         ]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
-        grounded = compute_structured_justified_arguments(projection, semantics="grounded")
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty()
+        )
+        grounded = compute_structured_justified_arguments(
+            projection, semantics="grounded"
+        )
 
         justified_claim_ids = {
             projection.argument_to_claim_id[aid]
@@ -1364,8 +1444,12 @@ class TestBuildAspicProjection:
                 _make_stance("strong", "weak", "rebuts"),
             ],
         )
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
-        grounded = compute_structured_justified_arguments(projection, semantics="grounded")
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty()
+        )
+        grounded = compute_structured_justified_arguments(
+            projection, semantics="grounded"
+        )
 
         justified_claim_ids = {
             projection.argument_to_claim_id[aid]
@@ -1379,7 +1463,9 @@ class TestBuildAspicProjection:
         """Every active claim has at least one argument mapped."""
         claims = [_make_claim("A"), _make_claim("B")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty()
+        )
 
         for claim in claims:
             cid = _claim_id(claim)
@@ -1392,7 +1478,9 @@ class TestBuildAspicProjection:
         """argument_to_claim_id is consistent with claim_to_argument_ids."""
         claims = [_make_claim("A"), _make_claim("B")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty()
+        )
 
         for cid, arg_ids in projection.claim_to_argument_ids.items():
             for aid in arg_ids:
@@ -1401,10 +1489,13 @@ class TestBuildAspicProjection:
     def test_accepts_support_metadata(self):
         """build_aspic_projection accepts support_metadata kwarg."""
         from propstore.core.labels import Label, SupportQuality
+
         claims = [_make_claim("A")]
         store = _MiniStore(claims=claims)
         metadata = {"A": (Label.empty(), SupportQuality.EXACT)}
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty(), support_metadata=metadata)
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty(), support_metadata=metadata
+        )
 
         assert isinstance(projection, StructuredProjection)
         # The metadata should be applied to the argument
@@ -1417,7 +1508,9 @@ class TestBuildAspicProjection:
         """build_aspic_projection works with active_graph=None."""
         claims = [_make_claim("A")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty(), active_graph=None)
+        projection = build_aspic_projection(
+            store, claims, bundle=GroundedRulesBundle.empty(), active_graph=None
+        )
         assert isinstance(projection, StructuredProjection)
 
 
@@ -1440,11 +1533,13 @@ class TestAspicBackendIntegration:
         from propstore.world.types import ReasoningBackend
         from propstore.worldline import WorldlineDefinition
 
-        worldline = WorldlineDefinition.from_dict({
-            "id": "aspic_backend",
-            "targets": ["force"],
-            "policy": {"reasoning_backend": "aspic"},
-        })
+        worldline = WorldlineDefinition.from_dict(
+            {
+                "id": "aspic_backend",
+                "targets": ["force"],
+                "policy": {"reasoning_backend": "aspic"},
+            }
+        )
 
         assert worldline.policy.reasoning_backend == ReasoningBackend.ASPIC
 
@@ -1479,9 +1574,12 @@ class TestComparisonLinkThreading:
         stances: list[dict] = []
 
         csaf = build_bridge_csaf(
-            claims, justifications, stances,
+            claims,
+            justifications,
+            stances,
             bundle=GroundedRulesBundle.empty(),
-            comparison="democratic", link="weakest",
+            comparison="democratic",
+            link="weakest",
         )
 
         assert csaf.pref.comparison == "democratic", (

@@ -208,4 +208,7 @@ def test_html_presenters_use_shared_layout_helpers() -> None:
     assert "_render_policy_section" in source
     assert "_machine_ids_section" in source
     assert '"Reasoning backend", report.render_policy.reasoning_backend' not in source
-    assert '"Include drafts", _bool_text(report.render_policy.include_drafts)' not in source
+    assert (
+        '"Include drafts", _bool_text(report.render_policy.include_drafts)'
+        not in source
+    )

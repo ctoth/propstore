@@ -28,8 +28,15 @@ from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
-def _insert_claim(conn, claim_id, concept_id, value, sample_size=None,
-                   uncertainty=None, confidence=None):
+def _insert_claim(
+    conn,
+    claim_id,
+    concept_id,
+    value,
+    sample_size=None,
+    uncertainty=None,
+    confidence=None,
+):
     insert_claim(
         conn,
         claim_id,
@@ -56,8 +63,9 @@ def _opinion_from_uncertainty(opinion_uncertainty: float | None) -> Opinion | No
     return Opinion(1.0 - u, 0.0, u, 0.5, allow_dogmatic=u >= 1.0)
 
 
-def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None,
-                   opinion_uncertainty=None):
+def _insert_stance(
+    conn, claim_id, target, stype, confidence=0.9, model=None, opinion_uncertainty=None
+):
     insert_stance(
         conn,
         claim_id,
@@ -89,7 +97,9 @@ def mixed_confidence(conn):
     _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=100)
     _insert_stance(conn, "claim_a", "claim_b", "rebuts", confidence=0.9, model="gemini")
     _insert_stance(conn, "claim_c", "claim_a", "rebuts", confidence=0.3, model="gpt-4")
-    _insert_stance(conn, "claim_a", "claim_c", "supports", confidence=0.95, model="gemini")
+    _insert_stance(
+        conn, "claim_a", "claim_c", "supports", confidence=0.95, model="gemini"
+    )
     conn.commit()
     return conn
 
@@ -104,10 +114,24 @@ def vacuous_stances(conn):
     _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=100)
     _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=100)
     _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=100)
-    _insert_stance(conn, "claim_a", "claim_b", "rebuts", confidence=0.5,
-                   opinion_uncertainty=1.0, model="gemini")
-    _insert_stance(conn, "claim_c", "claim_a", "rebuts", confidence=0.7,
-                   opinion_uncertainty=0.3, model="gpt-4")
+    _insert_stance(
+        conn,
+        "claim_a",
+        "claim_b",
+        "rebuts",
+        confidence=0.5,
+        opinion_uncertainty=1.0,
+        model="gemini",
+    )
+    _insert_stance(
+        conn,
+        "claim_c",
+        "claim_a",
+        "rebuts",
+        confidence=0.7,
+        opinion_uncertainty=0.3,
+        model="gpt-4",
+    )
     conn.commit()
     return conn
 
@@ -117,10 +141,24 @@ def all_vacuous(conn):
     """Scenario where ALL stances are vacuous."""
     _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=100)
     _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=100)
-    _insert_stance(conn, "claim_a", "claim_b", "rebuts", confidence=0.5,
-                   opinion_uncertainty=0.995, model="gemini")
-    _insert_stance(conn, "claim_b", "claim_a", "rebuts", confidence=0.5,
-                   opinion_uncertainty=1.0, model="gpt-4")
+    _insert_stance(
+        conn,
+        "claim_a",
+        "claim_b",
+        "rebuts",
+        confidence=0.5,
+        opinion_uncertainty=0.995,
+        model="gemini",
+    )
+    _insert_stance(
+        conn,
+        "claim_b",
+        "claim_a",
+        "rebuts",
+        confidence=0.5,
+        opinion_uncertainty=1.0,
+        model="gpt-4",
+    )
     conn.commit()
     return conn
 
@@ -142,7 +180,8 @@ class TestSoftEpsilonPrune:
         """
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(mixed_confidence), ids,
+            SQLiteArgumentationStore(mixed_confidence),
+            ids,
         )
         # Both rebuts stances participate — the 0.3 confidence stance is
         # no longer excluded by a hard threshold gate
@@ -158,7 +197,8 @@ class TestSoftEpsilonPrune:
         """
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(vacuous_stances), ids,
+            SQLiteArgumentationStore(vacuous_stances),
+            ids,
         )
         # claim_a->claim_b has u=1.0 (vacuous) — still in the AF
         assert ("claim_a", "claim_b") in af.attacks
@@ -169,7 +209,8 @@ class TestSoftEpsilonPrune:
         """Stances with high confidence continue to participate exactly as before."""
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(mixed_confidence), ids,
+            SQLiteArgumentationStore(mixed_confidence),
+            ids,
         )
         # The 0.9 confidence rebuts stance still produces a defeat
         assert ("claim_a", "claim_b") in af.defeats
@@ -183,23 +224,27 @@ class TestSoftEpsilonPrune:
         from propstore.world.types import RenderPolicy
 
         # RenderPolicy should not have confidence_threshold
-        assert not hasattr(RenderPolicy(), "confidence_threshold"), \
+        assert not hasattr(RenderPolicy(), "confidence_threshold"), (
             "confidence_threshold should be hard-deleted from RenderPolicy"
+        )
 
         # build_argumentation_framework should not accept confidence_threshold
         sig = inspect.signature(build_argumentation_framework)
-        assert "confidence_threshold" not in sig.parameters, \
+        assert "confidence_threshold" not in sig.parameters, (
             "confidence_threshold should be hard-deleted from build_argumentation_framework"
+        )
 
         # compute_claim_graph_justified_claims should not accept it either
         sig2 = inspect.signature(compute_claim_graph_justified_claims)
-        assert "confidence_threshold" not in sig2.parameters, \
+        assert "confidence_threshold" not in sig2.parameters, (
             "confidence_threshold should be hard-deleted from compute_claim_graph_justified_claims"
+        )
 
         # stance_summary should not accept it either
         sig3 = inspect.signature(stance_summary)
-        assert "confidence_threshold" not in sig3.parameters, \
+        assert "confidence_threshold" not in sig3.parameters, (
             "confidence_threshold should be hard-deleted from stance_summary"
+        )
 
     def test_stance_summary_reports_uncertainty(self, vacuous_stances):
         """stance_summary() reports opinion statistics: count of vacuous
@@ -222,7 +267,8 @@ class TestSoftEpsilonPrune:
         """
         ids = {"claim_a", "claim_b"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(all_vacuous), ids,
+            SQLiteArgumentationStore(all_vacuous),
+            ids,
         )
         # Both vacuous stances survive into the AF
         assert len(af.attacks) == 2
@@ -234,7 +280,8 @@ class TestSoftEpsilonPrune:
         derived defeats from support chains)."""
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(mixed_confidence), ids,
+            SQLiteArgumentationStore(mixed_confidence),
+            ids,
         )
         # Under old behavior with threshold=0.5, only 1 attack edge existed
         # (claim_a rebuts claim_b at 0.9). Now the 0.3-confidence stance
@@ -250,12 +297,19 @@ class TestSoftEpsilonPrune:
         are pruned."""
         _insert_claim(conn, "claim_a", "c1", 100.0, sample_size=100)
         _insert_claim(conn, "claim_b", "c1", 200.0, sample_size=100)
-        _insert_stance(conn, "claim_a", "claim_b", "rebuts", confidence=0.01,
-                       opinion_uncertainty=0.5)
+        _insert_stance(
+            conn,
+            "claim_a",
+            "claim_b",
+            "rebuts",
+            confidence=0.01,
+            opinion_uncertainty=0.5,
+        )
         conn.commit()
         ids = {"claim_a", "claim_b"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(conn), ids,
+            SQLiteArgumentationStore(conn),
+            ids,
         )
         # Very low confidence but non-vacuous opinion — still participates
         assert ("claim_a", "claim_b") in af.defeats
@@ -313,7 +367,8 @@ class TestVacuousSurvivesAFConstruction:
         """
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(vacuous_stances), ids,
+            SQLiteArgumentationStore(vacuous_stances),
+            ids,
         )
         # claim_a -> claim_b has u=1.0 (vacuous) — should still be in the AF
         # as an attack edge. The AF is structural; filtering is for render time.
@@ -331,28 +386,56 @@ class TestVacuousSurvivesAFConstruction:
         the target. This is render-time behavior — the test should PASS.
         """
         # claim_s: strong across all dimensions
-        _insert_claim(conn, "claim_s", "c1", 200.0, sample_size=1000, uncertainty=0.05, confidence=0.9)
+        _insert_claim(
+            conn,
+            "claim_s",
+            "c1",
+            200.0,
+            sample_size=1000,
+            uncertainty=0.05,
+            confidence=0.9,
+        )
         # claim_v: weak across all dimensions
-        _insert_claim(conn, "claim_v", "c1", 300.0, sample_size=10, uncertainty=0.8, confidence=0.2)
+        _insert_claim(
+            conn,
+            "claim_v",
+            "c1",
+            300.0,
+            sample_size=10,
+            uncertainty=0.8,
+            confidence=0.2,
+        )
         # claim_v rebuts claim_s with vacuous opinion — should not eliminate claim_s
-        _insert_stance(conn, "claim_v", "claim_s", "rebuts", confidence=0.5,
-                       opinion_uncertainty=1.0)
+        _insert_stance(
+            conn,
+            "claim_v",
+            "claim_s",
+            "rebuts",
+            confidence=0.5,
+            opinion_uncertainty=1.0,
+        )
         # claim_s rebuts claim_v with strong opinion — should eliminate claim_v
-        _insert_stance(conn, "claim_s", "claim_v", "rebuts", confidence=0.9,
-                       opinion_uncertainty=0.1)
+        _insert_stance(
+            conn,
+            "claim_s",
+            "claim_v",
+            "rebuts",
+            confidence=0.9,
+            opinion_uncertainty=0.1,
+        )
         conn.commit()
 
         ids = {"claim_s", "claim_v"}
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), ids, semantics="grounded",
+            SQLiteArgumentationStore(conn),
+            ids,
+            semantics="grounded",
         )
         # claim_s should survive — it has a strong attack on claim_v,
         # and claim_v's vacuous attack should not eliminate claim_s
         # (either because it's filtered at render time, or because
         # the preference ordering blocks the weak attacker anyway)
-        assert "claim_s" in result, (
-            "Strong claim was eliminated by a vacuous attacker"
-        )
+        assert "claim_s" in result, "Strong claim was eliminated by a vacuous attacker"
 
 
 class TestNoDefeatTable:
@@ -365,8 +448,10 @@ class TestNoDefeatTable:
         conn = sqlite3.connect(":memory:")
         build_world_projection_schema(conn)
         tables = {
-            row[0] for row in
-            conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
         }
         assert "defeat" not in tables
         conn.close()

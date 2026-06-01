@@ -39,8 +39,7 @@ _SOURCE_LOCAL_FIELD_VALUES = st.dictionaries(
 
 def _canonical_claim_ids(repo: Repository) -> list[str]:
     return sorted(
-        handle.ref.artifact_id
-        for handle in repo.families.claims.iter_handles()
+        handle.ref.artifact_id for handle in repo.families.claims.iter_handles()
     )
 
 

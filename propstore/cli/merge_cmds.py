@@ -1,4 +1,5 @@
 """CLI commands for formal repository merge inspection and execution."""
+
 from __future__ import annotations
 
 import click
@@ -28,7 +29,9 @@ def merge() -> None:
     show_default=True,
 )
 @click.pass_context
-def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: str) -> None:
+def merge_inspect(
+    ctx: click.Context, branch_a: str, branch_b: str, semantics: str
+) -> None:
     """Inspect the formal merge framework between two branches."""
     repo = ctx.obj["repo"]
     report = inspect_merge(
@@ -46,7 +49,9 @@ def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: s
 @click.argument("branch_a")
 @click.argument("branch_b")
 @click.option("--message", default="", help="Commit message.")
-@click.option("--target-branch", default=None, help="Target branch for the merge commit.")
+@click.option(
+    "--target-branch", default=None, help="Target branch for the merge commit."
+)
 @click.pass_context
 def merge_commit_cmd(
     ctx: click.Context,

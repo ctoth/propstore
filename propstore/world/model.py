@@ -56,7 +56,10 @@ from propstore.families.meta.declaration import (
     PROPSTORE_WORLD_SCHEMA_VERSION,
 )
 from propstore.families.registry import world_schema
-from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
+from quire.tree_path import (
+    FilesystemTreePath as FilesystemKnowledgePath,
+    TreePath as KnowledgePath,
+)
 from propstore.core.conditions.solver import ConditionSolver
 
 if TYPE_CHECKING:
@@ -88,6 +91,7 @@ _KIND_TYPE_MAP = {
     "quantity": KindType.QUANTITY,
     "timepoint": KindType.TIMEPOINT,
 }
+
 
 @dataclass(frozen=True)
 class _BoundView:
@@ -197,9 +201,7 @@ class WorldQuery(WorldStore):
         if self._grounding_bundle_cache is None:
             from propstore.families.rules.declaration import load_grounded_bundle
 
-            with self._derived_store.readonly_session(
-                world_schema()
-            ) as derived:
+            with self._derived_store.readonly_session(world_schema()) as derived:
                 self._grounding_bundle_cache = load_grounded_bundle(derived)
         return self._grounding_bundle_cache
 
@@ -308,7 +310,9 @@ class WorldQuery(WorldStore):
         resolved_concept_id = (
             None
             if concept_id is None
-            else str(concept.id) if concept is not None else concept_id
+            else str(concept.id)
+            if concept is not None
+            else concept_id
         )
         schema = world_schema()
         claim = schema.model(CLAIM_CORE_CHARTER.family.name)
@@ -319,7 +323,11 @@ class WorldQuery(WorldStore):
                 statement = (
                     statement.join(link, link.claim_id == claim.id)
                     .where(link.concept_id == resolved_concept_id)
-                    .where(link.role.in_((ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET)))
+                    .where(
+                        link.role.in_(
+                            (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET)
+                        )
+                    )
                     .distinct()
                 )
             return list(derived.execute(statement).scalars())
@@ -329,7 +337,9 @@ class WorldQuery(WorldStore):
         resolved_concept_id = (
             None
             if concept_id is None
-            else str(concept.id) if concept is not None else concept_id
+            else str(concept.id)
+            if concept is not None
+            else concept_id
         )
         schema = world_schema()
         claim = schema.model(CLAIM_CORE_CHARTER.family.name)
@@ -372,8 +382,7 @@ class WorldQuery(WorldStore):
                 "(core.build_status IS NULL OR core.build_status != 'blocked')"
             )
             predicates.append(
-                "(core.promotion_status IS NULL "
-                "OR core.promotion_status != 'blocked')"
+                "(core.promotion_status IS NULL OR core.promotion_status != 'blocked')"
             )
         return predicates, tuple(params)
 
@@ -383,7 +392,9 @@ class WorldQuery(WorldStore):
         alias: str,
     ) -> tuple[list[str], tuple[object, ...]]:
         predicates, params = self._render_policy_predicates(policy)
-        return [predicate.replace("core.", f"{alias}.") for predicate in predicates], params
+        return [
+            predicate.replace("core.", f"{alias}.") for predicate in predicates
+        ], params
 
     def claims_with_policy(
         self,
@@ -406,7 +417,9 @@ class WorldQuery(WorldStore):
         resolved_concept_id = (
             None
             if concept_id is None
-            else str(concept.id) if concept is not None else concept_id
+            else str(concept.id)
+            if concept is not None
+            else concept_id
         )
         schema = world_schema()
         claim = schema.model(CLAIM_CORE_CHARTER.family.name)
@@ -420,7 +433,9 @@ class WorldQuery(WorldStore):
                     .distinct()
                 )
             if not policy.include_drafts:
-                statement = statement.where(or_(claim.stage.is_(None), claim.stage != "draft"))
+                statement = statement.where(
+                    or_(claim.stage.is_(None), claim.stage != "draft")
+                )
             if not policy.include_blocked:
                 statement = statement.where(
                     or_(claim.build_status.is_(None), claim.build_status != "blocked")
@@ -490,7 +505,9 @@ class WorldQuery(WorldStore):
         space, so this method's behaviour is the same shape as the
         property tests.
         """
-        from propstore.world.journal_projection import at_journal_step as _at_journal_step
+        from propstore.world.journal_projection import (
+            at_journal_step as _at_journal_step,
+        )
 
         return _at_journal_step(self, journal, k, rebind=rebind, heavy=heavy)
 
@@ -536,7 +553,11 @@ class WorldQuery(WorldStore):
                 select(stance_model)
                 .where(stance_model.source_id.in_(resolved_ids))
                 .where(stance_model.target_id.in_(resolved_ids))
-                .order_by(stance_model.source_id, stance_model.target_id, stance_model.relation_type)
+                .order_by(
+                    stance_model.source_id,
+                    stance_model.target_id,
+                    stance_model.relation_type,
+                )
             )
             return list(derived.execute(statement).scalars())
 
@@ -544,7 +565,9 @@ class WorldQuery(WorldStore):
         schema = world_schema()
         conflict = schema.model("conflict_witness")
         with self._derived_store.readonly_session(schema) as derived:
-            statement = select(conflict).order_by(conflict.claim_a_id, conflict.claim_b_id)
+            statement = select(conflict).order_by(
+                conflict.claim_a_id, conflict.claim_b_id
+            )
             if concept_id is not None:
                 statement = statement.where(conflict.concept_id == concept_id)
             return list(derived.execute(statement).scalars())
@@ -589,8 +612,7 @@ class WorldQuery(WorldStore):
         with self._derived_store.readonly_session(schema) as derived:
             rows = derived.execute(select(justification).order_by(justification.id))
             return tuple(
-                cast(Justification, row).to_canonical()
-                for row in rows.scalars()
+                cast(Justification, row).to_canonical() for row in rows.scalars()
             )
 
     def justifications_for_claim_scope(
@@ -777,6 +799,7 @@ class WorldQuery(WorldStore):
     def forms_by_dimensions(self, dims: dict[str, int]) -> list[dict]:
         """Find all forms with matching SI dimensions."""
         from bridgman import dims_equal
+
         rows = self._all_form_rows()
         results = []
         for row in rows:
@@ -789,8 +812,7 @@ class WorldQuery(WorldStore):
                 row_dims = json.loads(row_dims_json)
             elif isinstance(row_dims_json, Mapping):
                 row_dims = {
-                    str(key): int(value)
-                    for key, value in row_dims_json.items()
+                    str(key): int(value) for key, value in row_dims_json.items()
                 }
             else:
                 continue
@@ -1109,11 +1131,15 @@ class WorldQuery(WorldStore):
                 # Try value_of first
                 vr = bound.value_of(cid)
                 if vr.status is ValueStatus.DETERMINED:
-                    numeric_payload = vr.claims[0].numeric_payload if vr.claims else None
+                    numeric_payload = (
+                        vr.claims[0].numeric_payload if vr.claims else None
+                    )
                     value = None if numeric_payload is None else numeric_payload.value
                     if value is not None:
                         resolved_values[cid] = value
-                        steps.append(ChainStep(concept_id=cid, value=value, source="claim"))
+                        steps.append(
+                            ChainStep(concept_id=cid, value=value, source="claim")
+                        )
                         visited.add(cid)
                         changed = True
                         continue
@@ -1123,20 +1149,27 @@ class WorldQuery(WorldStore):
                     rr = bound.resolved_value(cid)
                     if rr.status is ValueStatus.RESOLVED and rr.value is not None:
                         resolved_values[cid] = rr.value
-                        steps.append(ChainStep(concept_id=cid, value=rr.value, source="resolved"))
+                        steps.append(
+                            ChainStep(concept_id=cid, value=rr.value, source="resolved")
+                        )
                         visited.add(cid)
                         changed = True
                         continue
 
                 # Track conflicted concepts that could not be resolved
-                if vr.status is ValueStatus.CONFLICTED and cid not in unresolved_conflicted:
+                if (
+                    vr.status is ValueStatus.CONFLICTED
+                    and cid not in unresolved_conflicted
+                ):
                     unresolved_conflicted.append(cid)
 
                 # Try derived_value
                 dr = bound.derived_value(cid, override_values=resolved_values)
                 if dr.status is ValueStatus.DERIVED and dr.value is not None:
                     resolved_values[cid] = dr.value
-                    steps.append(ChainStep(concept_id=cid, value=dr.value, source="derived"))
+                    steps.append(
+                        ChainStep(concept_id=cid, value=dr.value, source="derived")
+                    )
                     visited.add(cid)
                     changed = True
 
@@ -1147,7 +1180,9 @@ class WorldQuery(WorldStore):
                 (s for s in steps if s.concept_id == target_concept_id), None
             )
             if target_step and target_step.source == "derived":
-                dr = bound.derived_value(target_concept_id, override_values=resolved_values)
+                dr = bound.derived_value(
+                    target_concept_id, override_values=resolved_values
+                )
                 result: ValueResult | DerivedResult = dr
             else:
                 result = bound.value_of(target_concept_id)
@@ -1164,5 +1199,7 @@ class WorldQuery(WorldStore):
             result=result,
             steps=steps,
             bindings_used=bindings,
-            unresolved_dependencies=[ConceptId(concept_id) for concept_id in unresolved_conflicted],
+            unresolved_dependencies=[
+                ConceptId(concept_id) for concept_id in unresolved_conflicted
+            ],
         )

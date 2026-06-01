@@ -13,7 +13,9 @@ class WebQueryParseError(Exception):
     """Raised when HTTP query parameters cannot build an app request."""
 
 
-def parse_render_policy_request(params: Mapping[str, str | None]) -> AppRenderPolicyRequest:
+def parse_render_policy_request(
+    params: Mapping[str, str | None],
+) -> AppRenderPolicyRequest:
     return AppRenderPolicyRequest(
         reasoning_backend=params.get("reasoning_backend") or "claim_graph",
         strategy=_optional_text(params.get("strategy")),
@@ -51,7 +53,9 @@ def parse_render_policy_request(params: Mapping[str, str | None]) -> AppRenderPo
     )
 
 
-def parse_repository_view_request(params: Mapping[str, str | None]) -> AppRepositoryViewRequest:
+def parse_repository_view_request(
+    params: Mapping[str, str | None],
+) -> AppRepositoryViewRequest:
     return AppRepositoryViewRequest(
         branch=_optional_text(params.get("branch")),
         revision=_optional_text(params.get("rev")),

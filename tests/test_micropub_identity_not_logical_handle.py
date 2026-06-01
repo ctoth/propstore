@@ -4,7 +4,11 @@ from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
 from propstore.source import finalize
-from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
+from quire.documents import (
+    convert_document_value,
+    decode_document_batch_bytes,
+    encode_yaml_value,
+)
 
 
 def _micropub(payload: dict[str, object]) -> MicropublicationDocument:
@@ -16,22 +20,26 @@ def _micropub(payload: dict[str, object]) -> MicropublicationDocument:
 
 
 def test_same_source_and_claim_handle_different_payload_gets_different_id() -> None:
-    first = _micropub({
-        "artifact_id": "ps:micropub:old",
-        "context": {"id": "ctx_alpha"},
-        "claims": ["ps:claim:alpha"],
-        "source": "tag:local@propstore,2026:source/demo",
-        "evidence": [{"kind": "paper_page", "reference": "demo:1"}],
-        "provenance": {"paper": "demo", "page": 1},
-    })
-    second = _micropub({
-        "artifact_id": "ps:micropub:old",
-        "context": {"id": "ctx_alpha"},
-        "claims": ["ps:claim:alpha"],
-        "source": "tag:local@propstore,2026:source/demo",
-        "evidence": [{"kind": "paper_page", "reference": "demo:2"}],
-        "provenance": {"paper": "demo", "page": 2},
-    })
+    first = _micropub(
+        {
+            "artifact_id": "ps:micropub:old",
+            "context": {"id": "ctx_alpha"},
+            "claims": ["ps:claim:alpha"],
+            "source": "tag:local@propstore,2026:source/demo",
+            "evidence": [{"kind": "paper_page", "reference": "demo:1"}],
+            "provenance": {"paper": "demo", "page": 1},
+        }
+    )
+    second = _micropub(
+        {
+            "artifact_id": "ps:micropub:old",
+            "context": {"id": "ctx_alpha"},
+            "claims": ["ps:claim:alpha"],
+            "source": "tag:local@propstore,2026:source/demo",
+            "evidence": [{"kind": "paper_page", "reference": "demo:2"}],
+            "provenance": {"paper": "demo", "page": 2},
+        }
+    )
 
     assert micropub_artifact_id(first) != micropub_artifact_id(second)
 
@@ -39,16 +47,16 @@ def test_same_source_and_claim_handle_different_payload_gets_different_id() -> N
 def test_source_finalize_assigns_micropub_id_from_authored_payload() -> None:
     claims_doc = decode_document_batch_bytes(
         encode_yaml_value(
-        {
-            "claims": [
-                {
-                    "artifact_id": "ps:claim:alpha",
-                    "context": "ctx_alpha",
-                    "conditions": ["domain == 'argumentation'"],
-                    "provenance": {"paper": "demo", "page": 1},
-                }
-            ],
-        },
+            {
+                "claims": [
+                    {
+                        "artifact_id": "ps:claim:alpha",
+                        "context": "ctx_alpha",
+                        "conditions": ["domain == 'argumentation'"],
+                        "provenance": {"paper": "demo", "page": 1},
+                    }
+                ],
+            },
         ),
         SOURCE_CLAIM_BATCH_SPEC,
         source="tests:claims.yaml",

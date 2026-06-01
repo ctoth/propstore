@@ -3,6 +3,7 @@
 Uses hypothesis to test CEL tokenizer and numeric interval comparison
 with randomized inputs.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -35,7 +36,9 @@ from tests.conftest import make_cel_registry, make_concept_registry
 _VALID_IDENT = st.from_regex(r"[a-z][a-z0-9_]{0,15}", fullmatch=True)
 _VALID_OP = st.sampled_from(["==", "!=", ">", "<", ">=", "<="])
 _VALID_INT = st.integers(min_value=0, max_value=9999)
-_VALID_FLOAT = st.floats(min_value=0.1, max_value=9999.0, allow_nan=False, allow_infinity=False)
+_VALID_FLOAT = st.floats(
+    min_value=0.1, max_value=9999.0, allow_nan=False, allow_infinity=False
+)
 _VALID_STRING_LIT = st.from_regex(r"[a-z][a-z_]{0,10}", fullmatch=True)
 
 
@@ -171,9 +174,15 @@ def _make_registry():
 @pytest.mark.property
 @given(
     lo=st.floats(min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False),
-    width_a=st.floats(min_value=10.0, max_value=200.0, allow_nan=False, allow_infinity=False),
-    width_b=st.floats(min_value=10.0, max_value=200.0, allow_nan=False, allow_infinity=False),
-    offset=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
+    width_a=st.floats(
+        min_value=10.0, max_value=200.0, allow_nan=False, allow_infinity=False
+    ),
+    width_b=st.floats(
+        min_value=10.0, max_value=200.0, allow_nan=False, allow_infinity=False
+    ),
+    offset=st.floats(
+        min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False
+    ),
 )
 @settings(deadline=None)
 def test_overlapping_intervals_compatible(lo, width_a, width_b, offset):
@@ -192,15 +201,25 @@ def test_overlapping_intervals_compatible(lo, width_a, width_b, offset):
     ]
     cf = _make_claim_file(claims)
     records = detect_conflicts([cf], _make_registry())
-    assert len(records) == 0, f"Overlapping [{lo_a},{hi_a}] and [{lo_b},{hi_b}] should be compatible"
+    assert len(records) == 0, (
+        f"Overlapping [{lo_a},{hi_a}] and [{lo_b},{hi_b}] should be compatible"
+    )
 
 
 @pytest.mark.property
 @given(
-    lo_a=st.floats(min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False),
-    width_a=st.floats(min_value=1.0, max_value=50.0, allow_nan=False, allow_infinity=False),
-    gap=st.floats(min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False),
-    width_b=st.floats(min_value=1.0, max_value=50.0, allow_nan=False, allow_infinity=False),
+    lo_a=st.floats(
+        min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False
+    ),
+    width_a=st.floats(
+        min_value=1.0, max_value=50.0, allow_nan=False, allow_infinity=False
+    ),
+    gap=st.floats(
+        min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False
+    ),
+    width_b=st.floats(
+        min_value=1.0, max_value=50.0, allow_nan=False, allow_infinity=False
+    ),
 )
 @settings(deadline=None)
 def test_disjoint_intervals_conflict(lo_a, width_a, gap, width_b):
@@ -216,13 +235,17 @@ def test_disjoint_intervals_conflict(lo_a, width_a, gap, width_b):
     ]
     cf = _make_claim_file(claims)
     records = detect_conflicts([cf], _make_registry())
-    assert len(records) == 1, f"Disjoint [{lo_a},{hi_a}] and [{lo_b},{hi_b}] should conflict"
+    assert len(records) == 1, (
+        f"Disjoint [{lo_a},{hi_a}] and [{lo_b},{hi_b}] should conflict"
+    )
     assert records[0].warning_class == ConflictClass.CONFLICT
 
 
 @pytest.mark.property
 @given(
-    val=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
+    val=st.floats(
+        min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False
+    ),
 )
 @settings()
 def test_identical_scalar_always_compatible(val):

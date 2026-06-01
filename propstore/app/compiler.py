@@ -26,7 +26,9 @@ class AliasExportEntry:
 
 
 def validate_repository(repo: Repository):
-    from propstore.compiler.workflows import validate_repository as run_validate_repository
+    from propstore.compiler.workflows import (
+        validate_repository as run_validate_repository,
+    )
 
     return run_validate_repository(repo)
 

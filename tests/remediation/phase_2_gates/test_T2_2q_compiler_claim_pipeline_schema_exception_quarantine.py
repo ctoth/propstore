@@ -71,13 +71,16 @@ def test_build_repository_claim_pipeline_schema_exception_quarantines_not_raises
         },
         "seed compiler workflow claim pipeline schema quarantine test",
     )
+
     def fail_claim_pipeline(_authored):
         raise DocumentSchemaError(
             "workflow_claim_pipeline_schema",
             "claim pipeline schema exception",
         )
 
-    monkeypatch.setattr("propstore.compiler.workflows.run_claim_pipeline", fail_claim_pipeline)
+    monkeypatch.setattr(
+        "propstore.compiler.workflows.run_claim_pipeline", fail_claim_pipeline
+    )
 
     report = build_repository(repo, force=True)
 

@@ -9,7 +9,9 @@ from tests.family_helpers import materialized_world_store_path
 from propstore.world import WorldQuery
 
 
-def test_build_grounded_bundle_returns_explicit_empty_for_rule_free_repo(tmp_path) -> None:
+def test_build_grounded_bundle_returns_explicit_empty_for_rule_free_repo(
+    tmp_path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     bundle = build_grounded_bundle(repo)
@@ -40,10 +42,14 @@ def test_build_grounded_bundle_rejects_rules_without_predicates(tmp_path) -> Non
         assert "rules/" in str(exc)
         assert "predicates/" in str(exc)
     else:
-        raise AssertionError("Expected grounding load boundary to reject rules/ without predicates/")
+        raise AssertionError(
+            "Expected grounding load boundary to reject rules/ without predicates/"
+        )
 
 
-def test_world_query_grounding_bundle_uses_repo_knowledge_root_and_caches(tmp_path) -> None:
+def test_world_query_grounding_bundle_uses_repo_knowledge_root_and_caches(
+    tmp_path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     materialized_world_store_path(repo, force=True)
 

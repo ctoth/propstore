@@ -1,4 +1,5 @@
 """Worldline create, run, and refresh CLI commands."""
+
 from __future__ import annotations
 
 import click
@@ -27,7 +28,9 @@ from propstore.cli.worldline.rendering import target_value_lines
 from propstore.repository import Repository
 
 
-def _parse_revision_conflicts(raw_conflicts: tuple[str, ...]) -> dict[str, tuple[str, ...]]:
+def _parse_revision_conflicts(
+    raw_conflicts: tuple[str, ...],
+) -> dict[str, tuple[str, ...]]:
     conflicts: dict[str, tuple[str, ...]] = {}
     for entry in raw_conflicts:
         atom_id, sep, targets = entry.partition("=")
@@ -36,9 +39,7 @@ def _parse_revision_conflicts(raw_conflicts: tuple[str, ...]) -> dict[str, tuple
                 "Invalid --revision-conflict; expected atom_id=target[,target...]",
             )
         parsed_targets = tuple(
-            target.strip()
-            for target in targets.split(",")
-            if target.strip()
+            target.strip() for target in targets.split(",") if target.strip()
         )
         conflicts[str(atom_id)] = parsed_targets
     return conflicts
@@ -110,23 +111,49 @@ def _coerce_override_values(overrides: tuple[str, ...]) -> dict[str, float | str
 @worldline.command("create")
 @click.argument("name")
 @click.option("--bind", "bindings", multiple=True, help="Condition binding (key=value)")
-@click.option("--with", "overrides", multiple=True, help="Value override (concept=value)")
-@click.option("--target", "targets", multiple=True, required=True, help="Target concept to derive/resolve")
-@click.option("--strategy", default=None, type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
+@click.option(
+    "--with", "overrides", multiple=True, help="Value override (concept=value)"
+)
+@click.option(
+    "--target",
+    "targets",
+    multiple=True,
+    required=True,
+    help="Target concept to derive/resolve",
+)
+@click.option(
+    "--strategy",
+    default=None,
+    type=click.Choice(["recency", "sample_size", "argumentation", "override"]),
+)
 @click.option("--context", default=None, help="Context to scope the query")
 @_apply_reasoning_options
 @_apply_revision_options
 @click.pass_obj
-def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
-                     overrides: tuple[str, ...], targets: tuple[str, ...],
-                     strategy: str | None, context: str | None,
-                     reasoning_backend: str, semantics: str,
-                     set_comparison: str, link_principle: str, decision_criterion: str,
-                     pessimism_index: float, praf_strategy: str,
-                     praf_epsilon: float, praf_confidence: float,
-                     praf_seed: int | None, revision_operation: str | None,
-                     revision_atom: str | None, revision_target: str | None,
-                     revision_conflicts: tuple[str, ...], revision_operator: str | None) -> None:
+def worldline_create(
+    obj: dict,
+    name: str,
+    bindings: tuple[str, ...],
+    overrides: tuple[str, ...],
+    targets: tuple[str, ...],
+    strategy: str | None,
+    context: str | None,
+    reasoning_backend: str,
+    semantics: str,
+    set_comparison: str,
+    link_principle: str,
+    decision_criterion: str,
+    pessimism_index: float,
+    praf_strategy: str,
+    praf_epsilon: float,
+    praf_confidence: float,
+    praf_seed: int | None,
+    revision_operation: str | None,
+    revision_atom: str | None,
+    revision_target: str | None,
+    revision_conflicts: tuple[str, ...],
+    revision_operator: str | None,
+) -> None:
     """Create a worldline definition (question only, no results yet)."""
     repo: Repository = obj["repo"]
     try:
@@ -171,23 +198,43 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 @worldline.command("run")
 @click.argument("name")
 @click.option("--bind", "bindings", multiple=True, help="Condition binding (key=value)")
-@click.option("--with", "overrides", multiple=True, help="Value override (concept=value)")
+@click.option(
+    "--with", "overrides", multiple=True, help="Value override (concept=value)"
+)
 @click.option("--target", "targets", multiple=True, help="Target concept")
-@click.option("--strategy", default=None, type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
+@click.option(
+    "--strategy",
+    default=None,
+    type=click.Choice(["recency", "sample_size", "argumentation", "override"]),
+)
 @click.option("--context", default=None, help="Context scope")
 @_apply_reasoning_options
 @_apply_revision_options
 @click.pass_obj
-def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
-                  overrides: tuple[str, ...], targets: tuple[str, ...],
-                  strategy: str | None, context: str | None,
-                  reasoning_backend: str, semantics: str,
-                  set_comparison: str, link_principle: str, decision_criterion: str,
-                  pessimism_index: float, praf_strategy: str,
-                  praf_epsilon: float, praf_confidence: float,
-                  praf_seed: int | None, revision_operation: str | None,
-                  revision_atom: str | None, revision_target: str | None,
-                  revision_conflicts: tuple[str, ...], revision_operator: str | None) -> None:
+def worldline_run(
+    obj: dict,
+    name: str,
+    bindings: tuple[str, ...],
+    overrides: tuple[str, ...],
+    targets: tuple[str, ...],
+    strategy: str | None,
+    context: str | None,
+    reasoning_backend: str,
+    semantics: str,
+    set_comparison: str,
+    link_principle: str,
+    decision_criterion: str,
+    pessimism_index: float,
+    praf_strategy: str,
+    praf_epsilon: float,
+    praf_confidence: float,
+    praf_seed: int | None,
+    revision_operation: str | None,
+    revision_atom: str | None,
+    revision_target: str | None,
+    revision_conflicts: tuple[str, ...],
+    revision_operator: str | None,
+) -> None:
     """Run (materialize) a worldline, loading its saved definition if present.
 
     If a worldline file with NAME already exists, this command loads it and

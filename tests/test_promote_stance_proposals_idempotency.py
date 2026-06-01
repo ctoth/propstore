@@ -11,7 +11,10 @@ from propstore.proposal_lifecycle import (
     ProposalAlreadyPromoted,
 )
 from propstore.families.claims.declaration import ClaimDocument
-from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
+from propstore.families.contexts.declaration import (
+    ContextDocument,
+    ContextReferenceDocument,
+)
 from propstore.families.registry import ClaimRef, ContextRef, StanceRef
 from propstore.repository import Repository
 
@@ -53,7 +56,9 @@ def _seed(repo: Repository) -> None:
     )
 
 
-def test_promote_stance_proposals_records_source_sha_and_rejects_repeat(tmp_path) -> None:
+def test_promote_stance_proposals_records_source_sha_and_rejects_repeat(
+    tmp_path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     _seed(repo)
     plan = plan_stance_proposal_promotion(repo)

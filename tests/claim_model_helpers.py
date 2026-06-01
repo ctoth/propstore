@@ -79,7 +79,9 @@ def make_claim(
         source_slug=source_slug,
         source_paper=source_paper,
         provenance_page=provenance_page,
-        provenance_json=None if provenance_json is None else json.dumps(provenance_json),
+        provenance_json=None
+        if provenance_json is None
+        else json.dumps(provenance_json),
         context_id=context_id,
         premise_kind="ordinary",
         branch=branch,
@@ -87,13 +89,17 @@ def make_claim(
         stage=stage,
         promotion_status=promotion_status,
     )
-    links = list(concept_links) if concept_links is not None else [
-        claim_concept_link(
-            claim_id=claim_id,
-            concept_id=concept_id,
-            role=ClaimConceptLinkRole.OUTPUT,
-        )
-    ]
+    links = (
+        list(concept_links)
+        if concept_links is not None
+        else [
+            claim_concept_link(
+                claim_id=claim_id,
+                concept_id=concept_id,
+                role=ClaimConceptLinkRole.OUTPUT,
+            )
+        ]
+    )
     for link in links:
         link.claim = claim
     claim.concept_links = links

@@ -244,7 +244,11 @@ def render_concept_index_page(
             LinkRow(
                 hit.handle,
                 f"/concept/{quote(hit.handle, safe='')}",
-                (hit.canonical_name, hit.status or "missing", hit.definition or "missing"),
+                (
+                    hit.canonical_name,
+                    hit.status or "missing",
+                    hit.definition or "missing",
+                ),
             )
             for hit in report.hits
         ]
@@ -337,7 +341,10 @@ def _recent_activity_section(activity: RecentActivity) -> str:
     return _join_fragments(
         [
             _template("components/message.html", sentence=activity.sentence),
-            _table(("When", "What"), [(entry.when, entry.what) for entry in activity.entries]),
+            _table(
+                ("When", "What"),
+                [(entry.when, entry.what) for entry in activity.entries],
+            ),
         ]
     )
 
@@ -376,7 +383,9 @@ def _page(title: str, body: str, *, main_labelledby: str | None = None) -> str:
         if main_labelledby is None
         else Markup(f' aria-labelledby="{_text(main_labelledby)}"')
     )
-    return str(_template("layout.html", title=title, body=Markup(body), main_attrs=main_attrs))
+    return str(
+        _template("layout.html", title=title, body=Markup(body), main_attrs=main_attrs)
+    )
 
 
 def _dl(rows: list[tuple[str, str]]) -> str:
@@ -384,7 +393,9 @@ def _dl(rows: list[tuple[str, str]]) -> str:
         _template("components/definition_row.html", label=label, value=value)
         for label, value in rows
     ]
-    return _template("components/definition_list.html", rows=_join_fragments(rendered_rows))
+    return _template(
+        "components/definition_list.html", rows=_join_fragments(rendered_rows)
+    )
 
 
 def _filter_section(rows: list[tuple[str, str]]) -> str:
@@ -457,7 +468,10 @@ def _rows_table(rows: tuple[SemanticNeighborhoodRow, ...]) -> str:
 def _edges_table(edges: tuple[SemanticEdge, ...]) -> str:
     return _table(
         ("Source", "Relation", "Target", "Sentence"),
-        [(edge.source_id, edge.edge_kind, edge.target_id, edge.sentence) for edge in edges],
+        [
+            (edge.source_id, edge.edge_kind, edge.target_id, edge.sentence)
+            for edge in edges
+        ],
     )
 
 

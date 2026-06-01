@@ -92,9 +92,7 @@ def replay_at_step(
     snap = journal.entries[k].state_out
     scope = snap.state.scope
     if not scope.commit:
-        raise ValueError(
-            "journal_replay.replay_at_step requires snapshot.scope.commit"
-        )
+        raise ValueError("journal_replay.replay_at_step requires snapshot.scope.commit")
     minimal_claim_ids = frozenset(snapshot_to_claim_ids(snap))
     cache_key = (str(scope.commit), minimal_claim_ids)
     cached = _CACHE.get(cache_key)

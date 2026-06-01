@@ -66,16 +66,18 @@ def test_ground_literal_key_preserves_atom_shape() -> None:
 
 
 def test_claims_to_literals_uses_typed_claim_keys() -> None:
-    literals = claims_to_literals([
-        claim_from_payload(
-            {
-                "id": "claim-typed",
-                "concept_id": "concept-typed",
-                "statement": "Typed claim",
-                "premise_kind": "ordinary",
-            }
-        )
-    ])
+    literals = claims_to_literals(
+        [
+            claim_from_payload(
+                {
+                    "id": "claim-typed",
+                    "concept_id": "concept-typed",
+                    "statement": "Typed claim",
+                    "premise_kind": "ordinary",
+                }
+            )
+        ]
+    )
 
     assert set(literals) == {claim_key("claim-typed")}
     literal = literals[claim_key("claim-typed")]

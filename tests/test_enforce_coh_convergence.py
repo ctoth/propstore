@@ -26,8 +26,12 @@ def _praf() -> PropstorePrAF:
         kernel=ProbabilisticAF(
             framework=framework,
             p_args={arg: opinion.expectation() for arg, opinion in p_args.items()},
-            p_defeats={edge: opinion.expectation() for edge, opinion in p_defeats.items()},
-            p_attacks={edge: opinion.expectation() for edge, opinion in p_defeats.items()},
+            p_defeats={
+                edge: opinion.expectation() for edge, opinion in p_defeats.items()
+            },
+            p_attacks={
+                edge: opinion.expectation() for edge, opinion in p_defeats.items()
+            },
         ),
         p_args=p_args,
         p_defeats=p_defeats,

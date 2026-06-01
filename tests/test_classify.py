@@ -19,7 +19,11 @@ import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
-from propstore.heuristic.calibrate import CalibrationSource, CategoryPrior, CategoryPriorRegistry
+from propstore.heuristic.calibrate import (
+    CalibrationSource,
+    CategoryPrior,
+    CategoryPriorRegistry,
+)
 from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -27,6 +31,7 @@ from propstore.stances import VALID_STANCE_TYPES
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_claim(id_: str, text: str = "some claim", source: str = "paper") -> dict:
     return {"id": id_, "text": text, "source_paper": source}
@@ -85,16 +90,27 @@ def _test_category_prior_registry() -> CategoryPriorRegistry:
 
 
 def _default_forward():
-    return {"type": "supports", "strength": "strong", "note": "corroborates", "conditions_differ": None}
+    return {
+        "type": "supports",
+        "strength": "strong",
+        "note": "corroborates",
+        "conditions_differ": None,
+    }
 
 
 def _default_reverse():
-    return {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None}
+    return {
+        "type": "none",
+        "strength": "weak",
+        "note": "unrelated",
+        "conditions_differ": None,
+    }
 
 
 # ---------------------------------------------------------------------------
 # Example tests: bidirectional output
 # ---------------------------------------------------------------------------
+
 
 class TestClassifyReturnsBidirectional:
     """classify_stance_async returns list of two stance dicts (forward + reverse)."""
@@ -109,10 +125,15 @@ class TestClassifyReturnsBidirectional:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-                category_prior_registry=_test_category_prior_registry(),
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                    category_prior_registry=_test_category_prior_registry(),
+                )
+            )
 
         assert isinstance(results, list)
         assert len(results) == 2
@@ -127,10 +148,15 @@ class TestClassifyReturnsBidirectional:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-                category_prior_registry=_test_category_prior_registry(),
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                    category_prior_registry=_test_category_prior_registry(),
+                )
+            )
 
         assert results[0]["target"] == "b"
 
@@ -144,9 +170,14 @@ class TestClassifyReturnsBidirectional:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                )
+            )
 
         assert results[1]["target"] == "a"
 
@@ -160,11 +191,23 @@ class TestClassifyReturnsBidirectional:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                )
+            )
 
-        required = {"target", "type", "strength", "note", "conditions_differ", "resolution"}
+        required = {
+            "target",
+            "type",
+            "strength",
+            "note",
+            "conditions_differ",
+            "resolution",
+        }
         for r in results:
             assert required.issubset(r.keys()), f"Missing keys: {required - r.keys()}"
 
@@ -172,8 +215,18 @@ class TestClassifyReturnsBidirectional:
         from propstore.heuristic.classify import classify_stance_async
         from propstore.opinion import Opinion
 
-        fwd = {"type": "rebuts", "strength": "moderate", "note": "contradicts", "conditions_differ": None}
-        rev = {"type": "supports", "strength": "weak", "note": "partial", "conditions_differ": None}
+        fwd = {
+            "type": "rebuts",
+            "strength": "moderate",
+            "note": "contradicts",
+            "conditions_differ": None,
+        }
+        rev = {
+            "type": "supports",
+            "strength": "weak",
+            "note": "partial",
+            "conditions_differ": None,
+        }
         resp = _mock_bidirectional_response(fwd, rev)
         with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
@@ -181,10 +234,15 @@ class TestClassifyReturnsBidirectional:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-                category_prior_registry=_test_category_prior_registry(),
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                    category_prior_registry=_test_category_prior_registry(),
+                )
+            )
 
         for r in results:
             if r["type"] != "none":
@@ -198,6 +256,7 @@ class TestClassifyReturnsBidirectional:
 # Example tests: error handling (returns two error stances)
 # ---------------------------------------------------------------------------
 
+
 class TestClassifyErrorOnApiFailure:
     def test_api_exception_returns_error_type(self):
         from propstore.heuristic.classify import classify_stance_async
@@ -208,9 +267,14 @@ class TestClassifyErrorOnApiFailure:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                )
+            )
 
         assert isinstance(results, list)
         assert len(results) == 2
@@ -228,11 +292,16 @@ class TestClassifyErrorOnApiFailure:
 
             sem = asyncio.Semaphore(1)
             with pytest.raises(RuntimeError, match="boom"):
-                _run(classify_stance_async(
-                    _make_claim("a"), _make_claim("b"), "test-model", sem,
-                    embedding_model="embed-model",
-                    embedding_distance=0.5,
-                ))
+                _run(
+                    classify_stance_async(
+                        _make_claim("a"),
+                        _make_claim("b"),
+                        "test-model",
+                        sem,
+                        embedding_model="embed-model",
+                        embedding_distance=0.5,
+                    )
+                )
 
 
 class TestClassifyErrorOnBadJson:
@@ -252,9 +321,14 @@ class TestClassifyErrorOnBadJson:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                )
+            )
 
         assert isinstance(results, list)
         for r in results:
@@ -265,8 +339,18 @@ class TestClassifyNoneGetsNullConfidence:
     def test_none_type_null_confidence(self):
         from propstore.heuristic.classify import classify_stance_async
 
-        fwd = {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None}
-        rev = {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None}
+        fwd = {
+            "type": "none",
+            "strength": "weak",
+            "note": "unrelated",
+            "conditions_differ": None,
+        }
+        rev = {
+            "type": "none",
+            "strength": "weak",
+            "note": "unrelated",
+            "conditions_differ": None,
+        }
         resp = _mock_bidirectional_response(fwd, rev)
         with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
@@ -274,9 +358,14 @@ class TestClassifyNoneGetsNullConfidence:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "test-model", sem,
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "test-model",
+                    sem,
+                )
+            )
 
         for r in results:
             assert r["type"] == "none"
@@ -287,34 +376,48 @@ class TestClassifyNoneGetsNullConfidence:
 # Enrichment context tests
 # ---------------------------------------------------------------------------
 
+
 class TestEnrichmentContext:
     """Pure function tests for _build_enrichment_context."""
 
     def test_enrichment_present_when_close(self):
         from propstore.heuristic.classify import build_enrichment_context
-        ctx = build_enrichment_context(distance=0.3, threshold=0.75, shared_concept_ids=[])
+
+        ctx = build_enrichment_context(
+            distance=0.3, threshold=0.75, shared_concept_ids=[]
+        )
         assert "highly similar" in ctx.lower()
         assert "0.3000" in ctx
 
     def test_enrichment_absent_when_distant(self):
         from propstore.heuristic.classify import build_enrichment_context
-        ctx = build_enrichment_context(distance=0.9, threshold=0.75, shared_concept_ids=[])
+
+        ctx = build_enrichment_context(
+            distance=0.9, threshold=0.75, shared_concept_ids=[]
+        )
         assert ctx == ""
 
     def test_shared_concepts_in_enrichment(self):
         from propstore.heuristic.classify import build_enrichment_context
-        ctx = build_enrichment_context(distance=0.3, threshold=0.75, shared_concept_ids=["thermal_conductivity"])
+
+        ctx = build_enrichment_context(
+            distance=0.3, threshold=0.75, shared_concept_ids=["thermal_conductivity"]
+        )
         assert "thermal_conductivity" in ctx
 
     def test_no_distance_means_no_enrichment(self):
         from propstore.heuristic.classify import build_enrichment_context
-        ctx = build_enrichment_context(distance=None, threshold=0.75, shared_concept_ids=[])
+
+        ctx = build_enrichment_context(
+            distance=None, threshold=0.75, shared_concept_ids=[]
+        )
         assert ctx == ""
 
 
 # ---------------------------------------------------------------------------
 # Hypothesis property tests
 # ---------------------------------------------------------------------------
+
 
 class TestEnrichmentMonotonicity:
     """Enrichment context is non-empty iff distance < threshold."""
@@ -327,11 +430,18 @@ class TestEnrichmentMonotonicity:
     @settings(max_examples=100)
     def test_enrichment_iff_below_threshold(self, distance, threshold):
         from propstore.heuristic.classify import build_enrichment_context
-        ctx = build_enrichment_context(distance=distance, threshold=threshold, shared_concept_ids=[])
+
+        ctx = build_enrichment_context(
+            distance=distance, threshold=threshold, shared_concept_ids=[]
+        )
         if distance < threshold:
-            assert ctx != "", f"Expected enrichment for distance={distance} < threshold={threshold}"
+            assert ctx != "", (
+                f"Expected enrichment for distance={distance} < threshold={threshold}"
+            )
         else:
-            assert ctx == "", f"Expected no enrichment for distance={distance} >= threshold={threshold}"
+            assert ctx == "", (
+                f"Expected no enrichment for distance={distance} >= threshold={threshold}"
+            )
 
 
 class TestBidirectionalCompleteness:
@@ -353,9 +463,14 @@ class TestBidirectionalCompleteness:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a", text_a), _make_claim("b", text_b), "m", sem,
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a", text_a),
+                    _make_claim("b", text_b),
+                    "m",
+                    sem,
+                )
+            )
 
         assert len(results) == 2
         assert results[0]["target"] == "b"
@@ -373,12 +488,24 @@ class TestClassifierOutputStructureInvariant:
         rev_strength=st.sampled_from(["strong", "moderate", "weak"]),
     )
     @settings(max_examples=50)
-    def test_output_always_has_required_keys(self, fwd_type, fwd_strength, rev_type, rev_strength):
+    def test_output_always_has_required_keys(
+        self, fwd_type, fwd_strength, rev_type, rev_strength
+    ):
         from propstore.heuristic.classify import classify_stance_async
 
         resp = _mock_bidirectional_response(
-            {"type": fwd_type, "strength": fwd_strength, "note": "test", "conditions_differ": None},
-            {"type": rev_type, "strength": rev_strength, "note": "test", "conditions_differ": None},
+            {
+                "type": fwd_type,
+                "strength": fwd_strength,
+                "note": "test",
+                "conditions_differ": None,
+            },
+            {
+                "type": rev_type,
+                "strength": rev_strength,
+                "note": "test",
+                "conditions_differ": None,
+            },
         )
         with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
@@ -386,10 +513,15 @@ class TestClassifierOutputStructureInvariant:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "m", sem,
-                category_prior_registry=_test_category_prior_registry(),
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "m",
+                    sem,
+                    category_prior_registry=_test_category_prior_registry(),
+                )
+            )
 
         for r in results:
             assert r["type"] in VALID_STANCE_TYPES | {"error"}
@@ -409,8 +541,18 @@ class TestOpinionAlgebraInvariant:
     def test_confidence_equals_expectation_and_opinion_sums_to_one(self, strength):
         from propstore.heuristic.classify import classify_stance_async
 
-        fwd = {"type": "supports", "strength": strength, "note": "test", "conditions_differ": None}
-        rev = {"type": "rebuts", "strength": strength, "note": "test", "conditions_differ": None}
+        fwd = {
+            "type": "supports",
+            "strength": strength,
+            "note": "test",
+            "conditions_differ": None,
+        }
+        rev = {
+            "type": "rebuts",
+            "strength": strength,
+            "note": "test",
+            "conditions_differ": None,
+        }
         resp = _mock_bidirectional_response(fwd, rev)
         with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
@@ -418,10 +560,15 @@ class TestOpinionAlgebraInvariant:
             mock_req.return_value = mock_litellm
 
             sem = asyncio.Semaphore(1)
-            results = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "m", sem,
-                category_prior_registry=_test_category_prior_registry(),
-            ))
+            results = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "m",
+                    sem,
+                    category_prior_registry=_test_category_prior_registry(),
+                )
+            )
 
         for r in results:
             if r["type"] == "none":
@@ -449,17 +596,34 @@ class TestCorpusCalibrationReducesUncertainty:
     @pytest.mark.property
     @given(
         distances=st.lists(
-            st.floats(min_value=0.01, max_value=1.5, allow_nan=False, allow_infinity=False),
-            min_size=3, max_size=20,
+            st.floats(
+                min_value=0.01, max_value=1.5, allow_nan=False, allow_infinity=False
+            ),
+            min_size=3,
+            max_size=20,
         ),
-        embedding_distance=st.floats(min_value=0.01, max_value=1.5, allow_nan=False, allow_infinity=False),
+        embedding_distance=st.floats(
+            min_value=0.01, max_value=1.5, allow_nan=False, allow_infinity=False
+        ),
     )
     @settings(max_examples=30)
-    def test_uncertainty_decreases_with_corpus_data(self, distances, embedding_distance):
+    def test_uncertainty_decreases_with_corpus_data(
+        self, distances, embedding_distance
+    ):
         from propstore.heuristic.classify import classify_stance_async
 
-        fwd = {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None}
-        rev = {"type": "none", "strength": "weak", "note": "n/a", "conditions_differ": None}
+        fwd = {
+            "type": "supports",
+            "strength": "strong",
+            "note": "test",
+            "conditions_differ": None,
+        }
+        rev = {
+            "type": "none",
+            "strength": "weak",
+            "note": "n/a",
+            "conditions_differ": None,
+        }
         resp = _mock_bidirectional_response(fwd, rev)
 
         with patch("propstore.heuristic.classify._require_litellm") as mock_req:
@@ -469,12 +633,17 @@ class TestCorpusCalibrationReducesUncertainty:
 
             sem = asyncio.Semaphore(1)
             # With reference_distances
-            results_with = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "m", sem,
-                embedding_distance=embedding_distance,
-                reference_distances=distances,
-                category_prior_registry=_test_category_prior_registry(),
-            ))
+            results_with = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "m",
+                    sem,
+                    embedding_distance=embedding_distance,
+                    reference_distances=distances,
+                    category_prior_registry=_test_category_prior_registry(),
+                )
+            )
 
         with patch("propstore.heuristic.classify._require_litellm") as mock_req:
             mock_litellm = MagicMock()
@@ -483,11 +652,16 @@ class TestCorpusCalibrationReducesUncertainty:
 
             sem = asyncio.Semaphore(1)
             # Without reference_distances
-            results_without = _run(classify_stance_async(
-                _make_claim("a"), _make_claim("b"), "m", sem,
-                embedding_distance=embedding_distance,
-                category_prior_registry=_test_category_prior_registry(),
-            ))
+            results_without = _run(
+                classify_stance_async(
+                    _make_claim("a"),
+                    _make_claim("b"),
+                    "m",
+                    sem,
+                    embedding_distance=embedding_distance,
+                    category_prior_registry=_test_category_prior_registry(),
+                )
+            )
 
         # Forward stance (non-none) should have lower uncertainty with corpus data
         u_with = results_with[0]["opinion"].u

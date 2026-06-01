@@ -81,8 +81,10 @@ PROV_CALIBRATED = _provenance(ProvenanceStatus.CALIBRATED, "right")
 
 def _op(b: float, d: float, u: float, a: float, prov: Provenance | None) -> Opinion:
     """A non-dogmatic propstore Opinion carrying ``prov``."""
-    return Opinion(b, d, u, a).with_provenance(prov) if prov is not None else Opinion(
-        b, d, u, a
+    return (
+        Opinion(b, d, u, a).with_provenance(prov)
+        if prov is not None
+        else Opinion(b, d, u, a)
     )
 
 
@@ -110,9 +112,7 @@ RIGHT = _op(0.3, 0.3, 0.4, 0.4, PROV_CALIBRATED)
 
 def _binary_max_status() -> ProvenanceStatus:
     """Status compose_provenance yields for LEFT (MEASURED) + RIGHT (CALIBRATED)."""
-    return compose_provenance(
-        PROV_MEASURED, PROV_CALIBRATED, operation="probe"
-    ).status
+    return compose_provenance(PROV_MEASURED, PROV_CALIBRATED, operation="probe").status
 
 
 _BINARY_STATUS = _binary_max_status()

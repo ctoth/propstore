@@ -18,7 +18,9 @@ from propstore.cli.output import emit
 @click.option("--all", "relate_all_flag", is_flag=True, help="Relate all claims")
 @click.option("--model", required=True, help="LLM model for classification")
 @click.option("--embedding-model", default=None, help="Embedding model for similarity")
-@click.option("--top-k", default=5, type=int, help="Number of similar claims to classify")
+@click.option(
+    "--top-k", default=5, type=int, help="Number of similar claims to classify"
+)
 @click.option("--concurrency", default=20, type=int, help="Max concurrent LLM calls")
 @click.pass_obj
 def relate(

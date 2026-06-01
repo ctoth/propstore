@@ -69,7 +69,9 @@ def claim_reference_records(
 ) -> tuple[ClaimReferenceRecord, ...]:
     records: list[ClaimReferenceRecord] = []
     for claim_file in claim_files:
-        source_paper = claim_file_source_paper(claim_file) or claim_file_filename(claim_file)
+        source_paper = claim_file_source_paper(claim_file) or claim_file_filename(
+            claim_file
+        )
         records.extend(
             ClaimReferenceRecord(claim=claim, source_paper=str(source_paper))
             for claim in claim_file_claims(claim_file)

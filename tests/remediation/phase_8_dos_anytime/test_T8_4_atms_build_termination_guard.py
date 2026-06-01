@@ -22,6 +22,4 @@ def test_atms_build_marks_partial_state_past_iteration_ceiling(
 
     assert engine.fixpoint_reached is False
     assert engine.iterations_run == 2
-    assert engine.warnings == (
-        "ATMS build stopped before fixpoint after 2 iterations",
-    )
+    assert engine.warnings == ("ATMS build stopped before fixpoint after 2 iterations",)

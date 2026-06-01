@@ -117,7 +117,9 @@ def predicate_documents() -> st.SearchStrategy:
         salt = draw(st.integers(min_value=0, max_value=999))
         predicate_id = _make_predicate_id(namespace, head, salt)
         arity = draw(st.integers(min_value=0, max_value=5))
-        arg_types = tuple(draw(st.lists(_ARG_TYPE_NAMES, min_size=arity, max_size=arity)))
+        arg_types = tuple(
+            draw(st.lists(_ARG_TYPE_NAMES, min_size=arity, max_size=arity))
+        )
         derived_from = draw(_DERIVED_FROM_FORMS)
         return PredicateDocument(
             id=predicate_id,
@@ -361,9 +363,7 @@ def test_parse_derived_from_concept_relation_artifact_target() -> None:
 
     from propstore.grounding.predicates import parse_derived_from  # noqa: E402
 
-    spec = parse_derived_from(
-        "concept.relation:related:ps:concept:45fa8536a97bc81d"
-    )
+    spec = parse_derived_from("concept.relation:related:ps:concept:45fa8536a97bc81d")
     assert spec.kind == "concept_relation"
     assert spec.relation == "related"
     assert spec.target == "ps:concept:45fa8536a97bc81d"

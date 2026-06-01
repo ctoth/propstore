@@ -13,7 +13,11 @@ from argumentation.dung import ArgumentationFramework
 
 from propstore.argumentation import SharedAnalyzerInput
 from propstore.families.claims.types import ClaimType
-from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
+from propstore.core.graph_types import (
+    WorldActivationGraph,
+    ClaimNode,
+    CompiledWorldGraph,
+)
 from propstore.core.id_types import ClaimId
 from propstore.core.reasoning import (
     ArgumentationSemantics,
@@ -29,6 +33,7 @@ from propstore.structured_projection import (
     claim_source_assertion_ids_from_active_graph,
     lift_analyzer_result_projection,
 )
+
 
 def _minimal_aspic_theory() -> tuple[
     ArgumentationSystem,
@@ -161,9 +166,7 @@ def test_track_e_praf_analyzer_can_use_paper_td_package_strategy() -> None:
     )
     shared = SharedAnalyzerInput(
         active_graph=WorldActivationGraph(
-            compiled=CompiledWorldGraph(
-                claims=(claim_a_node,)
-            ),
+            compiled=CompiledWorldGraph(claims=(claim_a_node,)),
             active_claim_ids=(claim_a,),
         ),
         comparison="elitist",

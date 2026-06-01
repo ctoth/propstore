@@ -38,6 +38,7 @@ class TestRelateFuseEquivalence:
     def test_classify_imports_fuse_not_consensus_pair(self):
         """classify.py fuses via Opinion.fuse, not consensus_pair."""
         import propstore.heuristic.classify as classify_module
+
         source = open(classify_module.__file__).read()
         # Should import Opinion from the opinion module
         assert "from propstore.opinion import" in source

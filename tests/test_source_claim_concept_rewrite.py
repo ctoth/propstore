@@ -42,7 +42,9 @@ def test_source_local_concept_placement_is_shared_for_import_and_promotion(
         "value": 1.0 if claim_type in {"parameter", "measurement"} else None,
         "expression": "x + 1" if claim_type == "algorithm" else None,
     }
-    raw_payload = {key: value for key, value in raw_payload.items() if value is not None}
+    raw_payload = {
+        key: value for key, value in raw_payload.items() if value is not None
+    }
     source_claim = _source_claim(
         {
             **raw_payload,
@@ -97,7 +99,9 @@ def test_source_claim_concept_rewrite_updates_nested_variables_and_parameters() 
     assert rewritten["parameters"] == [{"name": "p", "concept": "ps:concept:param"}]
 
 
-def test_source_claim_concept_rewrite_preserves_global_refs_and_reports_unresolved() -> None:
+def test_source_claim_concept_rewrite_preserves_global_refs_and_reports_unresolved() -> (
+    None
+):
     unresolved: set[str] = set()
 
     rewritten = rewrite_imported_claim_concept_refs(

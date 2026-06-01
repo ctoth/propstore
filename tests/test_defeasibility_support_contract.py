@@ -27,7 +27,9 @@ from propstore.provenance import (
 )
 
 
-def _support(*variables: SourceVariableId, quality: SupportQuality = SupportQuality.EXACT) -> SupportEvidence:
+def _support(
+    *variables: SourceVariableId, quality: SupportQuality = SupportQuality.EXACT
+) -> SupportEvidence:
     polynomial = ProvenancePolynomial.one()
     for variable in variables:
         polynomial = polynomial * ProvenancePolynomial.variable(variable)

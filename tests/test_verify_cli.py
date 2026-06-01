@@ -9,7 +9,11 @@ from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
+from quire.documents import (
+    convert_document_value,
+    decode_document_batch_bytes,
+    encode_yaml_value,
+)
 
 from propstore.families.artifacts import stamp_source_artifacts
 from propstore.families.claims.declaration import (
@@ -108,7 +112,15 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
     )
     add_claims = runner.invoke(
         cli,
-        ["-C", str(repo.root), "source", "add-claim", "demo", "--batch", str(claims_file)],
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
     )
     assert add_claims.exit_code == 0, add_claims.output
 
@@ -133,7 +145,15 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
     )
     add_justifications = runner.invoke(
         cli,
-        ["-C", str(repo.root), "source", "add-justification", "demo", "--batch", str(justifications_file)],
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-justification",
+            "demo",
+            "--batch",
+            str(justifications_file),
+        ],
     )
     assert add_justifications.exit_code == 0, add_justifications.output
 
@@ -157,7 +177,15 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
     )
     add_stances = runner.invoke(
         cli,
-        ["-C", str(repo.root), "source", "add-stance", "demo", "--batch", str(stances_file)],
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-stance",
+            "demo",
+            "--batch",
+            str(stances_file),
+        ],
     )
     assert add_stances.exit_code == 0, add_stances.output
 
@@ -184,12 +212,16 @@ def test_source_finalize_persists_artifact_codes(tmp_path: Path) -> None:
     assert source_tip is not None
     source_doc = yaml.safe_load(repo.git.read_file("source.yaml", commit=source_tip))
     claims_doc = yaml.safe_load(repo.git.read_file("claims.yaml", commit=source_tip))
-    justifications_doc = yaml.safe_load(repo.git.read_file("justifications.yaml", commit=source_tip))
+    justifications_doc = yaml.safe_load(
+        repo.git.read_file("justifications.yaml", commit=source_tip)
+    )
     stances_doc = yaml.safe_load(repo.git.read_file("stances.yaml", commit=source_tip))
 
     assert source_doc["artifact_code"].startswith("sha256:")
     assert claims_doc["claims"][0]["artifact_code"].startswith("sha256:")
-    assert justifications_doc["justifications"][0]["artifact_code"].startswith("sha256:")
+    assert justifications_doc["justifications"][0]["artifact_code"].startswith(
+        "sha256:"
+    )
     assert stances_doc["stances"][0]["artifact_code"].startswith("sha256:")
 
 
@@ -240,7 +272,9 @@ def test_verify_tree_atms_failure_propagates(tmp_path: Path) -> None:
     repo, claim_id = _prepare_promoted_source(tmp_path)
     runner = CliRunner()
 
-    with patch("propstore.world.WorldQuery.bind", side_effect=RuntimeError("atms boom")):
+    with patch(
+        "propstore.world.WorldQuery.bind", side_effect=RuntimeError("atms boom")
+    ):
         result = runner.invoke(cli, ["-C", str(repo.root), "verify", "tree", claim_id])
 
     assert result.exit_code != 0
@@ -251,16 +285,29 @@ def test_verify_tree_atms_failure_propagates(tmp_path: Path) -> None:
 @pytest.mark.property
 @given(order=st.permutations([0, 1]))
 @settings(deadline=None)
-def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple[int, int]) -> None:
+def test_claim_artifact_codes_ignore_justification_and_stance_order(
+    order: tuple[int, int],
+) -> None:
     source_doc = convert_document_value(
         {
             "id": "tag:local@propstore,2026:source/demo",
             "kind": "academic_paper",
-            "origin": {"type": "file", "value": "paper.pdf", "retrieved": "2026-04-04T00:00:00Z", "content_ref": "ni:///sha-256;abc"},
+            "origin": {
+                "type": "file",
+                "value": "paper.pdf",
+                "retrieved": "2026-04-04T00:00:00Z",
+                "content_ref": "ni:///sha-256;abc",
+            },
             "trust": {
                 "status": "vacuous",
                 "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
-                "quality": {"status": "vacuous", "b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+                "quality": {
+                    "status": "vacuous",
+                    "b": 0.0,
+                    "d": 0.0,
+                    "u": 1.0,
+                    "a": 0.5,
+                },
                 "derived_from": [],
             },
             "metadata": {"name": "demo"},
@@ -270,31 +317,41 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
     )
     claims_doc = decode_document_batch_bytes(
         encode_yaml_value(
-        {
-            "claims": [
-                {
-                    "artifact_id": "ps:claim:a",
-                    "logical_ids": [{"namespace": "demo", "value": "claim_a"}],
-                    "version_id": "sha256:" + ("1" * 64),
-                    "type": "observation",
-                    "statement": "A",
-                },
-                {
-                    "artifact_id": "ps:claim:b",
-                    "logical_ids": [{"namespace": "demo", "value": "claim_b"}],
-                    "version_id": "sha256:" + ("2" * 64),
-                    "type": "observation",
-                    "statement": "B",
-                },
-            ]
-        },
+            {
+                "claims": [
+                    {
+                        "artifact_id": "ps:claim:a",
+                        "logical_ids": [{"namespace": "demo", "value": "claim_a"}],
+                        "version_id": "sha256:" + ("1" * 64),
+                        "type": "observation",
+                        "statement": "A",
+                    },
+                    {
+                        "artifact_id": "ps:claim:b",
+                        "logical_ids": [{"namespace": "demo", "value": "claim_b"}],
+                        "version_id": "sha256:" + ("2" * 64),
+                        "type": "observation",
+                        "statement": "B",
+                    },
+                ]
+            },
         ),
         SOURCE_CLAIM_BATCH_SPEC,
         source="test:claims",
     )
     justifications = [
-        {"id": "j1", "conclusion": "ps:claim:b", "premises": ["ps:claim:a"], "rule_kind": "support"},
-        {"id": "j2", "conclusion": "ps:claim:b", "premises": ["ps:claim:a"], "rule_kind": "support_2"},
+        {
+            "id": "j1",
+            "conclusion": "ps:claim:b",
+            "premises": ["ps:claim:a"],
+            "rule_kind": "support",
+        },
+        {
+            "id": "j2",
+            "conclusion": "ps:claim:b",
+            "premises": ["ps:claim:a"],
+            "rule_kind": "support_2",
+        },
     ]
     stances = [
         {"source_claim": "ps:claim:b", "target": "ps:claim:a", "type": "supports"},

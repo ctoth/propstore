@@ -98,13 +98,13 @@ class _ProjectionStore:
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _output_concept_id(claim) == concept_id]
+        return [
+            claim for claim in self._claims if _output_concept_id(claim) == concept_id
+        ]
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
         return {
-            str(claim.id): claim
-            for claim in self._claims
-            if str(claim.id) in claim_ids
+            str(claim.id): claim for claim in self._claims if str(claim.id) in claim_ids
         }
 
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:
@@ -144,7 +144,9 @@ class _ProjectionStore:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if str(claim.id) == claim_id), None)
+        return next(
+            (claim for claim in self._claims if str(claim.id) == claim_id), None
+        )
 
     def grounding_bundle(self):
         return _EMPTY_BUNDLE
@@ -176,11 +178,10 @@ def _make_bound(
     )
 
 
-def _support_metadata(bound: BoundWorld, active_claims) -> dict[str, tuple[Label | None, SupportQuality]]:
-    return {
-        str(claim.id): bound.claim_support(claim)
-        for claim in active_claims
-    }
+def _support_metadata(
+    bound: BoundWorld, active_claims
+) -> dict[str, tuple[Label | None, SupportQuality]]:
+    return {str(claim.id): bound.claim_support(claim) for claim in active_claims}
 
 
 @st.composite
@@ -188,10 +189,7 @@ def _frameworks_with_optional_attacks(draw):
     n_args = draw(st.integers(min_value=1, max_value=4))
     arguments = tuple(f"arg:{idx}" for idx in range(n_args))
     possible_edges = [
-        (src, tgt)
-        for src in arguments
-        for tgt in arguments
-        if src != tgt
+        (src, tgt) for src in arguments for tgt in arguments if src != tgt
     ]
     if possible_edges:
         defeats = frozenset(
@@ -231,11 +229,13 @@ def _frameworks_with_optional_attacks(draw):
 
 def test_worldline_policy_rejects_removed_structured_projection_alias() -> None:
     with pytest.raises(ValueError, match="Unknown reasoning_backend"):
-        WorldlineDefinition.from_dict({
-            "id": "structured_backend",
-            "targets": ["force"],
-            "policy": {"reasoning_backend": "structured_projection"},
-        })
+        WorldlineDefinition.from_dict(
+            {
+                "id": "structured_backend",
+                "targets": ["force"],
+                "policy": {"reasoning_backend": "structured_projection"},
+            }
+        )
 
 
 def test_structured_projection_uses_stable_argument_ids_and_exact_labels() -> None:
@@ -325,16 +325,41 @@ def test_structured_projection_does_not_treat_context_scope_as_unconditional() -
     assert projection.arguments[0].support_quality == SupportQuality.EXACT
 
 
-def test_structured_projection_support_induces_additional_defeat_path_under_weakest_link() -> None:
+def test_structured_projection_support_induces_additional_defeat_path_under_weakest_link() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-            {"id": "claim_attacker", "concept_id": "concept2", "type": "parameter", "value": 2.0},
-            {"id": "claim_supporter", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+            {
+                "id": "claim_target",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_attacker",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_supporter",
+                "concept_id": "concept3",
+                "type": "parameter",
+                "value": 3.0,
+            },
         ],
         stances=[
-            {"claim_id": "claim_attacker", "target_claim_id": "claim_target", "stance_type": "supersedes"},
-            {"claim_id": "claim_supporter", "target_claim_id": "claim_attacker", "stance_type": "supports"},
+            {
+                "claim_id": "claim_attacker",
+                "target_claim_id": "claim_target",
+                "stance_type": "supersedes",
+            },
+            {
+                "claim_id": "claim_supporter",
+                "target_claim_id": "claim_attacker",
+                "stance_type": "supports",
+            },
         ],
     )
 
@@ -365,12 +390,29 @@ def test_structured_projection_support_induces_additional_defeat_path_under_weak
     )
 
 
-def test_structured_projection_uses_authored_multi_premise_justification_without_support_stances() -> None:
+def test_structured_projection_uses_authored_multi_premise_justification_without_support_stances() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_a", "concept_id": "concept_a", "type": "parameter", "value": 1.0},
-            {"id": "claim_b", "concept_id": "concept_b", "type": "parameter", "value": 2.0},
-            {"id": "claim_target", "concept_id": "concept_target", "type": "parameter", "value": 3.0},
+            {
+                "id": "claim_a",
+                "concept_id": "concept_a",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_b",
+                "concept_id": "concept_b",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_target",
+                "concept_id": "concept_target",
+                "type": "parameter",
+                "value": 3.0,
+            },
         ],
         justifications=[
             CanonicalJustification.from_components(
@@ -401,12 +443,29 @@ def test_structured_projection_uses_authored_multi_premise_justification_without
     assert authored_target_arguments[0].dependency_claim_ids == ("claim_a", "claim_b")
 
 
-def test_structured_projection_suppresses_support_fallback_when_authored_justifications_exist() -> None:
+def test_structured_projection_suppresses_support_fallback_when_authored_justifications_exist() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_a", "concept_id": "concept_a", "type": "parameter", "value": 1.0},
-            {"id": "claim_b", "concept_id": "concept_b", "type": "parameter", "value": 2.0},
-            {"id": "claim_target", "concept_id": "concept_target", "type": "parameter", "value": 3.0},
+            {
+                "id": "claim_a",
+                "concept_id": "concept_a",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_b",
+                "concept_id": "concept_b",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_target",
+                "concept_id": "concept_target",
+                "type": "parameter",
+                "value": 3.0,
+            },
         ],
         stances=[
             {
@@ -442,13 +501,35 @@ def test_structured_projection_suppresses_support_fallback_when_authored_justifi
     assert "supports:claim_a->claim_target" not in target_justification_ids
 
 
-def test_structured_projection_authored_targeted_undercut_hits_only_named_defeasible_rule() -> None:
+def test_structured_projection_authored_targeted_undercut_hits_only_named_defeasible_rule() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_weak", "concept_id": "concept_weak", "type": "parameter", "value": 1.0},
-            {"id": "claim_strict", "concept_id": "concept_strict", "type": "parameter", "value": 2.0},
-            {"id": "claim_attacker", "concept_id": "concept_attacker", "type": "parameter", "value": 4.0},
-            {"id": "claim_target", "concept_id": "concept_target", "type": "parameter", "value": 3.0},
+            {
+                "id": "claim_weak",
+                "concept_id": "concept_weak",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_strict",
+                "concept_id": "concept_strict",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_attacker",
+                "concept_id": "concept_attacker",
+                "type": "parameter",
+                "value": 4.0,
+            },
+            {
+                "id": "claim_target",
+                "concept_id": "concept_target",
+                "type": "parameter",
+                "value": 3.0,
+            },
         ],
         stances=[
             {
@@ -513,13 +594,36 @@ def test_structured_projection_authored_targeted_undercut_hits_only_named_defeas
 def test_structured_projection_builds_real_premises_and_subargument_graphs() -> None:
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-            {"id": "claim_b", "concept_id": "concept2", "type": "parameter", "value": 2.0},
-            {"id": "claim_c", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+            {
+                "id": "claim_a",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_b",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_c",
+                "concept_id": "concept3",
+                "type": "parameter",
+                "value": 3.0,
+            },
         ],
         stances=[
-            {"claim_id": "claim_a", "target_claim_id": "claim_b", "stance_type": "supports"},
-            {"claim_id": "claim_b", "target_claim_id": "claim_c", "stance_type": "explains"},
+            {
+                "claim_id": "claim_a",
+                "target_claim_id": "claim_b",
+                "stance_type": "supports",
+            },
+            {
+                "claim_id": "claim_b",
+                "target_claim_id": "claim_c",
+                "stance_type": "explains",
+            },
         ],
     )
 
@@ -549,20 +653,51 @@ def test_structured_projection_builds_real_premises_and_subargument_graphs() -> 
     assert any(
         claim_a_arg_ids & set(argument.subargument_ids) for argument in claim_c_args
     )
-    assert any(argument.justification_id == "supports:claim_a->claim_b" for argument in claim_b_args)
-    assert any(argument.justification_id == "explains:claim_b->claim_c" for argument in claim_c_args)
+    assert any(
+        argument.justification_id == "supports:claim_a->claim_b"
+        for argument in claim_b_args
+    )
+    assert any(
+        argument.justification_id == "explains:claim_b->claim_c"
+        for argument in claim_c_args
+    )
 
 
-def test_structured_projection_undermines_target_premise_dependent_arguments_not_base_claims() -> None:
+def test_structured_projection_undermines_target_premise_dependent_arguments_not_base_claims() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-            {"id": "claim_premise", "concept_id": "concept2", "type": "parameter", "value": 2.0},
-            {"id": "claim_attacker", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+            {
+                "id": "claim_target",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_premise",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_attacker",
+                "concept_id": "concept3",
+                "type": "parameter",
+                "value": 3.0,
+            },
         ],
         stances=[
-            {"claim_id": "claim_premise", "target_claim_id": "claim_target", "stance_type": "supports"},
-            {"claim_id": "claim_attacker", "target_claim_id": "claim_premise", "stance_type": "undermines"},
+            {
+                "claim_id": "claim_premise",
+                "target_claim_id": "claim_target",
+                "stance_type": "supports",
+            },
+            {
+                "claim_id": "claim_attacker",
+                "target_claim_id": "claim_premise",
+                "stance_type": "undermines",
+            },
         ],
     )
 
@@ -576,13 +711,15 @@ def test_structured_projection_undermines_target_premise_dependent_arguments_not
     target_base_args = [
         argument.arg_id
         for argument in projection.arguments
-        if argument.claim_id == "claim_target" and argument.attackable_kind == "base_claim"
+        if argument.claim_id == "claim_target"
+        and argument.attackable_kind == "base_claim"
     ]
     # Find inference-rule args for claim_target (derived via support)
     target_inference_args = [
         argument.arg_id
         for argument in projection.arguments
-        if argument.claim_id == "claim_target" and argument.attackable_kind == "inference_rule"
+        if argument.claim_id == "claim_target"
+        and argument.attackable_kind == "inference_rule"
     ]
 
     assert target_inference_args, "Expected inference-rule arguments for claim_target"
@@ -599,16 +736,41 @@ def test_structured_projection_undermines_target_premise_dependent_arguments_not
     )
 
 
-def test_structured_projection_undercuts_target_inference_rules_not_base_claims() -> None:
+def test_structured_projection_undercuts_target_inference_rules_not_base_claims() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-            {"id": "claim_support", "concept_id": "concept2", "type": "parameter", "value": 2.0},
-            {"id": "claim_attacker", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+            {
+                "id": "claim_target",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_support",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_attacker",
+                "concept_id": "concept3",
+                "type": "parameter",
+                "value": 3.0,
+            },
         ],
         stances=[
-            {"claim_id": "claim_support", "target_claim_id": "claim_target", "stance_type": "supports"},
-            {"claim_id": "claim_attacker", "target_claim_id": "claim_target", "stance_type": "undercuts"},
+            {
+                "claim_id": "claim_support",
+                "target_claim_id": "claim_target",
+                "stance_type": "supports",
+            },
+            {
+                "claim_id": "claim_attacker",
+                "target_claim_id": "claim_target",
+                "stance_type": "undercuts",
+            },
         ],
     )
 
@@ -622,13 +784,15 @@ def test_structured_projection_undercuts_target_inference_rules_not_base_claims(
     target_base_args = [
         argument.arg_id
         for argument in projection.arguments
-        if argument.claim_id == "claim_target" and argument.attackable_kind == "base_claim"
+        if argument.claim_id == "claim_target"
+        and argument.attackable_kind == "base_claim"
     ]
     # Find inference-rule args for claim_target (derived via support)
     target_inference_args = [
         argument.arg_id
         for argument in projection.arguments
-        if argument.claim_id == "claim_target" and argument.attackable_kind == "inference_rule"
+        if argument.claim_id == "claim_target"
+        and argument.attackable_kind == "inference_rule"
     ]
 
     assert target_inference_args, "Expected inference-rule arguments for claim_target"
@@ -645,17 +809,47 @@ def test_structured_projection_undercuts_target_inference_rules_not_base_claims(
     )
 
 
-def test_undercut_does_not_bleed_across_alternative_justifications_for_same_claim() -> None:
+def test_undercut_does_not_bleed_across_alternative_justifications_for_same_claim() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-            {"id": "claim_support_a", "concept_id": "concept2", "type": "parameter", "value": 2.0},
-            {"id": "claim_support_b", "concept_id": "concept3", "type": "parameter", "value": 3.0},
-            {"id": "claim_attacker", "concept_id": "concept4", "type": "parameter", "value": 4.0},
+            {
+                "id": "claim_target",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+            },
+            {
+                "id": "claim_support_a",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 2.0,
+            },
+            {
+                "id": "claim_support_b",
+                "concept_id": "concept3",
+                "type": "parameter",
+                "value": 3.0,
+            },
+            {
+                "id": "claim_attacker",
+                "concept_id": "concept4",
+                "type": "parameter",
+                "value": 4.0,
+            },
         ],
         stances=[
-            {"claim_id": "claim_support_a", "target_claim_id": "claim_target", "stance_type": "supports"},
-            {"claim_id": "claim_support_b", "target_claim_id": "claim_target", "stance_type": "supports"},
+            {
+                "claim_id": "claim_support_a",
+                "target_claim_id": "claim_target",
+                "stance_type": "supports",
+            },
+            {
+                "claim_id": "claim_support_b",
+                "target_claim_id": "claim_target",
+                "stance_type": "supports",
+            },
             {
                 "claim_id": "claim_attacker",
                 "target_claim_id": "claim_target",
@@ -684,8 +878,12 @@ def test_undercut_does_not_bleed_across_alternative_justifications_for_same_clai
         and argument.justification_id == "supports:claim_support_b->claim_target"
     ]
 
-    assert target_support_a_args, "Expected an inference argument for support_a -> target"
-    assert target_support_b_args, "Expected an inference argument for support_b -> target"
+    assert target_support_a_args, (
+        "Expected an inference argument for support_a -> target"
+    )
+    assert target_support_b_args, (
+        "Expected an inference argument for support_b -> target"
+    )
     assert any(
         (source_arg, target_arg) in projection.framework.defeats
         for source_arg in attacker_args
@@ -705,32 +903,48 @@ def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
     extra_support_count: int,
 ) -> None:
     claims = [
-        {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
-        {"id": "claim_attacker", "concept_id": "conceptX", "type": "parameter", "value": 9.0},
+        {
+            "id": "claim_target",
+            "concept_id": "concept1",
+            "type": "parameter",
+            "value": 1.0,
+        },
+        {
+            "id": "claim_attacker",
+            "concept_id": "conceptX",
+            "type": "parameter",
+            "value": 9.0,
+        },
     ]
     stances = []
     targeted_justification_id = "supports:claim_support_0->claim_target"
 
     for idx in range(extra_support_count + 1):
         support_id = f"claim_support_{idx}"
-        claims.append({
-            "id": support_id,
-            "concept_id": f"concept_support_{idx}",
-            "type": "parameter",
-            "value": float(idx + 2),
-        })
-        stances.append({
-            "claim_id": support_id,
-            "target_claim_id": "claim_target",
-            "stance_type": "supports",
-        })
+        claims.append(
+            {
+                "id": support_id,
+                "concept_id": f"concept_support_{idx}",
+                "type": "parameter",
+                "value": float(idx + 2),
+            }
+        )
+        stances.append(
+            {
+                "claim_id": support_id,
+                "target_claim_id": "claim_target",
+                "stance_type": "supports",
+            }
+        )
 
-    stances.append({
-        "claim_id": "claim_attacker",
-        "target_claim_id": "claim_target",
-        "stance_type": "undercuts",
-        "target_justification_id": targeted_justification_id,
-    })
+    stances.append(
+        {
+            "claim_id": "claim_attacker",
+            "target_claim_id": "claim_target",
+            "stance_type": "undercuts",
+            "target_justification_id": targeted_justification_id,
+        }
+    )
 
     store = _ProjectionStore(claims=claims, stances=stances)
     projection = build_aspic_projection(
@@ -741,7 +955,10 @@ def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
 
     for argument in projection.arguments:
-        if argument.claim_id != "claim_target" or not argument.justification_id.startswith("supports:"):
+        if (
+            argument.claim_id != "claim_target"
+            or not argument.justification_id.startswith("supports:")
+        ):
             continue
         is_targeted = argument.justification_id == targeted_justification_id
         for attacker_arg in attacker_args:
@@ -749,10 +966,17 @@ def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
             assert has_defeat is is_targeted
 
 
-def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label() -> None:
+def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label() -> (
+    None
+):
     store = _ProjectionStore(
         claims=[
-            {"id": "claim_unconditional", "concept_id": "concept1", "type": "parameter", "value": 1.0}
+            {
+                "id": "claim_unconditional",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+            }
         ]
     )
 
@@ -772,10 +996,12 @@ def test_aspic_grounded_semantics_respects_attacks_when_attacks_exist() -> None:
         framework=ArgumentationFramework(
             arguments=frozenset({"arg:a", "arg:b"}),
             defeats=frozenset(),
-            attacks=frozenset({
-                ("arg:a", "arg:b"),
-                ("arg:b", "arg:a"),
-            }),
+            attacks=frozenset(
+                {
+                    ("arg:a", "arg:b"),
+                    ("arg:b", "arg:a"),
+                }
+            ),
         ),
         claim_to_argument_ids={},
         argument_to_claim_id={},
@@ -795,10 +1021,12 @@ def test_aspic_grounded_semantics_has_single_attack_aware_meaning() -> None:
         framework=ArgumentationFramework(
             arguments=frozenset({"arg:a", "arg:b"}),
             defeats=frozenset(),
-            attacks=frozenset({
-                ("arg:a", "arg:b"),
-                ("arg:b", "arg:a"),
-            }),
+            attacks=frozenset(
+                {
+                    ("arg:a", "arg:b"),
+                    ("arg:b", "arg:a"),
+                }
+            ),
         ),
         claim_to_argument_ids={},
         argument_to_claim_id={},
@@ -907,8 +1135,16 @@ def test_structured_backend_matches_claim_graph_on_simple_deterministic_case() -
             },
         ],
         stances=[
-            {"claim_id": "target_b", "target_claim_id": "target_a", "stance_type": "supersedes"},
-            {"claim_id": "external_c", "target_claim_id": "target_b", "stance_type": "supersedes"},
+            {
+                "claim_id": "target_b",
+                "target_claim_id": "target_a",
+                "stance_type": "supersedes",
+            },
+            {
+                "claim_id": "external_c",
+                "target_claim_id": "target_b",
+                "stance_type": "supersedes",
+            },
         ],
     )
     bound = _make_bound(store, bindings={"task": "speech"})
@@ -934,10 +1170,16 @@ def test_structured_backend_matches_claim_graph_on_simple_deterministic_case() -
     assert structured.winning_claim_id == "target_a"
 
 
-def test_structured_worldline_argumentation_capture_uses_structured_backend(monkeypatch) -> None:
+def test_structured_worldline_argumentation_capture_uses_structured_backend(
+    monkeypatch,
+) -> None:
     class StructuredWorld(_ProjectionStore):
         def bind(self, environment=None, *, policy=None, **conditions):
-            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            bindings = (
+                dict(environment.bindings)
+                if environment is not None
+                else dict(conditions)
+            )
             return _make_bound(self, bindings=bindings)
 
         def get_concept(self, concept_id: str) -> Concept | None:
@@ -970,8 +1212,16 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
             },
         ],
         stances=[
-            {"claim_id": "target_b", "target_claim_id": "target_a", "stance_type": "supersedes"},
-            {"claim_id": "external_c", "target_claim_id": "target_b", "stance_type": "supersedes"},
+            {
+                "claim_id": "target_b",
+                "target_claim_id": "target_a",
+                "stance_type": "supersedes",
+            },
+            {
+                "claim_id": "external_c",
+                "target_claim_id": "target_b",
+                "stance_type": "supersedes",
+            },
         ],
     )
 
@@ -984,15 +1234,17 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
     )
 
     result = run_worldline(
-        WorldlineDefinition.from_dict({
-            "id": "structured_argumentation_capture",
-            "targets": ["target"],
-            "inputs": {"bindings": {"task": "speech"}},
-            "policy": {
-                "strategy": "argumentation",
-                "reasoning_backend": "aspic",
-            },
-        }),
+        WorldlineDefinition.from_dict(
+            {
+                "id": "structured_argumentation_capture",
+                "targets": ["target"],
+                "inputs": {"bindings": {"task": "speech"}},
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "aspic",
+                },
+            }
+        ),
         world,
     )
 
@@ -1004,10 +1256,16 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
     assert result.argumentation.justified == ("external_c", "target_a")
 
 
-def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(monkeypatch) -> None:
+def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(
+    monkeypatch,
+) -> None:
     class StructuredWorld(_ProjectionStore):
         def bind(self, environment=None, *, policy=None, **conditions):
-            bindings = dict(environment.bindings) if environment is not None else dict(conditions)
+            bindings = (
+                dict(environment.bindings)
+                if environment is not None
+                else dict(conditions)
+            )
             return _make_bound(self, bindings=bindings)
 
         def get_concept(self, concept_id: str) -> Concept | None:
@@ -1040,8 +1298,16 @@ def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(m
             },
         ],
         stances=[
-            {"claim_id": "target_b", "target_claim_id": "target_a", "stance_type": "supersedes"},
-            {"claim_id": "external_c", "target_claim_id": "target_b", "stance_type": "supersedes"},
+            {
+                "claim_id": "target_b",
+                "target_claim_id": "target_a",
+                "stance_type": "supersedes",
+            },
+            {
+                "claim_id": "external_c",
+                "target_claim_id": "target_b",
+                "stance_type": "supersedes",
+            },
         ],
     )
 
@@ -1057,15 +1323,17 @@ def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(m
     )
 
     result = run_worldline(
-        WorldlineDefinition.from_dict({
-            "id": "structured_argumentation_capture_unmapped",
-            "targets": ["target"],
-            "inputs": {"bindings": {"task": "speech"}},
-            "policy": {
-                "strategy": "argumentation",
-                "reasoning_backend": "aspic",
-            },
-        }),
+        WorldlineDefinition.from_dict(
+            {
+                "id": "structured_argumentation_capture_unmapped",
+                "targets": ["target"],
+                "inputs": {"bindings": {"task": "speech"}},
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "aspic",
+                },
+            }
+        ),
         world,
     )
 
@@ -1127,7 +1395,9 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     def _unexpected_claim_graph(*args, **kwargs):
         raise AssertionError("claim_graph path should not run for --backend aspic")
 
-    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr(
+        "propstore.repository.Repository.find", lambda start=None: FakeRepo()
+    )
     monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
     monkeypatch.setattr(
         "propstore.claim_graph.compute_claim_graph_justified_claims",
@@ -1149,7 +1419,9 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         "propstore.structured_projection.compute_structured_justified_arguments",
-        lambda projection, *, semantics="grounded", backend=None: frozenset({"arg:target_a"}),
+        lambda projection, *, semantics="grounded", backend=None: frozenset(
+            {"arg:target_a"}
+        ),
     )
 
     runner = CliRunner()
@@ -1212,7 +1484,9 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
             "arg:target_b": "target_b",
         }
 
-    monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
+    monkeypatch.setattr(
+        "propstore.repository.Repository.find", lambda start=None: FakeRepo()
+    )
     monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
     monkeypatch.setattr(
         "propstore.relation_analysis.stance_summary",
@@ -1247,7 +1521,9 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
 
 def test_world_extensions_cli_rejects_structured_projection_backend_name() -> None:
     runner = CliRunner()
-    result = runner.invoke(cli, ["world", "extensions", "--backend", "structured_projection"])
+    result = runner.invoke(
+        cli, ["world", "extensions", "--backend", "structured_projection"]
+    )
 
     assert result.exit_code != 0
     assert "Invalid value for '--backend'" in result.output

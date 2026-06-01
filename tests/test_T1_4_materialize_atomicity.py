@@ -10,7 +10,9 @@ from propstore.repository import Repository
 from propstore.storage.snapshot import MaterializeConflictError
 
 
-def test_materialize_conflict_does_not_create_missing_snapshot_files(tmp_path: Path) -> None:
+def test_materialize_conflict_does_not_create_missing_snapshot_files(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_files(
         {
@@ -49,7 +51,9 @@ def test_materialize_is_all_or_nothing_for_generated_local_edits(
     if deleted_index == conflicted_index:
         conflicted_index = (conflicted_index + 1) % 3
     with tempfile.TemporaryDirectory() as tmp_dir:
-        _assert_generated_materialize_case(Path(tmp_dir), deleted_index, conflicted_index)
+        _assert_generated_materialize_case(
+            Path(tmp_dir), deleted_index, conflicted_index
+        )
 
 
 def _assert_generated_materialize_case(

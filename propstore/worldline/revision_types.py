@@ -46,7 +46,9 @@ class RevisionAtomRef:
             kind=kind,
             assertion_id=None if assertion_id is None else str(assertion_id),
             assumption_id=None if assumption_id is None else str(assumption_id),
-            atom_id=None if payload.get("atom_id") is None else str(payload.get("atom_id")),
+            atom_id=None
+            if payload.get("atom_id") is None
+            else str(payload.get("atom_id")),
             value=payload.get("value"),
         )
 
@@ -142,9 +144,19 @@ class WorldlineRevisionResult:
     explanation: RevisionExplanation | Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
 
     @classmethod
     def from_json_payload(cls, data: object) -> WorldlineRevisionResult | None:
@@ -157,9 +169,15 @@ class WorldlineRevisionResult:
         if explanation_data is not None and not isinstance(explanation_data, Mapping):
             raise ValueError("worldline revision field 'explanation' must be a mapping")
         return cls(
-            accepted_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())),
-            rejected_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())),
-            incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
+            accepted_atom_ids=tuple(
+                str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())
+            ),
+            rejected_atom_ids=tuple(
+                str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())
+            ),
+            incision_set=tuple(
+                str(atom_id) for atom_id in (payload.get("incision_set") or ())
+            ),
             explanation=None if explanation_data is None else dict(explanation_data),
         )
 
@@ -186,9 +204,15 @@ class WorldlineRevisionState:
     event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
+        object.__setattr__(
+            self,
+            "target_atom_ids",
+            tuple(str(atom_id) for atom_id in self.target_atom_ids),
+        )
         if self.error is not None and not isinstance(self.error, WorldlineCaptureError):
-            raise TypeError("WorldlineRevisionState.error must be a WorldlineCaptureError")
+            raise TypeError(
+                "WorldlineRevisionState.error must be a WorldlineCaptureError"
+            )
 
     @classmethod
     def from_json_payload(cls, data: object) -> WorldlineRevisionState | None:
@@ -208,17 +232,25 @@ class WorldlineRevisionState:
             raise ValueError("worldline revision field 'event' must be a mapping")
         return cls(
             operation=str(payload.get("operation") or ""),
-            input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
-            target_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())),
+            input_atom_id=None
+            if payload.get("input_atom_id") is None
+            else str(payload.get("input_atom_id")),
+            target_atom_ids=tuple(
+                str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())
+            ),
             result=WorldlineRevisionResult.from_json_payload(result_data),
             state=None if state_data is None else dict(state_data),
-            status=None if payload.get("status") is None else str(payload.get("status")),
+            status=None
+            if payload.get("status") is None
+            else str(payload.get("status")),
             error=(
                 None
                 if payload.get("error") is None
                 else WorldlineCaptureError(str(payload["error"]))
             ),
-            event=None if event_data is None else RevisionEvent.from_json_payload(event_data),
+            event=None
+            if event_data is None
+            else RevisionEvent.from_json_payload(event_data),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -246,10 +278,7 @@ def _to_plain_data(value: Any) -> Any:
     if callable(to_dict):
         return to_dict()
     if isinstance(value, Mapping):
-        return {
-            str(key): _to_plain_data(item)
-            for key, item in value.items()
-        }
+        return {str(key): _to_plain_data(item) for key, item in value.items()}
     if isinstance(value, tuple):
         return [_to_plain_data(item) for item in value]
     if isinstance(value, list):

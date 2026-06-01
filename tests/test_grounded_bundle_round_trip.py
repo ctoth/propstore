@@ -5,7 +5,11 @@ from pathlib import Path
 from argumentation.aspic import GroundAtom
 from sqlalchemy import select
 
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
@@ -81,11 +85,15 @@ def test_grounded_bundle_persists_gunray_arguments_without_pickle(
 
     with readonly_session(sidecar_path, world_schema()) as derived:
         table = derived.schema.table("grounded_bundle_input")
-        stored_payloads = derived.session.execute(
-            select(GroundedBundleInput)
-            .where(table.c.kind == "argument")
-            .order_by(table.c.position)
-        ).scalars().all()
+        stored_payloads = (
+            derived.session.execute(
+                select(GroundedBundleInput)
+                .where(table.c.kind == "argument")
+                .order_by(table.c.position)
+            )
+            .scalars()
+            .all()
+        )
         restored = load_grounded_bundle(derived)
 
     assert stored_payloads

@@ -15,7 +15,9 @@ from tests.test_source_promote_dangling_refs import (
 )
 
 
-def test_source_justification_proposal_rejects_unknown_rule_kind(tmp_path: Path) -> None:
+def test_source_justification_proposal_rejects_unknown_rule_kind(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
     _seed_master_concept(repo)

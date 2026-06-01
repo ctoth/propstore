@@ -22,8 +22,12 @@ def test_every_hypothesis_given_test_is_marked_property() -> None:
         for node in ast.walk(module):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
-            decorators = {_decorator_name(decorator) for decorator in node.decorator_list}
-            if not any(name == "given" or name.endswith(".given") for name in decorators):
+            decorators = {
+                _decorator_name(decorator) for decorator in node.decorator_list
+            }
+            if not any(
+                name == "given" or name.endswith(".given") for name in decorators
+            ):
                 continue
             if "pytest.mark.property" not in decorators:
                 missing.append(f"{path}:{node.lineno}:{node.name}")

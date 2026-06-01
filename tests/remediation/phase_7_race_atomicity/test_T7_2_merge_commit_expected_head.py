@@ -32,7 +32,9 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
     return RepositorySnapshot(Repository(kr.root))
 
 
-def test_merge_commit_rejects_target_branch_moved_before_materialization(tmp_path, monkeypatch):
+def test_merge_commit_rejects_target_branch_moved_before_materialization(
+    tmp_path, monkeypatch
+):
     kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(_claim_payloads(kr, "base", "Base"), "seed")
     branch_name = "paper/race"

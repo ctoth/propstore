@@ -63,7 +63,9 @@ def test_rule_document_accepts_proper_and_blocking_defeater_kinds() -> None:
     assert blocking.kind == "blocking_defeater"
 
 
-def test_default_negation_body_literal_round_trips_distinct_from_strong_negation() -> None:
+def test_default_negation_body_literal_round_trips_distinct_from_strong_negation() -> (
+    None
+):
     doc = RuleDocument(
         id="rule:default-negation",
         kind="defeasible",

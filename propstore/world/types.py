@@ -6,7 +6,14 @@ import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    Protocol,
+    TypeAlias,
+    TypeVar,
+    runtime_checkable,
+)
 
 from assignment_selection import MergeOperator
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
@@ -95,7 +102,9 @@ def _string_mapping(value: object, field_name: str) -> dict[str, str]:
     result: dict[str, str] = {}
     for key, item in _optional_mapping(value, field_name).items():
         if not isinstance(item, str):
-            raise ValueError(f"render policy field '{field_name}' values must be strings")
+            raise ValueError(
+                f"render policy field '{field_name}' values must be strings"
+            )
         result[str(key)] = item
     return result
 
@@ -106,7 +115,9 @@ def _float_mapping(value: object, field_name: str) -> dict[str, float] | None:
     result: dict[str, float] = {}
     for key, item in _optional_mapping(value, field_name).items():
         if isinstance(item, bool) or not isinstance(item, int | float):
-            raise ValueError(f"render policy field '{field_name}' values must be numeric")
+            raise ValueError(
+                f"render policy field '{field_name}' values must be numeric"
+            )
         result[str(key)] = float(item)
     return result
 
@@ -217,7 +228,9 @@ class ATMSOutKind(Enum):
 
     MISSING_SUPPORT = "missing_support"
     NOGOOD_PRUNED = "nogood_pruned"
-    PARAMETERIZATION_INPUT_TYPE_INCOMPATIBLE = "parameterization_input_type_incompatible"
+    PARAMETERIZATION_INPUT_TYPE_INCOMPATIBLE = (
+        "parameterization_input_type_incompatible"
+    )
 
 
 @dataclass(frozen=True, order=True)
@@ -237,7 +250,9 @@ class QueryableAssumption:
         source: str = "future",
     ) -> QueryableAssumption:
         normalized_cel = normalize_queryable_cel(cel)
-        digest = hashlib.sha256(f"queryable\0{source}\0{normalized_cel}".encode("utf-8")).hexdigest()
+        digest = hashlib.sha256(
+            f"queryable\0{source}\0{normalized_cel}".encode("utf-8")
+        ).hexdigest()
         return cls(
             assumption_id=QueryableId(f"queryable:{source}:{digest}"),
             cel=normalized_cel,
@@ -247,7 +262,9 @@ class QueryableAssumption:
 
 def normalize_queryable_cel(queryable: str | CelExpr) -> CelExpr:
     queryable_text = str(queryable)
-    if any(operator in queryable_text for operator in ("==", "!=", ">=", "<=", ">", "<")):
+    if any(
+        operator in queryable_text for operator in ("==", "!=", ">=", "<=", ">", "<")
+    ):
         return to_cel_expr(queryable_text)
     if "=" in queryable_text:
         key, _, value = queryable_text.partition("=")
@@ -283,7 +300,9 @@ class ATMSFutureEnvironmentReport:
         object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
         object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
         object.__setattr__(self, "environment", _tuple(self.environment))
-        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
+        object.__setattr__(
+            self, "supported_claim_ids", _tuple(self.supported_claim_ids)
+        )
         object.__setattr__(self, "nogoods", _tuple_of_tuples(self.nogoods))
 
 
@@ -318,7 +337,9 @@ class ATMSConceptFutureStatusEntry:
         object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
         object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
         object.__setattr__(self, "environment", _tuple(self.environment))
-        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
+        object.__setattr__(
+            self, "supported_claim_ids", _tuple(self.supported_claim_ids)
+        )
 
 
 @dataclass(frozen=True)
@@ -361,7 +382,9 @@ class ATMSConceptWhyOutReport:
     claim_reasons: Mapping[str, ATMSWhyOutReport]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
+        object.__setattr__(
+            self, "supported_claim_ids", _tuple(self.supported_claim_ids)
+        )
         object.__setattr__(self, "claim_reasons", dict(self.claim_reasons))
 
 
@@ -451,8 +474,12 @@ class ATMSNodeRelevanceReport:
     witness_pairs: Mapping[str, Sequence[ATMSNodeWitnessPair]]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "relevant_queryables", _tuple(self.relevant_queryables))
-        object.__setattr__(self, "irrelevant_queryables", _tuple(self.irrelevant_queryables))
+        object.__setattr__(
+            self, "relevant_queryables", _tuple(self.relevant_queryables)
+        )
+        object.__setattr__(
+            self, "irrelevant_queryables", _tuple(self.irrelevant_queryables)
+        )
         object.__setattr__(
             self,
             "witness_pairs",
@@ -469,8 +496,12 @@ class ATMSConceptRelevanceReport:
     witness_pairs: Mapping[str, Sequence[ATMSConceptWitnessPair]]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "relevant_queryables", _tuple(self.relevant_queryables))
-        object.__setattr__(self, "irrelevant_queryables", _tuple(self.irrelevant_queryables))
+        object.__setattr__(
+            self, "relevant_queryables", _tuple(self.relevant_queryables)
+        )
+        object.__setattr__(
+            self, "irrelevant_queryables", _tuple(self.irrelevant_queryables)
+        )
         object.__setattr__(
             self,
             "witness_pairs",
@@ -528,7 +559,9 @@ class ATMSNextQuerySuggestion:
     example_plans: Sequence[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "plan_queryable_cels", _tuple_of_tuples(self.plan_queryable_cels))
+        object.__setattr__(
+            self, "plan_queryable_cels", _tuple_of_tuples(self.plan_queryable_cels)
+        )
         object.__setattr__(self, "example_plans", _tuple(self.example_plans))
 
 
@@ -591,9 +624,7 @@ class ATMSNestedNodeExplanation(ATMSNodeExplanation):
 
 
 ATMSExplanationAntecedent: TypeAlias = (
-    ATMSCycleAntecedent
-    | ATMSAssumptionAntecedent
-    | ATMSNestedNodeExplanation
+    ATMSCycleAntecedent | ATMSAssumptionAntecedent | ATMSNestedNodeExplanation
 )
 
 
@@ -632,7 +663,9 @@ class ATMSLabelVerificationReport:
         object.__setattr__(self, "consistency_errors", _tuple(self.consistency_errors))
         object.__setattr__(self, "minimality_errors", _tuple(self.minimality_errors))
         object.__setattr__(self, "soundness_errors", _tuple(self.soundness_errors))
-        object.__setattr__(self, "completeness_errors", _tuple(self.completeness_errors))
+        object.__setattr__(
+            self, "completeness_errors", _tuple(self.completeness_errors)
+        )
 
 
 class ResolutionStrategy(StrEnum):
@@ -687,7 +720,9 @@ class IntegrityConstraint:
         if self.kind == IntegrityConstraintKind.CUSTOM:
             predicate = self.metadata.get("predicate")
             if not callable(predicate):
-                raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
+                raise TypeError(
+                    "CUSTOM integrity constraint requires callable metadata['predicate']"
+                )
 
 
 def integrity_constraint_from_dict(data: Mapping[str, object]) -> IntegrityConstraint:
@@ -704,9 +739,7 @@ def integrity_constraint_from_dict(data: Mapping[str, object]) -> IntegrityConst
         metadata=dict(_optional_mapping(data.get("metadata"), "metadata")),
         cel=None if data.get("cel") is None else to_cel_expr(str(data["cel"])),
         description=(
-            None
-            if data.get("description") is None
-            else str(data["description"])
+            None if data.get("description") is None else str(data["description"])
         ),
     )
 
@@ -714,7 +747,9 @@ def integrity_constraint_from_dict(data: Mapping[str, object]) -> IntegrityConst
 def integrity_constraint_to_dict(constraint: IntegrityConstraint) -> dict[str, object]:
     metadata = dict(constraint.metadata)
     if constraint.kind == IntegrityConstraintKind.CUSTOM and "predicate" in metadata:
-        raise TypeError("CUSTOM integrity constraints with callable predicates are not serializable")
+        raise TypeError(
+            "CUSTOM integrity constraints with callable predicates are not serializable"
+        )
     return {
         "kind": constraint.kind.value,
         "concept_ids": list(constraint.concept_ids),
@@ -794,8 +829,7 @@ class ChainResult:
         self.steps = list(self.steps)
         self.bindings_used = dict(self.bindings_used)
         self.unresolved_dependencies = [
-            ConceptId(concept_id)
-            for concept_id in self.unresolved_dependencies
+            ConceptId(concept_id) for concept_id in self.unresolved_dependencies
         ]
 
 
@@ -838,7 +872,9 @@ class RenderPolicy:
     # branch_weights assigns per-branch importance weights.
     branch_weights: Mapping[str, float] | None = None
     # explicit integrity constraints for global assignment-selection merge
-    integrity_constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
+    integrity_constraints: tuple[IntegrityConstraint, ...] = field(
+        default_factory=tuple
+    )
     future_queryables: tuple[QueryableAssumption, ...] = field(default_factory=tuple)
     future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict)
@@ -862,8 +898,12 @@ class RenderPolicy:
     def __post_init__(self) -> None:
         if not isinstance(self.reasoning_backend, ReasoningBackend):
             raise TypeError("RenderPolicy.reasoning_backend must be a ReasoningBackend")
-        if self.strategy is not None and not isinstance(self.strategy, ResolutionStrategy):
-            raise TypeError("RenderPolicy.strategy must be a ResolutionStrategy or None")
+        if self.strategy is not None and not isinstance(
+            self.strategy, ResolutionStrategy
+        ):
+            raise TypeError(
+                "RenderPolicy.strategy must be a ResolutionStrategy or None"
+            )
         if not isinstance(self.semantics, ArgumentationSemantics):
             raise TypeError("RenderPolicy.semantics must be ArgumentationSemantics")
         if not isinstance(self.merge_operator, MergeOperator):
@@ -912,7 +952,9 @@ class RenderPolicy:
             return cls()
 
         strategy_value = data.get("strategy")
-        reasoning_backend_value = data.get("reasoning_backend", ReasoningBackend.CLAIM_GRAPH)
+        reasoning_backend_value = data.get(
+            "reasoning_backend", ReasoningBackend.CLAIM_GRAPH
+        )
         try:
             reasoning_backend = (
                 reasoning_backend_value
@@ -964,7 +1006,9 @@ class RenderPolicy:
                 "pessimism_index",
                 0.5,
             ),
-            show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
+            show_uncertainty_interval=bool(
+                data.get("show_uncertainty_interval", False)
+            ),
             praf_strategy=str(data.get("praf_strategy", "auto")),
             praf_mc_epsilon=_float_field(
                 data.get("praf_mc_epsilon"),
@@ -977,7 +1021,9 @@ class RenderPolicy:
                 0.95,
             ),
             praf_treewidth_cutoff=(
-                _int_field(data.get("praf_treewidth_cutoff"), "praf_treewidth_cutoff", 12)
+                _int_field(
+                    data.get("praf_treewidth_cutoff"), "praf_treewidth_cutoff", 12
+                )
                 or 12
             ),
             praf_mc_seed=_int_field(data.get("praf_mc_seed"), "praf_mc_seed", None),
@@ -992,10 +1038,13 @@ class RenderPolicy:
             branch_filter=(
                 None
                 if data.get("branch_filter") is None
-                else tuple(str(item) for item in _optional_sequence(
-                    data.get("branch_filter"),
-                    "branch_filter",
-                ))
+                else tuple(
+                    str(item)
+                    for item in _optional_sequence(
+                        data.get("branch_filter"),
+                        "branch_filter",
+                    )
+                )
             ),
             branch_weights=branch_weights,
             integrity_constraints=_integrity_constraints_field(
@@ -1051,8 +1100,7 @@ class RenderPolicy:
             ]
         if self.future_queryables:
             data["future_queryables"] = [
-                str(queryable.cel)
-                for queryable in self.future_queryables
+                str(queryable.cel) for queryable in self.future_queryables
             ]
         if self.future_limit is not None:
             data["future_limit"] = self.future_limit

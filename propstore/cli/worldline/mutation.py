@@ -1,4 +1,5 @@
 """Worldline mutation CLI commands."""
+
 from __future__ import annotations
 
 import click
@@ -6,7 +7,10 @@ import click
 from propstore.cli.helpers import fail
 from propstore.cli.output import emit_success
 
-from propstore.app.worldlines import WorldlineNotFoundError, delete_worldline as run_delete_worldline
+from propstore.app.worldlines import (
+    WorldlineNotFoundError,
+    delete_worldline as run_delete_worldline,
+)
 from propstore.cli.worldline import worldline
 from propstore.repository import Repository
 

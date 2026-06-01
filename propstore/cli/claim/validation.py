@@ -22,7 +22,9 @@ from propstore.repository import Repository
 
 @claim.command()
 @click.option("--dir", "claims_path", default=None, help="Claims directory")
-@click.option("--concepts-dir", "concepts_path", default=None, help="Concepts directory")
+@click.option(
+    "--concepts-dir", "concepts_path", default=None, help="Concepts directory"
+)
 @click.pass_obj
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
@@ -64,7 +66,9 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 
 @claim.command("validate-file")
 @click.argument("filepath", type=click.Path(exists=True, path_type=Path))
-@click.option("--concepts-dir", "concepts_path", default=None, help="Concepts directory")
+@click.option(
+    "--concepts-dir", "concepts_path", default=None, help="Concepts directory"
+)
 @click.pass_obj
 def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     """Validate a single claims YAML file."""

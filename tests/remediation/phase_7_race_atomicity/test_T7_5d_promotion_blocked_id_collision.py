@@ -8,6 +8,7 @@ The aspirin stance-backfill session (2026-04-23) stacked 15 tangled
 re-promote commits because of this — the git commit landed before the
 sidecar write, so every failed mirror left master polluted.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import text

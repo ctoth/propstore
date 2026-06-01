@@ -93,8 +93,10 @@ class _World:
             and (
                 str(claim.output_concept_id or "") == resolved
                 or str(claim.target_concept or "") == resolved
-                or resolved in {str(concept_id) for concept_id in claim.about_concept_ids}
-                or resolved in {str(concept_id) for concept_id in claim.input_concept_ids}
+                or resolved
+                in {str(concept_id) for concept_id in claim.about_concept_ids}
+                or resolved
+                in {str(concept_id) for concept_id in claim.input_concept_ids}
             )
         ]
 
@@ -127,7 +129,7 @@ def _claim_link(
     concept_id: str,
     role: ClaimConceptLinkRole,
     ordinal: int = 0,
-    ) -> ClaimConceptLink:
+) -> ClaimConceptLink:
     return claim_concept_link(
         claim_id=claim_id,
         concept_id=concept_id,
@@ -204,8 +206,12 @@ def test_build_concept_view_returns_typed_report(
         ),
         visible_ids=("claim-visible-a", "claim-visible-b"),
     )
-    monkeypatch.setattr(concept_views, "open_app_world_model", lambda repo: _open_world(world))
-    monkeypatch.setattr(concept_views, "_find_concept_entry", lambda repo, handle: _concept_entry())
+    monkeypatch.setattr(
+        concept_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
+    monkeypatch.setattr(
+        concept_views, "_find_concept_entry", lambda repo, handle: _concept_entry()
+    )
 
     report = build_concept_view(
         _repo(),
@@ -227,7 +233,10 @@ def test_build_concept_view_returns_typed_report(
     assert report.status.visible_claim_count == 2
     assert report.status.blocked_claim_count == 0
     assert report.status.total_claim_count == 2
-    assert {group.claim_type for group in report.claim_groups} == {"measurement", "parameter"}
+    assert {group.claim_type for group in report.claim_groups} == {
+        "measurement",
+        "parameter",
+    }
     assert report.value_summary.state == "known"
     assert report.value_summary.claim_count == 2
     assert report.uncertainty_summary.state == "known"
@@ -241,15 +250,19 @@ def test_build_concept_view_reports_blocked_when_all_claims_hidden(
 ) -> None:
     world = _World(
         concept=_concept(),
-        claims=(
-            _claim("claim-hidden"),
-        ),
+        claims=(_claim("claim-hidden"),),
         visible_ids=(),
     )
-    monkeypatch.setattr(concept_views, "open_app_world_model", lambda repo: _open_world(world))
-    monkeypatch.setattr(concept_views, "_find_concept_entry", lambda repo, handle: _concept_entry())
+    monkeypatch.setattr(
+        concept_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
+    monkeypatch.setattr(
+        concept_views, "_find_concept_entry", lambda repo, handle: _concept_entry()
+    )
 
-    report = build_concept_view(_repo(), ConceptViewRequest(concept_id_or_name="concept1"))
+    report = build_concept_view(
+        _repo(), ConceptViewRequest(concept_id_or_name="concept1")
+    )
 
     assert report.status.state == "missing"
     assert report.status.visible_claim_count == 0
@@ -283,10 +296,16 @@ def test_build_concept_view_counts_about_links_as_related_claims(
         ),
         visible_ids=("claim-about-only",),
     )
-    monkeypatch.setattr(concept_views, "open_app_world_model", lambda repo: _open_world(world))
-    monkeypatch.setattr(concept_views, "_find_concept_entry", lambda repo, handle: _concept_entry())
+    monkeypatch.setattr(
+        concept_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
+    monkeypatch.setattr(
+        concept_views, "_find_concept_entry", lambda repo, handle: _concept_entry()
+    )
 
-    report = build_concept_view(_repo(), ConceptViewRequest(concept_id_or_name="concept1"))
+    report = build_concept_view(
+        _repo(), ConceptViewRequest(concept_id_or_name="concept1")
+    )
 
     assert report.status.state == "known"
     assert report.status.total_claim_count == 1
@@ -310,7 +329,9 @@ def test_build_concept_view_reports_unknown_concept(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _World(concept=None)
-    monkeypatch.setattr(concept_views, "open_app_world_model", lambda repo: _open_world(world))
+    monkeypatch.setattr(
+        concept_views, "open_app_world_model", lambda repo: _open_world(world)
+    )
     monkeypatch.setattr(concept_views, "_find_concept_entry", lambda repo, handle: None)
 
     with pytest.raises(ConceptViewUnknownConceptError, match="missing"):

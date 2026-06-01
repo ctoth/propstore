@@ -51,7 +51,5 @@ class ResolutionTrace:
 
     def seen_concepts(self) -> set[str]:
         return {
-            concept
-            for step in self.steps
-            if isinstance((concept := step.concept), str)
+            concept for step in self.steps if isinstance((concept := step.concept), str)
         }

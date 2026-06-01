@@ -47,10 +47,14 @@ def test_canonical_payload_parses_back_to_same_situated_assertion() -> None:
 
 
 @pytest.mark.property
-@given(st.permutations((
-    {"role": "paper", "value": "ps:concept:paper:clark-2014"},
-    {"role": "venue", "value": "ps:concept:venue:j-biomed-semantics"},
-)))
+@given(
+    st.permutations(
+        (
+            {"role": "paper", "value": "ps:concept:paper:clark-2014"},
+            {"role": "venue", "value": "ps:concept:venue:j-biomed-semantics"},
+        )
+    )
+)
 def test_canonical_payload_parse_canonicalizes_role_order(
     role_bindings: tuple[dict[str, str], ...],
 ) -> None:
@@ -89,10 +93,12 @@ def test_canonical_payload_rejects_mismatched_assertion_id() -> None:
 def _published_in_assertion() -> SituatedAssertion:
     return SituatedAssertion(
         relation=RelationConceptRef(ConceptId("ps:concept:relation:published_in")),
-        role_bindings=RoleBindingSet((
-            RoleBinding("paper", "ps:concept:paper:clark-2014"),
-            RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
-        )),
+        role_bindings=RoleBindingSet(
+            (
+                RoleBinding("paper", "ps:concept:paper:clark-2014"),
+                RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
+            )
+        ),
         context=ContextReference("ctx_literature"),
         condition=ConditionRef.unconditional(),
         provenance_ref=ProvenanceGraphRef("urn:propstore:provenance:source"),

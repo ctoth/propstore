@@ -1,4 +1,5 @@
 """Regression tests for the new repository merge surface."""
+
 from __future__ import annotations
 
 import pytest
@@ -22,26 +23,32 @@ from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
-    doc = normalize_claims_payload({
-        "source": {
-            "paper": paper,
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": claims,
-    })
+def _claim_payloads(
+    kr: GitStore, claims: list[dict], paper: str = "test_paper"
+) -> dict[str, bytes]:
+    doc = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
     return claim_artifact_commit_payloads(
         Repository(kr.root),
         doc,
@@ -49,7 +56,9 @@ def _claim_payloads(kr: GitStore, claims: list[dict], paper: str = "test_paper")
     )
 
 
-def _claims_commit_payload(kr: GitStore, claim_ids: list[str], *, prefix: str) -> dict[str, bytes]:
+def _claims_commit_payload(
+    kr: GitStore, claim_ids: list[str], *, prefix: str
+) -> dict[str, bytes]:
     if not claim_ids:
         return {}
     midpoint = max(1, len(claim_ids) // 2)
@@ -57,15 +66,29 @@ def _claims_commit_payload(kr: GitStore, claim_ids: list[str], *, prefix: str) -
     first_half = claim_ids[:midpoint]
     second_half = claim_ids[midpoint:]
     if first_half:
-        payload.update(_claim_payloads(
-            kr,
-            [_obs_claim(claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]) for claim_id in first_half]
-        ))
+        payload.update(
+            _claim_payloads(
+                kr,
+                [
+                    _obs_claim(
+                        claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]
+                    )
+                    for claim_id in first_half
+                ],
+            )
+        )
     if second_half:
-        payload.update(_claim_payloads(
-            kr,
-            [_obs_claim(claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]) for claim_id in reversed(second_half)]
-        ))
+        payload.update(
+            _claim_payloads(
+                kr,
+                [
+                    _obs_claim(
+                        claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]
+                    )
+                    for claim_id in reversed(second_half)
+                ],
+            )
+        )
     return payload
 
 
@@ -108,7 +131,9 @@ def _param_claim(
     return claim
 
 
-def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_paper") -> bytes:
+def _claim_yaml_with_explicit_identities(
+    claims: list[dict], paper: str = "test_paper"
+) -> bytes:
     normalized = normalize_claims_payload(
         {
             "source": {
@@ -174,7 +199,9 @@ def test_syntax_independence_claim_order(tmp_path):
     merge = build_merge_framework(_snapshot(kr), "master", branch_name)
     emitted = {argument.canonical_claim_id for argument in merge.arguments}
     assert emitted == {"test_paper:claimA", "test_paper:claimB"}
-    assert {argument.assertion_id for argument in merge.arguments} == set(merge.framework.arguments)
+    assert {argument.assertion_id for argument in merge.arguments} == set(
+        merge.framework.arguments
+    )
 
 
 def test_syntax_independence_filename(tmp_path):
@@ -252,8 +279,14 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
         for claim in claim_file_claims(claim_file)
         if claim.artifact_id is not None
     }
-    assert make_claim_identity("claimL", namespace="test_paper")["artifact_id"] in all_claim_ids
-    assert make_claim_identity("claimR", namespace="test_paper")["artifact_id"] in all_claim_ids
+    assert (
+        make_claim_identity("claimL", namespace="test_paper")["artifact_id"]
+        in all_claim_ids
+    )
+    assert (
+        make_claim_identity("claimR", namespace="test_paper")["artifact_id"]
+        in all_claim_ids
+    )
 
 
 def test_merge_commit_valid_claims(tmp_path):
@@ -306,8 +339,12 @@ def test_conflict_merge_is_deterministic(tmp_path):
         branch=branch_name,
     )
 
-    merge_sha_a = create_merge_commit(_snapshot(kr), "master", branch_name, target_branch="merge_a")
-    merge_sha_b = create_merge_commit(_snapshot(kr), "master", branch_name, target_branch="merge_b")
+    merge_sha_a = create_merge_commit(
+        _snapshot(kr), "master", branch_name, target_branch="merge_a"
+    )
+    merge_sha_b = create_merge_commit(
+        _snapshot(kr), "master", branch_name, target_branch="merge_b"
+    )
 
     assert kr.flat_tree_entries(merge_sha_a) == kr.flat_tree_entries(merge_sha_b)
 

@@ -64,29 +64,35 @@ class _WorldlineRepo:
 
 
 def _query_for(atom_id: str) -> WorldlineRevisionQuery:
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "revise",
-        "atom": {"kind": "assertion", "id": atom_id},
-        "conflicts": {},
-    })
+    query = WorldlineRevisionQuery.from_dict(
+        {
+            "operation": "revise",
+            "atom": {"kind": "assertion", "id": atom_id},
+            "conflicts": {},
+        }
+    )
     assert query is not None
     return query
 
 
 def _contract_query_for(atom_id: str) -> WorldlineRevisionQuery:
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "contract",
-        "target": atom_id,
-    })
+    query = WorldlineRevisionQuery.from_dict(
+        {
+            "operation": "contract",
+            "target": atom_id,
+        }
+    )
     assert query is not None
     return query
 
 
 def _expand_query_for(atom_id: str) -> WorldlineRevisionQuery:
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "expand",
-        "atom": {"kind": "assertion", "id": atom_id},
-    })
+    query = WorldlineRevisionQuery.from_dict(
+        {
+            "operation": "expand",
+            "atom": {"kind": "assertion", "id": atom_id},
+        }
+    )
     assert query is not None
     return query
 
@@ -145,10 +151,12 @@ def test_p_cap_2_capture_replay_matches_direct_dispatch(data) -> None:
 def test_p_cap_3_legacy_worldline_definition_roundtrips_without_journal() -> None:
     from propstore.worldline import WorldlineDefinition
 
-    definition = WorldlineDefinition.from_dict({
-        "id": "legacy_without_journal",
-        "targets": ["target"],
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "legacy_without_journal",
+            "targets": ["target"],
+        }
+    )
 
     document = definition.to_document()
     loaded = WorldlineDefinition.from_document(document)
@@ -170,11 +178,13 @@ def test_p_cap_4_journal_bearing_worldline_definition_roundtrips() -> None:
     query = _query_for(atom.atom_id)
     journal = capture_journal(_JournalBound(initial_state), (query,))
 
-    definition = WorldlineDefinition.from_dict({
-        "id": "journal_bearing",
-        "targets": ["target"],
-        "journal": journal.to_dict(),
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "journal_bearing",
+            "targets": ["target"],
+            "journal": journal.to_dict(),
+        }
+    )
 
     document = definition.to_document()
     loaded = WorldlineDefinition.from_document(document)
@@ -196,11 +206,13 @@ def test_p_cap_4_journal_document_roundtrips_through_yaml_codec() -> None:
     )
     initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
     journal = capture_journal(_JournalBound(initial_state), (_query_for(atom.atom_id),))
-    definition = WorldlineDefinition.from_dict({
-        "id": "journal_yaml",
-        "targets": ["target"],
-        "journal": journal.to_dict(),
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "journal_yaml",
+            "targets": ["target"],
+            "journal": journal.to_dict(),
+        }
+    )
 
     encoded = msgspec.yaml.encode(definition.to_document())
     decoded = decode_document_bytes(
@@ -226,11 +238,13 @@ def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
     )
     initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
     query = _query_for(atom.atom_id)
-    definition = WorldlineDefinition.from_dict({
-        "id": "cli_build",
-        "targets": ["target"],
-        "revision": query.to_dict(),
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "cli_build",
+            "targets": ["target"],
+            "revision": query.to_dict(),
+        }
+    )
     repo = _WorldlineRepo(definition)
 
     @contextmanager
@@ -246,7 +260,9 @@ def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    saved = WorldlineDefinition.from_document(repo.families.worldlines.saved["cli_build"])
+    saved = WorldlineDefinition.from_document(
+        repo.families.worldlines.saved["cli_build"]
+    )
     expected = capture_journal(
         _JournalBound(initial_state),
         (query,),
@@ -255,7 +271,9 @@ def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
     assert saved.journal == expected
 
 
-def test_p_cap_5_at_step_cli_matches_world_query_method(tmp_path: Path, monkeypatch) -> None:
+def test_p_cap_5_at_step_cli_matches_world_query_method(
+    tmp_path: Path, monkeypatch
+) -> None:
     from propstore.cli.worldline.journal import worldline_at_step
     from tests.test_world_query_at_journal_step_method import (
         _claim_id,
@@ -272,11 +290,13 @@ def test_p_cap_5_at_step_cli_matches_world_query_method(tmp_path: Path, monkeypa
         initial_state=make_state(atoms=(), accepted_atom_ids=()),
         revision_atoms=(atom,),
     )
-    definition = WorldlineDefinition.from_dict({
-        "id": "cli_step",
-        "targets": ["target"],
-        "journal": journal.to_dict(),
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "cli_step",
+            "targets": ["target"],
+            "journal": journal.to_dict(),
+        }
+    )
     repo = _WorldlineRepo(definition)
     world = _world_query_for_claims(tmp_path, _claim_id("cli_step_claim"))
 
@@ -299,7 +319,9 @@ def test_p_cap_5_at_step_cli_matches_world_query_method(tmp_path: Path, monkeypa
     assert result.output.splitlines() == expected
 
 
-def test_build_journal_cli_reports_invalid_revision_without_traceback(monkeypatch) -> None:
+def test_build_journal_cli_reports_invalid_revision_without_traceback(
+    monkeypatch,
+) -> None:
     from propstore.cli.worldline.journal import worldline_build_journal
 
     atom = make_assertion_atom(
@@ -309,14 +331,16 @@ def test_build_journal_cli_reports_invalid_revision_without_traceback(monkeypatc
         source_claim_local_ids=("invalid_claim",),
     )
     initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
-    definition = WorldlineDefinition.from_dict({
-        "id": "invalid_revision",
-        "targets": ["target"],
-        "revision": {
-            "operation": "unknown",
-            "atom": {"kind": "assertion", "id": atom.atom_id},
-        },
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "invalid_revision",
+            "targets": ["target"],
+            "revision": {
+                "operation": "unknown",
+                "atom": {"kind": "assertion", "id": atom.atom_id},
+            },
+        }
+    )
     repo = _WorldlineRepo(definition)
 
     @contextmanager
@@ -343,11 +367,13 @@ def test_at_step_cli_reports_out_of_range_step_without_traceback(monkeypatch) ->
         def at_journal_step(self, journal, step, *, heavy=False):
             raise IndexError(f"step {step} out of range")
 
-    definition = WorldlineDefinition.from_dict({
-        "id": "bad_step",
-        "targets": ["target"],
-        "journal": TransitionJournal(entries=()).to_dict(),
-    })
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "bad_step",
+            "targets": ["target"],
+            "journal": TransitionJournal(entries=()).to_dict(),
+        }
+    )
     repo = _WorldlineRepo(definition)
 
     @contextmanager

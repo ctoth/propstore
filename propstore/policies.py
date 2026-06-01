@@ -10,7 +10,11 @@ from typing import Any
 from assignment_selection import MergeOperator
 from quire import canonical_json_bytes
 
-from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
+from propstore.core.assertions.refs import (
+    ConditionRef,
+    ContextReference,
+    ProvenanceGraphRef,
+)
 from propstore.core.id_types import ContextId, ProvenanceGraphId
 from propstore.core.reasoning import (
     parse_argumentation_semantics,
@@ -84,7 +88,9 @@ class MergePolicy:
         if not isinstance(self.operator, MergeOperator):
             raise TypeError("MergePolicy.operator must be MergeOperator")
         if self.branch_filter is not None:
-            object.__setattr__(self, "branch_filter", tuple(str(item) for item in self.branch_filter))
+            object.__setattr__(
+                self, "branch_filter", tuple(str(item) for item in self.branch_filter)
+            )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any] | None) -> MergePolicy:
@@ -97,8 +103,12 @@ class MergePolicy:
                 if isinstance(operator_value, MergeOperator)
                 else MergeOperator(str(operator_value))
             ),
-            conflict_strategy=str(payload.get("conflict_strategy", "surface_conflicts")),
-            branch_filter=None if branch_filter is None else tuple(str(item) for item in branch_filter),
+            conflict_strategy=str(
+                payload.get("conflict_strategy", "surface_conflicts")
+            ),
+            branch_filter=None
+            if branch_filter is None
+            else tuple(str(item) for item in branch_filter),
             require_witnesses=bool(payload.get("require_witnesses", True)),
         )
 
@@ -140,7 +150,9 @@ class AdmissibilityProfile:
     def from_dict(cls, data: Mapping[str, Any] | None) -> AdmissibilityProfile:
         payload = {} if data is None else data
         return cls(
-            reasoning_backend=payload.get("reasoning_backend", ReasoningBackend.CLAIM_GRAPH),
+            reasoning_backend=payload.get(
+                "reasoning_backend", ReasoningBackend.CLAIM_GRAPH
+            ),
             semantics=payload.get("semantics", ArgumentationSemantics.GROUNDED),
             conflict_free_basis=str(payload.get("conflict_free_basis", "attack")),
             comparison=str(payload.get("comparison", "elitist")),
@@ -179,9 +191,13 @@ class SourceTrustProfile:
     def from_dict(cls, data: Mapping[str, Any] | None) -> SourceTrustProfile:
         payload = {} if data is None else data
         return cls(
-            accepted_authorities=tuple(str(item) for item in payload.get("accepted_authorities", ())),
+            accepted_authorities=tuple(
+                str(item) for item in payload.get("accepted_authorities", ())
+            ),
             required_attitude=str(payload.get("required_attitude", "asserted")),
-            unsigned_graph_policy=str(payload.get("unsigned_graph_policy", "quote_only")),
+            unsigned_graph_policy=str(
+                payload.get("unsigned_graph_policy", "quote_only")
+            ),
             require_digest=bool(payload.get("require_digest", False)),
         )
 
@@ -204,7 +220,9 @@ class EscalationPolicy:
     def from_dict(cls, data: Mapping[str, Any] | None) -> EscalationPolicy:
         payload = {} if data is None else data
         return cls(
-            unresolved_conflict=str(payload.get("unresolved_conflict", "queue_investigation")),
+            unresolved_conflict=str(
+                payload.get("unresolved_conflict", "queue_investigation")
+            ),
             missing_warrant=str(payload.get("missing_warrant", "mark_untrusted")),
             low_trust=str(payload.get("low_trust", "require_review")),
         )
@@ -230,22 +248,34 @@ class PolicyProfile:
 
     def __post_init__(self) -> None:
         if self.schema_version != _PROFILE_VERSION:
-            raise ValueError(f"unsupported policy profile version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported policy profile version: {self.schema_version}"
+            )
         if not isinstance(self.revision, RevisionPolicy):
-            object.__setattr__(self, "revision", RevisionPolicy.from_dict(_as_mapping(self.revision, "revision")))
+            object.__setattr__(
+                self,
+                "revision",
+                RevisionPolicy.from_dict(_as_mapping(self.revision, "revision")),
+            )
         if not isinstance(self.merge, MergePolicy):
-            object.__setattr__(self, "merge", MergePolicy.from_dict(_as_mapping(self.merge, "merge")))
+            object.__setattr__(
+                self, "merge", MergePolicy.from_dict(_as_mapping(self.merge, "merge"))
+            )
         if not isinstance(self.admissibility, AdmissibilityProfile):
             object.__setattr__(
                 self,
                 "admissibility",
-                AdmissibilityProfile.from_dict(_as_mapping(self.admissibility, "admissibility")),
+                AdmissibilityProfile.from_dict(
+                    _as_mapping(self.admissibility, "admissibility")
+                ),
             )
         if not isinstance(self.source_trust, SourceTrustProfile):
             object.__setattr__(
                 self,
                 "source_trust",
-                SourceTrustProfile.from_dict(_as_mapping(self.source_trust, "source_trust")),
+                SourceTrustProfile.from_dict(
+                    _as_mapping(self.source_trust, "source_trust")
+                ),
             )
         if not isinstance(self.escalation, EscalationPolicy):
             object.__setattr__(
@@ -260,7 +290,9 @@ class PolicyProfile:
         schema_version = str(data.get("schema_version", _PROFILE_VERSION))
         recorded_profile_id = str(data.get("profile_id", ""))
         profile = cls(
-            revision=RevisionPolicy.from_dict(_optional_mapping(data.get("revision"), "revision")),
+            revision=RevisionPolicy.from_dict(
+                _optional_mapping(data.get("revision"), "revision")
+            ),
             merge=MergePolicy.from_dict(_optional_mapping(data.get("merge"), "merge")),
             admissibility=AdmissibilityProfile.from_dict(
                 _optional_mapping(data.get("admissibility"), "admissibility")
@@ -268,7 +300,9 @@ class PolicyProfile:
             source_trust=SourceTrustProfile.from_dict(
                 _optional_mapping(data.get("source_trust"), "source_trust")
             ),
-            escalation=EscalationPolicy.from_dict(_optional_mapping(data.get("escalation"), "escalation")),
+            escalation=EscalationPolicy.from_dict(
+                _optional_mapping(data.get("escalation"), "escalation")
+            ),
             label=str(data.get("label", "default")),
             schema_version=schema_version,
         )

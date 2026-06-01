@@ -19,7 +19,7 @@ from argumentation.aspic import GroundAtom, Literal, Rule
 from argumentation.dung import grounded_extension as dung_grounded_extension
 from argumentation.iccma import parse_aba, write_aba
 
-interpretation_from_json_payload = getattr(adf, "interpretation_from_" "mapping")
+interpretation_from_json_payload = getattr(adf, "interpretation_from_mapping")
 
 
 def lit(name: str) -> Literal:
@@ -41,7 +41,9 @@ def test_argumentation_pin_exposes_flat_aba_and_adf_public_surface() -> None:
     stay = lit("stay")
     base = ABAFramework(
         language=frozenset({alpha, beta, leave, stay}),
-        rules=frozenset({Rule((alpha,), leave, "strict"), Rule((beta,), stay, "strict")}),
+        rules=frozenset(
+            {Rule((alpha,), leave, "strict"), Rule((beta,), stay, "strict")}
+        ),
         assumptions=frozenset({alpha, beta}),
         contrary={alpha: stay, beta: leave},
     )

@@ -28,7 +28,9 @@ class LexicalForm:
     phonetic_rep: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "written_rep", require_text(self.written_rep, "written_rep"))
+        object.__setattr__(
+            self, "written_rep", require_text(self.written_rep, "written_rep")
+        )
         object.__setattr__(self, "language", require_text(self.language, "language"))
         if self.phonetic_rep is not None:
             object.__setattr__(

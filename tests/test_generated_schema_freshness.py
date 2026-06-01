@@ -17,4 +17,6 @@ def test_generated_schema_resources_are_committed_and_fresh() -> None:
 
     generated_dir = Path("schema/generated")
     for name in sorted(expected_names):
-        assert (RESOURCE_SCHEMA_DIR / name).read_bytes() == (generated_dir / name).read_bytes()
+        assert (RESOURCE_SCHEMA_DIR / name).read_bytes() == (
+            generated_dir / name
+        ).read_bytes()

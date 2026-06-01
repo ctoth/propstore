@@ -22,7 +22,9 @@ from propstore.provenance import (
 
 
 _PROP_SETTINGS = settings(deadline=None)
-_VARIABLES = tuple(SourceVariableId(f"ps:source:test:{name}") for name in ("a", "b", "c"))
+_VARIABLES = tuple(
+    SourceVariableId(f"ps:source:test:{name}") for name in ("a", "b", "c")
+)
 
 
 def _provenance() -> Provenance:
@@ -82,16 +84,17 @@ class TestPolynomialDerivative:
             _provenance(),
         )
 
-        assert partial_derivative(live(poly, (nogood,)), a) == ProvenancePolynomial.zero()
+        assert (
+            partial_derivative(live(poly, (nogood,)), a) == ProvenancePolynomial.zero()
+        )
 
     def test_source_removal_affects_only_monomials_containing_source(self):
         a = SourceVariableId("ps:source:test:a")
         b = SourceVariableId("ps:source:test:b")
         c = SourceVariableId("ps:source:test:c")
-        poly = (
-            ProvenancePolynomial.variable(a) * ProvenancePolynomial.variable(b)
-            + ProvenancePolynomial.variable(c)
-        )
+        poly = ProvenancePolynomial.variable(a) * ProvenancePolynomial.variable(
+            b
+        ) + ProvenancePolynomial.variable(c)
 
         derivative = partial_derivative(poly, a)
 

@@ -134,7 +134,9 @@ def dispatch(
         conflicts_payload = payload.get("conflicts") or {}
         conflicts = {
             str(atom_id): _string_tuple(targets)
-            for atom_id, targets in _required_mapping(conflicts_payload, "conflicts").items()
+            for atom_id, targets in _required_mapping(
+                conflicts_payload, "conflicts"
+            ).items()
         }
         decision = decide_revise(
             state.base,
@@ -215,7 +217,9 @@ def dispatch(
 def _formula_atom(payload: Mapping[str, Any]) -> BeliefAtom:
     formula = payload.get("formula")
     if not isinstance(formula, Mapping):
-        raise ValueError("journal operator_input.formula must be a normalized belief atom")
+        raise ValueError(
+            "journal operator_input.formula must be a normalized belief atom"
+        )
     return belief_atom_from_canonical_dict(formula)
 
 
@@ -254,7 +258,9 @@ def _required_policy_snapshot(value: Mapping[str, str]) -> None:
     }
     missing = sorted(required - set(value))
     if missing:
-        raise ValueError(f"journal dispatch missing policy versions: {', '.join(missing)}")
+        raise ValueError(
+            f"journal dispatch missing policy versions: {', '.join(missing)}"
+        )
     empty = sorted(key for key in required if not str(value.get(key) or "").strip())
     if empty:
         raise ValueError(f"journal dispatch empty policy versions: {', '.join(empty)}")
@@ -304,7 +310,9 @@ def _raise_ic_merge_failure(
     event = RevisionEvent(
         operation=JournalOperator.IC_MERGE.value,
         pre_state_hash=EpistemicSnapshot.from_state(state).content_hash,
-        target_atom_ids=tuple(atom_id for profile in profile_atom_ids for atom_id in profile),
+        target_atom_ids=tuple(
+            atom_id for profile in profile_atom_ids for atom_id in profile
+        ),
         decision=decision_report,
         realization=None,
         policy_snapshot=policy_snapshot,

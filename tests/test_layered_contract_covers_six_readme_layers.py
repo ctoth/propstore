@@ -73,7 +73,6 @@ def test_legacy_forbidden_contracts_are_deleted() -> None:
     parser = _load_importlinter_config()
 
     assert not (set(_contract_sections(parser)) & LEGACY_FORBIDDEN_CONTRACTS)
-    assert {
-        parser.get(section, "type")
-        for section in _contract_sections(parser)
-    } == {"layers"}
+    assert {parser.get(section, "type") for section in _contract_sections(parser)} == {
+        "layers"
+    }

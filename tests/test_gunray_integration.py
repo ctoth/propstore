@@ -119,9 +119,9 @@ def _build_loaded_concept(canonical_name: str, relationships):
 
     from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
     from propstore.core.id_types import (
-    ConceptId,
-    LogicalId,
-)
+        ConceptId,
+        LogicalId,
+    )
 
     artifact_id = ConceptId(f"ps:concept:{canonical_name}")
     logical_id = LogicalId(namespace="propstore", value=canonical_name)
@@ -229,10 +229,7 @@ def _build_defeasible_rule(rule_id: str, head, body):
         id=rule_id,
         kind="defeasible",
         head=head,
-        body=tuple(
-            BodyLiteralDocument(kind="positive", atom=atom)
-            for atom in body
-        ),
+        body=tuple(BodyLiteralDocument(kind="positive", atom=atom) for atom in body),
     )
 
 
@@ -422,12 +419,8 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     # Diller, Borg, Bex 2025 §3: the bundle must carry the four
     # sections; the definitely section echoes the input facts and the
     # defeasibly section contains the ground rule head.
-    assert ("tweety",) in bundle.sections["yes"].get(
-        "bird", frozenset()
-    )
-    assert ("tweety",) in bundle.sections["yes"].get(
-        "flies", frozenset()
-    )
+    assert ("tweety",) in bundle.sections["yes"].get("bird", frozenset())
+    assert ("tweety",) in bundle.sections["yes"].get("flies", frozenset())
 
     result = query_claim(
         GroundAtom("flies", ("tweety",)),
@@ -501,9 +494,7 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
     bundle = ground(empty_rules, facts, registry)
 
     # Facts are still present: Diller, Borg, Bex 2025 §3 Def 7.
-    assert ("tweety",) in bundle.sections["yes"].get(
-        "bird", frozenset()
-    )
+    assert ("tweety",) in bundle.sections["yes"].get("bird", frozenset())
     # No derived ``flies`` entry — the defeasibly section has no
     # row for a predicate that no rule references.
     assert bundle.sections["yes"].get("flies", frozenset()) == frozenset()
@@ -701,9 +692,7 @@ def test_tweety_rule_body_fact_missing_produces_zero_arguments() -> None:
 
     # Modgil & Prakken 2018 Def 5 (pp.9-10): without a usable
     # defeasible rule, no DefeasibleArg can be constructed.
-    defeasible_args = [
-        arg for arg in csaf.arguments if isinstance(arg, DefeasibleArg)
-    ]
+    defeasible_args = [arg for arg in csaf.arguments if isinstance(arg, DefeasibleArg)]
     assert defeasible_args == []
 
 

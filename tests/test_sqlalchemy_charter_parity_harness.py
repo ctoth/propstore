@@ -23,7 +23,9 @@ def test_parity_harness_passes_matching_sqlite_fixtures(tmp_path: Path) -> None:
     assert report["row_counts"]["entity"]["status"] == "pass"
 
 
-def test_parity_harness_records_schema_catalog_without_row_comparing_it(tmp_path: Path) -> None:
+def test_parity_harness_records_schema_catalog_without_row_comparing_it(
+    tmp_path: Path,
+) -> None:
     before = tmp_path / "before.sqlite"
     after = tmp_path / "after.sqlite"
     out = tmp_path / "report.json"
@@ -95,12 +97,10 @@ def test_parity_harness_requires_vector_blocks(tmp_path: Path) -> None:
     _baseline(before)
 
     passing = main(
-        _args(tmp_path, before, after, out)
-        + ["--require-vector", "entity_vec"]
+        _args(tmp_path, before, after, out) + ["--require-vector", "entity_vec"]
     )
     failing = main(
-        _args(tmp_path, before, after, out)
-        + ["--require-vector", "missing_vec"]
+        _args(tmp_path, before, after, out) + ["--require-vector", "missing_vec"]
     )
 
     report = json.loads(out.read_text(encoding="utf-8"))
@@ -161,8 +161,7 @@ def test_parity_harness_requires_behavior_blocks(tmp_path: Path) -> None:
         + ["--require-behavior", "behavior_claim_lookup"]
     )
     failing = main(
-        _args(tmp_path, before, after, out)
-        + ["--require-behavior", "missing_behavior"]
+        _args(tmp_path, before, after, out) + ["--require-behavior", "missing_behavior"]
     )
 
     report = json.loads(out.read_text(encoding="utf-8"))
@@ -243,7 +242,9 @@ def _fixture_db(
     conn = sqlite3.connect(path)
     try:
         conn.execute("CREATE TABLE entity (id TEXT PRIMARY KEY, value TEXT NOT NULL)")
-        conn.execute("CREATE TABLE entity_vec (id TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        conn.execute(
+            "CREATE TABLE entity_vec (id TEXT PRIMARY KEY, value TEXT NOT NULL)"
+        )
         conn.execute(
             "CREATE TABLE behavior_claim_lookup (id TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )

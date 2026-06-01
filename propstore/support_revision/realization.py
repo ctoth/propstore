@@ -58,7 +58,9 @@ def realize_formal_decision(
         support_entrenchment=support_entrenchment,
         max_candidates=max_candidates,
     )
-    forced_rejections = _forced_support_rejections(working_base, rejected_ids, incision_set)
+    forced_rejections = _forced_support_rejections(
+        working_base, rejected_ids, incision_set
+    )
     stabilized = stabilize_belief_base(
         working_base,
         incision_set=incision_set,
@@ -66,7 +68,9 @@ def realize_formal_decision(
     )
     explanation: dict[str, RevisionAtomDetail] = dict(stabilized.explanation)
     for atom_id in accepted_ids:
-        if atom_id in stabilized.accepted_atom_ids and atom_id in {atom.atom_id for atom in extra_atoms}:
+        if atom_id in stabilized.accepted_atom_ids and atom_id in {
+            atom.atom_id for atom in extra_atoms
+        }:
             explanation[atom_id] = RevisionAtomDetail(reason=accepted_reason)
     for atom_id in rejected_ids:
         explanation.setdefault(
@@ -106,10 +110,18 @@ def realize_ic_merge_decision(
         raise _ic_merge_failure("ambiguous_selected_worlds", decision)
 
     atoms_by_id = {atom.atom_id: atom for atom in base.atoms}
-    projected_atom_ids = tuple(atom_id for atom_id in decision.projection.formula_by_atom_id if atom_id in atoms_by_id)
+    projected_atom_ids = tuple(
+        atom_id
+        for atom_id in decision.projection.formula_by_atom_id
+        if atom_id in atoms_by_id
+    )
     selected = set(selected_worlds[0])
-    accepted_ids = tuple(atom_id for atom_id in projected_atom_ids if atom_id in selected)
-    rejected_ids = tuple(atom_id for atom_id in projected_atom_ids if atom_id not in selected)
+    accepted_ids = tuple(
+        atom_id for atom_id in projected_atom_ids if atom_id in selected
+    )
+    rejected_ids = tuple(
+        atom_id for atom_id in projected_atom_ids if atom_id not in selected
+    )
     missing = tuple(atom_id for atom_id in selected if atom_id not in atoms_by_id)
     if missing:
         raise _ic_merge_failure("unmapped_formal_atom", decision)
@@ -158,13 +170,17 @@ def realize_ic_merge_decision(
     )
 
 
-def _ic_merge_failure(reason: str, decision: FormalDecision) -> RevisionMergeRequiredFailure:
+def _ic_merge_failure(
+    reason: str, decision: FormalDecision
+) -> RevisionMergeRequiredFailure:
     trace = decision.report.trace
     return RevisionMergeRequiredFailure(
         reason=reason,
         decision_report=decision.report,
         profile_atom_ids=_trace_profile_atom_ids(trace.get("profile_atom_ids") or ()),
-        integrity_constraint=_trace_integrity_constraint(trace.get("integrity_constraint")),
+        integrity_constraint=_trace_integrity_constraint(
+            trace.get("integrity_constraint")
+        ),
         selected_worlds_hash=trace.get("selected_worlds_hash"),
     )
 
@@ -250,7 +266,9 @@ def stabilize_belief_base(
             active_base,
             [atom for atom in active_base.atoms if atom.atom_id in accepted_set],
         )
-        if tuple(atom.atom_id for atom in rebuilt.atoms) == tuple(atom.atom_id for atom in active_base.atoms):
+        if tuple(atom.atom_id for atom in rebuilt.atoms) == tuple(
+            atom.atom_id for atom in active_base.atoms
+        ):
             return RevisionResult(
                 revised_base=rebuilt,
                 accepted_atom_ids=tuple(accepted_ids),
@@ -275,13 +293,20 @@ def _support_realization_cuts(
         for support_set in base.support_sets.get(atom_id, ())
     ]
     if not support_sets:
-        return tuple(sorted(atom_id for atom_id in rejected if atom_id.startswith("assumption:")))
+        return tuple(
+            sorted(atom_id for atom_id in rejected if atom_id.startswith("assumption:"))
+        )
 
-    candidates = sorted({assumption_id for support_set in support_sets for assumption_id in support_set})
+    candidates = sorted(
+        {assumption_id for support_set in support_sets for assumption_id in support_set}
+    )
     rank_index = (
         {}
         if support_entrenchment is None
-        else {atom_id: idx for idx, atom_id in enumerate(support_entrenchment.ranked_atom_ids)}
+        else {
+            atom_id: idx
+            for idx, atom_id in enumerate(support_entrenchment.ranked_atom_ids)
+        }
     )
     fallback_rank = len(rank_index) + len(candidates)
     best_combo: tuple[str, ...] | None = None
@@ -296,7 +321,10 @@ def _support_realization_cuts(
                 )
             examined += 1
             combo_set = set(combo)
-            if not all(any(assumption_id in combo_set for assumption_id in support_set) for support_set in support_sets):
+            if not all(
+                any(assumption_id in combo_set for assumption_id in support_set)
+                for support_set in support_sets
+            ):
                 continue
             weakness = sum(rank_index.get(atom_id, fallback_rank) for atom_id in combo)
             score = (size, -weakness, combo)
@@ -342,7 +370,10 @@ def _has_surviving_support(
     incision_set: Sequence[str],
 ) -> bool:
     incised = set(incision_set)
-    return any(all(assumption_id not in incised for assumption_id in support_set) for support_set in support_sets)
+    return any(
+        all(assumption_id not in incised for assumption_id in support_set)
+        for support_set in support_sets
+    )
 
 
 def _rebuild_base(base: BeliefBase, atoms: Sequence[BeliefAtom]) -> BeliefBase:

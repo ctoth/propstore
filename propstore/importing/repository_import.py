@@ -153,9 +153,13 @@ def plan_repository_import(
     warnings = list(normalized_import.warnings)
 
     existing_paths: set[str] = set()
-    existing_branch_sha = destination_repository.require_git().branch_sha(selected_branch)
+    existing_branch_sha = destination_repository.require_git().branch_sha(
+        selected_branch
+    )
     if existing_branch_sha is not None:
-        existing_paths = set(_iter_semantic_paths(destination_repository, commit=existing_branch_sha))
+        existing_paths = set(
+            _iter_semantic_paths(destination_repository, commit=existing_branch_sha)
+        )
     deletes = sorted(existing_paths - set(writes))
     touched_paths = sorted(set(writes) | set(deletes))
 
@@ -191,13 +195,17 @@ def commit_repository_import(
     if git is None:
         raise ValueError("repository import requires a git-backed repository")
     primary_branch = git.primary_branch_name()
-    if git.branch_sha(plan.target_branch) is None and plan.target_branch != primary_branch:
+    if (
+        git.branch_sha(plan.target_branch) is None
+        and plan.target_branch != primary_branch
+    ):
         git.create_branch(plan.target_branch)
     commit_sha: str | None = None
     with git.head_bound_transaction(plan.target_branch) as head_txn:
         with head_txn.families_transact(
             repository.families,
-            message=message or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
+            message=message
+            or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
         ) as transaction:
             import_registry = _semantic_import_registry()
             for planned_write in plan.writes.values():
@@ -207,7 +215,9 @@ def commit_repository_import(
                 )
             for path in plan.deletes:
                 semantic_family = import_registry.family_for_path(path)
-                bound_family = transaction.by_artifact_family(cast(Any, semantic_family.artifact_family))
+                bound_family = transaction.by_artifact_family(
+                    cast(Any, semantic_family.artifact_family)
+                )
                 bound_family.delete(bound_family.ref_from_path(path))
         commit_sha = head_txn.commit_sha
     if commit_sha is None:

@@ -41,7 +41,10 @@ def legacy_dependency_order(text: str) -> list[str]:
     match = DEPENDENCY_SECTION_RE.search(f"{text}\n## ")
     if match is None:
         raise ValueError("missing Dependency Order section")
-    return [match.group("title").strip() for match in ORDER_ITEM_RE.finditer(match.group("body"))]
+    return [
+        match.group("title").strip()
+        for match in ORDER_ITEM_RE.finditer(match.group("body"))
+    ]
 
 
 def phase_order_files(text: str) -> list[str]:
@@ -70,7 +73,9 @@ def prerequisite_files(text: str) -> set[str]:
     if match is None:
         return set()
     body = match.group("body")
-    return {Path(file_match.group("path")).name for file_match in FILE_REF_RE.finditer(body)}
+    return {
+        Path(file_match.group("path")).name for file_match in FILE_REF_RE.finditer(body)
+    }
 
 
 def has_prerequisite_section(text: str) -> bool:
@@ -100,20 +105,30 @@ def check_split_workstream(workstream: Path, text: str) -> int:
             continue
         child_text = child_path.read_text(encoding="utf-8")
         prerequisites = prerequisite_files(child_text)
-        if requires_declared_prerequisites(filename) and not has_prerequisite_section(child_text):
+        if requires_declared_prerequisites(filename) and not has_prerequisite_section(
+            child_text
+        ):
             failures.append(f"{filename} is missing a prerequisite section")
 
-        required_prior = set(ordered_files[:index]) if requires_declared_prerequisites(filename) else set()
+        required_prior = (
+            set(ordered_files[:index])
+            if requires_declared_prerequisites(filename)
+            else set()
+        )
         missing_prior = sorted(required_prior - prerequisites)
         for prerequisite in missing_prior:
-            failures.append(f"{filename} omits required earlier phase prerequisite: {prerequisite}")
+            failures.append(
+                f"{filename} omits required earlier phase prerequisite: {prerequisite}"
+            )
 
         for prerequisite in sorted(prerequisites):
             prerequisite_index = order.get(prerequisite)
             if prerequisite_index is None:
                 if prerequisite in ALLOWED_EXTERNAL_REFS:
                     continue
-                failures.append(f"{filename} references prerequisite outside phase order: {prerequisite}")
+                failures.append(
+                    f"{filename} references prerequisite outside phase order: {prerequisite}"
+                )
                 continue
             if prerequisite_index > index:
                 failures.append(f"{filename} depends on later phase {prerequisite}")
@@ -137,13 +152,15 @@ def check_legacy_workstream(workstream: Path, text: str) -> int:
         print("Dependency Order section has no numbered items", file=sys.stderr)
         return 1
 
-    phase_titles = [match.group("title").strip() for match in LEGACY_PHASE_RE.finditer(text)]
-    phase_by_normalized = {normalize(title): index for index, title in enumerate(phase_titles)}
+    phase_titles = [
+        match.group("title").strip() for match in LEGACY_PHASE_RE.finditer(text)
+    ]
+    phase_by_normalized = {
+        normalize(title): index for index, title in enumerate(phase_titles)
+    }
 
     missing = [
-        title
-        for title in dependencies
-        if normalize(title) not in phase_by_normalized
+        title for title in dependencies if normalize(title) not in phase_by_normalized
     ]
     if missing:
         for title in missing:

@@ -30,7 +30,9 @@ from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
     ),
 )
 @settings(deadline=None)
-def test_normalized_source_claim_ids_are_content_stable(local_id_a: str, local_id_b: str) -> None:
+def test_normalized_source_claim_ids_are_content_stable(
+    local_id_a: str, local_id_b: str
+) -> None:
     claim_a = {
         "id": local_id_a,
         "type": "observation",
@@ -198,7 +200,9 @@ def test_source_add_claim_auto_finalizes(tmp_path: Path) -> None:
 
     branch_tip = repo.git.branch_sha("source/demo")
     assert branch_tip is not None
-    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
+    report = yaml.safe_load(
+        repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip)
+    )
     assert report["kind"] == "source_finalize_report"
     assert report["status"] == "ready"
 
@@ -239,7 +243,9 @@ def test_source_finalize_writes_report(tmp_path: Path) -> None:
 
     branch_tip = repo.git.branch_sha("source/demo")
     assert branch_tip is not None
-    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
+    report = yaml.safe_load(
+        repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip)
+    )
     assert report["kind"] == "source_finalize_report"
     assert report["status"] == "ready"
     assert report["calibration"]["fallback_to_default_base_rate"] is True
@@ -298,31 +304,72 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
     )
 
     # init source, add concept, add claim, finalize, promote
-    assert runner.invoke(cli, [
-        "-C", str(repo.root),
-        "source", "init", "demo",
-        "--kind", "academic_paper",
-        "--origin-type", "manual", "--origin-value", "demo",
-    ]).exit_code == 0
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "init",
+                "demo",
+                "--kind",
+                "academic_paper",
+                "--origin-type",
+                "manual",
+                "--origin-value",
+                "demo",
+            ],
+        ).exit_code
+        == 0
+    )
 
-    assert runner.invoke(cli, [
-        "-C", str(repo.root),
-        "source", "propose-concept", "demo",
-        "--concept-name", "test_concept",
-        "--definition", "A test concept",
-        "--form", "structural",
-    ]).exit_code == 0
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "propose-concept",
+                "demo",
+                "--concept-name",
+                "test_concept",
+                "--definition",
+                "A test concept",
+                "--form",
+                "structural",
+            ],
+        ).exit_code
+        == 0
+    )
 
-    assert runner.invoke(cli, [
-        "-C", str(repo.root),
-        "source", "add-claim", "demo",
-        "--batch", str(claims_file),
-    ]).exit_code == 0
+    assert (
+        runner.invoke(
+            cli,
+            [
+                "-C",
+                str(repo.root),
+                "source",
+                "add-claim",
+                "demo",
+                "--batch",
+                str(claims_file),
+            ],
+        ).exit_code
+        == 0
+    )
 
-    result = runner.invoke(cli, [
-        "-C", str(repo.root),
-        "source", "promote", "demo",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "promote",
+            "demo",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     # Read the promoted claims from master
@@ -345,7 +392,8 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
 def test_claims_document_produced_by_roundtrip(tmp_path: Path) -> None:
     """produced_by field survives decode -> to_payload round-trip."""
     claims_yaml = tmp_path / "claims.yaml"
-    claims_yaml.write_text(textwrap.dedent("""\
+    claims_yaml.write_text(
+        textwrap.dedent("""\
         source:
           paper: test_paper
         produced_by:
@@ -360,7 +408,8 @@ def test_claims_document_produced_by_roundtrip(tmp_path: Path) -> None:
             provenance:
               paper: test_paper
               page: 1
-    """))
+    """)
+    )
     doc = decode_document_batch_bytes(
         claims_yaml.read_bytes(),
         SOURCE_CLAIM_BATCH_SPEC,

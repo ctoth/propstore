@@ -106,8 +106,7 @@ class LogReport:
         return {
             "branch": self.branch,
             "entries": [
-                entry.to_payload(show_files=show_files)
-                for entry in self.entries
+                entry.to_payload(show_files=show_files) for entry in self.entries
             ],
         }
 

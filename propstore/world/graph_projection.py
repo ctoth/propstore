@@ -46,7 +46,9 @@ def project_knowledge_graph(
         )
         node_ids.add(concept_id)
 
-    claims = list(bound.active_claims() if bound is not None else world.claims_for(None))
+    claims = list(
+        bound.active_claims() if bound is not None else world.claims_for(None)
+    )
     if allowed_concept_ids is not None:
         claims = [
             claim
@@ -100,7 +102,9 @@ def project_knowledge_graph(
 
     for row in world.all_claim_stances():
         source_id = claim_display_ids.get(str(row.claim_id), str(row.claim_id))
-        target_id = claim_display_ids.get(str(row.target_claim_id), str(row.target_claim_id))
+        target_id = claim_display_ids.get(
+            str(row.target_claim_id), str(row.target_claim_id)
+        )
         _append_edge(
             graph,
             GraphEdgeProjection(

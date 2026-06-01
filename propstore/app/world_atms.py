@@ -205,7 +205,9 @@ def _support_ids(support: object) -> dict[str, list[str]]:
     }
 
 
-def _mapping_sequence(value: object, *, field_name: str) -> tuple[Mapping[str, object], ...]:
+def _mapping_sequence(
+    value: object, *, field_name: str
+) -> tuple[Mapping[str, object], ...]:
     if not isinstance(value, tuple | list):
         raise WorldAtmsValidationError(f"{field_name} must be a sequence")
     result: list[Mapping[str, object]] = []
@@ -236,9 +238,7 @@ def bind_atms_world(
         Environment(
             bindings=dict(request.bindings),
             context_id=(
-                None
-                if request.context_id is None
-                else ContextId(request.context_id)
+                None if request.context_id is None else ContextId(request.context_id)
             ),
         ),
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
@@ -257,7 +257,9 @@ def _bind_atms(repo: Repository, request: AppAtmsViewRequest):
         raise
 
 
-def _claim_future_report(target: str, report: ATMSFutureStatusReport) -> AtmsClaimFutureReport:
+def _claim_future_report(
+    target: str, report: ATMSFutureStatusReport
+) -> AtmsClaimFutureReport:
     return AtmsClaimFutureReport(
         target=target,
         current_status=_status_value(report.current.status),
@@ -276,7 +278,9 @@ def _claim_future_report(target: str, report: ATMSFutureStatusReport) -> AtmsCla
     )
 
 
-def world_atms_status(repo: Repository, request: AppAtmsViewRequest) -> AtmsStatusReport:
+def world_atms_status(
+    repo: Repository, request: AppAtmsViewRequest
+) -> AtmsStatusReport:
     manager, wm, bound, _bindings, concept_id = _bind_atms(repo, request)
     try:
         resolved = None if concept_id is None else resolve_world_target(wm, concept_id)
@@ -301,15 +305,19 @@ def world_atms_status(repo: Repository, request: AppAtmsViewRequest) -> AtmsStat
         manager.__exit__(None, None, None)
 
 
-def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsContextReport:
+def world_atms_context(
+    repo: Repository, request: AppAtmsViewRequest
+) -> AtmsContextReport:
     from propstore.core.labels import EnvironmentKey
 
     manager, wm, bound, _bindings, concept_id = _bind_atms(repo, request)
     try:
-        environment_key = EnvironmentKey(tuple(
-            assumption.assumption_id
-            for assumption in bound._environment.assumptions
-        ))
+        environment_key = EnvironmentKey(
+            tuple(
+                assumption.assumption_id
+                for assumption in bound._environment.assumptions
+            )
+        )
         environment_assumption_ids = tuple(
             str(assumption.assumption_id)
             for assumption in bound._environment.assumptions
@@ -346,7 +354,9 @@ def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsCon
         manager.__exit__(None, None, None)
 
 
-def world_atms_verify(repo: Repository, request: AppAtmsViewRequest) -> AtmsVerifyReport:
+def world_atms_verify(
+    repo: Repository, request: AppAtmsViewRequest
+) -> AtmsVerifyReport:
     manager, _wm, bound, _bindings, _concept_id = _bind_atms(repo, request)
     try:
         raw = bound.atms_engine().verify_labels()
@@ -354,14 +364,18 @@ def world_atms_verify(repo: Repository, request: AppAtmsViewRequest) -> AtmsVeri
             "consistency_errors": tuple(str(error) for error in raw.consistency_errors),
             "minimality_errors": tuple(str(error) for error in raw.minimality_errors),
             "soundness_errors": tuple(str(error) for error in raw.soundness_errors),
-            "completeness_errors": tuple(str(error) for error in raw.completeness_errors),
+            "completeness_errors": tuple(
+                str(error) for error in raw.completeness_errors
+            ),
         }
         return AtmsVerifyReport(ok=bool(raw.ok), sections=sections)
     finally:
         manager.__exit__(None, None, None)
 
 
-def world_atms_futures(repo: Repository, request: AppAtmsTargetRequest) -> AtmsFutureReport:
+def world_atms_futures(
+    repo: Repository, request: AppAtmsTargetRequest
+) -> AtmsFutureReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
         AppAtmsViewRequest(bindings=request.bindings, context=request.context),
@@ -394,7 +408,9 @@ def world_atms_futures(repo: Repository, request: AppAtmsTargetRequest) -> AtmsF
         manager.__exit__(None, None, None)
 
 
-def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsWhyOutReport:
+def world_atms_why_out(
+    repo: Repository, request: AppAtmsTargetRequest
+) -> AtmsWhyOutReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
         AppAtmsViewRequest(bindings=request.bindings, context=request.context),
@@ -431,7 +447,9 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
         return AtmsConceptWhyOutReport(
             target=resolved,
             value_status=concept_report.value_status,
-            supported_claim_ids=tuple(str(claim_id) for claim_id in concept_report.supported_claim_ids),
+            supported_claim_ids=tuple(
+                str(claim_id) for claim_id in concept_report.supported_claim_ids
+            ),
             claim_reasons=tuple(
                 AtmsClaimWhyOutReport(
                     target=str(claim_id),
@@ -451,7 +469,9 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
         manager.__exit__(None, None, None)
 
 
-def world_atms_stability(repo: Repository, request: AppAtmsTargetRequest) -> AtmsStabilityReport:
+def world_atms_stability(
+    repo: Repository, request: AppAtmsTargetRequest
+) -> AtmsStabilityReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
         AppAtmsViewRequest(bindings=request.bindings, context=request.context),
@@ -472,7 +492,9 @@ def world_atms_stability(repo: Repository, request: AppAtmsTargetRequest) -> Atm
                 consistent_future_count=report.consistent_future_count,
                 witnesses=tuple(
                     AtmsFutureLine(
-                        queryable_cels=tuple(str(value) for value in witness.queryable_cels),
+                        queryable_cels=tuple(
+                            str(value) for value in witness.queryable_cels
+                        ),
                         status=_status_value(witness.status),
                     )
                     for witness in report.witnesses
@@ -487,7 +509,9 @@ def world_atms_stability(repo: Repository, request: AppAtmsTargetRequest) -> Atm
             consistent_future_count=report.consistent_future_count,
             witnesses=tuple(
                 AtmsFutureLine(
-                    queryable_cels=tuple(str(value) for value in witness.queryable_cels),
+                    queryable_cels=tuple(
+                        str(value) for value in witness.queryable_cels
+                    ),
                     status=_status_value(witness.status),
                 )
                 for witness in report.witnesses
@@ -497,7 +521,9 @@ def world_atms_stability(repo: Repository, request: AppAtmsTargetRequest) -> Atm
         manager.__exit__(None, None, None)
 
 
-def world_atms_relevance(repo: Repository, request: AppAtmsTargetRequest) -> AtmsRelevanceReport:
+def world_atms_relevance(
+    repo: Repository, request: AppAtmsTargetRequest
+) -> AtmsRelevanceReport:
     manager, wm, bound, _bindings, _concept_id = _bind_atms(
         repo,
         AppAtmsViewRequest(bindings=request.bindings, context=request.context),
@@ -520,13 +546,11 @@ def world_atms_relevance(repo: Repository, request: AppAtmsTargetRequest) -> Atm
                     AtmsRelevancePairLine(
                         queryable_cel=str(queryable_cel),
                         without_queryables=tuple(
-                            str(value)
-                            for value in pair.without_state.queryable_cels
+                            str(value) for value in pair.without_state.queryable_cels
                         ),
                         without_status=_status_value(pair.without_state.status),
                         with_queryables=tuple(
-                            str(value)
-                            for value in pair.with_state.queryable_cels
+                            str(value) for value in pair.with_state.queryable_cels
                         ),
                         with_status=_status_value(pair.with_state.status),
                     )

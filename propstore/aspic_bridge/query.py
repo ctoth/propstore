@@ -59,7 +59,9 @@ def _query_goal_key(
             return matches[0]
         if len(matches) > 1:
             contexts = ", ".join(sorted(str(key.context_id) for key in matches))
-            raise ValueError(f"claim {goal_ref!r} is ambiguous across contexts: {contexts}")
+            raise ValueError(
+                f"claim {goal_ref!r} is ambiguous across contexts: {contexts}"
+            )
         return claim_key(goal_ref)
     if isinstance(goal_ref, GroundAtom):
         return ground_key(goal_ref, False)
@@ -101,9 +103,7 @@ def query_claim(
         max_depth=max_depth,
     )
     arguments = frozenset(
-        sub_argument
-        for argument in arguments
-        for sub_argument in sub(argument)
+        sub_argument for argument in arguments for sub_argument in sub(argument)
     )
     attacks = compute_attacks(arguments, compiled.system)
     directed_pairs = preference_sensitive_stance_pairs(stances, compiled.literals)
@@ -123,9 +123,13 @@ def query_claim(
         pref=compiled.pref,
         directed_pairs=directed_pairs,
     )
-    defeat_pairs = frozenset((attack.attacker, attack.target) for attack in defeat_attacks)
+    defeat_pairs = frozenset(
+        (attack.attacker, attack.target) for attack in defeat_attacks
+    )
 
-    arguments_for = frozenset(argument for argument in arguments if conc(argument) == goal)
+    arguments_for = frozenset(
+        argument for argument in arguments if conc(argument) == goal
+    )
     against_literals = contraries_of(
         goal,
         compiled.system.contrariness,
@@ -135,14 +139,10 @@ def query_claim(
         argument for argument in arguments if conc(argument) in against_literals
     }
     goal_subarguments = frozenset(
-        sub_argument
-        for argument in arguments_for
-        for sub_argument in sub(argument)
+        sub_argument for argument in arguments_for for sub_argument in sub(argument)
     )
     attacked_goal_arguments = {
-        attack.attacker
-        for attack in attacks
-        if attack.target_sub in goal_subarguments
+        attack.attacker for attack in attacks if attack.target_sub in goal_subarguments
     }
     arguments_against = frozenset(conclusion_attackers | attacked_goal_arguments)
 

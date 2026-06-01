@@ -42,16 +42,18 @@ def _payload(
 
 def test_micropub_id_is_trusty_uri_over_canonical_payload() -> None:
     left = _micropub(_payload())
-    right = _micropub({
-        "source": "tag:local@propstore,2026:source/demo",
-        "claims": ["ps:claim:alpha"],
-        "context": {"id": "ctx_alpha"},
-        "provenance": {"page": 1, "paper": "demo"},
-        "assumptions": ["domain == 'argumentation'"],
-        "evidence": [{"reference": "demo:1", "kind": "paper_page"}],
-        "version_id": "different-recursive-version",
-        "artifact_id": "ps:micropub:different-recursive-artifact",
-    })
+    right = _micropub(
+        {
+            "source": "tag:local@propstore,2026:source/demo",
+            "claims": ["ps:claim:alpha"],
+            "context": {"id": "ctx_alpha"},
+            "provenance": {"page": 1, "paper": "demo"},
+            "assumptions": ["domain == 'argumentation'"],
+            "evidence": [{"reference": "demo:1", "kind": "paper_page"}],
+            "version_id": "different-recursive-version",
+            "artifact_id": "ps:micropub:different-recursive-artifact",
+        }
+    )
 
     assert canonical_micropub_payload(left) == canonical_micropub_payload(right)
     assert micropub_artifact_id(left) == micropub_artifact_id(right)
@@ -113,18 +115,22 @@ def test_micropub_id_is_deterministic_for_same_canonical_payload(
 def test_micropub_canonical_payload_ignores_nonsemantic_claim_order(
     claims: list[str],
 ) -> None:
-    left = _micropub({
-        "artifact_id": "ps:micropub:left",
-        "context": {"id": "ctx_alpha"},
-        "claims": claims,
-        "source": "tag:local@propstore,2026:source/demo",
-    })
-    right = _micropub({
-        "artifact_id": "ps:micropub:right",
-        "context": {"id": "ctx_alpha"},
-        "claims": list(reversed(claims)),
-        "source": "tag:local@propstore,2026:source/demo",
-    })
+    left = _micropub(
+        {
+            "artifact_id": "ps:micropub:left",
+            "context": {"id": "ctx_alpha"},
+            "claims": claims,
+            "source": "tag:local@propstore,2026:source/demo",
+        }
+    )
+    right = _micropub(
+        {
+            "artifact_id": "ps:micropub:right",
+            "context": {"id": "ctx_alpha"},
+            "claims": list(reversed(claims)),
+            "source": "tag:local@propstore,2026:source/demo",
+        }
+    )
 
     assert canonical_micropub_payload(left) == canonical_micropub_payload(right)
     assert micropub_artifact_id(left) == micropub_artifact_id(right)

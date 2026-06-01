@@ -97,10 +97,7 @@ def make_assertion_atom(
             f"urn:propstore:test-claim-prov:{relation_local}/{subject}/{value}"
         ),
     )
-    source_claims = tuple(
-        make_claim(local)
-        for local in source_claim_local_ids
-    )
+    source_claims = tuple(make_claim(local) for local in source_claim_local_ids)
     return AssertionAtom(
         atom_id="",  # __post_init__ overwrites to str(assertion.assertion_id)
         assertion=assertion,
@@ -156,10 +153,12 @@ class MaraJadeFixture:
     def expected_claim_ids(self) -> frozenset[str]:
         # Asserted by hand from the fixture definition, NOT projected from
         # the journal's accepted_atom_ids.
-        return frozenset({
-            "propstore:claim:test/mara_learns_orders",
-            "propstore:claim:test/mara_assigned_to_find_karrde",
-        })
+        return frozenset(
+            {
+                "propstore:claim:test/mara_learns_orders",
+                "propstore:claim:test/mara_assigned_to_find_karrde",
+            }
+        )
 
 
 def mara_jade_fixture() -> MaraJadeFixture:
@@ -255,7 +254,7 @@ def synthetic_belief_space_with(*atoms: AssertionAtom) -> SyntheticBeliefSpace:
 def _local_from_artifact(claim_id: str) -> str:
     prefix = "propstore:claim:test/"
     if claim_id.startswith(prefix):
-        return claim_id[len(prefix):]
+        return claim_id[len(prefix) :]
     return claim_id
 
 

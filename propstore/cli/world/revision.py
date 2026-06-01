@@ -1,4 +1,5 @@
 """Revision-oriented ``pks world`` command adapters."""
+
 from __future__ import annotations
 
 import json
@@ -92,9 +93,19 @@ def _emit_revision_result(result) -> None:
 
     realization = getattr(result, "realization", None)
     emit("Support realization:")
-    accepted_atom_ids = result.accepted_atom_ids if realization is None else realization.accepted_atom_ids
-    rejected_atom_ids = result.rejected_atom_ids if realization is None else realization.rejected_atom_ids
-    incision_set = result.incision_set if realization is None else realization.incision_set
+    accepted_atom_ids = (
+        result.accepted_atom_ids
+        if realization is None
+        else realization.accepted_atom_ids
+    )
+    rejected_atom_ids = (
+        result.rejected_atom_ids
+        if realization is None
+        else realization.rejected_atom_ids
+    )
+    incision_set = (
+        result.incision_set if realization is None else realization.incision_set
+    )
     emit_section(f"Accepted ({len(accepted_atom_ids)} atoms):", accepted_atom_ids)
     emit_section(f"Rejected ({len(rejected_atom_ids)} atoms):", rejected_atom_ids)
     emit(f"Incision set: {', '.join(incision_set) if incision_set else '(none)'}")
@@ -158,18 +169,26 @@ def _emit_epistemic_state(state) -> None:
     emit(f"History length: {len(state.history)}")
     emit_section(
         "Ranking:",
-        (f"{rank}. {atom_id}" for rank, atom_id in enumerate(state.ranked_atom_ids, start=1)),
+        (
+            f"{rank}. {atom_id}"
+            for rank, atom_id in enumerate(state.ranked_atom_ids, start=1)
+        ),
     )
 
 
-def _emit_iterated_revision(result, previous_state, next_state, *, operator: str) -> None:
+def _emit_iterated_revision(
+    result, previous_state, next_state, *, operator: str
+) -> None:
     emit(f"Operator: {operator}")
     _emit_revision_result(result)
     emit(f"Next state ({len(next_state.accepted_atom_ids)} accepted atoms)")
     emit(f"History length: {len(next_state.history)}")
     emit_section(
         "Ranking:",
-        (f"{rank}. {atom_id}" for rank, atom_id in enumerate(next_state.ranked_atom_ids, start=1)),
+        (
+            f"{rank}. {atom_id}"
+            for rank, atom_id in enumerate(next_state.ranked_atom_ids, start=1)
+        ),
     )
     emit("Ranking delta:")
     previous_ranking = previous_state.ranking
@@ -209,7 +228,9 @@ def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -
         AppRevisionWorldRequest(bindings=bindings, context=context),
     )
 
-    emit(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
+    emit(
+        f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)"
+    )
     for atom in base.atoms:
         display = revision_atom_display(atom)
         details = _format_revision_payload(display)
@@ -221,15 +242,22 @@ def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -
     if base.assumptions:
         emit_section(
             "Assumptions:",
-            (_format_revision_assumption(assumption) for assumption in base.assumptions),
+            (
+                _format_revision_assumption(assumption)
+                for assumption in base.assumptions
+            ),
         )
 
 
 @revision.command("entrenchment")
 @click.argument("args", nargs=-1)
-@click.option("--context", default=None, help="Context to scope the revision entrenchment")
+@click.option(
+    "--context", default=None, help="Context to scope the revision entrenchment"
+)
 @click.pass_obj
-def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str | None) -> None:
+def world_revision_entrenchment(
+    obj: dict, args: tuple[str, ...], context: str | None
+) -> None:
     """Show the current deterministic entrenchment ordering for a scoped world."""
     repo: Repository = obj["repo"]
     bindings, _ = parse_world_binding_args(args)
@@ -242,7 +270,11 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str |
     rows: list[tuple[int, str, int, str, object]] = []
     for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
         reason = report.reasons.get(atom_id)
-        support_count = 0 if reason is None or reason.support_count is None else reason.support_count
+        support_count = (
+            0
+            if reason is None or reason.support_count is None
+            else reason.support_count
+        )
         essential_support = () if reason is None else reason.essential_support
         override = None if reason is None else reason.override_priority
         rows.append(
@@ -254,7 +286,9 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str |
                 override,
             )
         )
-    emit_table(("Rank", "Atom", "Support", "Essential support", "Override"), rows, indent="  ")
+    emit_table(
+        ("Rank", "Atom", "Support", "Essential support", "Override"), rows, indent="  "
+    )
 
 
 @revision.command("expand")
@@ -262,7 +296,9 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...], context: str |
 @click.option("--atom", "atom_json", required=True, help="JSON revision atom to add")
 @click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
-def world_expand(obj: dict, args: tuple[str, ...], atom_json: str, context: str | None) -> None:
+def world_expand(
+    obj: dict, args: tuple[str, ...], atom_json: str, context: str | None
+) -> None:
     """Expand the scoped revision belief base without mutating source YAML."""
     repo: Repository = obj["repo"]
     bindings, _ = parse_world_binding_args(args)
@@ -278,10 +314,18 @@ def world_expand(obj: dict, args: tuple[str, ...], atom_json: str, context: str 
 
 @revision.command("contract")
 @click.argument("args", nargs=-1)
-@click.option("--target", "targets", multiple=True, required=True, help="Existing atom or claim id to contract")
+@click.option(
+    "--target",
+    "targets",
+    multiple=True,
+    required=True,
+    help="Existing atom or claim id to contract",
+)
 @click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
-def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...], context: str | None) -> None:
+def world_contract(
+    obj: dict, args: tuple[str, ...], targets: tuple[str, ...], context: str | None
+) -> None:
     """Contract the scoped revision belief base without mutating source YAML."""
     repo: Repository = obj["repo"]
     bindings, _ = parse_world_binding_args(args)
@@ -298,7 +342,12 @@ def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...], c
 @revision.command("revise")
 @click.argument("args", nargs=-1)
 @click.option("--atom", "atom_json", required=True, help="JSON revision atom to admit")
-@click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.option(
+    "--conflict",
+    "conflicts",
+    multiple=True,
+    help="Existing atom or claim id that conflicts with the new atom",
+)
 @click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
 def world_revise(
@@ -324,10 +373,21 @@ def world_revise(
 
 @revision.command("explain")
 @click.argument("args", nargs=-1)
-@click.option("--operation", type=click.Choice(["expand", "contract", "revise"]), required=True)
-@click.option("--atom", "atom_json", default=None, help="JSON revision atom for expand/revise")
-@click.option("--target", "targets", multiple=True, help="Existing atom or claim id for contract")
-@click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.option(
+    "--operation", type=click.Choice(["expand", "contract", "revise"]), required=True
+)
+@click.option(
+    "--atom", "atom_json", default=None, help="JSON revision atom for expand/revise"
+)
+@click.option(
+    "--target", "targets", multiple=True, help="Existing atom or claim id for contract"
+)
+@click.option(
+    "--conflict",
+    "conflicts",
+    multiple=True,
+    help="Existing atom or claim id that conflicts with the new atom",
+)
 @click.option("--context", default=None, help="Context to scope the revision operation")
 @click.pass_obj
 def world_revision_explain(
@@ -361,7 +421,9 @@ def world_revision_explain(
 
 @revision.command("iterated-state")
 @click.argument("args", nargs=-1)
-@click.option("--context", default=None, help="Context to scope the iterated revision state")
+@click.option(
+    "--context", default=None, help="Context to scope the iterated revision state"
+)
 @click.pass_obj
 def world_iterated_state(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Inspect the current explicit iterated revision state for a scoped world."""
@@ -377,13 +439,20 @@ def world_iterated_state(obj: dict, args: tuple[str, ...], context: str | None) 
 @revision.command("iterated-revise")
 @click.argument("args", nargs=-1)
 @click.option("--atom", "atom_json", required=True, help="JSON revision atom to admit")
-@click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.option(
+    "--conflict",
+    "conflicts",
+    multiple=True,
+    help="Existing atom or claim id that conflicts with the new atom",
+)
 @click.option(
     "--operator",
     type=click.Choice([RESTRAINED_OPERATOR, LEXICOGRAPHIC_OPERATOR]),
     default=DEFAULT_ITERATED_OPERATOR,
 )
-@click.option("--context", default=None, help="Context to scope the iterated revision operation")
+@click.option(
+    "--context", default=None, help="Context to scope the iterated revision operation"
+)
 @click.pass_obj
 def world_iterated_revise(
     obj: dict,

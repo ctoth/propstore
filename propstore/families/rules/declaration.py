@@ -205,9 +205,7 @@ class AuthoredRuleProposalArtifact(CharterDoc, kw_only=True):
     rule_id: Annotated[str, charter_field(primary_key=True)]
     proposed_rule: Annotated[RuleDocument, charter_field(json=True)]
     predicates_referenced: Annotated[tuple[str, ...], charter_field(json=True)]
-    extraction_provenance: Annotated[
-        RuleExtractionProvenance, charter_field(json=True)
-    ]
+    extraction_provenance: Annotated[RuleExtractionProvenance, charter_field(json=True)]
     extraction_date: str
     proposal_state: Annotated[str, charter_field(default_sql="'proposed'")] = "proposed"
     page_reference: str | None = None
@@ -341,9 +339,7 @@ def persist_grounded_bundle(
             # the determinism pin in Diller 2025 §3 Def 9 is about
             # the output set, not iteration order, so sorting the
             # JSON strings is safe and reproducible.
-            encoded = sorted(
-                json.dumps(list(arg_tuple)) for arg_tuple in rows
-            )
+            encoded = sorted(json.dumps(list(arg_tuple)) for arg_tuple in rows)
             for encoded_arguments in encoded:
                 derived.session.add(
                     GroundedFact(
@@ -381,10 +377,7 @@ def _load_bundle_inputs(derived: DerivedSession, kind: str) -> tuple[object, ...
         .where(table.c.kind == kind)
         .order_by(table.c.position)
     ).scalars()
-    return tuple(
-        _decode_bundle_input(kind, getattr(row, "payload"))
-        for row in rows
-    )
+    return tuple(_decode_bundle_input(kind, getattr(row, "payload")) for row in rows)
 
 
 def load_grounded_sections(
@@ -420,9 +413,7 @@ def load_grounded_sections(
     for row in fact_rows:
         section_name = getattr(row, "section")
         if section_name not in result:
-            raise ValueError(
-                f"grounded fact row has unknown section {section_name!r}"
-            )
+            raise ValueError(f"grounded fact row has unknown section {section_name!r}")
         decoded = tuple(json.loads(getattr(row, "arguments")))
         predicate_bucket = result[section_name].setdefault(
             getattr(row, "predicate"),
@@ -435,8 +426,7 @@ def load_grounded_sections(
         section_name = getattr(row, "section")
         if section_name not in result:
             raise ValueError(
-                "grounded empty-predicate row has unknown section "
-                f"{section_name!r}"
+                f"grounded empty-predicate row has unknown section {section_name!r}"
             )
         result[section_name].setdefault(getattr(row, "predicate"), set())
 
@@ -524,7 +514,9 @@ def _bundle_input_payload(kind: str, value: object) -> dict[str, object]:
             "tag": "rule_superiority_document",
             "value": msgspec.to_builtins(value),
         }
-    raise TypeError(f"cannot persist grounded bundle {kind} input {type(value).__name__}")
+    raise TypeError(
+        f"cannot persist grounded bundle {kind} input {type(value).__name__}"
+    )
 
 
 def _is_json_value(value: object) -> bool:
@@ -534,8 +526,7 @@ def _is_json_value(value: object) -> bool:
         return all(_is_json_value(item) for item in value)
     if isinstance(value, dict):
         return all(
-            isinstance(key, str) and _is_json_value(item)
-            for key, item in value.items()
+            isinstance(key, str) and _is_json_value(item) for key, item in value.items()
         )
     return False
 
@@ -631,11 +622,17 @@ def _load_source_rules(derived: DerivedSession) -> tuple[RuleDocument, ...]:
     return tuple(value for value in values if isinstance(value, RuleDocument))
 
 
-def _load_source_superiority(derived: DerivedSession) -> tuple[RuleSuperiorityDocument, ...]:
+def _load_source_superiority(
+    derived: DerivedSession,
+) -> tuple[RuleSuperiorityDocument, ...]:
     values = _load_bundle_inputs(derived, "source_superiority")
     if not all(isinstance(value, RuleSuperiorityDocument) for value in values):
-        raise TypeError("grounded source_superiority inputs must be RuleSuperiorityDocument values")
-    return tuple(value for value in values if isinstance(value, RuleSuperiorityDocument))
+        raise TypeError(
+            "grounded source_superiority inputs must be RuleSuperiorityDocument values"
+        )
+    return tuple(
+        value for value in values if isinstance(value, RuleSuperiorityDocument)
+    )
 
 
 def _load_source_facts(derived: DerivedSession) -> tuple[AspicGroundAtom, ...]:

@@ -1,4 +1,5 @@
 """Basic ``pks world`` query command adapters."""
+
 from __future__ import annotations
 
 import json
@@ -70,9 +71,7 @@ def _emit_report_json(report) -> None:
     "--show-quarantined",
     is_flag=True,
     default=False,
-    help=(
-        "Surface a Diagnostics count line sourced from build_diagnostics."
-    ),
+    help=("Surface a Diagnostics count line sourced from build_diagnostics."),
 )
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
@@ -92,7 +91,9 @@ def world_status(
     report.
     """
     repo: Repository = obj["repo"]
-    render_policy = _render_policy_request(include_drafts, include_blocked, show_quarantined)
+    render_policy = _render_policy_request(
+        include_drafts, include_blocked, show_quarantined
+    )
     report = run_world_status(repo, AppWorldStatusRequest(render_policy=render_policy))
     if fmt == "json":
         _emit_report_json(report)
@@ -131,9 +132,7 @@ def world_status(
     "--show-quarantined",
     is_flag=True,
     default=False,
-    help=(
-        "Append a Diagnostics block sourced from build_diagnostics."
-    ),
+    help=("Append a Diagnostics block sourced from build_diagnostics."),
 )
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
@@ -155,7 +154,9 @@ def world_query(
     promotion-blocked mirror rows; opt-in flags lift each filter.
     """
     repo: Repository = obj["repo"]
-    render_policy = _render_policy_request(include_drafts, include_blocked, show_quarantined)
+    render_policy = _render_policy_request(
+        include_drafts, include_blocked, show_quarantined
+    )
     try:
         report = world_concept_query(
             repo,
@@ -216,10 +217,7 @@ def world_bind(obj: dict, args: tuple[str, ...], fmt: str) -> None:
     if isinstance(report, WorldBindConceptReport):
         emit(f"{report.concept_display_id}: {report.status}")
         for claim in report.claims:
-            emit(
-                f"  {claim.display_id}: {claim.value_display} "
-                f"source={claim.source}"
-            )
+            emit(f"  {claim.display_id}: {claim.value_display} source={claim.source}")
         return
 
     assert isinstance(report, WorldBindActivationReport)

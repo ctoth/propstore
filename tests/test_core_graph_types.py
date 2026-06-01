@@ -230,12 +230,16 @@ def test_graph_delta_add_remove_inverse_returns_to_same_graph() -> None:
         claim_type="parameter",
         scalar_value=1.0,
     )
-    add_then_remove = GraphDelta(add_claims=(claim,)).then(GraphDelta(remove_claim_ids=("claim_a",)))
+    add_then_remove = GraphDelta(add_claims=(claim,)).then(
+        GraphDelta(remove_claim_ids=("claim_a",))
+    )
 
     assert add_then_remove.apply(base) == base
 
 
-def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_conflicts() -> None:
+def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_conflicts() -> (
+    None
+):
     from propstore.core.graph_types import (
         ClaimNode,
         CompiledWorldGraph,
@@ -246,9 +250,7 @@ def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_confl
     )
 
     graph = CompiledWorldGraph(
-        concepts=(
-            ConceptNode(concept_id="concept1", canonical_name="concept1"),
-        ),
+        concepts=(ConceptNode(concept_id="concept1", canonical_name="concept1"),),
         claims=(
             ClaimNode(
                 claim_id="claim_a",
@@ -264,7 +266,9 @@ def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_confl
             ),
         ),
         relations=(
-            RelationEdge(source_id="claim_a", target_id="claim_b", relation_type="rebuts"),
+            RelationEdge(
+                source_id="claim_a", target_id="claim_b", relation_type="rebuts"
+            ),
         ),
         conflicts=(
             ConflictWitness(
@@ -284,7 +288,11 @@ def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_confl
 
 
 def test_active_world_graph_roundtrip_is_stable() -> None:
-    from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
+    from propstore.core.graph_types import (
+        WorldActivationGraph,
+        ClaimNode,
+        CompiledWorldGraph,
+    )
 
     compiled = CompiledWorldGraph(
         claims=(

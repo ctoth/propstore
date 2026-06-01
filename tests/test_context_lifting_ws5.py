@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from sqlalchemy import select
 
 from propstore.families.contexts.lifting import (
@@ -85,13 +89,16 @@ def test_lifting_materializes_ist_assertion_with_rule_provenance() -> None:
         proposition_id="claim_alpha",
     )
     assert lifted.rule_id == "lift-source-target"
-    assert lifted.provenance.items() >= {
-        "rule_id": "lift-source-target",
-        "source_context_id": "ctx_source",
-        "target_context_id": "ctx_target",
-        "source_proposition_id": "claim_alpha",
-        "status": "lifted",
-    }.items()
+    assert (
+        lifted.provenance.items()
+        >= {
+            "rule_id": "lift-source-target",
+            "source_context_id": "ctx_source",
+            "target_context_id": "ctx_target",
+            "source_proposition_id": "claim_alpha",
+            "status": "lifted",
+        }.items()
+    )
     assert lifted.provenance["justification"] == "Guha DCR-T bridge"
 
 
@@ -251,9 +258,7 @@ def test_sidecar_stores_lifting_materialization_provenance(tmp_path) -> None:
     materializations = system.materialize_lifted_assertions(
         (IstProposition(context=source, proposition_id="claim_alpha"),)
     )
-    materialization_rows = compile_context_lifting_materializations(
-        materializations
-    )
+    materialization_rows = compile_context_lifting_materializations(materializations)
 
     sidecar_path = tmp_path / "propstore.sqlite"
     create_sqlalchemy_store(sidecar_path, schema)

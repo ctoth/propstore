@@ -34,7 +34,9 @@ def _imports_module(tree: ast.AST, module_name: str) -> bool:
                 return True
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name == module_name or alias.name.startswith(f"{module_name}."):
+                if alias.name == module_name or alias.name.startswith(
+                    f"{module_name}."
+                ):
                     return True
     return False
 
@@ -56,9 +58,7 @@ def test_cli_repository_module_no_longer_defines_repository_facade() -> None:
         return
 
     class_names = {
-        node.name
-        for node in ast.walk(_parse(path))
-        if isinstance(node, ast.ClassDef)
+        node.name for node in ast.walk(_parse(path)) if isinstance(node, ast.ClassDef)
     }
 
     assert "Repository" not in class_names
@@ -159,9 +159,7 @@ def test_propstore_storage_snapshot_does_not_accept_bare_gitstore() -> None:
     assert "for_git" not in contents
 
     class_names = {
-        node.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ClassDef)
+        node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
     }
     assert "RepositorySnapshot" in class_names
 
@@ -185,12 +183,15 @@ def test_production_imports_do_not_use_propstore_repo_package() -> None:
         tree = _parse(path)
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module:
-                if node.module == "propstore.repo" or node.module.startswith("propstore.repo."):
+                if node.module == "propstore.repo" or node.module.startswith(
+                    "propstore.repo."
+                ):
                     offenders.append(_relative(path))
                     break
             if isinstance(node, ast.Import):
                 if any(
-                    alias.name == "propstore.repo" or alias.name.startswith("propstore.repo.")
+                    alias.name == "propstore.repo"
+                    or alias.name.startswith("propstore.repo.")
                     for alias in node.names
                 ):
                     offenders.append(_relative(path))
@@ -244,9 +245,16 @@ def test_core_concept_loading_does_not_decode_concept_documents_directly() -> No
             continue
         if not isinstance(node.func, ast.Name):
             continue
-        if node.func.id not in {"load_document", "decode_document", "decode_document_bytes"}:
+        if node.func.id not in {
+            "load_document",
+            "decode_document",
+            "decode_document_bytes",
+        }:
             continue
-        if any(isinstance(arg, ast.Name) and arg.id == "ConceptDocument" for arg in node.args):
+        if any(
+            isinstance(arg, ast.Name) and arg.id == "ConceptDocument"
+            for arg in node.args
+        ):
             direct_decode_calls.append(node.lineno)
 
     text = path.read_text(encoding="utf-8")
@@ -269,8 +277,12 @@ def test_old_propstore_identity_surface_is_deleted() -> None:
 def test_claim_and_concept_identity_policy_is_family_owned() -> None:
     from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFamily
 
-    claim_policy = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CLAIMS).identity_policy
-    concept_policy = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CONCEPTS).identity_policy
+    claim_policy = PROPSTORE_FAMILY_REGISTRY.by_key(
+        PropstoreFamily.CLAIMS
+    ).identity_policy
+    concept_policy = PROPSTORE_FAMILY_REGISTRY.by_key(
+        PropstoreFamily.CONCEPTS
+    ).identity_policy
 
     assert claim_policy is not None
     assert concept_policy is not None
@@ -292,9 +304,7 @@ def test_artifact_codes_do_not_own_claim_identity_canonicalization() -> None:
     path = PROPSTORE / "families" / "artifacts.py"
     tree = _parse(path)
     defined_functions = {
-        node.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.FunctionDef)
+        node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
     }
 
     assert "canonicalize_claim_for_version" not in defined_functions

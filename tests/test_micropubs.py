@@ -46,7 +46,9 @@ def _seed_micropub_repo(tmp_path) -> Repository:
                     "name": "Other",
                 }
             ).encode("utf-8"),
-            repo.families.micropubs.address(micropub_ref).require_path(): render_yaml_value(
+            repo.families.micropubs.address(
+                micropub_ref
+            ).require_path(): render_yaml_value(
                 {
                     "artifact_id": micropub_id,
                     "context": {"id": "ctx_source"},
@@ -79,8 +81,12 @@ def test_micropub_reports_load_find_and_lift(tmp_path) -> None:
 
     assert entry.ref.artifact_id == "ps:micropub:test"
     assert entry.document.context.id == "ctx_source"
-    assert [(item.source, item.artifact_id) for item in items] == [("demo", "ps:micropub:test")]
-    assert [(decision.proposition_id, decision.status) for decision in lift.decisions] == [
+    assert [(item.source, item.artifact_id) for item in items] == [
+        ("demo", "ps:micropub:test")
+    ]
+    assert [
+        (decision.proposition_id, decision.status) for decision in lift.decisions
+    ] == [
         ("claim:one", "lifted"),
     ]
     assert reverse.decisions == ()
@@ -102,7 +108,9 @@ def test_micropub_cli_renders_show_and_lift(tmp_path) -> None:
     runner = CliRunner()
 
     listed = runner.invoke(cli, ["-C", str(repo.root), "micropub", "list"])
-    show = runner.invoke(cli, ["-C", str(repo.root), "micropub", "show", "ps:micropub:test"])
+    show = runner.invoke(
+        cli, ["-C", str(repo.root), "micropub", "show", "ps:micropub:test"]
+    )
     lift = runner.invoke(
         cli,
         [
@@ -137,4 +145,6 @@ def test_micropub_cli_renders_show_and_lift(tmp_path) -> None:
     assert "claim:one" in lift.output
     assert "lifted" in lift.output
     assert no_lift.exit_code == 1, no_lift.output
-    assert "no lifted decision: ps:micropub:test ctx_source -> ctx_other" in no_lift.output
+    assert (
+        "no lifted decision: ps:micropub:test ctx_source -> ctx_other" in no_lift.output
+    )

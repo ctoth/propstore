@@ -11,7 +11,9 @@ from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
 @pytest.mark.property
 @given(
     original=st.lists(
-        st.text(alphabet=st.characters(min_codepoint=97, max_codepoint=122), min_size=1),
+        st.text(
+            alphabet=st.characters(min_codepoint=97, max_codepoint=122), min_size=1
+        ),
         min_size=1,
         max_size=4,
         unique=True,

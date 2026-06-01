@@ -42,7 +42,10 @@ from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.stances import StanceType
 from tests.conftest import make_claim_identity, write_test_context
-from tests.sidecar_schema_helpers import build_world_projection_schema, insert_minimal_source
+from tests.sidecar_schema_helpers import (
+    build_world_projection_schema,
+    insert_minimal_source,
+)
 from propstore.families.registry import world_schema
 from propstore.world import (
     WorldStore,
@@ -202,7 +205,8 @@ def _claim_payload_from_typed_fixture(claim: Mapping[str, object]) -> dict[str, 
     payload = {
         key: value
         for key, value in claim.items()
-        if key not in {"concept", "output_concept", "target_concept", "concepts", "version_id"}
+        if key
+        not in {"concept", "output_concept", "target_concept", "concepts", "version_id"}
     }
     if typed_claim.output_concept_id is not None:
         payload["output_concept"] = typed_claim.output_concept_id
@@ -241,10 +245,7 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
         if isinstance(concepts, list):
             claim = {
                 **claim,
-                "concepts": [
-                    _normalize_local_concept_ref(value)
-                    for value in concepts
-                ],
+                "concepts": [_normalize_local_concept_ref(value) for value in concepts],
             }
         variables = claim.get("variables")
         if isinstance(variables, list):
@@ -268,8 +269,14 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
                 if not isinstance(stance, dict):
                     continue
                 target = stance.get("target")
-                if isinstance(target, str) and target.startswith("claim") and ":" not in target:
-                    stance["target"] = make_claim_identity(target, namespace=paper)["artifact_id"]
+                if (
+                    isinstance(target, str)
+                    and target.startswith("claim")
+                    and ":" not in target
+                ):
+                    stance["target"] = make_claim_identity(target, namespace=paper)[
+                        "artifact_id"
+                    ]
         normalized_claims.append(_claim_payload_from_typed_fixture(claim))
     normalized["claims"] = normalized_claims
     return normalized
@@ -292,8 +299,14 @@ def concept_dir(tmp_path):
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
     dimensionless_forms = {"category", "structural", "duration_ratio"}
-    for form_name in ("frequency", "category", "structural", "duration_ratio",
-                      "pressure", "time"):
+    for form_name in (
+        "frequency",
+        "category",
+        "structural",
+        "duration_ratio",
+        "pressure",
+        "time",
+    ):
         (forms_dir / f"{form_name}.yaml").write_text(
             yaml.dump(
                 {
@@ -309,112 +322,142 @@ def concept_dir(tmp_path):
             [data],
             default_domain=str(data.get("domain") or "propstore"),
         )[0]
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(normalized, default_flow_style=False))
+        (concepts_path / f"{name}.yaml").write_text(
+            yaml.dump(normalized, default_flow_style=False)
+        )
 
-    write("fundamental_frequency", {
-        "id": "concept1",
-        "canonical_name": "fundamental_frequency",
-        "status": "accepted",
-        "definition": "The rate of vocal fold vibration during phonation.",
-        "domain": "speech",
-        "created_date": "2026-03-15",
-        "form": "frequency",
-        "range": [50, 1000],
-        "aliases": [
-            {"name": "F0", "source": "common"},
-            {"name": "pitch", "source": "common", "note": "perceptual correlate"},
-        ],
-        "relationships": [
-            {"type": "broader", "target": "concept4"},
-        ],
-    })
+    write(
+        "fundamental_frequency",
+        {
+            "id": "concept1",
+            "canonical_name": "fundamental_frequency",
+            "status": "accepted",
+            "definition": "The rate of vocal fold vibration during phonation.",
+            "domain": "speech",
+            "created_date": "2026-03-15",
+            "form": "frequency",
+            "range": [50, 1000],
+            "aliases": [
+                {"name": "F0", "source": "common"},
+                {"name": "pitch", "source": "common", "note": "perceptual correlate"},
+            ],
+            "relationships": [
+                {"type": "broader", "target": "concept4"},
+            ],
+        },
+    )
 
-    write("subglottal_pressure", {
-        "id": "concept2",
-        "canonical_name": "subglottal_pressure",
-        "status": "accepted",
-        "definition": "Air pressure below the glottis during phonation.",
-        "domain": "speech",
-        "form": "pressure",
-        "aliases": [
-            {"name": "Ps", "source": "Sundberg_1993"},
-        ],
-    })
+    write(
+        "subglottal_pressure",
+        {
+            "id": "concept2",
+            "canonical_name": "subglottal_pressure",
+            "status": "accepted",
+            "definition": "Air pressure below the glottis during phonation.",
+            "domain": "speech",
+            "form": "pressure",
+            "aliases": [
+                {"name": "Ps", "source": "Sundberg_1993"},
+            ],
+        },
+    )
 
-    write("task", {
-        "id": "concept3",
-        "canonical_name": "task",
-        "status": "accepted",
-        "definition": "The vocal activity type used in an experiment.",
-        "domain": "speech",
-        "form": "category",
-        "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True},
-    })
+    write(
+        "task",
+        {
+            "id": "concept3",
+            "canonical_name": "task",
+            "status": "accepted",
+            "definition": "The vocal activity type used in an experiment.",
+            "domain": "speech",
+            "form": "category",
+            "form_parameters": {
+                "values": ["speech", "singing", "whisper"],
+                "extensible": True,
+            },
+        },
+    )
 
-    write("voice_source", {
-        "id": "concept4",
-        "canonical_name": "voice_source",
-        "status": "accepted",
-        "definition": "The acoustic signal generated by the vibrating vocal folds.",
-        "domain": "speech",
-        "form": "structural",
-        "relationships": [
-            {"type": "narrower", "target": "concept1"},
-            {"type": "narrower", "target": "concept2"},
-        ],
-    })
+    write(
+        "voice_source",
+        {
+            "id": "concept4",
+            "canonical_name": "voice_source",
+            "status": "accepted",
+            "definition": "The acoustic signal generated by the vibrating vocal folds.",
+            "domain": "speech",
+            "form": "structural",
+            "relationships": [
+                {"type": "narrower", "target": "concept1"},
+                {"type": "narrower", "target": "concept2"},
+            ],
+        },
+    )
 
-    write("return_phase_ratio", {
-        "id": "concept5",
-        "canonical_name": "return_phase_ratio",
-        "status": "proposed",
-        "definition": "Ratio of return phase time to fundamental period.",
-        "domain": "speech",
-        "form": "duration_ratio",
-        "aliases": [
-            {"name": "ra", "source": "Gobl_1988"},
-            {"name": "Ra", "source": "Fant_1985", "note": "unnormalized"},
-        ],
-        "parameterization_relationships": [{
-            "formula": "ra = ta * F0",
-            "sympy": "Eq(concept5, concept6 * concept1)",
-            "inputs": ["concept6", "concept1"],
-            "exactness": "exact",
-            "source": "Fant_1985",
-            "bidirectional": True,
-            "conditions": ["task == 'speech'"],
-        }],
-    })
+    write(
+        "return_phase_ratio",
+        {
+            "id": "concept5",
+            "canonical_name": "return_phase_ratio",
+            "status": "proposed",
+            "definition": "Ratio of return phase time to fundamental period.",
+            "domain": "speech",
+            "form": "duration_ratio",
+            "aliases": [
+                {"name": "ra", "source": "Gobl_1988"},
+                {"name": "Ra", "source": "Fant_1985", "note": "unnormalized"},
+            ],
+            "parameterization_relationships": [
+                {
+                    "formula": "ra = ta * F0",
+                    "sympy": "Eq(concept5, concept6 * concept1)",
+                    "inputs": ["concept6", "concept1"],
+                    "exactness": "exact",
+                    "source": "Fant_1985",
+                    "bidirectional": True,
+                    "conditions": ["task == 'speech'"],
+                }
+            ],
+        },
+    )
 
-    write("return_phase_time", {
-        "id": "concept6",
-        "canonical_name": "return_phase_time",
-        "status": "proposed",
-        "definition": "Duration of the return phase of the glottal cycle.",
-        "domain": "speech",
-        "form": "time",
-        "aliases": [
-            {"name": "ta", "source": "Fant_1985"},
-        ],
-    })
+    write(
+        "return_phase_time",
+        {
+            "id": "concept6",
+            "canonical_name": "return_phase_time",
+            "status": "proposed",
+            "definition": "Duration of the return phase of the glottal cycle.",
+            "domain": "speech",
+            "form": "time",
+            "aliases": [
+                {"name": "ta", "source": "Fant_1985"},
+            ],
+        },
+    )
 
-    write("derived_ratio", {
-        "id": "concept7",
-        "canonical_name": "derived_ratio",
-        "status": "proposed",
-        "definition": "A ratio derived from return_phase_ratio for testing chains.",
-        "domain": "speech",
-        "form": "duration_ratio",
-        "parameterization_relationships": [{
-            "formula": "dr = 2 * ra",
-            "sympy": "Eq(concept7, 2 * concept5)",
-            "inputs": ["concept5"],
-            "exactness": "exact",
-            "source": "test",
-            "bidirectional": False,
-            "conditions": ["task == 'speech'"],
-        }],
-    })
+    write(
+        "derived_ratio",
+        {
+            "id": "concept7",
+            "canonical_name": "derived_ratio",
+            "status": "proposed",
+            "definition": "A ratio derived from return_phase_ratio for testing chains.",
+            "domain": "speech",
+            "form": "duration_ratio",
+            "parameterization_relationships": [
+                {
+                    "formula": "dr = 2 * ra",
+                    "sympy": "Eq(concept7, 2 * concept5)",
+                    "inputs": ["concept5"],
+                    "exactness": "exact",
+                    "source": "test",
+                    "bidirectional": False,
+                    "conditions": ["task == 'speech'"],
+                }
+            ],
+        },
+    )
 
     return concepts_path
 
@@ -422,6 +465,7 @@ def concept_dir(tmp_path):
 @pytest.fixture
 def repo(concept_dir):
     from propstore.repository import Repository
+
     return Repository(concept_dir.parent)
 
 
@@ -443,8 +487,11 @@ def claim_files(concept_dir):
                 "unit": "Hz",
                 "sample_size": 30,
                 "conditions": ["task == 'speech'"],
-                "provenance": {"paper": "test_paper_alpha", "page": 5,
-                               "date": "2024-01-15"},
+                "provenance": {
+                    "paper": "test_paper_alpha",
+                    "page": 5,
+                    "date": "2024-01-15",
+                },
             },
             {
                 "id": "claim2",
@@ -462,8 +509,11 @@ def claim_files(concept_dir):
                         "note": "same task, conflicting value",
                     }
                 ],
-                "provenance": {"paper": "test_paper_alpha", "page": 8,
-                               "date": "2024-06-20"},
+                "provenance": {
+                    "paper": "test_paper_alpha",
+                    "page": 8,
+                    "date": "2024-06-20",
+                },
             },
             {
                 "id": "claim3",
@@ -530,8 +580,11 @@ def claim_files(concept_dir):
                 "unit": "Hz",
                 "sample_size": 50,
                 "conditions": ["task == 'speech'", "fundamental_frequency > 100"],
-                "provenance": {"paper": "test_paper_beta", "page": 7,
-                               "date": "2023-03-10"},
+                "provenance": {
+                    "paper": "test_paper_beta",
+                    "page": 7,
+                    "date": "2023-03-10",
+                },
                 "stances": [
                     {
                         "type": "supports",
@@ -631,15 +684,24 @@ def claim_files(concept_dir):
                         "note": "updated measurement with better equipment",
                     }
                 ],
-                "provenance": {"paper": "test_paper_gamma", "page": 15,
-                               "date": "2025-01-01"},
+                "provenance": {
+                    "paper": "test_paper_gamma",
+                    "page": 15,
+                    "date": "2025-01-01",
+                },
             },
         ],
     }
 
-    claim1_alpha_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
-    claim4_alpha_id = make_claim_identity("claim4", namespace="test_paper_alpha")["artifact_id"]
-    claim6_beta_id = make_claim_identity("claim6", namespace="test_paper_beta")["artifact_id"]
+    claim1_alpha_id = make_claim_identity("claim1", namespace="test_paper_alpha")[
+        "artifact_id"
+    ]
+    claim4_alpha_id = make_claim_identity("claim4", namespace="test_paper_alpha")[
+        "artifact_id"
+    ]
+    claim6_beta_id = make_claim_identity("claim6", namespace="test_paper_beta")[
+        "artifact_id"
+    ]
     alpha["claims"][1]["stances"][0]["target"] = claim1_alpha_id
     beta["claims"][1]["stances"][0]["target"] = claim1_alpha_id
     gamma["claims"][0]["stances"][0]["target"] = claim6_beta_id
@@ -650,11 +712,18 @@ def claim_files(concept_dir):
     alpha = _normalize_claim_concept_refs(alpha)
     beta = _normalize_claim_concept_refs(beta)
     gamma = _normalize_claim_concept_refs(gamma)
-    (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
-    (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
-    (claims_dir / "test_paper_gamma.yaml").write_text(yaml.dump(gamma, default_flow_style=False))
+    (claims_dir / "test_paper_alpha.yaml").write_text(
+        yaml.dump(alpha, default_flow_style=False)
+    )
+    (claims_dir / "test_paper_beta.yaml").write_text(
+        yaml.dump(beta, default_flow_style=False)
+    )
+    (claims_dir / "test_paper_gamma.yaml").write_text(
+        yaml.dump(gamma, default_flow_style=False)
+    )
 
     from tests.family_helpers import load_claim_files
+
     return load_claim_files(claims_dir)
 
 
@@ -667,6 +736,7 @@ def world(concept_dir, repo, claim_files):
 
 # ── Construction ─────────────────────────────────────────────────────
 
+
 class TestWorldQueryConstruction:
     def test_construct_from_repo(self, world):
         assert world is not None
@@ -674,6 +744,7 @@ class TestWorldQueryConstruction:
 
     def test_auto_materializes_without_prior_build(self, tmp_path):
         from propstore.repository import Repository
+
         repo = Repository.init(tmp_path / "empty_knowledge")
         with WorldQuery(repo) as world:
             assert world.stats().claims == 0
@@ -684,6 +755,7 @@ class TestWorldQueryConstruction:
 
 
 # ── Unbound queries ──────────────────────────────────────────────────
+
 
 class TestUnboundQueries:
     def test_get_concept(self, world):
@@ -727,7 +799,9 @@ class TestUnboundQueries:
         with pytest.raises(UnknownConceptError, match="does_not_exist"):
             query_world_concept(
                 world,
-                WorldConceptQueryRequest(target="does_not_exist", policy=RenderPolicy()),
+                WorldConceptQueryRequest(
+                    target="does_not_exist", policy=RenderPolicy()
+                ),
             )
 
     def test_get_claim_joins_source_by_source_slug(self, concept_dir, repo):
@@ -825,36 +899,49 @@ class TestUnboundQueries:
         forms_dir = knowledge / "forms"
         forms_dir.mkdir()
         (forms_dir / "frequency.yaml").write_text(
-            yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False)
+            yaml.dump(
+                {"name": "frequency", "dimensionless": False}, default_flow_style=False
+            )
         )
 
-        concept_payload = normalize_concept_payloads([{
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "status": "accepted",
-            "definition": "F0",
-            "domain": "speech",
-            "form": "frequency",
-            "aliases": [{"name": "F0", "source": "common"}],
-        }], default_domain="speech")[0]
+        concept_payload = normalize_concept_payloads(
+            [
+                {
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                    "form": "frequency",
+                    "aliases": [{"name": "F0", "source": "common"}],
+                }
+            ],
+            default_domain="speech",
+        )[0]
         (concepts_path / "fundamental_frequency.yaml").write_text(
             yaml.dump(concept_payload, default_flow_style=False)
         )
 
         claims_dir = knowledge / "claims"
         claims_dir.mkdir()
-        claim_payload = _normalize_claim_concept_refs({
-            "source": {"paper": "paper"},
-            "claims": [{
-                "id": "claim1",
-                "type": "parameter",
-                "concept": "fundamental_frequency",
-                "value": 440.0,
-                "unit": "Hz",
-                "provenance": {"paper": "paper", "page": 1},
-            }],
-        })
-        (claims_dir / "paper.yaml").write_text(yaml.dump(claim_payload, default_flow_style=False))
+        claim_payload = _normalize_claim_concept_refs(
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "fundamental_frequency",
+                        "value": 440.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "paper", "page": 1},
+                    }
+                ],
+            }
+        )
+        (claims_dir / "paper.yaml").write_text(
+            yaml.dump(claim_payload, default_flow_style=False)
+        )
 
         from propstore.repository import Repository
 
@@ -863,9 +950,9 @@ class TestUnboundQueries:
 
         wm = WorldQuery(repo)
         try:
-            assert [str(claim.id) for claim in wm.claims_for("fundamental_frequency")] == [
-                make_claim_identity("claim1", namespace="paper")["artifact_id"]
-            ]
+            assert [
+                str(claim.id) for claim in wm.claims_for("fundamental_frequency")
+            ] == [make_claim_identity("claim1", namespace="paper")["artifact_id"]]
             assert wm.bind().value_of("fundamental_frequency").status == "determined"
         finally:
             wm.close()
@@ -882,36 +969,49 @@ class TestUnboundQueries:
         forms_dir = knowledge / "forms"
         forms_dir.mkdir()
         (forms_dir / "frequency.yaml").write_text(
-            yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False)
+            yaml.dump(
+                {"name": "frequency", "dimensionless": False}, default_flow_style=False
+            )
         )
 
-        concept_payload = normalize_concept_payloads([{
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "status": "accepted",
-            "definition": "F0",
-            "domain": "speech",
-            "form": "frequency",
-            "aliases": [{"name": "F0", "source": "common"}],
-        }], default_domain="speech")[0]
+        concept_payload = normalize_concept_payloads(
+            [
+                {
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                    "form": "frequency",
+                    "aliases": [{"name": "F0", "source": "common"}],
+                }
+            ],
+            default_domain="speech",
+        )[0]
         (concepts_path / "fundamental_frequency.yaml").write_text(
             yaml.dump(concept_payload, default_flow_style=False)
         )
 
         claims_dir = knowledge / "claims"
         claims_dir.mkdir()
-        claim_payload = _normalize_claim_concept_refs({
-            "source": {"paper": "paper"},
-            "claims": [{
-                "id": "claim1",
-                "type": "parameter",
-                "concept": "F0",
-                "value": 440.0,
-                "unit": "Hz",
-                "provenance": {"paper": "paper", "page": 1},
-            }],
-        })
-        (claims_dir / "paper.yaml").write_text(yaml.dump(claim_payload, default_flow_style=False))
+        claim_payload = _normalize_claim_concept_refs(
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "F0",
+                        "value": 440.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "paper", "page": 1},
+                    }
+                ],
+            }
+        )
+        (claims_dir / "paper.yaml").write_text(
+            yaml.dump(claim_payload, default_flow_style=False)
+        )
 
         from propstore.repository import Repository
 
@@ -998,7 +1098,9 @@ class TestUnboundQueries:
         finally:
             wm.close()
 
-    def test_claims_related_to_concept_includes_observations_by_about_link(self, tmp_path):
+    def test_claims_related_to_concept_includes_observations_by_about_link(
+        self, tmp_path
+    ):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         build_world_projection_schema(conn)
@@ -1061,8 +1163,12 @@ class TestUnboundQueries:
 
         wm = world_query_from_sqlite_path(sidecar)
         try:
-            assert [str(claim.id) for claim in wm.claims_for("concept2")] == ["measurement1"]
-            assert [str(claim.id) for claim in wm.claims_for("concept2")] == ["measurement1"]
+            assert [str(claim.id) for claim in wm.claims_for("concept2")] == [
+                "measurement1"
+            ]
+            assert [str(claim.id) for claim in wm.claims_for("concept2")] == [
+                "measurement1"
+            ]
         finally:
             wm.close()
 
@@ -1160,6 +1266,7 @@ class TestUnboundQueries:
 
 # ── Explain (stance graph) ───────────────────────────────────────────
 
+
 class TestExplain:
     def test_explain_returns_stance_chain(self, world):
         chain = world.explain(_claim_artifact("test_paper_alpha", "claim2"))
@@ -1179,13 +1286,16 @@ class TestExplain:
 
 # -- Bind and typed claims --------------------------------------------
 
+
 class TestBindAndTypedClaims:
     def test_bind_returns_bound_world(self, world):
         bound = world.bind(task="speech")
         assert isinstance(bound, BoundWorld)
 
     def test_bind_environment_with_context_id(self, world):
-        env = Environment(bindings={"task": "speech"}, context_id="ctx_abstract_argumentation")
+        env = Environment(
+            bindings={"task": "speech"}, context_id="ctx_abstract_argumentation"
+        )
         bound = world.bind(env)
         assert bound._context_id == "ctx_abstract_argumentation"
 
@@ -1244,6 +1354,7 @@ class TestBindAndTypedClaims:
 
 # ── value_of ─────────────────────────────────────────────────────────
 
+
 class TestValueOf:
     def test_singing_determined(self, world):
         bound = world.bind(task="singing")
@@ -1271,10 +1382,20 @@ class TestValueOf:
         hypo = OverlayWorld(
             bound,
             add=[
-                SyntheticClaim(id="synth_obs1", concept_id=CONCEPT3_ID, type="observation", value=None,
-                               conditions=["task == 'speech'"]),
-                SyntheticClaim(id="synth_obs2", concept_id=CONCEPT3_ID, type="observation", value=None,
-                               conditions=["task == 'speech'"]),
+                SyntheticClaim(
+                    id="synth_obs1",
+                    concept_id=CONCEPT3_ID,
+                    type="observation",
+                    value=None,
+                    conditions=["task == 'speech'"],
+                ),
+                SyntheticClaim(
+                    id="synth_obs2",
+                    concept_id=CONCEPT3_ID,
+                    type="observation",
+                    value=None,
+                    conditions=["task == 'speech'"],
+                ),
             ],
         )
         result = hypo.value_of(CONCEPT3_ID)
@@ -1297,6 +1418,7 @@ class TestValueOf:
 
 # ── Bound conflicts ──────────────────────────────────────────────────
 
+
 class TestBoundConflicts:
     def test_singing_no_conflicts_concept1(self, world):
         bound = world.bind(task="singing")
@@ -1317,6 +1439,7 @@ class TestBoundConflicts:
 
 # ── Bound explain ────────────────────────────────────────────────────
 
+
 class TestBoundExplain:
     def test_explain_filtered_to_active(self, world):
         bound = world.bind(task="singing")
@@ -1325,6 +1448,7 @@ class TestBoundExplain:
 
 
 # ── Feature 1: Derived Value ─────────────────────────────────────────
+
 
 class TestDerivedValue:
     def test_derived_value_basic(self, world):
@@ -1411,11 +1535,14 @@ class TestDerivedValue:
 
 # ── Feature 2: Hypothetical World ────────────────────────────────────
 
+
 class TestOverlayWorld:
     def test_remove_claim(self, world):
         """Removed claim absent from active_claims."""
         bound = world.bind(task="speech")
-        hypo = OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
+        hypo = OverlayWorld(
+            bound, remove=[_claim_artifact("test_paper_alpha", "claim1")]
+        )
         active_ids = _runtime_claim_id_set(hypo.active_claims(CONCEPT1_ID))
         assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
         assert _claim_artifact("test_paper_alpha", "claim2") in active_ids
@@ -1424,7 +1551,9 @@ class TestOverlayWorld:
         """Added claim in active_claims, affects value_of."""
         bound = world.bind(task="singing")
         sc = SyntheticClaim(
-            id="synth1", concept_id=CONCEPT2_ID, value=900.0,
+            id="synth1",
+            concept_id=CONCEPT2_ID,
+            value=900.0,
             conditions=["task == 'singing'"],
         )
         hypo = OverlayWorld(bound, add=[sc])
@@ -1438,11 +1567,14 @@ class TestOverlayWorld:
         bound = world.bind(task="speech")
         # Under speech, concept1 has claim1(200), claim2(350), claim7(250), claim15(205) — conflicted
         # Remove claim2, claim7, claim15 → only claim1 remains → determined
-        hypo = OverlayWorld(bound, remove=[
-            _claim_artifact("test_paper_alpha", "claim2"),
-            _claim_artifact("test_paper_beta", "claim7"),
-            _claim_artifact("test_paper_gamma", "claim15"),
-        ])
+        hypo = OverlayWorld(
+            bound,
+            remove=[
+                _claim_artifact("test_paper_alpha", "claim2"),
+                _claim_artifact("test_paper_beta", "claim7"),
+                _claim_artifact("test_paper_gamma", "claim15"),
+            ],
+        )
         vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
         assert vr.claims[0].numeric_payload is not None
@@ -1453,7 +1585,9 @@ class TestOverlayWorld:
         bound = world.bind(task="singing")
         # Under singing, concept1 has claim3(180) → determined
         sc = SyntheticClaim(
-            id="synth_conflict", concept_id=CONCEPT1_ID, value=999.0,
+            id="synth_conflict",
+            concept_id=CONCEPT1_ID,
+            value=999.0,
             conditions=["task == 'singing'"],
         )
         hypo = OverlayWorld(bound, add=[sc])
@@ -1464,11 +1598,14 @@ class TestOverlayWorld:
         """Changing input claims affects derived_value."""
         bound = world.bind(task="speech")
         # Remove all concept1 claims except claim1(200) and resolve concept1
-        hypo = OverlayWorld(bound, remove=[
-            _claim_artifact("test_paper_alpha", "claim2"),
-            _claim_artifact("test_paper_beta", "claim7"),
-            _claim_artifact("test_paper_gamma", "claim15"),
-        ])
+        hypo = OverlayWorld(
+            bound,
+            remove=[
+                _claim_artifact("test_paper_alpha", "claim2"),
+                _claim_artifact("test_paper_beta", "claim7"),
+                _claim_artifact("test_paper_gamma", "claim15"),
+            ],
+        )
         # Now concept1 is determined (200), concept6 is determined (0.001)
         dr = hypo.derived_value(CONCEPT5_ID)
         assert dr.status == "derived"
@@ -1487,24 +1624,33 @@ class TestOverlayWorld:
         bound = world.bind(task="speech")
         # concept1 is conflicted in base (claim1=200, claim2=350, etc.)
         # Remove all but claim1 so concept1 is determined at 200
-        hypo_base = OverlayWorld(bound, remove=[
-            _claim_artifact("test_paper_alpha", "claim2"),
-            _claim_artifact("test_paper_beta", "claim7"),
-            _claim_artifact("test_paper_gamma", "claim15"),
-        ])
+        hypo_base = OverlayWorld(
+            bound,
+            remove=[
+                _claim_artifact("test_paper_alpha", "claim2"),
+                _claim_artifact("test_paper_beta", "claim7"),
+                _claim_artifact("test_paper_gamma", "claim15"),
+            ],
+        )
         assert hypo_base.collect_known_values([CONCEPT1_ID]) == {CONCEPT1_ID: 200.0}
 
         # Now create a hypothetical that replaces concept1 with 500
         sc = SyntheticClaim(
-            id="synth_f0", concept_id=CONCEPT1_ID, value=500.0,
+            id="synth_f0",
+            concept_id=CONCEPT1_ID,
+            value=500.0,
             conditions=["task == 'speech'"],
         )
-        hypo = OverlayWorld(bound, remove=[
-            _claim_artifact("test_paper_alpha", "claim1"),
-            _claim_artifact("test_paper_alpha", "claim2"),
-            _claim_artifact("test_paper_beta", "claim7"),
-            _claim_artifact("test_paper_gamma", "claim15"),
-        ], add=[sc])
+        hypo = OverlayWorld(
+            bound,
+            remove=[
+                _claim_artifact("test_paper_alpha", "claim1"),
+                _claim_artifact("test_paper_alpha", "claim2"),
+                _claim_artifact("test_paper_beta", "claim7"),
+                _claim_artifact("test_paper_gamma", "claim15"),
+            ],
+            add=[sc],
+        )
         # value_of should see the synthetic claim
         vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
@@ -1527,11 +1673,14 @@ class TestOverlayWorld:
     def test_diff_shows_changes(self, world):
         """diff() reports changed concepts."""
         bound = world.bind(task="speech")
-        hypo = OverlayWorld(bound, remove=[
-            _claim_artifact("test_paper_alpha", "claim2"),
-            _claim_artifact("test_paper_beta", "claim7"),
-            _claim_artifact("test_paper_gamma", "claim15"),
-        ])
+        hypo = OverlayWorld(
+            bound,
+            remove=[
+                _claim_artifact("test_paper_alpha", "claim2"),
+                _claim_artifact("test_paper_beta", "claim7"),
+                _claim_artifact("test_paper_gamma", "claim15"),
+            ],
+        )
         d = hypo.diff()
         # concept1 was conflicted, now determined → should be in diff
         assert CONCEPT1_ID in d
@@ -1561,10 +1710,13 @@ class TestOverlayWorld:
         ), "precondition: base must have conflicts involving claim2"
 
         # Remove claim2 — no conflict result should reference it
-        hypo = OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim2")])
+        hypo = OverlayWorld(
+            bound, remove=[_claim_artifact("test_paper_alpha", "claim2")]
+        )
         hypo_conflicts = hypo.conflicts(CONCEPT1_ID)
         stale = [
-            c for c in hypo_conflicts
+            c
+            for c in hypo_conflicts
             if str(c.claim_a_id) == _claim_artifact("test_paper_alpha", "claim2")
             or str(c.claim_b_id) == _claim_artifact("test_paper_alpha", "claim2")
         ]
@@ -1574,6 +1726,7 @@ class TestOverlayWorld:
 
 
 # ── Feature 3: Conflict Resolution ──────────────────────────────────
+
 
 class TestConflictResolution:
     def test_bind_with_environment_and_policy(self, world):
@@ -1633,7 +1786,10 @@ class TestConflictResolution:
         result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION)
 
         assert result.status == "conflicted"
-        assert result.reason == "argumentation strategy requires an explicit artifact store"
+        assert (
+            result.reason
+            == "argumentation strategy requires an explicit artifact store"
+        )
 
     def test_resolve_not_conflicted(self, world):
         """Determined → returns same, no resolution."""
@@ -1678,7 +1834,9 @@ class TestConflictResolution:
     def test_resolve_argumentation_rebuts(self, world):
         """Argumentation: weak rebutter blocked by preference ordering."""
         bound = world.bind(task="speech")
-        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION, world=world)
+        result = resolve(
+            bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION, world=world
+        )
         # claim2 (sample=10) rebuts claim1 (sample=30) → blocked (weaker)
         # claim15 supersedes claim1 → always defeats
         # claim7 supports claim1 → not an attack
@@ -1690,7 +1848,9 @@ class TestConflictResolution:
         """Specified claim wins."""
         bound = world.bind(task="speech")
         result = resolve(
-            bound, CONCEPT1_ID, ResolutionStrategy.OVERRIDE,
+            bound,
+            CONCEPT1_ID,
+            ResolutionStrategy.OVERRIDE,
             overrides={CONCEPT1_ID: _claim_artifact("test_paper_alpha", "claim1")},
         )
         assert result.status == "resolved"
@@ -1703,7 +1863,9 @@ class TestConflictResolution:
         # claim3 is inactive under speech (it's a singing claim)
         with pytest.raises(ValueError):
             resolve(
-                bound, CONCEPT1_ID, ResolutionStrategy.OVERRIDE,
+                bound,
+                CONCEPT1_ID,
+                ResolutionStrategy.OVERRIDE,
                 overrides={CONCEPT1_ID: _claim_artifact("test_paper_alpha", "claim3")},
             )
 
@@ -1716,10 +1878,13 @@ class TestConflictResolution:
     def test_resolve_on_hypothetical(self, world):
         """resolve() works on OverlayWorld via BeliefSpace."""
         bound = world.bind(task="speech")
-        hypo = OverlayWorld(bound, remove=[
-            _claim_artifact("test_paper_beta", "claim7"),
-            _claim_artifact("test_paper_gamma", "claim15"),
-        ])
+        hypo = OverlayWorld(
+            bound,
+            remove=[
+                _claim_artifact("test_paper_beta", "claim7"),
+                _claim_artifact("test_paper_gamma", "claim15"),
+            ],
+        )
         result = resolve(hypo, CONCEPT1_ID, ResolutionStrategy.RECENCY)
         # claim2(2024-06-20) vs claim1(2024-01-15) → claim2 wins
         assert result.status == "resolved"
@@ -1730,10 +1895,13 @@ class TestConflictResolution:
             task="speech",
             policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY),
         )
-        hypo = OverlayWorld(bound, remove=[
-            _claim_artifact("test_paper_beta", "claim7"),
-            _claim_artifact("test_paper_gamma", "claim15"),
-        ])
+        hypo = OverlayWorld(
+            bound,
+            remove=[
+                _claim_artifact("test_paper_beta", "claim7"),
+                _claim_artifact("test_paper_gamma", "claim15"),
+            ],
+        )
 
         result = hypo.resolved_value(CONCEPT1_ID)
         assert result.status == "resolved"
@@ -1742,7 +1910,9 @@ class TestConflictResolution:
     def test_resolve_argumentation_supersedes(self, world):
         """Superseding claim defeats target in argumentation framework."""
         bound = world.bind(task="speech")
-        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION, world=world)
+        result = resolve(
+            bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION, world=world
+        )
         # claim15 supersedes claim1 → claim1 defeated (out of grounded extension)
         # Multiple other claims survive → still conflicted
         assert result.status == "conflicted"
@@ -1752,7 +1922,9 @@ class TestConflictResolution:
     def test_resolve_argumentation_undercuts(self, world):
         """Undercutting eliminates target from grounded extension."""
         bound = world.bind(task="speech")
-        result = resolve(bound, CONCEPT2_ID, ResolutionStrategy.ARGUMENTATION, world=world)
+        result = resolve(
+            bound, CONCEPT2_ID, ResolutionStrategy.ARGUMENTATION, world=world
+        )
         # claim12 undercuts claim6 → claim6 defeated
         # claim13 undermines claim4 (equal strength) → claim4 defeated
         # claim14 explains claim6 → not an attack
@@ -1768,8 +1940,12 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolution_claim_view, _resolve_recency
 
         claims = [
-            _resolution_claim_view(make_claim("a", provenance_json={"date": "2025-01-01"})),
-            _resolution_claim_view(make_claim("b", provenance_json={"date": "2025-01-01"})),
+            _resolution_claim_view(
+                make_claim("a", provenance_json={"date": "2025-01-01"})
+            ),
+            _resolution_claim_view(
+                make_claim("b", provenance_json={"date": "2025-01-01"})
+            ),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id is None, (
@@ -1782,16 +1958,25 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolution_claim_view, _resolve_recency
 
         claims = [
-            _resolution_claim_view(make_claim("a", provenance_json={"date": "2025-01-01"})),
-            _resolution_claim_view(make_claim("b", provenance_json={"date": "2024-06-01"})),
-            _resolution_claim_view(make_claim("c", provenance_json={"date": "2024-06-01"})),
+            _resolution_claim_view(
+                make_claim("a", provenance_json={"date": "2025-01-01"})
+            ),
+            _resolution_claim_view(
+                make_claim("b", provenance_json={"date": "2024-06-01"})
+            ),
+            _resolution_claim_view(
+                make_claim("c", provenance_json={"date": "2024-06-01"})
+            ),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id == "a"
 
     def test_resolve_sample_size_tie_returns_conflicted(self):
         """Two claims with identical sample_size → conflicted, not arbitrary winner."""
-        from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
+        from propstore.world.resolution import (
+            _resolution_claim_view,
+            _resolve_sample_size,
+        )
 
         claims = [
             _resolution_claim_view(make_claim("a", sample_size=50)),
@@ -1805,7 +1990,10 @@ class TestConflictResolution:
 
     def test_resolve_sample_size_tie_unique_best_still_wins(self):
         """One claim has strictly largest sample_size → still resolves to winner."""
-        from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
+        from propstore.world.resolution import (
+            _resolution_claim_view,
+            _resolve_sample_size,
+        )
 
         claims = [
             _resolution_claim_view(make_claim("a", sample_size=100)),
@@ -1821,10 +2009,14 @@ class TestConflictResolution:
 
         tied_claims = [
             _resolution_claim_view(
-                make_claim("claim1", value=200.0, provenance_json={"date": "2025-01-01"})
+                make_claim(
+                    "claim1", value=200.0, provenance_json={"date": "2025-01-01"}
+                )
             ),
             _resolution_claim_view(
-                make_claim("claim2", value=350.0, provenance_json={"date": "2025-01-01"})
+                make_claim(
+                    "claim2", value=350.0, provenance_json={"date": "2025-01-01"}
+                )
             ),
         ]
         # Test the helper directly — resolve() returns "conflicted" when
@@ -1837,7 +2029,10 @@ class TestConflictResolution:
 
     def test_resolve_sample_size_tie_through_resolve_api(self):
         """Integration: tied sample_size through resolve() → conflicted status."""
-        from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
+        from propstore.world.resolution import (
+            _resolution_claim_view,
+            _resolve_sample_size,
+        )
 
         tied_claims = [
             _resolution_claim_view(make_claim("claim1", value=200.0, sample_size=50)),
@@ -1849,6 +2044,7 @@ class TestConflictResolution:
 
 
 # ── Feature 4: Chain Query ──────────────────────────────────────────
+
 
 class TestChainQuery:
     def test_chain_direct(self, world):
@@ -1932,8 +2128,12 @@ class TestChainQuery:
 
     def test_chain_determinism(self, world):
         """Same bindings + same strategy → same result."""
-        r1 = world.chain_query(CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech")
-        r2 = world.chain_query(CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech")
+        r1 = world.chain_query(
+            CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
+        )
+        r2 = world.chain_query(
+            CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
+        )
         assert r1.result.status == r2.result.status
         if r1.result.status == "derived":
             assert r1.result.value == r2.result.value
@@ -1955,20 +2155,35 @@ class TestChainQuery:
 
 # ── Hypothesis property tests ────────────────────────────────────────
 
+
 class TestHypothesisProperties:
     def test_unconditional_always_active(self, world):
-        for binding in [{}, {"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
+        for binding in [
+            {},
+            {"task": "speech"},
+            {"task": "singing"},
+            {"task": "whisper"},
+        ]:
             bound = world.bind(**binding)
             active_ids = _runtime_claim_id_set(bound.active_claims())
-            assert _claim_artifact("test_paper_alpha", "claim5") in active_ids, f"claim5 not active under {binding}"
+            assert _claim_artifact("test_paper_alpha", "claim5") in active_ids, (
+                f"claim5 not active under {binding}"
+            )
 
     def test_partitioning(self, world):
         all_claims = {str(c.id) for c in world.claims_for(None)}
-        for binding in [{}, {"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
+        for binding in [
+            {},
+            {"task": "speech"},
+            {"task": "singing"},
+            {"task": "whisper"},
+        ]:
             bound = world.bind(**binding)
             active = _runtime_claim_id_set(bound.active_claims())
             inactive = _runtime_claim_id_set(bound.inactive_claims())
-            assert active | inactive == all_claims, f"Partition violated under {binding}"
+            assert active | inactive == all_claims, (
+                f"Partition violated under {binding}"
+            )
             assert active & inactive == set(), f"Overlap in partition under {binding}"
 
     def test_monotonicity(self, world):
@@ -1980,8 +2195,7 @@ class TestHypothesisProperties:
 
     def test_unbound_conflicts_match_build_time(self, world):
         world_conflict_pairs = {
-            (conflict.claim_a_id, conflict.claim_b_id)
-            for conflict in world.conflicts()
+            (conflict.claim_a_id, conflict.claim_b_id) for conflict in world.conflicts()
         }
         bound_conflict_pairs = {
             (c.claim_a_id, c.claim_b_id) for c in world.bind().conflicts()
@@ -2005,6 +2219,7 @@ class TestHypothesisProperties:
 
 
 # ── Cross-feature property tests ─────────────────────────────────────
+
 
 class TestCrossFeatureProperties:
     def test_value_of_invariance(self, world):
@@ -2032,7 +2247,9 @@ class TestCrossFeatureProperties:
         bound = world.bind(task="speech")
         base_claims_before = sorted(_runtime_claim_ids(bound.active_claims()))
         sc = SyntheticClaim(id="s1", concept_id=CONCEPT1_ID, value=999.0)
-        OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
+        OverlayWorld(
+            bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc]
+        )
         base_claims_after = sorted(_runtime_claim_ids(bound.active_claims()))
         assert base_claims_before == base_claims_after
 
@@ -2040,10 +2257,14 @@ class TestCrossFeatureProperties:
         """P2.4: In hypothetical world, active ∪ inactive = adjusted set."""
         bound = world.bind(task="speech")
         sc = SyntheticClaim(
-            id="synth_p", concept_id=CONCEPT1_ID, value=999.0,
+            id="synth_p",
+            concept_id=CONCEPT1_ID,
+            value=999.0,
             conditions=["task == 'speech'"],
         )
-        hypo = OverlayWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
+        hypo = OverlayWorld(
+            bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc]
+        )
         active = _runtime_claim_id_set(hypo.active_claims())
         inactive = _runtime_claim_id_set(hypo.inactive_claims())
         assert active & inactive == set(), "Overlap in hypothetical partition"
@@ -2070,15 +2291,20 @@ class TestCrossFeatureProperties:
 
 # ── Feature 7: Transitive Consistency ────────────────────────────────
 
+
 class TestTransitiveConsistency:
     def test_transitive_conflict_detected(self, world, claim_files, concept_dir):
         """Build sidecar with claim11, call detect_transitive_conflicts, verify PARAM_CONFLICT for concept5."""
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+        from propstore.conflict_detector.collectors import (
+            conflict_claims_from_claim_files,
+        )
         from propstore.families.concepts.stages import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
+        concept_registry = {
+            str(c.record.artifact_id): c.record.to_payload() for c in concepts
+        }
         records = detect_transitive_conflicts(
             conflict_claims_from_claim_files(claim_files),
             concept_registry,
@@ -2147,11 +2373,15 @@ class TestTransitiveConsistency:
     def test_transitive_conflict_has_chain(self, world, claim_files, concept_dir):
         """Verify derivation_chain field is populated when transitive conflicts exist."""
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+        from propstore.conflict_detector.collectors import (
+            conflict_claims_from_claim_files,
+        )
         from propstore.families.concepts.stages import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
+        concept_registry = {
+            str(c.record.artifact_id): c.record.to_payload() for c in concepts
+        }
         records = detect_transitive_conflicts(
             conflict_claims_from_claim_files(claim_files),
             concept_registry,
@@ -2163,24 +2393,25 @@ class TestTransitiveConsistency:
     def test_no_transitive_when_compatible(self, world, claim_files, concept_dir):
         """If claim11's value matches derived (e.g. 0.2), no conflict emitted."""
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+        from propstore.conflict_detector.collectors import (
+            conflict_claims_from_claim_files,
+        )
         from propstore.families.concepts.stages import load_concepts
         from propstore.claims import claim_file_payload, loaded_claim_file_from_payload
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
+        concept_registry = {
+            str(c.record.artifact_id): c.record.to_payload() for c in concepts
+        }
 
         # Create modified claim_files where claim11 has compatible value
         modified_files = []
         for cf in claim_files:
             new_data = claim_file_payload(cf)
             logical_ids = new_data.get("logical_ids")
-            if (
-                isinstance(logical_ids, list)
-                and any(
-                    isinstance(item, dict) and item.get("value") == "claim11"
-                    for item in logical_ids
-                )
+            if isinstance(logical_ids, list) and any(
+                isinstance(item, dict) and item.get("value") == "claim11"
+                for item in logical_ids
             ):
                 # Set to a value compatible with derived (concept6*concept1 with first claim)
                 new_data = dict(new_data)
@@ -2204,11 +2435,15 @@ class TestTransitiveConsistency:
     def test_transitive_respects_conditions(self, world, claim_files, concept_dir):
         """Conflict only under bindings where all claims are active."""
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+        from propstore.conflict_detector.collectors import (
+            conflict_claims_from_claim_files,
+        )
         from propstore.families.concepts.stages import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {str(c.record.artifact_id): c.record.to_payload() for c in concepts}
+        concept_registry = {
+            str(c.record.artifact_id): c.record.to_payload() for c in concepts
+        }
         records = detect_transitive_conflicts(
             conflict_claims_from_claim_files(claim_files),
             concept_registry,
@@ -2224,14 +2459,17 @@ class TestTransitiveConsistency:
         """Add conflicting synthetic claim → recompute finds it."""
         bound = world.bind(task="speech")
         sc = SyntheticClaim(
-            id="synth_conflict", concept_id="concept2", value=999.0,
+            id="synth_conflict",
+            concept_id="concept2",
+            value=999.0,
             conditions=["task == 'speech'"],
         )
         hypo = OverlayWorld(bound, add=[sc])
         conflicts = hypo.recompute_conflicts()
         # concept2 now has claim4(800), claim6(800), synth_conflict(999) → conflict
         synthetic_conflicts = [
-            c for c in conflicts
+            c
+            for c in conflicts
             if _conflict_concept_id(c) == CONCEPT2_ID
             and "synth_conflict" in _conflict_pair(c)
         ]
@@ -2240,14 +2478,19 @@ class TestTransitiveConsistency:
         for c in synthetic_conflicts:
             assert str(c.claim_a_id)
             assert str(c.claim_b_id)
-            assert c.warning_class in {ConflictClass.CONFLICT.value, ConflictClass.OVERLAP.value}
+            assert c.warning_class in {
+                ConflictClass.CONFLICT.value,
+                ConflictClass.OVERLAP.value,
+            }
             assert "value_a" in c.attribute_mapping()
             assert "value_b" in c.attribute_mapping()
 
     def test_hypothetical_conflicts_include_recomputed_synthetic_conflicts(self, world):
         bound = world.bind(task="speech")
         sc = SyntheticClaim(
-            id="synth_conflict", concept_id="concept2", value=999.0,
+            id="synth_conflict",
+            concept_id="concept2",
+            value=999.0,
             conditions=["task == 'speech'"],
         )
         hypo = OverlayWorld(bound, add=[sc])
@@ -2255,8 +2498,14 @@ class TestTransitiveConsistency:
         conflicts = hypo.conflicts("concept2")
 
         assert any(
-            _conflict_pair(conflict) == frozenset({_claim_artifact("test_paper_alpha", "claim4"), "synth_conflict"})
-            or _conflict_pair(conflict) == frozenset({_claim_artifact("test_paper_beta", "claim6"), "synth_conflict"})
+            _conflict_pair(conflict)
+            == frozenset(
+                {_claim_artifact("test_paper_alpha", "claim4"), "synth_conflict"}
+            )
+            or _conflict_pair(conflict)
+            == frozenset(
+                {_claim_artifact("test_paper_beta", "claim6"), "synth_conflict"}
+            )
             for conflict in conflicts
         )
 
@@ -2276,10 +2525,7 @@ class TestTransitiveConsistency:
         )
 
         conflicts = OverlayWorld(bound).conflicts("concept1")
-        pairs = {
-            _conflict_pair(conflict)
-            for conflict in conflicts
-        }
+        pairs = {_conflict_pair(conflict) for conflict in conflicts}
 
         assert len(pairs) == len(conflicts)
 
@@ -2290,7 +2536,9 @@ class TestTransitiveConsistency:
         # Remove claim2, claim7, claim15 → only claim1 remains → no conflict for concept1
         hypo = OverlayWorld(bound, remove=["claim2", "claim7", "claim15"])
         conflicts = hypo.recompute_conflicts()
-        concept1_conflicts = [c for c in conflicts if _conflict_concept_id(c) == "concept1"]
+        concept1_conflicts = [
+            c for c in conflicts if _conflict_concept_id(c) == "concept1"
+        ]
         assert len(concept1_conflicts) == 0
 
     def test_hypothetical_recompute_empty(self, world):
@@ -2299,7 +2547,9 @@ class TestTransitiveConsistency:
         hypo = OverlayWorld(bound, remove=[], add=[])
         conflicts = hypo.recompute_conflicts()
         # Under singing, concept1 has only claim3(180) → determined, no conflicts
-        concept1_conflicts = [c for c in conflicts if _conflict_concept_id(c) == "concept1"]
+        concept1_conflicts = [
+            c for c in conflicts if _conflict_concept_id(c) == "concept1"
+        ]
         assert len(concept1_conflicts) == 0
 
 
@@ -2336,44 +2586,58 @@ def algo_concept_dir(tmp_path):
             [data],
             default_domain=str(data.get("domain") or "propstore"),
         )[0]
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(normalized, default_flow_style=False))
+        (concepts_path / f"{name}.yaml").write_text(
+            yaml.dump(normalized, default_flow_style=False)
+        )
 
-    write("sample_rate", {
-        "id": "algo_concept1",
-        "canonical_name": "sample_rate",
-        "status": "accepted",
-        "definition": "Audio sample rate in Hz.",
-        "domain": "speech",
-        "form": "frequency",
-    })
+    write(
+        "sample_rate",
+        {
+            "id": "algo_concept1",
+            "canonical_name": "sample_rate",
+            "status": "accepted",
+            "definition": "Audio sample rate in Hz.",
+            "domain": "speech",
+            "form": "frequency",
+        },
+    )
 
-    write("window_size", {
-        "id": "algo_concept2",
-        "canonical_name": "window_size",
-        "status": "accepted",
-        "definition": "Analysis window size in samples.",
-        "domain": "speech",
-        "form": "frequency",
-    })
+    write(
+        "window_size",
+        {
+            "id": "algo_concept2",
+            "canonical_name": "window_size",
+            "status": "accepted",
+            "definition": "Analysis window size in samples.",
+            "domain": "speech",
+            "form": "frequency",
+        },
+    )
 
-    write("spectral_envelope", {
-        "id": "algo_concept3",
-        "canonical_name": "spectral_envelope",
-        "status": "accepted",
-        "definition": "Spectral envelope estimation algorithm.",
-        "domain": "speech",
-        "form": "structural",
-    })
+    write(
+        "spectral_envelope",
+        {
+            "id": "algo_concept3",
+            "canonical_name": "spectral_envelope",
+            "status": "accepted",
+            "definition": "Spectral envelope estimation algorithm.",
+            "domain": "speech",
+            "form": "structural",
+        },
+    )
 
-    write("task", {
-        "id": "algo_concept4",
-        "canonical_name": "task",
-        "status": "accepted",
-        "definition": "The vocal activity type.",
-        "domain": "speech",
-        "form": "category",
-        "form_parameters": {"values": ["speech", "singing"], "extensible": True},
-    })
+    write(
+        "task",
+        {
+            "id": "algo_concept4",
+            "canonical_name": "task",
+            "status": "accepted",
+            "definition": "The vocal activity type.",
+            "domain": "speech",
+            "form": "category",
+            "form_parameters": {"values": ["speech", "singing"], "extensible": True},
+        },
+    )
 
     return concepts_path
 
@@ -2381,6 +2645,7 @@ def algo_concept_dir(tmp_path):
 @pytest.fixture
 def algo_repo(algo_concept_dir):
     from propstore.repository import Repository
+
     return Repository(algo_concept_dir.parent)
 
 
@@ -2391,20 +2656,11 @@ def algo_claim_files(algo_concept_dir):
     claims_dir = knowledge / "claims"
     claims_dir.mkdir(exist_ok=True)
 
-    algo_body_a = (
-        "def compute(sr, ws):\n"
-        "    return sr / ws\n"
-    )
+    algo_body_a = "def compute(sr, ws):\n    return sr / ws\n"
     # Equivalent algorithm: same logic, different variable names
-    algo_body_b = (
-        "def compute(sample_rate, window):\n"
-        "    return sample_rate / window\n"
-    )
+    algo_body_b = "def compute(sample_rate, window):\n    return sample_rate / window\n"
     # Different algorithm: different logic
-    algo_body_c = (
-        "def compute(sr, ws):\n"
-        "    return sr * ws + 1\n"
-    )
+    algo_body_c = "def compute(sr, ws):\n    return sr * ws + 1\n"
 
     alpha = {
         "source": {"paper": "algo_paper_alpha"},
@@ -2490,6 +2746,7 @@ def algo_claim_files(algo_concept_dir):
     )
 
     from tests.family_helpers import load_claim_files
+
     return load_claim_files(claims_dir)
 
 
@@ -2555,7 +2812,9 @@ class TestAlgorithmWorldQuery:
         assert result.status == "conflicted"
         assert len(result.claims) == 2
 
-    def test_mixed_algorithm_parameter_claims_conflict_when_semantics_disagree(self, algo_world):
+    def test_mixed_algorithm_parameter_claims_conflict_when_semantics_disagree(
+        self, algo_world
+    ):
         """Mixed direct and algorithm claims conflict when the algorithm implies another value."""
         # algo_concept3 has algo_claim1, algo_claim2, algo_claim3 (algorithms)
         # and algo_claim_param (parameter, value=42.0). With mixed claims,
@@ -2570,6 +2829,7 @@ class TestAlgorithmWorldQuery:
 
 # ── Performance: conflicts caching ───────────────────────────────────
 
+
 class TestConflictsCaching:
     def test_conflicts_cached(self, world):
         """Calling conflicts() twice should return identical results without recomputation."""
@@ -2581,25 +2841,28 @@ class TestConflictsCaching:
 
 # ── Encapsulation: public interface ──────────────────────────────────
 
+
 class TestBoundWorldPublicInterface:
     """BoundWorld methods used by collaborators should be public."""
 
     def test_is_param_compatible_public(self, world):
         """is_param_compatible is used by OverlayWorld and sensitivity."""
         bound = world.bind()
-        assert hasattr(bound, 'is_param_compatible')
+        assert hasattr(bound, "is_param_compatible")
         assert callable(bound.is_param_compatible)
 
     def test_extract_methods_public(self, world):
         """Value extraction methods are used by OverlayWorld."""
         bound = world.bind()
-        assert hasattr(bound, 'extract_variable_concepts')
-        assert hasattr(bound, 'collect_known_values')
-        assert hasattr(bound, 'extract_bindings')
+        assert hasattr(bound, "extract_variable_concepts")
+        assert hasattr(bound, "collect_known_values")
+        assert hasattr(bound, "extract_bindings")
 
 
 class TestSemanticCorePhase4Activation:
-    def test_bind_builds_active_graph_with_parity_to_active_and_inactive_claims(self, world):
+    def test_bind_builds_active_graph_with_parity_to_active_and_inactive_claims(
+        self, world
+    ):
         bound = world.bind(task="speech")
 
         assert tuple(sorted(_runtime_claim_ids(bound.active_claims()))) == (
@@ -2610,14 +2873,18 @@ class TestSemanticCorePhase4Activation:
         )
 
     def test_active_graph_construction_is_binding_order_invariant(self, world):
-        env_a = Environment(bindings={
-            "task": "speech",
-            "fundamental_frequency": 200,
-        })
-        env_b = Environment(bindings={
-            "fundamental_frequency": 200,
-            "task": "speech",
-        })
+        env_a = Environment(
+            bindings={
+                "task": "speech",
+                "fundamental_frequency": 200,
+            }
+        )
+        env_b = Environment(
+            bindings={
+                "fundamental_frequency": 200,
+                "task": "speech",
+            }
+        )
 
         bound_a = world.bind(env_a)
         bound_b = world.bind(env_b)
@@ -2627,7 +2894,9 @@ class TestSemanticCorePhase4Activation:
     def test_irrelevant_claim_injection_preserves_target_semantics(self, world):
         bound = world.bind(task="speech")
 
-        baseline_active_ids = tuple(sorted(_runtime_claim_ids(bound.active_claims(CONCEPT1_ID))))
+        baseline_active_ids = tuple(
+            sorted(_runtime_claim_ids(bound.active_claims(CONCEPT1_ID)))
+        )
         baseline_value = bound.value_of(CONCEPT1_ID)
         baseline_resolution = resolve(
             bound,
@@ -2647,11 +2916,14 @@ class TestSemanticCorePhase4Activation:
             ],
         )
 
-        assert tuple(sorted(_runtime_claim_ids(hypo.active_claims(CONCEPT1_ID)))) == baseline_active_ids
-        assert hypo.value_of(CONCEPT1_ID).status == baseline_value.status
-        assert tuple(sorted(_runtime_claim_ids(hypo.value_of(CONCEPT1_ID).claims))) == tuple(
-            sorted(_runtime_claim_ids(baseline_value.claims))
+        assert (
+            tuple(sorted(_runtime_claim_ids(hypo.active_claims(CONCEPT1_ID))))
+            == baseline_active_ids
         )
+        assert hypo.value_of(CONCEPT1_ID).status == baseline_value.status
+        assert tuple(
+            sorted(_runtime_claim_ids(hypo.value_of(CONCEPT1_ID).claims))
+        ) == tuple(sorted(_runtime_claim_ids(baseline_value.claims)))
 
         hypo_resolution = resolve(
             hypo,
@@ -2693,9 +2965,11 @@ class TestSemanticCorePhase4Activation:
             or "synth_conflict_" in str(conflict.claim_b_id)
         }
 
-        assert forward_pairs == reverse_pairs == {
-            frozenset({"synth_conflict_a", "synth_conflict_b"})
-        }
+        assert (
+            forward_pairs
+            == reverse_pairs
+            == {frozenset({"synth_conflict_a", "synth_conflict_b"})}
+        )
 
 
 # ── RED tests: Float comparison bugs (audit findings F5.2, F5.3) ────
@@ -2740,11 +3014,17 @@ class TestFloatEqualityBugs:
             semantics="grounded",
         )
 
-        with patch("argumentation.probabilistic.compute_probabilistic_acceptance", return_value=mock_praf_result):
+        with patch(
+            "argumentation.probabilistic.compute_probabilistic_acceptance",
+            return_value=mock_praf_result,
+        ):
             # WorldQuery IS the WorldStore — pass it directly
             winner_id, reason, probs = _resolve_praf(
-                target_claims, active_claims, world,
-                semantics="grounded", comparison="elitist",
+                target_claims,
+                active_claims,
+                world,
+                semantics="grounded",
+                comparison="elitist",
             )
 
         assert winner_id is None, (
@@ -2760,14 +3040,20 @@ class TestFloatEqualityBugs:
         # Two synthetic claims for the same concept with values
         # that differ only by floating-point noise.
         base_value = 9.8
-        fp_noise_value = 9.8 + 1e-15  # differs by less than machine epsilon relative to 9.8
+        fp_noise_value = (
+            9.8 + 1e-15
+        )  # differs by less than machine epsilon relative to 9.8
 
         sc_a = SyntheticClaim(
-            id="synth_fp_a", concept_id="concept2", value=base_value,
+            id="synth_fp_a",
+            concept_id="concept2",
+            value=base_value,
             conditions=["task == 'speech'"],
         )
         sc_b = SyntheticClaim(
-            id="synth_fp_b", concept_id="concept2", value=fp_noise_value,
+            id="synth_fp_b",
+            concept_id="concept2",
+            value=fp_noise_value,
             conditions=["task == 'speech'"],
         )
 
@@ -2780,7 +3066,8 @@ class TestFloatEqualityBugs:
 
         # Filter to only conflicts between our two synthetic claims
         fp_conflicts = [
-            c for c in conflicts
+            c
+            for c in conflicts
             if _conflict_pair(c) == frozenset({"synth_fp_a", "synth_fp_b"})
         ]
 
@@ -2841,13 +3128,13 @@ class TestWorldQuerySidecarPath:
         db_path = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(db_path)
         build_world_projection_schema(conn)
-        conn.execute(
-            "UPDATE meta SET schema_version = 9999 WHERE key = 'sidecar'"
-        )
+        conn.execute("UPDATE meta SET schema_version = 9999 WHERE key = 'sidecar'")
         conn.commit()
         conn.close()
 
-        with pytest.raises(ValueError, match="Unsupported SQLAlchemy store schema version"):
+        with pytest.raises(
+            ValueError, match="Unsupported SQLAlchemy store schema version"
+        ):
             world_query_from_sqlite_path(db_path)
 
     @pytest.mark.parametrize(
@@ -2858,7 +3145,9 @@ class TestWorldQuerySidecarPath:
             ("missing_column", "missing column"),
         ],
     )
-    def test_worldmodel_rejects_boundary_schema_breakage(self, tmp_path, mutation, message):
+    def test_worldmodel_rejects_boundary_schema_breakage(
+        self, tmp_path, mutation, message
+    ):
         db_path = tmp_path / f"{mutation}.sqlite"
         conn = sqlite3.connect(db_path)
         build_world_projection_schema(conn)
@@ -3121,7 +3410,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                 reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
                 semantics=ArgumentationSemantics.GROUNDED,
                 comparison="democratic",
-            )
+            ),
         )
         hypo = OverlayWorld(
             bound,
@@ -3143,7 +3432,9 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert result.winning_claim_id == "claim_a"
         assert result.reason == "sole survivor in grounded extension"
 
-    def test_praf_overlay_keeps_delta_conflicts_unresolved_without_priors(self, tmp_path):
+    def test_praf_overlay_keeps_delta_conflicts_unresolved_without_priors(
+        self, tmp_path
+    ):
         bound = _phase6_bound_world(
             tmp_path,
             RenderPolicy(
@@ -3151,7 +3442,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                 reasoning_backend=ReasoningBackend.PRAF,
                 semantics=ArgumentationSemantics.GROUNDED,
                 praf_strategy="exact_enum",
-            )
+            ),
         )
         hypo = OverlayWorld(
             bound,

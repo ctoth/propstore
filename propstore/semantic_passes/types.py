@@ -111,8 +111,7 @@ class SemanticPass(Protocol[InT, OutT]):
     input_stage: StageId
     output_stage: StageId
 
-    def run(self, value: InT, context: object) -> PassResult[OutT]:
-        ...
+    def run(self, value: InT, context: object) -> PassResult[OutT]: ...
 
 
 @dataclass(frozen=True)

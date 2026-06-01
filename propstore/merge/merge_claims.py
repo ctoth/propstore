@@ -9,7 +9,11 @@ from typing import Any, cast
 
 from quire.documents import document_to_payload
 
-from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
+from propstore.core.assertions.refs import (
+    ConditionRef,
+    ContextReference,
+    ProvenanceGraphRef,
+)
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import AssertionId, ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
@@ -45,9 +49,15 @@ class MergeClaim:
 
     @property
     def value_concept_id(self) -> str:
-        if isinstance(self.document.output_concept, str) and self.document.output_concept:
+        if (
+            isinstance(self.document.output_concept, str)
+            and self.document.output_concept
+        ):
             return self.document.output_concept
-        if isinstance(self.document.target_concept, str) and self.document.target_concept:
+        if (
+            isinstance(self.document.target_concept, str)
+            and self.document.target_concept
+        ):
             return self.document.target_concept
         for concept_id in self.document.concepts:
             if isinstance(concept_id, str) and concept_id:
@@ -63,7 +73,8 @@ class MergeClaim:
                 formatted := format_logical_id(
                     cast(dict[str, Any], document_to_payload(logical_id))
                 )
-            ) is not None
+            )
+            is not None
         )
 
     @property
@@ -80,11 +91,17 @@ class MergeClaim:
     @property
     def assertion(self) -> SituatedAssertion:
         return SituatedAssertion(
-            relation=RelationConceptRef(f"ps:relation:claim:{self.claim_type or 'unknown'}"),
+            relation=RelationConceptRef(
+                f"ps:relation:claim:{self.claim_type or 'unknown'}"
+            ),
             role_bindings=RoleBindingSet(
                 (
-                    RoleBinding("subject", self.value_concept_id or "ps:concept:unscoped"),
-                    RoleBinding("content", _stable_json(_semantic_payload(self.document))),
+                    RoleBinding(
+                        "subject", self.value_concept_id or "ps:concept:unscoped"
+                    ),
+                    RoleBinding(
+                        "content", _stable_json(_semantic_payload(self.document))
+                    ),
                 )
             ),
             context=ContextReference(ContextId(self.document.context.id)),
@@ -119,7 +136,11 @@ class MergeClaim:
         include_id_alias: bool = False,
     ) -> dict[str, Any]:
         payload = cast(dict[str, Any], document_to_payload(self.document))
-        if include_id_alias and "id" not in payload and self.document.artifact_id is not None:
+        if (
+            include_id_alias
+            and "id" not in payload
+            and self.document.artifact_id is not None
+        ):
             payload["id"] = self.document.artifact_id
         if include_branch_origin:
             payload["provenance"] = self.provenance_payload()

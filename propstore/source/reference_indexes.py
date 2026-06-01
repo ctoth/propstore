@@ -30,7 +30,9 @@ def source_claim_index_from_document(
     )
 
 
-def source_claim_index(repo: Repository, source_name: str) -> FamilyReferenceIndex[SourceClaimDocument]:
+def source_claim_index(
+    repo: Repository, source_name: str
+) -> FamilyReferenceIndex[SourceClaimDocument]:
     document = repo.families.source_claims.load(SourceRef(source_name))
     return source_claim_index_from_document(document)
 

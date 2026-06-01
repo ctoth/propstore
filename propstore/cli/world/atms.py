@@ -1,4 +1,5 @@
 """ATMS-oriented ``pks world`` command adapters."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -359,7 +360,9 @@ def world_atms_relevance_command(
 @atms.command("interventions")
 @click.argument("target")
 @click.argument("args", nargs=-1)
-@click.option("--target-status", required=True, help="Desired ATMS node status (IN/OUT)")
+@click.option(
+    "--target-status", required=True, help="Desired ATMS node status (IN/OUT)"
+)
 @click.option(
     "--queryable",
     "queryables",
@@ -418,7 +421,9 @@ def world_atms_interventions_command(
 @atms.command("next-query")
 @click.argument("target")
 @click.argument("args", nargs=-1)
-@click.option("--target-status", required=True, help="Desired ATMS node status (IN/OUT)")
+@click.option(
+    "--target-status", required=True, help="Desired ATMS node status (IN/OUT)"
+)
 @click.option(
     "--queryable",
     "queryables",

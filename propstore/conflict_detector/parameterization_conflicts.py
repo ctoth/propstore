@@ -220,7 +220,9 @@ def _direct_state_for_claim(
     center, lo, hi = interval
     if abs(hi - lo) >= DEFAULT_TOLERANCE:
         return None
-    normalized = _normalize_claim_value(center, claim, concept_id, concept_registry, forms)
+    normalized = _normalize_claim_value(
+        center, claim, concept_id, concept_registry, forms
+    )
     return DerivedConflictValue(
         concept_id=concept_id,
         value=normalized,
@@ -257,7 +259,9 @@ def _direct_states_for_concept(
     return states
 
 
-def _quantity_inputs_only(inputs: Sequence[str], concept_registry: ConflictConceptRegistry) -> bool:
+def _quantity_inputs_only(
+    inputs: Sequence[str], concept_registry: ConflictConceptRegistry
+) -> bool:
     for concept_id in inputs:
         inp_form = concept_registry.form_name(concept_id) or ""
         if inp_form in ("category", "structural", "boolean", ""):
@@ -301,11 +305,11 @@ def _derive_state(
         return None
     assert not isinstance(merged_context, _Sentinel)
 
-    source_claim_ids = tuple(sorted({
-        claim_id
-        for state in input_states
-        for claim_id in state.source_claim_ids
-    }))
+    source_claim_ids = tuple(
+        sorted(
+            {claim_id for state in input_states for claim_id in state.source_claim_ids}
+        )
+    )
     merged_conditions = _merge_conditions(
         *(state.conditions for state in input_states),
         edge_conditions,
@@ -341,7 +345,9 @@ def _record_key(
 
 def _append_parameterization_record(
     records: list[ConflictRecord],
-    seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]],
+    seen_record_keys: set[
+        tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]
+    ],
     *,
     concept_id: str,
     direct_claim: ConflictClaim,
@@ -357,22 +363,26 @@ def _append_parameterization_record(
     if key in seen_record_keys:
         return
     seen_record_keys.add(key)
-    records.append(ConflictRecord(
-        concept_id=concept_id,
-        claim_a_id=direct_claim.claim_id,
-        claim_b_id=_representative_source_claim_id(derived_state.source_claim_ids),
-        warning_class=warning_class,
-        conditions_a=sorted(direct_claim.conditions),
-        conditions_b=list(derived_state.conditions),
-        value_a=_value_str(direct_claim.value, claim=direct_claim),
-        value_b=str(derived_state.value),
-        derivation_chain=derived_state.derivation_chain,
-    ))
+    records.append(
+        ConflictRecord(
+            concept_id=concept_id,
+            claim_a_id=direct_claim.claim_id,
+            claim_b_id=_representative_source_claim_id(derived_state.source_claim_ids),
+            warning_class=warning_class,
+            conditions_a=sorted(direct_claim.conditions),
+            conditions_b=list(derived_state.conditions),
+            value_a=_value_str(direct_claim.value, claim=direct_claim),
+            value_b=str(derived_state.value),
+            derivation_chain=derived_state.derivation_chain,
+        )
+    )
 
 
 def _compare_direct_claim_against_derived(
     records: list[ConflictRecord],
-    seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]],
+    seen_record_keys: set[
+        tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]
+    ],
     *,
     concept_id: str,
     direct_claim: ConflictClaim,
@@ -433,7 +443,9 @@ def _detect_parameterization_conflicts(
         else forms
     )
     all_param_claims = by_concept or _collect_parameter_claims(claims)
-    seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]] = set()
+    seen_record_keys: set[
+        tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]
+    ] = set()
 
     for concept_data in concept_registry.unique_concepts():
         concept_id = concept_data.concept_id
@@ -468,7 +480,9 @@ def _detect_parameterization_conflicts(
             if any(not states for states in input_state_lists):
                 continue
 
-            edge_conditions = to_cel_exprs(sorted(str(condition) for condition in rel.conditions))
+            edge_conditions = to_cel_exprs(
+                sorted(str(condition) for condition in rel.conditions)
+            )
             for input_states in product(*input_state_lists):
                 derived_state = _derive_state(
                     concept_id,
@@ -495,7 +509,9 @@ def _detect_parameterization_conflicts(
     return records
 
 
-def _state_key(state: DerivedConflictValue) -> tuple[str, str, tuple[str, ...], tuple[str, ...], str | None, int]:
+def _state_key(
+    state: DerivedConflictValue,
+) -> tuple[str, str, tuple[str, ...], tuple[str, ...], str | None, int]:
     return (
         state.concept_id,
         str(round(state.value, 12)),
@@ -520,7 +536,9 @@ def _detect_transitive_conflicts_for_claims(
         if forms is None
         else forms
     )
-    seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]] = set()
+    seen_record_keys: set[
+        tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]
+    ] = set()
     groups = concept_registry.parameterization_groups()
     param_edges = concept_registry.parameterization_edges(
         exactness_filter={"exact", "approximate"},
@@ -566,7 +584,9 @@ def _detect_transitive_conflicts_for_claims(
                     if any(input_id not in resolved for input_id in inputs):
                         continue
 
-                    edge_conditions = to_cel_exprs(sorted(str(condition) for condition in edge.conditions))
+                    edge_conditions = to_cel_exprs(
+                        sorted(str(condition) for condition in edge.conditions)
+                    )
                     ordered_input_states = [resolved[input_id] for input_id in inputs]
                     for input_states in product(*ordered_input_states):
                         derived_state = _derive_state(

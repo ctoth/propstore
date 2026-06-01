@@ -20,7 +20,9 @@ def test_argumentation_pin_exposes_gradual_public_surface() -> None:
     assert hasattr(equational, "equational_fixpoint")
     assert hasattr(gradual_principles, "PRINCIPLE_COMPLIANCE")
     assert hasattr(gradual, "quadratic_energy_strengths_continuous")
-    assert "integration_method" in {field.name for field in fields(GradualStrengthResult)}
+    assert "integration_method" in {
+        field.name for field in fields(GradualStrengthResult)
+    }
 
 
 def test_argumentation_pin_gradual_behaviour_matches_paper_gates() -> None:
@@ -42,7 +44,9 @@ def test_argumentation_pin_gradual_behaviour_matches_paper_gates() -> None:
         initial_weights={"source": 0.7, "target": 0.5},
         attacks=frozenset({("source", "target")}),
     )
-    assert dfquad.dfquad_bipolar_strengths(supported).strengths["target"] - 0.5 == pytest.approx(
+    assert dfquad.dfquad_bipolar_strengths(supported).strengths[
+        "target"
+    ] - 0.5 == pytest.approx(
         0.5 - dfquad.dfquad_bipolar_strengths(attacked).strengths["target"]
     )
 
@@ -50,13 +54,16 @@ def test_argumentation_pin_gradual_behaviour_matches_paper_gates() -> None:
         arguments=frozenset({"a", "b"}),
         defeats=frozenset({("a", "b")}),
     )
-    assert matt_toni.matt_toni_strengths(framework) == pytest.approx({"a": 1.0, "b": 0.25})
+    assert matt_toni.matt_toni_strengths(framework) == pytest.approx(
+        {"a": 1.0, "b": 0.25}
+    )
 
     continuous = gradual.quadratic_energy_strengths(supported)
     assert continuous.integration_method == "rk4_adaptive"
-    assert "enable_continuous_integration" not in inspect.signature(
-        gradual.quadratic_energy_strengths
-    ).parameters
+    assert (
+        "enable_continuous_integration"
+        not in inspect.signature(gradual.quadratic_energy_strengths).parameters
+    )
 
     equational_result = equational.equational_fixpoint(
         WeightedBipolarGraph(
@@ -79,7 +86,10 @@ def test_deleted_dfquad_path_and_propstore_importers_are_absent() -> None:
     for path in propstore_root.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module == "argumentation.probabilistic_dfquad":
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module == "argumentation.probabilistic_dfquad"
+            ):
                 offenders.append(str(path.relative_to(propstore_root)))
     assert offenders == []
 
@@ -90,7 +100,7 @@ def test_argumentation_dependency_uses_remote_git_source() -> None:
 
     assert (
         '"formal-argumentation @ '
-        'git+https://github.com/ctoth/argumentation.git@' in text
+        "git+https://github.com/ctoth/argumentation.git@" in text
     )
     assert "formal-argumentation = {" not in text
     assert "argumentation = {" not in text

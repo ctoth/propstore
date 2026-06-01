@@ -153,7 +153,9 @@ def checked_condition_set_from_json(
 ) -> CheckedConditionSet:
     version = payload.get("version")
     if version != CHECKED_CONDITION_SET_JSON_VERSION:
-        raise ValueError(f"unsupported checked condition-set encoding version: {version!r}")
+        raise ValueError(
+            f"unsupported checked condition-set encoding version: {version!r}"
+        )
     fingerprint = payload.get("registry_fingerprint")
     if not isinstance(fingerprint, str) or not fingerprint:
         raise ValueError("checked condition-set encoding requires registry_fingerprint")

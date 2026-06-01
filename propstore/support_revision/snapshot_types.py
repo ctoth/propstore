@@ -30,7 +30,9 @@ from propstore.support_revision.state import (
 
 
 def _environment_key_from_json_payload(data: Mapping[str, Any]) -> EnvironmentKey:
-    return EnvironmentKey(tuple(AssumptionId(value) for value in data.get("assumption_ids") or ()))
+    return EnvironmentKey(
+        tuple(AssumptionId(value) for value in data.get("assumption_ids") or ())
+    )
 
 
 def _environment_key_to_dict(environment: EnvironmentKey) -> dict[str, Any]:
@@ -56,8 +58,7 @@ def _label_to_dict(label: Label | None) -> dict[str, Any] | None:
         return None
     return {
         "environments": [
-            _environment_key_to_dict(environment)
-            for environment in label.environments
+            _environment_key_to_dict(environment) for environment in label.environments
         ]
     }
 
@@ -83,10 +84,14 @@ def _assumption_ref_to_dict(assumption: AssumptionRef) -> dict[str, Any]:
 def _scope_from_json_payload(data: Mapping[str, Any]) -> RevisionScope:
     return RevisionScope(
         bindings=dict(_optional_mapping(data.get("bindings"), "bindings")),
-        context_id=None if data.get("context_id") is None else ContextId(str(data["context_id"])),
+        context_id=None
+        if data.get("context_id") is None
+        else ContextId(str(data["context_id"])),
         branch=None if data.get("branch") is None else str(data.get("branch")),
         commit=None if data.get("commit") is None else str(data.get("commit")),
-        merge_parent_commits=tuple(str(item) for item in (data.get("merge_parent_commits") or ())),
+        merge_parent_commits=tuple(
+            str(item) for item in (data.get("merge_parent_commits") or ())
+        ),
     )
 
 
@@ -123,39 +128,50 @@ def _belief_atom_from_json_payload(data: Mapping[str, Any]) -> BeliefAtom:
     kind = str(data.get("kind") or "")
     payload_data = data.get("payload")
     atom_id = str(data.get("atom_id") or "")
-    label = _label_from_json_payload(data.get("label") if isinstance(data.get("label"), Mapping) else None)
+    label = _label_from_json_payload(
+        data.get("label") if isinstance(data.get("label"), Mapping) else None
+    )
     if kind == "assertion":
         if not isinstance(payload_data, Mapping):
             raise ValueError("Assertion atom snapshot requires mapping payload")
         assertion_payload = payload_data.get("assertion")
         if not isinstance(assertion_payload, Mapping):
-            raise ValueError("Assertion atom snapshot requires mapping assertion payload")
+            raise ValueError(
+                "Assertion atom snapshot requires mapping assertion payload"
+            )
         source_payload = payload_data.get("source_claims") or ()
         if source_payload:
             raise ValueError(
                 "Assertion atom snapshot source_claims must not embed claim mappings"
             )
         source_claim_ids = tuple(
-            str(claim_id)
-            for claim_id in (payload_data.get("source_claim_ids") or ())
+            str(claim_id) for claim_id in (payload_data.get("source_claim_ids") or ())
         )
         return AssertionAtom(
             atom_id=atom_id,
-            assertion=AssertionCanonicalRecord.from_payload(assertion_payload).to_assertion(),
+            assertion=AssertionCanonicalRecord.from_payload(
+                assertion_payload
+            ).to_assertion(),
             source_claim_ids=source_claim_ids,
             label=label,
         )
     if kind == "assumption":
         if not isinstance(payload_data, Mapping):
             raise ValueError("Assumption atom snapshot requires mapping payload")
-        return AssumptionAtom(atom_id=atom_id, assumption=_assumption_ref_from_json_payload(payload_data), label=label)
+        return AssumptionAtom(
+            atom_id=atom_id,
+            assumption=_assumption_ref_from_json_payload(payload_data),
+            label=label,
+        )
     raise ValueError(f"Unsupported belief atom snapshot kind: {kind}")
 
 
 def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
     if isinstance(atom, AssertionAtom):
         payload = {
-            "assertion": AssertionCanonicalRecord.from_assertion(atom.assertion).to_payload(),
+            "assertion": AssertionCanonicalRecord.from_assertion(
+                atom.assertion
+            ).to_payload(),
             "source_claim_ids": list(atom.source_claim_ids),
         }
         kind = "assertion"
@@ -189,7 +205,9 @@ def belief_atom_to_canonical_dict(atom: BeliefAtom) -> dict[str, Any]:
 
 def _belief_base_from_json_payload(data: Mapping[str, Any]) -> BeliefBase:
     support_sets_payload = _optional_mapping(data.get("support_sets"), "support_sets")
-    essential_support_payload = _optional_mapping(data.get("essential_support"), "essential_support")
+    essential_support_payload = _optional_mapping(
+        data.get("essential_support"), "essential_support"
+    )
     return BeliefBase(
         scope=_scope_from_json_payload(_required_mapping(data.get("scope"), "scope")),
         atoms=tuple(
@@ -220,7 +238,9 @@ def _belief_base_to_dict(base: BeliefBase) -> dict[str, Any]:
     return {
         "scope": _scope_to_dict(base.scope),
         "atoms": [_belief_atom_to_dict(atom) for atom in base.atoms],
-        "assumptions": [_assumption_ref_to_dict(assumption) for assumption in base.assumptions],
+        "assumptions": [
+            _assumption_ref_to_dict(assumption) for assumption in base.assumptions
+        ],
         "support_sets": {
             atom_id: [list(support_set) for support_set in support_sets]
             for atom_id, support_sets in base.support_sets.items()
@@ -248,10 +268,24 @@ class RevisionEpisodeSnapshot:
     event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "target_atom_ids",
+            tuple(str(atom_id) for atom_id in self.target_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(
             self,
             "explanation",
@@ -292,20 +326,34 @@ class RevisionEpisodeSnapshot:
         explanation: dict[str, RevisionAtomDetail] = {}
         for atom_id, detail in explanation_payload.items():
             if not isinstance(detail, Mapping):
-                raise ValueError(f"Support revision snapshot requires mapping 'explanation.{atom_id}'")
+                raise ValueError(
+                    f"Support revision snapshot requires mapping 'explanation.{atom_id}'"
+                )
             explanation[str(atom_id)] = RevisionAtomDetail.from_json_payload(detail)
         event_payload = data.get("event")
         if event_payload is not None and not isinstance(event_payload, Mapping):
             raise ValueError("Support revision snapshot requires mapping 'event'")
         return cls(
             operator=str(data.get("operator") or ""),
-            input_atom_id=None if data.get("input_atom_id") is None else str(data.get("input_atom_id")),
-            target_atom_ids=tuple(str(atom_id) for atom_id in (data.get("target_atom_ids") or ())),
-            accepted_atom_ids=tuple(str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())),
-            rejected_atom_ids=tuple(str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())),
-            incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
+            input_atom_id=None
+            if data.get("input_atom_id") is None
+            else str(data.get("input_atom_id")),
+            target_atom_ids=tuple(
+                str(atom_id) for atom_id in (data.get("target_atom_ids") or ())
+            ),
+            accepted_atom_ids=tuple(
+                str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())
+            ),
+            rejected_atom_ids=tuple(
+                str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())
+            ),
+            incision_set=tuple(
+                str(atom_id) for atom_id in (data.get("incision_set") or ())
+            ),
             explanation=explanation,
-            event=None if event_payload is None else RevisionEvent.from_json_payload(event_payload),
+            event=None
+            if event_payload is None
+            else RevisionEvent.from_json_payload(event_payload),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -338,8 +386,16 @@ class EpistemicStateSnapshot:
     history: tuple[RevisionEpisodeSnapshot, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "ranked_atom_ids", tuple(str(atom_id) for atom_id in self.ranked_atom_ids))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "ranked_atom_ids",
+            tuple(str(atom_id) for atom_id in self.ranked_atom_ids),
+        )
         object.__setattr__(
             self,
             "ranking",
@@ -364,7 +420,10 @@ class EpistemicStateSnapshot:
             ranked_atom_ids=state.ranked_atom_ids,
             ranking=state.ranking,
             entrenchment_reasons=state.entrenchment_reasons,
-            history=tuple(RevisionEpisodeSnapshot.from_episode(episode) for episode in state.history),
+            history=tuple(
+                RevisionEpisodeSnapshot.from_episode(episode)
+                for episode in state.history
+            ),
         )
         return cls.from_json_payload(snapshot.to_dict())
 
@@ -378,16 +437,27 @@ class EpistemicStateSnapshot:
         entrenchment_reasons: dict[str, EntrenchmentReason] = {}
         for atom_id, reason in entrenchment_payload.items():
             if not isinstance(reason, Mapping):
-                raise ValueError(f"Support revision snapshot requires mapping 'entrenchment_reasons.{atom_id}'")
-            entrenchment_reasons[str(atom_id)] = EntrenchmentReason.from_json_payload(reason)
+                raise ValueError(
+                    f"Support revision snapshot requires mapping 'entrenchment_reasons.{atom_id}'"
+                )
+            entrenchment_reasons[str(atom_id)] = EntrenchmentReason.from_json_payload(
+                reason
+            )
         return cls(
-            scope=_scope_from_json_payload(_required_mapping(data.get("scope"), "scope")),
-            base=_belief_base_from_json_payload(_required_mapping(data.get("base"), "base")),
-            accepted_atom_ids=tuple(str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())),
-            ranked_atom_ids=tuple(str(atom_id) for atom_id in (data.get("ranked_atom_ids") or ())),
+            scope=_scope_from_json_payload(
+                _required_mapping(data.get("scope"), "scope")
+            ),
+            base=_belief_base_from_json_payload(
+                _required_mapping(data.get("base"), "base")
+            ),
+            accepted_atom_ids=tuple(
+                str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())
+            ),
+            ranked_atom_ids=tuple(
+                str(atom_id) for atom_id in (data.get("ranked_atom_ids") or ())
+            ),
             ranking={
-                str(atom_id): int(rank)
-                for atom_id, rank in ranking_payload.items()
+                str(atom_id): int(rank) for atom_id, rank in ranking_payload.items()
             },
             entrenchment_reasons=entrenchment_reasons,
             history=tuple(

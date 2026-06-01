@@ -12,7 +12,10 @@ from propstore.families.contexts.declaration import (
     ContextDocument,
     LiftingRuleDocument,
 )
-from propstore.families.contexts.stages import LoadedContext, parse_context_record_document
+from propstore.families.contexts.stages import (
+    LoadedContext,
+    parse_context_record_document,
+)
 from propstore.families.registry import ContextRef, SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value, encode_document
@@ -30,7 +33,9 @@ class ContextNotFoundError(ContextWorkflowError):
 
 class ContextReferencedError(ContextWorkflowError):
     def __init__(self, name: str, references: tuple[str, ...]) -> None:
-        super().__init__(f"Context '{name}' is referenced by {len(references)} artifact(s)")
+        super().__init__(
+            f"Context '{name}' is referenced by {len(references)} artifact(s)"
+        )
         self.references = references
 
 
@@ -434,11 +439,7 @@ def update_context_lifting_rule(
             if request.conditions is None
             else request.conditions
         ),
-        mode=(
-            LiftingMode(existing.mode)
-            if request.mode is None
-            else request.mode
-        ),
+        mode=(LiftingMode(existing.mode) if request.mode is None else request.mode),
         justification=justification,
     )
     updated_rules = tuple(
@@ -472,9 +473,7 @@ def remove_context_lifting_rule(
     document = repo.families.contexts.require(ref)
     _require_lifting_rule(document, context_name, rule_id)
     updated_rules = tuple(
-        rule
-        for rule in (document.lifting_rules or ())
-        if rule.id != rule_id
+        rule for rule in (document.lifting_rules or ()) if rule.id != rule_id
     )
     updated = _replace_context_lifting_rules(document, updated_rules)
     if not dry_run:
@@ -624,7 +623,7 @@ def _context_references(
             continue
         prefix = "source/"
         source_name = (
-            branch_info.name[len(prefix):]
+            branch_info.name[len(prefix) :]
             if branch_info.name.startswith(prefix)
             else branch_info.name
         )
@@ -637,10 +636,7 @@ def _context_references(
             if context_id not in aliases:
                 continue
             claim_handle = (
-                claim.source_local_id
-                or claim.artifact_id
-                or claim.id
-                or str(index)
+                claim.source_local_id or claim.artifact_id or claim.id or str(index)
             )
             references.append(f"source-claim:{ref.name}:{claim_handle}")
 

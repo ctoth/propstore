@@ -65,7 +65,9 @@ def iter_semantic_pass_classes() -> tuple[type[Any], ...]:
     return registry.registered_passes()
 
 
-def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[str, ...]], ...]:
+def iter_semantic_stage_contracts() -> tuple[
+    tuple[str, str, type[Any], tuple[str, ...]], ...
+]:
     from propstore.families.claims.stages import (
         ClaimAuthoredFiles,
         ClaimCheckedBundle,
@@ -109,7 +111,9 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
     )
 
 
-def _iter_charter_document_schemas() -> tuple[tuple[type[msgspec.Struct], VersionId], ...]:
+def _iter_charter_document_schemas() -> tuple[
+    tuple[type[msgspec.Struct], VersionId], ...
+]:
     from propstore.families.registry import world_charters
 
     document_schemas: dict[str, tuple[type[msgspec.Struct], VersionId]] = {}
@@ -123,8 +127,7 @@ def _iter_charter_document_schemas() -> tuple[tuple[type[msgspec.Struct], Versio
         )
         document_schemas[key] = (document_type, version)
     return tuple(
-        item
-        for _, item in sorted(document_schemas.items(), key=lambda entry: entry[0])
+        item for _, item in sorted(document_schemas.items(), key=lambda entry: entry[0])
     )
 
 
@@ -138,10 +141,20 @@ def build_propstore_contract_manifest() -> ContractManifest:
 
     contracts.extend(PROPSTORE_FAMILY_REGISTRY.contract_entries())
     contracts.extend(_family_contract(family) for family in iter_artifact_families())
-    contracts.extend(_foreign_key_contract(spec) for spec in iter_semantic_foreign_keys())
-    contracts.extend(_claim_type_contract(contract) for contract in iter_claim_type_contracts())
-    contracts.extend(_semantic_stage_contract(*contract) for contract in iter_semantic_stage_contracts())
-    contracts.extend(_semantic_pass_contract(pass_class) for pass_class in iter_semantic_pass_classes())
+    contracts.extend(
+        _foreign_key_contract(spec) for spec in iter_semantic_foreign_keys()
+    )
+    contracts.extend(
+        _claim_type_contract(contract) for contract in iter_claim_type_contracts()
+    )
+    contracts.extend(
+        _semantic_stage_contract(*contract)
+        for contract in iter_semantic_stage_contracts()
+    )
+    contracts.extend(
+        _semantic_pass_contract(pass_class)
+        for pass_class in iter_semantic_pass_classes()
+    )
     return ContractManifest(
         format_version=1,
         package_name="propstore",
@@ -298,11 +311,13 @@ def _document_contract(
         info.name: info.required for info in msgspec.structs.fields(document_type)
     }
     for name in getattr(document_type, "__struct_fields__", ()):
-        fields.append({
-            "name": name,
-            "type": _render_type(annotations.get(name, object)),
-            "required": required_by_name.get(name, True),
-        })
+        fields.append(
+            {
+                "name": name,
+                "type": _render_type(annotations.get(name, object)),
+                "required": required_by_name.get(name, True),
+            }
+        )
     return ContractEntry(
         kind="document_schema",
         name=_document_contract_name(document_type),

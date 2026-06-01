@@ -51,7 +51,9 @@ def provenance_to_prov_o(provenance: object) -> dict[str, Any]:
         "ps:status": payload.get("status"),
     }
     if payload.get("derived_from"):
-        node["prov:wasDerivedFrom"] = [{"@id": value} for value in payload["derived_from"]]
+        node["prov:wasDerivedFrom"] = [
+            {"@id": value} for value in payload["derived_from"]
+        ]
     if payload.get("operations"):
         node["ps:operation"] = list(payload["operations"])
     return _document([node])
@@ -61,7 +63,9 @@ def _document(graph: list[dict[str, Any]]) -> dict[str, Any]:
     return {"@context": dict(_CONTEXT), "@graph": graph}
 
 
-def _source_version_nodes(record: SourceVersionProvenanceRecord) -> list[dict[str, Any]]:
+def _source_version_nodes(
+    record: SourceVersionProvenanceRecord,
+) -> list[dict[str, Any]]:
     node: dict[str, Any] = {
         "@id": record.source_id,
         "@type": "prov:Entity",
@@ -107,7 +111,9 @@ def _import_run_nodes(record: ImportRunProvenanceRecord) -> list[dict[str, Any]]
     ]
 
 
-def _projection_frame_nodes(record: ProjectionFrameProvenanceRecord) -> list[dict[str, Any]]:
+def _projection_frame_nodes(
+    record: ProjectionFrameProvenanceRecord,
+) -> list[dict[str, Any]]:
     return [
         {
             "@id": record.frame_id,
@@ -115,14 +121,15 @@ def _projection_frame_nodes(record: ProjectionFrameProvenanceRecord) -> list[dic
             "ps:backend": record.backend,
             "prov:startedAtTime": record.projected_at,
             "prov:wasDerivedFrom": [
-                {"@id": assertion_id}
-                for assertion_id in record.source_assertion_ids
+                {"@id": assertion_id} for assertion_id in record.source_assertion_ids
             ],
         }
     ]
 
 
-def _external_statement_nodes(record: ExternalStatementProvenanceRecord) -> list[dict[str, Any]]:
+def _external_statement_nodes(
+    record: ExternalStatementProvenanceRecord,
+) -> list[dict[str, Any]]:
     node: dict[str, Any] = {
         "@id": record.statement_id,
         "@type": "prov:Entity",
@@ -137,17 +144,16 @@ def _external_statement_nodes(record: ExternalStatementProvenanceRecord) -> list
     return [node, *_source_version_nodes(record.source)]
 
 
-def _external_inference_nodes(record: ExternalInferenceProvenanceRecord) -> list[dict[str, Any]]:
+def _external_inference_nodes(
+    record: ExternalInferenceProvenanceRecord,
+) -> list[dict[str, Any]]:
     return [
         {
             "@id": record.inference_id,
             "@type": "prov:Activity",
             "ps:engine": record.engine,
             "prov:startedAtTime": record.inferred_at,
-            "prov:used": [
-                {"@id": premise}
-                for premise in record.premise_statement_ids
-            ],
+            "prov:used": [{"@id": premise} for premise in record.premise_statement_ids],
             "prov:generated": {"@id": record.conclusion_statement_id},
         }
     ]

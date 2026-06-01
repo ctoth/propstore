@@ -62,7 +62,9 @@ def _projection_atom_for_literal(
     source_assertion_ids: Sequence[str] = (),
 ) -> ProjectionAtom:
     backend_atom_id = _projection_backend_atom_id(literal)
-    assertion_ids = tuple(sorted(dict.fromkeys(str(value) for value in source_assertion_ids)))
+    assertion_ids = tuple(
+        sorted(dict.fromkeys(str(value) for value in source_assertion_ids))
+    )
     loss = None
     if not assertion_ids:
         loss = ProjectionLossWitness(
@@ -194,7 +196,9 @@ def csaf_to_projection(
         else:
             top_rule_kind = "reported_claim"
 
-        attackable_kind = "base_claim" if isinstance(argument, PremiseArg) else "inference_rule"
+        attackable_kind = (
+            "base_claim" if isinstance(argument, PremiseArg) else "inference_rule"
+        )
         premise_claim_ids = _claim_ids_for_literals(
             _direct_premise_literals(argument),
             claim_literal_ids,
@@ -308,7 +312,9 @@ def csaf_to_projection(
     return StructuredProjection(
         arguments=tuple(sorted(projected_args, key=lambda argument: argument.arg_id)),
         framework=proj_framework,
-        claim_to_argument_ids={claim_id: tuple(arg_ids) for claim_id, arg_ids in claim_to_args.items()},
+        claim_to_argument_ids={
+            claim_id: tuple(arg_ids) for claim_id, arg_ids in claim_to_args.items()
+        },
         argument_to_claim_id=arg_to_claim,
     )
 
@@ -346,7 +352,9 @@ def build_aspic_projection(
         comparison=comparison,
         link=link,
     )
-    return csaf_to_projection(csaf, normalized_claims, support_metadata=support_metadata)
+    return csaf_to_projection(
+        csaf, normalized_claims, support_metadata=support_metadata
+    )
 
 
 __all__ = [

@@ -63,7 +63,9 @@ class SemanticTraceRecord:
 
     def __post_init__(self) -> None:
         if self.schema_version != _TRACE_VERSION:
-            raise ValueError(f"unsupported semantic trace version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported semantic trace version: {self.schema_version}"
+            )
         object.__setattr__(self, "source_artifact_id", str(self.source_artifact_id))
         object.__setattr__(self, "assertion_id", str(self.assertion_id))
         object.__setattr__(self, "projection_id", str(self.projection_id))
@@ -115,13 +117,21 @@ class EvaluationScenario:
 
     def __post_init__(self) -> None:
         if self.schema_version != _SCENARIO_VERSION:
-            raise ValueError(f"unsupported evaluation scenario version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported evaluation scenario version: {self.schema_version}"
+            )
         object.__setattr__(self, "scenario_id", str(self.scenario_id))
         object.__setattr__(self, "operator_family", str(self.operator_family))
         object.__setattr__(self, "policy_id", str(self.policy_id))
         object.__setattr__(self, "replay_result_hash", str(self.replay_result_hash))
-        object.__setattr__(self, "falsification_ids", tuple(sorted(_strings(self.falsification_ids))))
-        object.__setattr__(self, "trace_records", tuple(sorted(self.trace_records, key=lambda item: item.content_hash)))
+        object.__setattr__(
+            self, "falsification_ids", tuple(sorted(_strings(self.falsification_ids)))
+        )
+        object.__setattr__(
+            self,
+            "trace_records",
+            tuple(sorted(self.trace_records, key=lambda item: item.content_hash)),
+        )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> EvaluationScenario:
@@ -130,7 +140,9 @@ class EvaluationScenario:
             operator_family=str(data.get("operator_family") or ""),
             policy_id=str(data.get("policy_id") or ""),
             replay_result_hash=str(data.get("replay_result_hash") or ""),
-            falsification_ids=_strings(_sequence(data.get("falsification_ids") or (), "falsification_ids")),
+            falsification_ids=_strings(
+                _sequence(data.get("falsification_ids") or (), "falsification_ids")
+            ),
             trace_records=tuple(
                 SemanticTraceRecord.from_dict(_mapping(item, "trace_record"))
                 for item in _sequence(data.get("trace_records") or (), "trace_records")
@@ -173,13 +185,21 @@ class ScenarioEvaluation:
 
     def __post_init__(self) -> None:
         if self.schema_version != _RESULT_VERSION:
-            raise ValueError(f"unsupported scenario evaluation version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported scenario evaluation version: {self.schema_version}"
+            )
         object.__setattr__(self, "scenario_id", str(self.scenario_id))
         object.__setattr__(self, "operator_family", str(self.operator_family))
         object.__setattr__(self, "policy_id", str(self.policy_id))
         object.__setattr__(self, "replay_result_hash", str(self.replay_result_hash))
-        object.__setattr__(self, "falsification_ids", tuple(sorted(_strings(self.falsification_ids))))
-        object.__setattr__(self, "trace_records", tuple(sorted(self.trace_records, key=lambda item: item.content_hash)))
+        object.__setattr__(
+            self, "falsification_ids", tuple(sorted(_strings(self.falsification_ids)))
+        )
+        object.__setattr__(
+            self,
+            "trace_records",
+            tuple(sorted(self.trace_records, key=lambda item: item.content_hash)),
+        )
 
     @classmethod
     def from_scenario(cls, scenario: EvaluationScenario) -> ScenarioEvaluation:
@@ -199,7 +219,9 @@ class ScenarioEvaluation:
             operator_family=str(data.get("operator_family") or ""),
             policy_id=str(data.get("policy_id") or ""),
             replay_result_hash=str(data.get("replay_result_hash") or ""),
-            falsification_ids=_strings(_sequence(data.get("falsification_ids") or (), "falsification_ids")),
+            falsification_ids=_strings(
+                _sequence(data.get("falsification_ids") or (), "falsification_ids")
+            ),
             trace_records=tuple(
                 SemanticTraceRecord.from_dict(_mapping(item, "trace_record"))
                 for item in _sequence(data.get("trace_records") or (), "trace_records")
@@ -245,11 +267,17 @@ class OperatorFamilySummary:
 
     def __post_init__(self) -> None:
         if self.schema_version != _SUMMARY_VERSION:
-            raise ValueError(f"unsupported operator summary version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported operator summary version: {self.schema_version}"
+            )
         object.__setattr__(self, "operator_family", str(self.operator_family))
         object.__setattr__(self, "scenario_count", int(self.scenario_count))
         object.__setattr__(self, "falsification_count", int(self.falsification_count))
-        object.__setattr__(self, "replay_result_hashes", tuple(sorted(_strings(self.replay_result_hashes))))
+        object.__setattr__(
+            self,
+            "replay_result_hashes",
+            tuple(sorted(_strings(self.replay_result_hashes))),
+        )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> OperatorFamilySummary:
@@ -257,7 +285,11 @@ class OperatorFamilySummary:
             operator_family=str(data.get("operator_family") or ""),
             scenario_count=int(data.get("scenario_count") or 0),
             falsification_count=int(data.get("falsification_count") or 0),
-            replay_result_hashes=_strings(_sequence(data.get("replay_result_hashes") or (), "replay_result_hashes")),
+            replay_result_hashes=_strings(
+                _sequence(
+                    data.get("replay_result_hashes") or (), "replay_result_hashes"
+                )
+            ),
             schema_version=str(data.get("schema_version") or ""),
         )
         _check_hash(data, summary.content_hash, "operator summary")
@@ -290,8 +322,12 @@ class ObservatoryReport:
 
     def __post_init__(self) -> None:
         if self.schema_version != _REPORT_VERSION:
-            raise ValueError(f"unsupported observatory report version: {self.schema_version}")
-        results = tuple(sorted(self.scenario_results, key=lambda item: item.scenario_id))
+            raise ValueError(
+                f"unsupported observatory report version: {self.schema_version}"
+            )
+        results = tuple(
+            sorted(self.scenario_results, key=lambda item: item.scenario_id)
+        )
         object.__setattr__(self, "scenario_results", results)
         object.__setattr__(
             self,
@@ -307,13 +343,19 @@ class ObservatoryReport:
         report = cls(
             scenario_results=tuple(
                 ScenarioEvaluation.from_dict(_mapping(item, "scenario_result"))
-                for item in _sequence(data.get("scenario_results") or (), "scenario_results")
+                for item in _sequence(
+                    data.get("scenario_results") or (), "scenario_results"
+                )
             ),
             operator_summaries={
-                str(item.get("operator_family") or ""): OperatorFamilySummary.from_dict(item)
+                str(item.get("operator_family") or ""): OperatorFamilySummary.from_dict(
+                    item
+                )
                 for item in (
                     _mapping(raw, "operator_summary")
-                    for raw in _sequence(data.get("operator_summaries") or (), "operator_summaries")
+                    for raw in _sequence(
+                        data.get("operator_summaries") or (), "operator_summaries"
+                    )
                 )
             },
             schema_version=str(data.get("schema_version") or ""),

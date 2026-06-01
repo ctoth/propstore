@@ -44,7 +44,8 @@ def _literal_key_for_proposition(
     matches = [
         key
         for key in literals
-        if isinstance(key, IstLiteralKey) and str(key.proposition_id) == str(proposition_id)
+        if isinstance(key, IstLiteralKey)
+        and str(key.proposition_id) == str(proposition_id)
     ]
     if not matches:
         return claim_key(str(proposition_id))
@@ -105,7 +106,9 @@ def justifications_to_rules(
             continue
         unknown_premises = [
             premise_id
-            for premise_id, premise_key in zip(justification.premise_claim_ids, premise_keys)
+            for premise_id, premise_key in zip(
+                justification.premise_claim_ids, premise_keys
+            )
             if premise_key not in literals
         ]
         if unknown_premises:
@@ -187,7 +190,9 @@ def stances_to_contrariness(
             ]
             if target_justification_id is not None:
                 exact_matches = [
-                    rule for rule in matching_rules if rule.name == target_justification_id
+                    rule
+                    for rule in matching_rules
+                    if rule.name == target_justification_id
                 ]
                 if exact_matches:
                     matching_rules = exact_matches
@@ -195,9 +200,7 @@ def stances_to_contrariness(
                     matching_rules = [
                         rule
                         for rule in matching_rules
-                        if (
-                            origin := origins.get(rule)
-                        ) is not None
+                        if (origin := origins.get(rule)) is not None
                         and origin.role == "ground"
                         and origin.source_rule_id == target_justification_id
                     ]
@@ -209,7 +212,9 @@ def stances_to_contrariness(
                     )
             elif len(matching_rules) > 1:
                 rule_names = ", ".join(
-                    sorted(rule.name for rule in matching_rules if rule.name is not None)
+                    sorted(
+                        rule.name for rule in matching_rules if rule.name is not None
+                    )
                 )
                 raise ValueError(
                     "undercut against target claim "
@@ -360,7 +365,11 @@ def build_preference_config(
                 premise_order.add((lit_a, lit_b))
             elif _component_wise_dominates(vec_b, vec_a):
                 premise_order.add((lit_b, lit_a))
-            elif comparison == "democratic" and not vec_a.is_vacuous and not vec_b.is_vacuous:
+            elif (
+                comparison == "democratic"
+                and not vec_a.is_vacuous
+                and not vec_b.is_vacuous
+            ):
                 score_a = _democratic_score(vec_a)
                 score_b = _democratic_score(vec_b)
                 if score_a < score_b:

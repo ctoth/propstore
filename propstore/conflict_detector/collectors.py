@@ -10,7 +10,11 @@ from typing import TYPE_CHECKING, Any, cast
 from eq_equiv import equation_signature
 from quire.documents import document_to_payload
 
-from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
+from propstore.claims import (
+    LoadedClaimsFile,
+    claim_file_claims,
+    claim_file_source_paper,
+)
 
 from .equation_inputs import bound_equation_from_conflict_claim
 from .models import ConflictClaim, ConflictClaimVariable
@@ -59,9 +63,7 @@ def conflict_claim_from_claim(claim: Claim) -> ConflictClaim | None:
         claim_id=str(claim.id),
         claim_type=claim_type,
         output_concept_id=(
-            output_concept_id
-            if claim_type in {"parameter", "algorithm"}
-            else None
+            output_concept_id if claim_type in {"parameter", "algorithm"} else None
         ),
         target_concept_id=target_concept_id,
         measure=None if text_payload is None else text_payload.measure,
@@ -73,9 +75,7 @@ def conflict_claim_from_claim(claim: Claim) -> ConflictClaim | None:
         sympy=None if text_payload is None else text_payload.sympy_generated,
         body=None if algorithm_payload is None else algorithm_payload.body,
         listener_population=(
-            None
-            if text_payload is None
-            else text_payload.listener_population
+            None if text_payload is None else text_payload.listener_population
         ),
         source_paper=claim.source_paper,
         context_id=claim.context_id,
@@ -106,7 +106,11 @@ def _collect_measurement_claims(
 ) -> dict[tuple[str, str], list[ConflictClaim]]:
     by_key: dict[tuple[str, str], list[ConflictClaim]] = defaultdict(list)
     for claim in claims:
-        if claim.claim_type == "measurement" and claim.target_concept_id and claim.measure:
+        if (
+            claim.claim_type == "measurement"
+            and claim.target_concept_id
+            and claim.measure
+        ):
             by_key[(claim.target_concept_id, claim.measure)].append(claim)
     return dict(by_key)
 
@@ -124,7 +128,9 @@ def _collect_parameter_claims(
 def _collect_equation_claims(
     claims: Sequence[ConflictClaim],
 ) -> dict[tuple[str, tuple[str, ...]], list[ConflictClaim]]:
-    by_signature: dict[tuple[str, tuple[str, ...]], list[ConflictClaim]] = defaultdict(list)
+    by_signature: dict[tuple[str, tuple[str, ...]], list[ConflictClaim]] = defaultdict(
+        list
+    )
     for claim in claims:
         if claim.claim_type != "equation":
             continue
@@ -145,7 +151,9 @@ def _collect_algorithm_claims(
         if claim.output_concept_id is not None:
             by_concept[claim.output_concept_id].append(claim)
             continue
-        first_concept = next((variable.concept_id for variable in claim.variables), None)
+        first_concept = next(
+            (variable.concept_id for variable in claim.variables), None
+        )
         if first_concept is not None:
             by_concept[first_concept].append(claim)
     return dict(by_concept)

@@ -8,7 +8,9 @@ from tests.claim_model_helpers import make_claim
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 
-def test_project_belief_base_collapses_duplicate_rows_by_situated_assertion_identity() -> None:
+def test_project_belief_base_collapses_duplicate_rows_by_situated_assertion_identity() -> (
+    None
+):
     """AGM belief atoms are assertion-language sentences, not claim-row buckets."""
     store = _RevisionStore(
         claims=[
@@ -45,7 +47,9 @@ def test_project_belief_base_collapses_duplicate_rows_by_situated_assertion_iden
     assert tuple(base.essential_support) == (atom.atom_id,)
 
 
-def test_project_belief_base_keeps_rival_values_as_distinct_situated_assertions() -> None:
+def test_project_belief_base_keeps_rival_values_as_distinct_situated_assertions() -> (
+    None
+):
     """Darwiche-Pearl iterated revision needs a sentence identity finer than target concept."""
     store = _RevisionStore(
         claims=[

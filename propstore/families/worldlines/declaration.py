@@ -209,9 +209,7 @@ class WorldlineResultDocument(CharterDoc):
         dict[str, WorldlineTargetValueDocument],
         charter_field(column_name="target_values", json=True),
     ]
-    dependencies: Annotated[
-        WorldlineDependenciesDocument, charter_field(json=True)
-    ]
+    dependencies: Annotated[WorldlineDependenciesDocument, charter_field(json=True)]
     steps: Annotated[
         tuple[WorldlineStepDocument, ...],
         charter_field(json=True, default_sql="'[]'"),

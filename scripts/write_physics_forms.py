@@ -1,4 +1,5 @@
 """Write enriched and new physics form YAML files to forms/ directory."""
+
 from pathlib import Path
 import yaml
 
@@ -255,7 +256,9 @@ forms = {
 def write_form(name, data):
     path = forms_dir / f"{name}.yaml"
     with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        yaml.dump(
+            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+        )
     return path
 
 

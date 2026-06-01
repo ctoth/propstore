@@ -50,25 +50,37 @@ class ClaimViewBlockedError(ClaimViewAppError):
 @dataclass(frozen=True)
 class ClaimViewRequest:
     claim_id: str
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
 
 
 @dataclass(frozen=True)
 class ClaimListRequest:
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
     concept: str | None = None
     limit: int = 50
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
 
 
 @dataclass(frozen=True)
 class ClaimSearchRequest:
     query: str
-    render_policy: AppRenderPolicyRequest = field(default_factory=AppRenderPolicyRequest)
+    render_policy: AppRenderPolicyRequest = field(
+        default_factory=AppRenderPolicyRequest
+    )
     concept: str | None = None
     limit: int = 20
-    repository_view: AppRepositoryViewRequest = field(default_factory=AppRepositoryViewRequest)
+    repository_view: AppRepositoryViewRequest = field(
+        default_factory=AppRepositoryViewRequest
+    )
 
 
 @dataclass(frozen=True)
@@ -191,7 +203,9 @@ def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewRe
             version_id=claim.version_id,
             heading=f"Claim {_claim_display_id(claim)}",
             claim_type=claim.type.value,
-            statement=None if claim.text_payload is None else claim.text_payload.statement,
+            statement=None
+            if claim.text_payload is None
+            else claim.text_payload.statement,
             concept=concept_view,
             value=_claim_value(claim, concept_view),
             uncertainty=_claim_uncertainty(claim),
@@ -216,7 +230,7 @@ def list_claim_views(
         )
         entries = tuple(
             _claim_summary_entry(claim, _claim_focus_concept(claim, world), world)
-            for claim in claims[:request.limit]
+            for claim in claims[: request.limit]
         )
     return ClaimSummaryReport(entries=entries)
 
@@ -230,7 +244,9 @@ def search_claim_views(
     query = request.query.casefold()
     with open_app_world_model(repo) as world:
         matches: list[ClaimSummaryEntry] = []
-        for claim in sorted(world.claims_with_policy(request.concept, policy), key=_claim_sort_key):
+        for claim in sorted(
+            world.claims_with_policy(request.concept, policy), key=_claim_sort_key
+        ):
             concept = _claim_focus_concept(claim, world)
             if not _claim_matches_query(claim, concept, query, world):
                 continue
@@ -319,8 +335,15 @@ def _claim_uncertainty(claim) -> ClaimViewUncertainty:
             sample_size=None,
             sentence="Uncertainty is missing.",
         )
-    has_interval = numeric_payload.lower_bound is not None or numeric_payload.upper_bound is not None
-    if numeric_payload.uncertainty is None and not has_interval and numeric_payload.sample_size is None:
+    has_interval = (
+        numeric_payload.lower_bound is not None
+        or numeric_payload.upper_bound is not None
+    )
+    if (
+        numeric_payload.uncertainty is None
+        and not has_interval
+        and numeric_payload.sample_size is None
+    ):
         return ClaimViewUncertainty(
             state="missing",
             uncertainty=None,
@@ -346,7 +369,9 @@ def _claim_uncertainty(claim) -> ClaimViewUncertainty:
 
 
 def _claim_condition(claim) -> ClaimViewCondition:
-    conditions_cel = None if claim.text_payload is None else claim.text_payload.conditions_cel
+    conditions_cel = (
+        None if claim.text_payload is None else claim.text_payload.conditions_cel
+    )
     if not conditions_cel:
         return ClaimViewCondition(
             state="vacuous",
@@ -491,7 +516,10 @@ def _claim_interval_display(claim) -> str | None:
     if numeric_payload.lower_bound is None and numeric_payload.upper_bound is None:
         return None
     unit_suffix = f" {numeric_payload.unit}" if numeric_payload.unit else ""
-    if numeric_payload.lower_bound is not None and numeric_payload.upper_bound is not None:
+    if (
+        numeric_payload.lower_bound is not None
+        and numeric_payload.upper_bound is not None
+    ):
         return f"{numeric_payload.lower_bound} to {numeric_payload.upper_bound}{unit_suffix}"
     if numeric_payload.lower_bound is not None:
         return f">= {numeric_payload.lower_bound}{unit_suffix}"
@@ -524,7 +552,11 @@ def _equation_variable_concept_names(claim, world) -> tuple[str, ...]:
             continue
         concept_id_text = str(concept_id)
         concept = world.get_concept(concept_id_text)
-        label = concept_id_text if concept is None or concept.canonical_name is None else concept.canonical_name
+        label = (
+            concept_id_text
+            if concept is None or concept.canonical_name is None
+            else concept.canonical_name
+        )
         if label in seen:
             continue
         seen.add(label)
@@ -597,12 +629,24 @@ def _claim_matches_query(claim, concept, query: str, world) -> bool:
     fields = (
         str(claim.id),
         _claim_logical_id(claim) or "",
-        "" if text_payload is None or text_payload.statement is None else text_payload.statement,
-        "" if text_payload is None or text_payload.expression is None else text_payload.expression,
-        "" if text_payload is None or text_payload.auto_summary is None else text_payload.auto_summary,
-        "" if text_payload is None or text_payload.conditions_cel is None else text_payload.conditions_cel,
-        "" if algorithm_payload is None or algorithm_payload.body is None else algorithm_payload.body,
-        "" if concept is None or concept.canonical_name is None else concept.canonical_name,
+        ""
+        if text_payload is None or text_payload.statement is None
+        else text_payload.statement,
+        ""
+        if text_payload is None or text_payload.expression is None
+        else text_payload.expression,
+        ""
+        if text_payload is None or text_payload.auto_summary is None
+        else text_payload.auto_summary,
+        ""
+        if text_payload is None or text_payload.conditions_cel is None
+        else text_payload.conditions_cel,
+        ""
+        if algorithm_payload is None or algorithm_payload.body is None
+        else algorithm_payload.body,
+        ""
+        if concept is None or concept.canonical_name is None
+        else concept.canonical_name,
         *_claim_linked_concept_labels(claim, world),
         "" if claim.source_slug is None else claim.source_slug,
         "" if claim.source_paper is None else claim.source_paper,

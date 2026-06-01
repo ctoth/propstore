@@ -32,9 +32,7 @@ def test_p_mara_stance_free_gate() -> None:
     two atoms — the resulting state_out is what the projection reads.
     """
     fixture = mara_jade_fixture()
-    space = synthetic_belief_space_with(
-        fixture.orders_atom, fixture.assignment_atom
-    )
+    space = synthetic_belief_space_with(fixture.orders_atom, fixture.assignment_atom)
     initial = make_state(atoms=(), accepted_atom_ids=())
     journal = single_chapter_journal(
         initial_state=initial,
@@ -61,7 +59,10 @@ def test_p_mara_fixture_is_independent_of_synthetic_sidecar() -> None:
     fixture = mara_jade_fixture()
     # The expected ids are literal strings, not derived from atom_ids.
     assert "propstore:claim:test/mara_learns_orders" in fixture.expected_claim_ids
-    assert "propstore:claim:test/mara_assigned_to_find_karrde" in fixture.expected_claim_ids
+    assert (
+        "propstore:claim:test/mara_assigned_to_find_karrde"
+        in fixture.expected_claim_ids
+    )
     # Atom ids are content-derived ps:assertion: hashes — disjoint from
     # the claim_ids the fixture asserts. Round-1's sin was using the
     # same set for both; here they are visibly disjoint.

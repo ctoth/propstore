@@ -40,7 +40,9 @@ def test_source_document_prior_base_rate_is_opinion() -> None:
     )
 
     assert source_doc.trust.prior_base_rate == Opinion(**PRIOR_PAYLOAD)
-    assert source_document_payload(source_doc)["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
+    assert (
+        source_document_payload(source_doc)["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
+    )
 
 
 def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:

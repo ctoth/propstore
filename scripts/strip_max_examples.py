@@ -2,6 +2,7 @@
 
 This is a one-shot migration script for Hypothesis phase 1.
 """
+
 import re
 from pathlib import Path
 
@@ -16,16 +17,16 @@ def transform_file(path: Path) -> bool:
     # --- Pattern: _PROP_SETTINGS = settings(max_examples=N, deadline=None) ---
     # Rule A applied to module-level alias: strip max_examples, keep deadline=None
     text = re.sub(
-        r'_PROP_SETTINGS = settings\(max_examples=\d+, deadline=None\)',
-        '_PROP_SETTINGS = settings(deadline=None)',
+        r"_PROP_SETTINGS = settings\(max_examples=\d+, deadline=None\)",
+        "_PROP_SETTINGS = settings(deadline=None)",
         text,
     )
 
     # --- Rule G: stateful tests ---
     # Some stateful test classes assign settings after class creation.
     text = re.sub(
-        r'(\.settings = settings\()max_examples=\d+,\s*',
-        r'\1',
+        r"(\.settings = settings\()max_examples=\d+,\s*",
+        r"\1",
         text,
     )
 
@@ -38,48 +39,48 @@ def transform_file(path: Path) -> bool:
     #   )
     # Remove the max_examples=N, line
     text = re.sub(
-        r'(\s*@settings\(\n)\s*max_examples=\d+,\n',
-        r'\1',
+        r"(\s*@settings\(\n)\s*max_examples=\d+,\n",
+        r"\1",
         text,
     )
 
     # --- Single-line: @settings(max_examples=N, deadline=None, suppress_health_check=[...]) ---
     # Rule C: keep deadline and suppress_health_check
     text = re.sub(
-        r'@settings\(max_examples=\d+, (deadline=[^,)]+, suppress_health_check=\[[^\]]*\])\)',
-        r'@settings(\1)',
+        r"@settings\(max_examples=\d+, (deadline=[^,)]+, suppress_health_check=\[[^\]]*\])\)",
+        r"@settings(\1)",
         text,
     )
 
     # --- Single-line: @settings(max_examples=N, suppress_health_check=[...]) ---
     # Rule F: keep suppress_health_check only
     text = re.sub(
-        r'@settings\(max_examples=\d+, (suppress_health_check=\[[^\]]*\])\)',
-        r'@settings(\1)',
+        r"@settings\(max_examples=\d+, (suppress_health_check=\[[^\]]*\])\)",
+        r"@settings(\1)",
         text,
     )
 
     # --- Single-line: @settings(max_examples=N, deadline=N) where N != None ---
     # Rule D: keep custom deadline
     text = re.sub(
-        r'@settings\(max_examples=\d+, (deadline=\d+)\)',
-        r'@settings(\1)',
+        r"@settings\(max_examples=\d+, (deadline=\d+)\)",
+        r"@settings(\1)",
         text,
     )
 
     # --- Single-line: @settings(max_examples=N, deadline=None) ---
     # Rule A: keep deadline=None
     text = re.sub(
-        r'@settings\(max_examples=\d+, deadline=None\)',
-        r'@settings(deadline=None)',
+        r"@settings\(max_examples=\d+, deadline=None\)",
+        r"@settings(deadline=None)",
         text,
     )
 
     # --- Single-line: @settings(max_examples=N) with no other args ---
     # Rule B: remove entire decorator line
     text = re.sub(
-        r'\n *@settings\(max_examples=\d+\)\n',
-        '\n',
+        r"\n *@settings\(max_examples=\d+\)\n",
+        "\n",
         text,
     )
 

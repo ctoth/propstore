@@ -1,4 +1,5 @@
 """Analysis-oriented ``pks world`` command adapters."""
+
 from __future__ import annotations
 
 import json
@@ -98,7 +99,9 @@ def _write_new_text_file(path: Path, content: str) -> None:
     except FileExistsError as exc:
         raise click.ClickException(f"output file already exists: {path}") from exc
     except OSError as exc:
-        raise click.ClickException(f"could not write output file {path}: {exc}") from exc
+        raise click.ClickException(
+            f"could not write output file {path}: {exc}"
+        ) from exc
 
 
 def _extension_counts_text(counts) -> str:
@@ -120,8 +123,7 @@ def _render_hypothetical_text(report) -> None:
         for transition in extension_diff.transitions:
             emit(
                 f"  {transition.from_status} -> {transition.to_status} "
-                f"({len(transition.claim_ids)}): "
-                + ", ".join(transition.claim_ids)
+                f"({len(transition.claim_ids)}): " + ", ".join(transition.claim_ids)
             )
 
     if not report.changes:
@@ -142,9 +144,13 @@ def _render_hypothetical_text(report) -> None:
 @click.option("--add", "add_json", default=None, help="JSON synthetic claim")
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_hypothetical(obj: dict, args: tuple[str, ...],
-                       remove: tuple[str, ...], add_json: str | None,
-                       fmt: str) -> None:
+def world_hypothetical(
+    obj: dict,
+    args: tuple[str, ...],
+    remove: tuple[str, ...],
+    add_json: str | None,
+    fmt: str,
+) -> None:
     """Show what changes if claims are removed/added.
 
     Usage: pks world hypothetical domain=example --remove claim2
@@ -169,8 +175,11 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 @world.command("chain")
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
-@click.option("--strategy", default=None,
-              type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
+@click.option(
+    "--strategy",
+    default=None,
+    type=click.Choice(["recency", "sample_size", "argumentation", "override"]),
+)
 @click.option(
     "--include-drafts",
     is_flag=True,
@@ -194,12 +203,16 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 )
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
-                strategy: str | None,
-                include_drafts: bool,
-                include_blocked: bool,
-                show_quarantined: bool,
-                fmt: str) -> None:
+def world_chain(
+    obj: dict,
+    concept_id: str,
+    args: tuple[str, ...],
+    strategy: str | None,
+    include_drafts: bool,
+    include_blocked: bool,
+    show_quarantined: bool,
+    fmt: str,
+) -> None:
     """Traverse the parameter space to derive a target concept.
 
     Lifecycle-visibility flags are accepted and layered onto any
@@ -234,20 +247,28 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
         emit(f"  value: {report.value}")
     emit(f"Steps ({len(report.steps)}):")
     for step in report.steps:
-        emit(
-            f"  {_format_chain_concept(step.concept)}: {step.value} ({step.source})"
-        )
+        emit(f"  {_format_chain_concept(step.concept)}: {step.value} ({step.source})")
 
 
 @world.command("export-graph")
 @click.argument("args", nargs=-1)
 @click.option("--format", "fmt", type=click.Choice(["dot", "json"]), default="dot")
-@click.option("--group", "group_id", type=int, default=None,
-              help="Parameterization group ID to filter by")
+@click.option(
+    "--group",
+    "group_id",
+    type=int,
+    default=None,
+    help="Parameterization group ID to filter by",
+)
 @click.option("--output", "output_file", default=None, help="Output file path")
 @click.pass_obj
-def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
-                       group_id: int | None, output_file: str | None) -> None:
+def world_export_graph(
+    obj: dict,
+    args: tuple[str, ...],
+    fmt: str,
+    group_id: int | None,
+    output_file: str | None,
+) -> None:
     """Export the knowledge graph as DOT or JSON.
 
     Usage: pks world export-graph domain=example --format dot --output graph.dot
@@ -276,8 +297,9 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
 @click.argument("args", nargs=-1)
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
-                      fmt: str) -> None:
+def world_sensitivity(
+    obj: dict, concept_id: str, args: tuple[str, ...], fmt: str
+) -> None:
     """Analyze which input most influences a derived quantity.
 
     Usage: pks world sensitivity concept5 domain=example
@@ -338,11 +360,19 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
 )
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
-                    top_k: int, skip_atms: bool,
-                    skip_discovery: bool, skip_conflict: bool,
-                    skip_grounding: bool, skip_bridge: bool,
-                    ranking_policy: str, fmt: str) -> None:
+def world_fragility(
+    obj: dict,
+    args: tuple[str, ...],
+    concept_id: str | None,
+    top_k: int,
+    skip_atms: bool,
+    skip_discovery: bool,
+    skip_conflict: bool,
+    skip_grounding: bool,
+    skip_bridge: bool,
+    ranking_policy: str,
+    fmt: str,
+) -> None:
     """Rank intervention targets by fragility — what to inspect next."""
     repo: Repository = obj["repo"]
     bindings, context_id = parse_world_binding_args(args)
@@ -415,8 +445,9 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
 @click.option("--transitive", is_flag=True, help="Check multi-hop transitive conflicts")
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
-def world_check_consistency(obj: dict, args: tuple[str, ...],
-                            transitive: bool, fmt: str) -> None:
+def world_check_consistency(
+    obj: dict, args: tuple[str, ...], transitive: bool, fmt: str
+) -> None:
     """Check for conflicts, optionally including transitive (multi-hop) ones.
 
     Usage: pks world check-consistency domain=example
@@ -439,8 +470,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
             emit(f"Found {len(report.conflicts)} transitive conflict(s):")
             for conflict in report.conflicts:
                 emit(
-                    f"  {conflict.concept_id}: "
-                    f"{conflict.value_a} vs {conflict.value_b}"
+                    f"  {conflict.concept_id}: {conflict.value_a} vs {conflict.value_b}"
                 )
                 if conflict.derivation_chain:
                     emit(f"    chain: {conflict.derivation_chain}")

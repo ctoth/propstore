@@ -36,10 +36,14 @@ def align_cmd(obj: dict, first_source: str, extra_sources: tuple[str, ...]) -> N
 
 @concept.command("query")
 @click.argument("cluster_id")
-@click.option("--mode", type=click.Choice(["skeptical", "credulous"]), default="credulous")
+@click.option(
+    "--mode", type=click.Choice(["skeptical", "credulous"]), default="credulous"
+)
 @click.option("--operator", type=click.Choice(["sum", "max", "leximax"]), default=None)
 @click.pass_obj
-def query_alignment(obj: dict, cluster_id: str, mode: str, operator: str | None) -> None:
+def query_alignment(
+    obj: dict, cluster_id: str, mode: str, operator: str | None
+) -> None:
     """Query an alignment artifact."""
     repo: Repository = obj["repo"]
     try:
@@ -68,7 +72,9 @@ def query_alignment(obj: dict, cluster_id: str, mode: str, operator: str | None)
 @click.option("--accept", "accepted", multiple=True)
 @click.option("--reject", "rejected", multiple=True)
 @click.pass_obj
-def decide_cmd(obj: dict, cluster_id: str, accepted: tuple[str, ...], rejected: tuple[str, ...]) -> None:
+def decide_cmd(
+    obj: dict, cluster_id: str, accepted: tuple[str, ...], rejected: tuple[str, ...]
+) -> None:
     """Persist accepted and rejected alternatives for an alignment artifact."""
     repo: Repository = obj["repo"]
     report = decide_concept_alignment(

@@ -1,4 +1,5 @@
 """Tests for the Dulwich-backed GitStore and KnowledgePath implementations."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,7 +7,10 @@ from pathlib import Path
 import yaml
 import pytest
 
-from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
+from quire.tree_path import (
+    FilesystemTreePath as FilesystemKnowledgePath,
+    GitTreePath as GitKnowledgePath,
+)
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_counter
 from propstore.compiler.workflows import _world_store_content_hash
 from propstore.repository import Repository
@@ -45,7 +49,9 @@ def _concept_payload(
 
 
 def _packaged_form_files() -> dict[str, bytes]:
-    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    package_forms = (
+        Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    )
     return {
         f"forms/{form_path.name}": form_path.read_bytes()
         for form_path in sorted(package_forms.glob("*.yaml"))
@@ -116,11 +122,14 @@ def test_commit_overwrites_existing(tmp_path):
 
 def test_iter_dir(tmp_path):
     kr = init_store(tmp_path / "knowledge")
-    kr.commit_files({
-        "concepts/alpha.yaml": b"id: concept1\n",
-        "concepts/beta.yaml": b"id: concept2\n",
-        "claims/paper1.yaml": b"claims: []\n",
-    }, "add files")
+    kr.commit_files(
+        {
+            "concepts/alpha.yaml": b"id: concept1\n",
+            "concepts/beta.yaml": b"id: concept2\n",
+            "claims/paper1.yaml": b"claims: []\n",
+        },
+        "add files",
+    )
     concepts = list(kr.iter_dir("concepts"))
     assert sorted(concepts) == ["alpha.yaml", "beta.yaml"]
     claims = list(kr.iter_dir("claims"))
@@ -155,10 +164,13 @@ def test_commit_deletes(tmp_path):
 
 def test_commit_batch(tmp_path):
     kr = init_store(tmp_path / "knowledge")
-    kr.commit_files({
-        "old.yaml": b"old: true\n",
-        "keep.yaml": b"keep: true\n",
-    }, "setup")
+    kr.commit_files(
+        {
+            "old.yaml": b"old: true\n",
+            "keep.yaml": b"keep: true\n",
+        },
+        "setup",
+    )
 
     kr.commit_batch(
         adds={"new.yaml": b"new: true\n"},
@@ -182,9 +194,12 @@ def test_commit_batch(tmp_path):
 def test_sync_worktree(tmp_path):
     root = tmp_path / "knowledge"
     kr = init_store(root)
-    kr.commit_files({
-        "concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n",
-    }, "add foo")
+    kr.commit_files(
+        {
+            "concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n",
+        },
+        "add foo",
+    )
     kr.sync_worktree()
 
     on_disk = root / "concepts" / "foo.yaml"
@@ -207,7 +222,9 @@ def test_sync_worktree_removes_deleted(tmp_path):
 def test_sync_worktree_preserves_ignored_sidecar_artifacts(tmp_path):
     root = tmp_path / "knowledge"
     kr = init_store(root)
-    kr.commit_files({"concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n"}, "add foo")
+    kr.commit_files(
+        {"concepts/foo.yaml": b"id: concept1\ncanonical_name: foo\n"}, "add foo"
+    )
     kr.sync_worktree()
 
     sidecar_path = root / "sidecar" / "propstore.sqlite"
@@ -290,10 +307,13 @@ def test_next_concept_id_scans_tree(tmp_path):
     c7 = yaml.safe_dump(
         _concept_payload("concept7", "beta", domain="testing", form="scalar")
     ).encode("utf-8")
-    repo.git.commit_files({
-        "concepts/alpha.yaml": c3,
-        "concepts/beta.yaml": c7,
-    }, "add concepts")
+    repo.git.commit_files(
+        {
+            "concepts/alpha.yaml": c3,
+            "concepts/beta.yaml": c7,
+        },
+        "add concepts",
+    )
     assert next_concept_id_for_repo(repo) == 8
 
 
@@ -328,14 +348,19 @@ def test_next_concept_id_uses_git_counter_ref_when_available(tmp_path):
 
 def test_git_knowledge_path_iterdir(tmp_path):
     kr = init_store(tmp_path / "knowledge")
-    kr.commit_files({
-        "concepts/a.yaml": b"id: concept1\n",
-        "concepts/b.yaml": b"id: concept2\n",
-        "concepts/readme.txt": b"not yaml\n",
-    }, "add")
+    kr.commit_files(
+        {
+            "concepts/a.yaml": b"id: concept1\n",
+            "concepts/b.yaml": b"id: concept2\n",
+            "concepts/readme.txt": b"not yaml\n",
+        },
+        "add",
+    )
 
     tree = GitKnowledgePath(kr) / "concepts"
-    entries = [entry for entry in tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"]
+    entries = [
+        entry for entry in tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"
+    ]
     names = [entry.stem for entry in entries]
     assert sorted(names) == ["a", "b"]
     for entry in entries:
@@ -385,7 +410,9 @@ def test_filesystem_knowledge_path_iterdir(tmp_path):
     (concepts / "readme.txt").write_bytes(b"not yaml\n")
 
     tree = FilesystemKnowledgePath(root) / "concepts"
-    entries = [entry for entry in tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"]
+    entries = [
+        entry for entry in tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"
+    ]
     names = [entry.stem for entry in entries]
     assert sorted(names) == ["a", "b"]
 
@@ -417,10 +444,13 @@ def test_knowledge_path_equivalence(tmp_path):
     """GitKnowledgePath and FilesystemKnowledgePath produce identical output after sync."""
     root = tmp_path / "knowledge"
     kr = init_store(root)
-    kr.commit_files({
-        "concepts/alpha.yaml": b"id: concept1\ncanonical_name: alpha\n",
-        "concepts/beta.yaml": b"id: concept2\ncanonical_name: beta\n",
-    }, "add concepts")
+    kr.commit_files(
+        {
+            "concepts/alpha.yaml": b"id: concept1\ncanonical_name: alpha\n",
+            "concepts/beta.yaml": b"id: concept2\ncanonical_name: beta\n",
+        },
+        "add concepts",
+    )
     kr.sync_worktree()
 
     git_tree = GitKnowledgePath(kr) / "concepts"
@@ -453,11 +483,15 @@ def test_load_concepts_from_git_tree(tmp_path):
         form="scalar",
         definition="A test concept",
     )
-    kr.commit_files({
-        "concepts/test_concept.yaml": yaml.dump(concept_data).encode(),
-    }, "add concept")
+    kr.commit_files(
+        {
+            "concepts/test_concept.yaml": yaml.dump(concept_data).encode(),
+        },
+        "add concept",
+    )
 
     from propstore.families.concepts.stages import load_concepts
+
     concepts = load_concepts(kr.tree() / "concepts")
     assert len(concepts) == 1
     assert concepts[0].record.primary_logical_id == "testing:test_concept"
@@ -479,14 +513,18 @@ def test_load_claim_files_from_git_tree(tmp_path):
                 "context": {"id": "ctx_test"},
                 "provenance": {"paper": "test", "page": 1},
             }
-        ]
+        ],
     }
-    kr.commit_files({
-        "claims/test_claims.yaml": yaml.dump(claim_data).encode(),
-    }, "add claims")
+    kr.commit_files(
+        {
+            "claims/test_claims.yaml": yaml.dump(claim_data).encode(),
+        },
+        "add claims",
+    )
 
     from propstore.claims import claim_file_payload
     from tests.family_helpers import load_claim_files
+
     claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
     assert claim_file_payload(claim_files[0])["logical_ids"][0]["value"] == "claim1"
@@ -502,11 +540,15 @@ def test_load_contexts_from_git_tree(tmp_path):
         "name": "Test Context",
         "assumptions": ["test assumption"],
     }
-    kr.commit_files({
-        "contexts/test_context.yaml": yaml.dump(context_data).encode(),
-    }, "add context")
+    kr.commit_files(
+        {
+            "contexts/test_context.yaml": yaml.dump(context_data).encode(),
+        },
+        "add context",
+    )
 
     from propstore.families.contexts import load_contexts
+
     contexts = load_contexts(kr.tree() / "contexts")
     assert len(contexts) == 1
     assert str(contexts[0].record.context_id) == "ctx1"
@@ -526,12 +568,19 @@ def test_context_add_creates_commit(tmp_path):
     commits_before = len(git.log(max_count=100))
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "context", "add",
-        "--name", "ctx_test",
-        "--description", "Committed context",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "context",
+            "add",
+            "--name",
+            "ctx_test",
+            "--description",
+            "Committed context",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     commits_after = len(git.log(max_count=100))
@@ -552,15 +601,25 @@ def test_context_add_writes_structured_context_to_git_head(tmp_path):
     repo = Repository.init(root)
     git = repo.git
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "context", "add",
-        "--name", "ctx_structured",
-        "--description", "Structured context",
-        "--assumption", "framework == 'general'",
-        "--parameter", "domain=speech",
-        "--perspective", "local-model",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "context",
+            "add",
+            "--name",
+            "ctx_structured",
+            "--description",
+            "Structured context",
+            "--assumption",
+            "framework == 'general'",
+            "--parameter",
+            "domain=speech",
+            "--perspective",
+            "local-model",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     context = yaml.safe_load(git.read_file("contexts/ctx_structured.yaml"))
@@ -578,28 +637,42 @@ def test_context_list_reads_git_head_not_worktree(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "contexts/ctx_test.yaml": yaml.dump({
-            "id": "ctx_test",
-            "name": "ctx_test",
-            "description": "Committed description",
-        }).encode("utf-8"),
-    }, "Add context")
+    git.commit_files(
+        {
+            "contexts/ctx_test.yaml": yaml.dump(
+                {
+                    "id": "ctx_test",
+                    "name": "ctx_test",
+                    "description": "Committed description",
+                }
+            ).encode("utf-8"),
+        },
+        "Add context",
+    )
     git.sync_worktree()
     (root / "contexts" / "ctx_test.yaml").write_text(
-        yaml.dump({
-            "id": "ctx_test",
-            "name": "ctx_test",
-            "description": "Worktree-only description",
-        }, default_flow_style=False, sort_keys=False),
+        yaml.dump(
+            {
+                "id": "ctx_test",
+                "name": "ctx_test",
+                "description": "Worktree-only description",
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
         encoding="utf-8",
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "context", "list",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "context",
+            "list",
+        ],
+    )
     assert result.exit_code == 0, result.output
     assert "Committed description" in result.output
     assert "Worktree-only description" not in result.output
@@ -617,13 +690,21 @@ def test_form_add_creates_commit(tmp_path):
     commits_before = len(git.log(max_count=100))
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "form", "add",
-        "--name", "frequency_like",
-        "--unit", "Hz",
-        "--dimensions", '{"T": -1}',
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "form",
+            "add",
+            "--name",
+            "frequency_like",
+            "--unit",
+            "Hz",
+            "--dimensions",
+            '{"T": -1}',
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     commits_after = len(git.log(max_count=100))
@@ -643,28 +724,43 @@ def test_form_show_reads_git_head_not_worktree(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "forms/frequency.yaml": yaml.dump({
-            "name": "frequency",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-        }).encode("utf-8"),
-    }, "Add form")
+    git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {
+                    "name": "frequency",
+                    "dimensionless": False,
+                    "unit_symbol": "Hz",
+                }
+            ).encode("utf-8"),
+        },
+        "Add form",
+    )
     git.sync_worktree()
     (root / "forms" / "frequency.yaml").write_text(
-        yaml.dump({
-            "name": "frequency",
-            "dimensionless": False,
-            "unit_symbol": "kHz",
-        }, default_flow_style=False, sort_keys=False),
+        yaml.dump(
+            {
+                "name": "frequency",
+                "dimensionless": False,
+                "unit_symbol": "kHz",
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
         encoding="utf-8",
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "form", "show", "frequency",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "form",
+            "show",
+            "frequency",
+        ],
+    )
     assert result.exit_code == 0, result.output
     assert "unit_symbol: Hz" in result.output
     assert "unit_symbol: kHz" not in result.output
@@ -679,27 +775,41 @@ def test_form_list_reads_git_head_not_worktree(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "forms/frequency.yaml": yaml.dump({
-            "name": "frequency",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-        }).encode("utf-8"),
-    }, "Add form")
+    git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {
+                    "name": "frequency",
+                    "dimensionless": False,
+                    "unit_symbol": "Hz",
+                }
+            ).encode("utf-8"),
+        },
+        "Add form",
+    )
     git.sync_worktree()
     (root / "forms" / "rogue.yaml").write_text(
-        yaml.dump({
-            "name": "rogue",
-            "dimensionless": True,
-        }, default_flow_style=False, sort_keys=False),
+        yaml.dump(
+            {
+                "name": "rogue",
+                "dimensionless": True,
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
         encoding="utf-8",
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "form", "list",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "form",
+            "list",
+        ],
+    )
     assert result.exit_code == 0, result.output
     assert "frequency" in result.output
     assert "rogue" not in result.output
@@ -714,31 +824,42 @@ def test_form_remove_uses_committed_head_for_reference_checks(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "forms/frequency.yaml": yaml.dump({
-            "name": "frequency",
-            "dimensionless": False,
-            "unit_symbol": "Hz",
-        }).encode("utf-8"),
-        "concepts/fundamental_frequency.yaml": yaml.dump(
-            _concept_payload(
-                "concept1",
-                "fundamental_frequency",
-                domain="speech",
-                form="frequency",
-                status="accepted",
-                definition="Frequency concept",
-            )
-        ).encode("utf-8"),
-    }, "Seed form and concept")
+    git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {
+                    "name": "frequency",
+                    "dimensionless": False,
+                    "unit_symbol": "Hz",
+                }
+            ).encode("utf-8"),
+            "concepts/fundamental_frequency.yaml": yaml.dump(
+                _concept_payload(
+                    "concept1",
+                    "fundamental_frequency",
+                    domain="speech",
+                    form="frequency",
+                    status="accepted",
+                    definition="Frequency concept",
+                )
+            ).encode("utf-8"),
+        },
+        "Seed form and concept",
+    )
     git.sync_worktree()
     (root / "concepts" / "fundamental_frequency.yaml").unlink()
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "form", "remove", "frequency",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "form",
+            "remove",
+            "frequency",
+        ],
+    )
     assert result.exit_code != 0
     assert "referenced by 1 concept" in result.output
 
@@ -755,11 +876,18 @@ def test_worldline_create_creates_commit(tmp_path):
     commits_before = len(git.log(max_count=100))
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "worldline", "create", "wl_test",
-        "--target", "concept1",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "worldline",
+            "create",
+            "wl_test",
+            "--target",
+            "concept1",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     commits_after = len(git.log(max_count=100))
@@ -779,22 +907,34 @@ def test_worldline_create_uses_committed_head_for_duplicate_checks(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "worldlines/wl_test.yaml": yaml.dump({
-            "id": "wl_test",
-            "name": "wl_test",
-            "targets": ["concept1"],
-        }).encode("utf-8"),
-    }, "Seed worldline")
+    git.commit_files(
+        {
+            "worldlines/wl_test.yaml": yaml.dump(
+                {
+                    "id": "wl_test",
+                    "name": "wl_test",
+                    "targets": ["concept1"],
+                }
+            ).encode("utf-8"),
+        },
+        "Seed worldline",
+    )
     git.sync_worktree()
     (root / "worldlines" / "wl_test.yaml").unlink()
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "worldline", "create", "wl_test",
-        "--target", "concept1",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "worldline",
+            "create",
+            "wl_test",
+            "--target",
+            "concept1",
+        ],
+    )
     assert result.exit_code != 0
     assert "already exists" in result.output
 
@@ -808,28 +948,45 @@ def test_worldline_show_reads_git_head_not_worktree(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "worldlines/wl_test.yaml": yaml.dump({
-            "id": "wl_test",
-            "name": "Committed Worldline",
-            "targets": ["concept1"],
-        }, default_flow_style=False, sort_keys=False).encode("utf-8"),
-    }, "Seed worldline")
+    git.commit_files(
+        {
+            "worldlines/wl_test.yaml": yaml.dump(
+                {
+                    "id": "wl_test",
+                    "name": "Committed Worldline",
+                    "targets": ["concept1"],
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        "Seed worldline",
+    )
     git.sync_worktree()
     (root / "worldlines" / "wl_test.yaml").write_text(
-        yaml.dump({
-            "id": "wl_test",
-            "name": "Worktree Worldline",
-            "targets": ["concept1"],
-        }, default_flow_style=False, sort_keys=False),
+        yaml.dump(
+            {
+                "id": "wl_test",
+                "name": "Worktree Worldline",
+                "targets": ["concept1"],
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
         encoding="utf-8",
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "worldline", "show", "wl_test",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "worldline",
+            "show",
+            "wl_test",
+        ],
+    )
     assert result.exit_code == 0, result.output
     assert "Committed Worldline" in result.output
     assert "Worktree Worldline" not in result.output
@@ -844,28 +1001,42 @@ def test_worldline_list_reads_git_head_not_worktree(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "worldlines/wl_test.yaml": yaml.dump({
-            "id": "wl_test",
-            "name": "Committed Worldline",
-            "targets": ["concept1"],
-        }).encode("utf-8"),
-    }, "Seed worldline")
+    git.commit_files(
+        {
+            "worldlines/wl_test.yaml": yaml.dump(
+                {
+                    "id": "wl_test",
+                    "name": "Committed Worldline",
+                    "targets": ["concept1"],
+                }
+            ).encode("utf-8"),
+        },
+        "Seed worldline",
+    )
     git.sync_worktree()
     (root / "worldlines" / "rogue.yaml").write_text(
-        yaml.dump({
-            "id": "rogue",
-            "name": "Rogue Worldline",
-            "targets": ["concept2"],
-        }, default_flow_style=False, sort_keys=False),
+        yaml.dump(
+            {
+                "id": "rogue",
+                "name": "Rogue Worldline",
+                "targets": ["concept2"],
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
         encoding="utf-8",
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "worldline", "list",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "worldline",
+            "list",
+        ],
+    )
     assert result.exit_code == 0, result.output
     assert "wl_test" in result.output
     assert "rogue" not in result.output
@@ -880,22 +1051,33 @@ def test_worldline_delete_commits_delete_from_git_head(tmp_path):
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     git = repo.git
-    git.commit_files({
-        "worldlines/wl_test.yaml": yaml.dump({
-            "id": "wl_test",
-            "name": "Committed Worldline",
-            "targets": ["concept1"],
-        }).encode("utf-8"),
-    }, "Seed worldline")
+    git.commit_files(
+        {
+            "worldlines/wl_test.yaml": yaml.dump(
+                {
+                    "id": "wl_test",
+                    "name": "Committed Worldline",
+                    "targets": ["concept1"],
+                }
+            ).encode("utf-8"),
+        },
+        "Seed worldline",
+    )
     git.sync_worktree()
     (root / "worldlines" / "wl_test.yaml").unlink()
     commits_before = len(git.log(max_count=100))
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "worldline", "delete", "wl_test",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "worldline",
+            "delete",
+            "wl_test",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     commits_after = len(git.log(max_count=100))
@@ -919,7 +1101,9 @@ def _setup_git_knowledge_repo(tmp_path):
     # Seed forms directory on disk (forms are package resources, loaded from filesystem)
     forms_dir = root / "forms"
     forms_dir.mkdir(exist_ok=True)
-    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    package_forms = (
+        Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    )
     for f in package_forms.glob("*.yaml"):
         shutil.copy2(f, forms_dir / f.name)
 
@@ -935,9 +1119,12 @@ def _setup_git_knowledge_repo(tmp_path):
         form="frequency",
         definition="A test frequency concept",
     )
-    kr.commit_files({
-        "concepts/test_frequency.yaml": yaml.dump(concept_data).encode(),
-    }, "add concept")
+    kr.commit_files(
+        {
+            "concepts/test_frequency.yaml": yaml.dump(concept_data).encode(),
+        },
+        "add concept",
+    )
     kr.sync_worktree()
 
     repo = Repository(root)
@@ -954,7 +1141,9 @@ def test_build_from_git(tmp_path):
     sidecar_path = tmp_path / "world.sqlite"
 
     rebuilt = build_sidecar(
-        tree, sidecar_path, force=False,
+        tree,
+        sidecar_path,
+        force=False,
         commit_hash=hash_key,
     )
     assert rebuilt is True
@@ -968,15 +1157,19 @@ def test_build_from_git(tmp_path):
 
     # Sidecar sqlite exists and contains concept data
     import sqlite3
+
     conn = sqlite3.connect(sidecar_path)
     rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
     conn.close()
     assert len(rows) == 1
-    assert rows[0][0] == make_concept_identity(
-        "concept1",
-        domain="testing",
-        canonical_name="test_frequency",
-    )["artifact_id"]
+    assert (
+        rows[0][0]
+        == make_concept_identity(
+            "concept1",
+            domain="testing",
+            canonical_name="test_frequency",
+        )["artifact_id"]
+    )
     assert rows[0][1] == "test_frequency"
 
 
@@ -991,14 +1184,18 @@ def test_build_skips_when_unchanged(tmp_path):
 
     # First build
     rebuilt1 = build_sidecar(
-        tree, sidecar_path, force=False,
+        tree,
+        sidecar_path,
+        force=False,
         commit_hash=hash_key,
     )
     assert rebuilt1 is True
 
     # Second build with same HEAD ��� should skip
     rebuilt2 = build_sidecar(
-        tree, sidecar_path, force=False,
+        tree,
+        sidecar_path,
+        force=False,
         commit_hash=hash_key,
     )
     assert rebuilt2 is False
@@ -1015,7 +1212,9 @@ def test_build_rebuilds_on_new_commit(tmp_path):
 
     # First build
     rebuilt1 = build_sidecar(
-        tree1, sidecar_path, force=False,
+        tree1,
+        sidecar_path,
+        force=False,
         commit_hash=hash_key1,
     )
     assert rebuilt1 is True
@@ -1028,9 +1227,12 @@ def test_build_rebuilds_on_new_commit(tmp_path):
         form="boolean",
         definition="A test boolean concept",
     )
-    kr.commit_files({
-        "concepts/test_boolean.yaml": yaml.dump(concept2_data).encode(),
-    }, "add second concept")
+    kr.commit_files(
+        {
+            "concepts/test_boolean.yaml": yaml.dump(concept2_data).encode(),
+        },
+        "add second concept",
+    )
 
     hash_key2 = kr.head_sha()
     tree2 = repo.tree(commit=hash_key2)
@@ -1038,7 +1240,9 @@ def test_build_rebuilds_on_new_commit(tmp_path):
 
     # Build with new commit hash — should rebuild
     rebuilt2 = build_sidecar(
-        tree2, sidecar_path, force=False,
+        tree2,
+        sidecar_path,
+        force=False,
         commit_hash=hash_key2,
     )
     assert rebuilt2 is True
@@ -1049,13 +1253,20 @@ def test_build_rebuilds_on_new_commit(tmp_path):
 
     # Sidecar has both concepts
     import sqlite3
+
     conn = sqlite3.connect(sidecar_path)
     rows = conn.execute("SELECT id FROM concept ORDER BY id").fetchall()
     conn.close()
-    assert [r[0] for r in rows] == sorted([
-        make_concept_identity("concept1", domain="testing", canonical_name="test_frequency")["artifact_id"],
-        make_concept_identity("concept2", domain="testing", canonical_name="test_boolean")["artifact_id"],
-    ])
+    assert [r[0] for r in rows] == sorted(
+        [
+            make_concept_identity(
+                "concept1", domain="testing", canonical_name="test_frequency"
+            )["artifact_id"],
+            make_concept_identity(
+                "concept2", domain="testing", canonical_name="test_boolean"
+            )["artifact_id"],
+        ]
+    )
 
 
 # ── Phase 4-6: Mutations through git, pks log, Repository integration ─
@@ -1074,14 +1285,23 @@ def test_concept_add_creates_commit(tmp_path):
     git.commit_files(_packaged_form_files(), "Seed forms")
 
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "concept", "add",
-        "--domain", "testing",
-        "--name", "test_freq",
-        "--definition", "A test frequency",
-        "--form", "frequency",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "concept",
+            "add",
+            "--domain",
+            "testing",
+            "--name",
+            "test_freq",
+            "--definition",
+            "A test frequency",
+            "--form",
+            "frequency",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     # Verify commit exists with the concept
@@ -1092,11 +1312,14 @@ def test_concept_add_creates_commit(tmp_path):
     content = git.read_file("concepts/test_freq.yaml")
     data = yaml.safe_load(content)
     assert data["lexical_entry"]["canonical_form"]["written_rep"] == "test_freq"
-    assert data["artifact_id"] == make_concept_identity(
-        "concept1",
-        domain="testing",
-        canonical_name="test_freq",
-    )["artifact_id"]
+    assert (
+        data["artifact_id"]
+        == make_concept_identity(
+            "concept1",
+            domain="testing",
+            canonical_name="test_freq",
+        )["artifact_id"]
+    )
 
 
 def test_concept_rename_atomic(tmp_path):
@@ -1113,14 +1336,23 @@ def test_concept_rename_atomic(tmp_path):
 
     # Add a concept first
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "concept", "add",
-        "--domain", "testing",
-        "--name", "old_name",
-        "--definition", "A test concept",
-        "--form", "boolean",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "concept",
+            "add",
+            "--domain",
+            "testing",
+            "--name",
+            "old_name",
+            "--definition",
+            "A test concept",
+            "--form",
+            "boolean",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     commits_before = len(git.log(max_count=100))
@@ -1130,11 +1362,18 @@ def test_concept_rename_atomic(tmp_path):
     data = yaml.safe_load(git.read_file("concepts/old_name.yaml"))
     cid = f"{data['logical_ids'][0]['namespace']}:{data['logical_ids'][0]['value']}"
 
-    result = runner.invoke(cli, [
-        "-C", str(root),
-        "concept", "rename", cid,
-        "--name", "new_name",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "concept",
+            "rename",
+            cid,
+            "--name",
+            "new_name",
+        ],
+    )
     assert result.exit_code == 0, result.output
 
     # One new commit for the rename
@@ -1151,7 +1390,10 @@ def test_promote_commits(tmp_path):
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.families.claims.declaration import ClaimDocument
-    from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
+    from propstore.families.contexts.declaration import (
+        ContextDocument,
+        ContextReferenceDocument,
+    )
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
     from propstore.families.stances.lifecycle import commit_stance_proposals
@@ -1177,14 +1419,20 @@ def test_promote_commits(tmp_path):
     _, relpaths = commit_stance_proposals(
         repo,
         {
-            "claim_a": [{
-                "target": "claim_b",
-                "type": "supports",
-                "strength": "strong",
-                "note": "test promotion",
-                "conditions_differ": None,
-                "resolution": {"method": "nli_first_pass", "model": "test-model", "confidence": 0.7},
-            }],
+            "claim_a": [
+                {
+                    "target": "claim_b",
+                    "type": "supports",
+                    "strength": "strong",
+                    "note": "test promotion",
+                    "conditions_differ": None,
+                    "resolution": {
+                        "method": "nli_first_pass",
+                        "model": "test-model",
+                        "confidence": 0.7,
+                    },
+                }
+            ],
         },
         "test-model",
     )
@@ -1208,7 +1456,10 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.families.claims.declaration import ClaimDocument
-    from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
+    from propstore.families.contexts.declaration import (
+        ContextDocument,
+        ContextReferenceDocument,
+    )
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
     from propstore.families.stances.lifecycle import (
@@ -1237,14 +1488,20 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     _, relpaths = commit_stance_proposals(
         repo,
         {
-            "claim_a": [{
-                "target": "claim_b",
-                "type": "supports",
-                "strength": "strong",
-                "note": "test promotion",
-                "conditions_differ": None,
-                "resolution": {"method": "nli_first_pass", "model": "test-model", "confidence": 0.7},
-            }],
+            "claim_a": [
+                {
+                    "target": "claim_b",
+                    "type": "supports",
+                    "strength": "strong",
+                    "note": "test promotion",
+                    "conditions_differ": None,
+                    "resolution": {
+                        "method": "nli_first_pass",
+                        "model": "test-model",
+                        "confidence": 0.7,
+                    },
+                }
+            ],
         },
         "test-model",
     )
@@ -1283,14 +1540,20 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     monkeypatch.setattr(
         claims_app,
         "relate_claim_from_sidecar",
-        lambda sidecar, claim_id, model_name, embedding_model, top_k: [{
-            "target": "claim_b",
-            "type": "supports",
-            "strength": "strong",
-            "note": "synthetic stance",
-            "conditions_differ": None,
-            "resolution": {"method": "nli_first_pass", "model": model_name, "confidence": 0.7},
-        }],
+        lambda sidecar, claim_id, model_name, embedding_model, top_k: [
+            {
+                "target": "claim_b",
+                "type": "supports",
+                "strength": "strong",
+                "note": "synthetic stance",
+                "conditions_differ": None,
+                "resolution": {
+                    "method": "nli_first_pass",
+                    "model": model_name,
+                    "confidence": 0.7,
+                },
+            }
+        ],
     )
 
     runner = CliRunner()
@@ -1337,7 +1600,9 @@ def test_init_creates_git_repo(tmp_path):
     assert "forms/frequency.yaml" in entries
 
 
-def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_path, monkeypatch):
+def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(
+    tmp_path, monkeypatch
+):
     """Seed forms should not appear on disk if the git seed commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
@@ -1384,7 +1649,9 @@ def test_repository_find_rejects_plain_git_repo_without_propstore_bootstrap(tmp_
         Repository.find(root)
 
 
-def test_repository_find_prefers_propstore_knowledge_child_inside_plain_git_repo(tmp_path):
+def test_repository_find_prefers_propstore_knowledge_child_inside_plain_git_repo(
+    tmp_path,
+):
     """Repository.find() accepts a propstore knowledge/ child under a carrier git repo."""
     from quire.git_store import GitStore
 
@@ -1404,16 +1671,22 @@ def test_repository_find_prefers_propstore_knowledge_child_inside_plain_git_repo
 def test_diff_shows_changes(tmp_path):
     """diff_commits() returns correct added/modified/deleted between two commits."""
     kr = init_store(tmp_path / "knowledge")
-    kr.commit_files({
-        "concepts/alpha.yaml": b"id: concept1\n",
-        "concepts/beta.yaml": b"id: concept2\n",
-    }, "first commit")
+    kr.commit_files(
+        {
+            "concepts/alpha.yaml": b"id: concept1\n",
+            "concepts/beta.yaml": b"id: concept2\n",
+        },
+        "first commit",
+    )
     sha1 = kr.head_sha()
 
-    kr.commit_files({
-        "concepts/alpha.yaml": b"id: concept1\nstatus: active\n",  # modified
-        "concepts/gamma.yaml": b"id: concept3\n",  # added
-    }, "second commit")
+    kr.commit_files(
+        {
+            "concepts/alpha.yaml": b"id: concept1\nstatus: active\n",  # modified
+            "concepts/gamma.yaml": b"id: concept3\n",  # added
+        },
+        "second commit",
+    )
     kr.commit_deletes(["concepts/beta.yaml"], "delete beta")
     sha3 = kr.head_sha()
 
@@ -1549,11 +1822,14 @@ def test_checkout_builds_from_historical(tmp_path):
     rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
     conn.close()
     assert len(rows) == 1
-    assert rows[0][0] == make_concept_identity(
-        "concept1",
-        domain="testing",
-        canonical_name="test_freq_v1",
-    )["artifact_id"]
+    assert (
+        rows[0][0]
+        == make_concept_identity(
+            "concept1",
+            domain="testing",
+            canonical_name="test_freq_v1",
+        )["artifact_id"]
+    )
     assert rows[0][1] == "test_freq_v1"
 
 
@@ -1807,14 +2083,18 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
                 sort_keys=False,
             ).encode("utf-8"),
             "concepts/fundamental_frequency.yaml": yaml.dump(
-                normalize_concept_payloads([{
-                    "id": "concept1",
-                    "canonical_name": "fundamental_frequency",
-                    "status": "accepted",
-                    "definition": "F0",
-                    "domain": "speech",
-                    "form": "frequency",
-                }])[0],
+                normalize_concept_payloads(
+                    [
+                        {
+                            "id": "concept1",
+                            "canonical_name": "fundamental_frequency",
+                            "status": "accepted",
+                            "definition": "F0",
+                            "domain": "speech",
+                            "form": "frequency",
+                        }
+                    ]
+                )[0],
                 default_flow_style=False,
                 sort_keys=False,
             ).encode("utf-8"),
@@ -1866,16 +2146,16 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
             {
                 "source": {"paper": "Smith_2024_TestPaper"},
                 "claims": [
-                        {
-                            "id": "claim1",
-                            "type": "parameter",
-                            "context": "ctx_test",
-                            "concept": "fundamental_frequency",
-                            "value": 200.0,
-                            "unit": "Hz",
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "context": "ctx_test",
+                        "concept": "fundamental_frequency",
+                        "value": 200.0,
+                        "unit": "Hz",
                         "provenance": {"paper": "ignored_here", "page": 1},
                     }
-                ]
+                ],
             },
             default_flow_style=False,
             sort_keys=False,
@@ -1907,7 +2187,9 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
     stored = yaml.safe_load(git.read_file("claims.yaml", commit=branch_tip))
     assert stored["source"]["paper"] == "Smith_2024_TestPaper"
     assert stored["claims"][0]["artifact_id"].startswith("ps:claim:")
-    assert {"namespace": "Smith_2024_TestPaper", "value": "claim1"} in stored["claims"][0]["logical_ids"]
+    assert {"namespace": "Smith_2024_TestPaper", "value": "claim1"} in stored["claims"][
+        0
+    ]["logical_ids"]
     assert stored["claims"][0]["source_local_id"] == "claim1"
     assert str(stored["claims"][0]["id"]).startswith("claim_")
 

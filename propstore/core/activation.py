@@ -9,7 +9,11 @@ from propstore.core.conditions import CheckedConditionSet
 from propstore.core.conditions.cel_frontend import runtime_condition_ir_from_cel
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ClaimId, ContextId
-from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
+from propstore.core.graph_types import (
+    WorldActivationGraph,
+    ClaimNode,
+    CompiledWorldGraph,
+)
 from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
 

@@ -127,5 +127,10 @@ def grounding_explain(obj: dict, atom: str) -> None:
     if report.message is not None:
         emit(report.message)
         return
-    emit_section("Textual explanation:", report.prose.splitlines() if report.prose else ("<empty>",))
-    emit_section("Dialectical tree:", report.tree.splitlines() if report.tree else ("<empty>",))
+    emit_section(
+        "Textual explanation:",
+        report.prose.splitlines() if report.prose else ("<empty>",),
+    )
+    emit_section(
+        "Dialectical tree:", report.tree.splitlines() if report.tree else ("<empty>",)
+    )

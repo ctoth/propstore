@@ -15,7 +15,8 @@ def _dataclass_request_fields() -> dict[str, dict[str, ast.AST | None]]:
             if not isinstance(node, ast.ClassDef) or not node.name.endswith("Request"):
                 continue
             if not any(
-                isinstance(dec, ast.Name) and dec.id == "dataclass"
+                isinstance(dec, ast.Name)
+                and dec.id == "dataclass"
                 or isinstance(dec, ast.Call)
                 and isinstance(dec.func, ast.Name)
                 and dec.func.id == "dataclass"
@@ -24,7 +25,9 @@ def _dataclass_request_fields() -> dict[str, dict[str, ast.AST | None]]:
                 continue
             fields: dict[str, ast.AST | None] = {}
             for stmt in node.body:
-                if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                if isinstance(stmt, ast.AnnAssign) and isinstance(
+                    stmt.target, ast.Name
+                ):
                     fields[stmt.target.id] = stmt.annotation
             requests[node.name] = fields
     return requests

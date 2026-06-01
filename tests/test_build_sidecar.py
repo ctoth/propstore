@@ -66,7 +66,9 @@ def _commit_worktree(repo: Repository, message: str = "Update test knowledge") -
         if ".git" in rel.parts:
             continue
         rel_text = rel.as_posix()
-        if rel_text.startswith("sidecar/") or rel_text.endswith((".sqlite", ".sqlite-wal", ".sqlite-shm", ".hash")):
+        if rel_text.startswith("sidecar/") or rel_text.endswith(
+            (".sqlite", ".sqlite-wal", ".sqlite-shm", ".hash")
+        ):
             continue
         content = path.read_bytes()
         adds[rel_text] = content
@@ -173,7 +175,9 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
         concepts = claim.get("concepts")
         if isinstance(concepts, list):
             claim["concepts"] = [
-                _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+                _concept_artifact(value)
+                if isinstance(value, str) and value.startswith("concept")
+                else value
                 for value in concepts
             ]
 
@@ -216,12 +220,20 @@ def concept_dir(tmp_path):
     forms_dir.mkdir(exist_ok=True)
     contexts_dir = knowledge / "contexts"
     contexts_dir.mkdir(exist_ok=True)
-    (contexts_dir / "ctx_test.yaml").write_text(yaml.dump(
-        {"id": "ctx_test", "name": "Test context"},
-        default_flow_style=False,
-    ))
+    (contexts_dir / "ctx_test.yaml").write_text(
+        yaml.dump(
+            {"id": "ctx_test", "name": "Test context"},
+            default_flow_style=False,
+        )
+    )
     dimensionless_forms = {"category", "structural", "duration_ratio"}
-    for form_name in ("frequency", "category", "structural", "duration_ratio", "pressure"):
+    for form_name in (
+        "frequency",
+        "category",
+        "structural",
+        "duration_ratio",
+        "pressure",
+    ):
         (forms_dir / f"{form_name}.yaml").write_text(
             yaml.dump(
                 {
@@ -237,82 +249,104 @@ def concept_dir(tmp_path):
             [data],
             default_domain=str(data.get("domain") or "propstore"),
         )[0]
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(normalized, default_flow_style=False))
+        (concepts_path / f"{name}.yaml").write_text(
+            yaml.dump(normalized, default_flow_style=False)
+        )
 
-    write("fundamental_frequency", {
-        "id": "concept1",
-        "canonical_name": "fundamental_frequency",
-        "status": "accepted",
-        "definition": "The rate of vocal fold vibration during phonation.",
-        "domain": "speech",
-        "created_date": "2026-03-15",
-        "form": "frequency",
-        "range": [50, 1000],
-        "aliases": [
-            {"name": "F0", "source": "common"},
-            {"name": "pitch", "source": "common", "note": "perceptual correlate"},
-        ],
-        "relationships": [
-            {"type": "broader", "target": "concept4"},
-        ],
-    })
+    write(
+        "fundamental_frequency",
+        {
+            "id": "concept1",
+            "canonical_name": "fundamental_frequency",
+            "status": "accepted",
+            "definition": "The rate of vocal fold vibration during phonation.",
+            "domain": "speech",
+            "created_date": "2026-03-15",
+            "form": "frequency",
+            "range": [50, 1000],
+            "aliases": [
+                {"name": "F0", "source": "common"},
+                {"name": "pitch", "source": "common", "note": "perceptual correlate"},
+            ],
+            "relationships": [
+                {"type": "broader", "target": "concept4"},
+            ],
+        },
+    )
 
-    write("subglottal_pressure", {
-        "id": "concept2",
-        "canonical_name": "subglottal_pressure",
-        "status": "accepted",
-        "definition": "Air pressure below the glottis during phonation.",
-        "domain": "speech",
-        "form": "pressure",
-        "aliases": [
-            {"name": "Ps", "source": "Sundberg_1993"},
-        ],
-    })
+    write(
+        "subglottal_pressure",
+        {
+            "id": "concept2",
+            "canonical_name": "subglottal_pressure",
+            "status": "accepted",
+            "definition": "Air pressure below the glottis during phonation.",
+            "domain": "speech",
+            "form": "pressure",
+            "aliases": [
+                {"name": "Ps", "source": "Sundberg_1993"},
+            ],
+        },
+    )
 
-    write("task", {
-        "id": "concept3",
-        "canonical_name": "task",
-        "status": "accepted",
-        "definition": "The vocal activity type used in an experiment.",
-        "domain": "speech",
-        "form": "category",
-        "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True},
-    })
+    write(
+        "task",
+        {
+            "id": "concept3",
+            "canonical_name": "task",
+            "status": "accepted",
+            "definition": "The vocal activity type used in an experiment.",
+            "domain": "speech",
+            "form": "category",
+            "form_parameters": {
+                "values": ["speech", "singing", "whisper"],
+                "extensible": True,
+            },
+        },
+    )
 
-    write("voice_source", {
-        "id": "concept4",
-        "canonical_name": "voice_source",
-        "status": "accepted",
-        "definition": "The acoustic signal generated by the vibrating vocal folds.",
-        "domain": "speech",
-        "form": "structural",
-        "relationships": [
-            {"type": "narrower", "target": "concept1"},
-            {"type": "narrower", "target": "concept2"},
-        ],
-    })
+    write(
+        "voice_source",
+        {
+            "id": "concept4",
+            "canonical_name": "voice_source",
+            "status": "accepted",
+            "definition": "The acoustic signal generated by the vibrating vocal folds.",
+            "domain": "speech",
+            "form": "structural",
+            "relationships": [
+                {"type": "narrower", "target": "concept1"},
+                {"type": "narrower", "target": "concept2"},
+            ],
+        },
+    )
 
-    write("return_phase_ratio", {
-        "id": "concept5",
-        "canonical_name": "return_phase_ratio",
-        "status": "proposed",
-        "definition": "Ratio of return phase time to fundamental period.",
-        "domain": "speech",
-        "form": "duration_ratio",
-        "aliases": [
-            {"name": "ra", "source": "Gobl_1988"},
-            {"name": "Ra", "source": "Fant_1985", "note": "unnormalized"},
-        ],
-        "parameterization_relationships": [{
-            "formula": "ra = ta / T0",
-            "sympy": "Eq(ra, ta / T0)",
-            "inputs": ["concept5", "concept1"],
-            "exactness": "exact",
-            "source": "Fant_1985",
-            "bidirectional": True,
-            "conditions": ["task == 'speech'"],
-        }],
-    })
+    write(
+        "return_phase_ratio",
+        {
+            "id": "concept5",
+            "canonical_name": "return_phase_ratio",
+            "status": "proposed",
+            "definition": "Ratio of return phase time to fundamental period.",
+            "domain": "speech",
+            "form": "duration_ratio",
+            "aliases": [
+                {"name": "ra", "source": "Gobl_1988"},
+                {"name": "Ra", "source": "Fant_1985", "note": "unnormalized"},
+            ],
+            "parameterization_relationships": [
+                {
+                    "formula": "ra = ta / T0",
+                    "sympy": "Eq(ra, ta / T0)",
+                    "inputs": ["concept5", "concept1"],
+                    "exactness": "exact",
+                    "source": "Fant_1985",
+                    "bidirectional": True,
+                    "conditions": ["task == 'speech'"],
+                }
+            ],
+        },
+    )
 
     return concepts_path
 
@@ -331,6 +365,7 @@ def sidecar_path(tmp_path):
 
 
 # ── Table existence ──────────────────────────────────────────────────
+
 
 class TestTableCreation:
     def test_creates_sqlite_file(self, knowledge_reader, sidecar_path):
@@ -351,35 +386,45 @@ class TestTableCreation:
     def test_concept_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='concept'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='concept'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
     def test_alias_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='alias'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='alias'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
     def test_relationship_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='relationship'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='relationship'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
     def test_parameterization_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='parameterization'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='parameterization'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
     def test_fts_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='concept_fts'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='concept_fts'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
@@ -435,9 +480,7 @@ class TestSchemaV6:
             f"build_diagnostics missing columns: {expected - column_names}"
         )
 
-    def test_claim_core_lifecycle_columns_exist(
-        self, knowledge_reader, sidecar_path
-    ):
+    def test_claim_core_lifecycle_columns_exist(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         info = conn.execute("PRAGMA table_info(claim_core)").fetchall()
@@ -538,8 +581,7 @@ class TestDraftStageIngestion:
             assert drafts == 0
 
             finals = conn.execute(
-                "SELECT COUNT(*) FROM claim_core "
-                "WHERE stage IS NULL OR stage = 'final'"
+                "SELECT COUNT(*) FROM claim_core WHERE stage IS NULL OR stage = 'final'"
             ).fetchone()[0]
             assert finals == 3
 
@@ -552,6 +594,7 @@ class TestDraftStageIngestion:
 
 
 # ── Concept table contents ───────────────────────────────────────────
+
 
 class TestConceptTable:
     def test_concept_count(self, knowledge_reader, sidecar_path):
@@ -582,7 +625,9 @@ class TestConceptTable:
     def test_proposed_concept_included(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT status FROM concept WHERE id=?", (CONCEPT5_ID,)).fetchone()
+        row = conn.execute(
+            "SELECT status FROM concept WHERE id=?", (CONCEPT5_ID,)
+        ).fetchone()
         assert row[0] == "proposed"
         conn.close()
 
@@ -590,7 +635,9 @@ class TestConceptTable:
         """Concepts have non-empty content_hash."""
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
+        row = conn.execute(
+            "SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)
+        ).fetchone()
         assert row[0] is not None
         assert len(row[0]) == 16
         conn.close()
@@ -599,7 +646,10 @@ class TestConceptTable:
         """Concepts have sequential numbering."""
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        seqs = [r[0] for r in conn.execute("SELECT seq FROM concept ORDER BY seq").fetchall()]
+        seqs = [
+            r[0]
+            for r in conn.execute("SELECT seq FROM concept ORDER BY seq").fetchall()
+        ]
         assert seqs == list(range(1, len(seqs) + 1))
         conn.close()
 
@@ -607,17 +657,22 @@ class TestConceptTable:
         """Same content produces same hash across builds."""
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        hash1 = conn.execute("SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()[0]
+        hash1 = conn.execute(
+            "SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)
+        ).fetchone()[0]
         conn.close()
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        hash2 = conn.execute("SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()[0]
+        hash2 = conn.execute(
+            "SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)
+        ).fetchone()[0]
         conn.close()
         assert hash1 == hash2
 
 
 # ── Alias table contents ─────────────────────────────────────────────
+
 
 class TestAliasTable:
     def test_alias_count(self, knowledge_reader, sidecar_path):
@@ -640,14 +695,13 @@ class TestAliasTable:
     def test_alias_source(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute(
-            "SELECT source FROM alias WHERE alias_name='Ps'"
-        ).fetchone()
+        row = conn.execute("SELECT source FROM alias WHERE alias_name='Ps'").fetchone()
         assert row[0] == "Sundberg_1993"
         conn.close()
 
 
 # ── Relationship table contents ──────────────────────────────────────
+
 
 class TestRelationshipTable:
     def test_relationship_count(self, knowledge_reader, sidecar_path):
@@ -673,6 +727,7 @@ class TestRelationshipTable:
 
 # ── Parameterization table contents ──────────────────────────────────
 
+
 class TestParameterizationTable:
     def test_parameterization_count(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
@@ -692,7 +747,9 @@ class TestParameterizationTable:
         assert row[2] == "exact"
         conn.close()
 
-    def test_parameterization_has_output_concept_id(self, knowledge_reader, sidecar_path):
+    def test_parameterization_has_output_concept_id(
+        self, knowledge_reader, sidecar_path
+    ):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute("SELECT output_concept_id FROM parameterization").fetchone()
@@ -701,6 +758,7 @@ class TestParameterizationTable:
 
 
 # ── FTS5 index ───────────────────────────────────────────────────────
+
 
 class TestFTS:
     def test_fts_search_by_name(self, knowledge_reader, sidecar_path):
@@ -747,12 +805,14 @@ class TestFTS:
 
 # ── Rebuild skipping ─────────────────────────────────────────────────
 
+
 class TestRebuildSkipping:
     def test_skip_rebuild_when_unchanged(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
 
         # Set mtime 2 seconds in the past so any rewrite would be detectable
         import os
+
         stat = sidecar_path.stat()
         os.utime(sidecar_path, (stat.st_atime, stat.st_mtime - 2))
         mtime1 = sidecar_path.stat().st_mtime
@@ -767,6 +827,7 @@ class TestRebuildSkipping:
 
         # Set mtime 2 seconds in the past so forced rebuild produces a newer mtime
         import os
+
         stat = sidecar_path.stat()
         os.utime(sidecar_path, (stat.st_atime, stat.st_mtime - 2))
         mtime1 = sidecar_path.stat().st_mtime
@@ -775,32 +836,40 @@ class TestRebuildSkipping:
         mtime2 = sidecar_path.stat().st_mtime
         assert mtime2 > mtime1
 
-    def test_rebuild_when_contexts_change(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_rebuild_when_contexts_change(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         contexts_dir = concept_dir.parent / "contexts"
         contexts_dir.mkdir(exist_ok=True)
-        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {
-                "id": "ctx_root",
-                "name": "Root",
-                "assumptions": ["task == 'speech'"],
-            },
-            default_flow_style=False,
-        ))
+        (contexts_dir / "ctx_root.yaml").write_text(
+            yaml.dump(
+                {
+                    "id": "ctx_root",
+                    "name": "Root",
+                    "assumptions": ["task == 'speech'"],
+                },
+                default_flow_style=False,
+            )
+        )
 
         assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
-        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {
-                "id": "ctx_root",
-                "name": "Root",
-                "assumptions": ["task == 'singing'"],
-            },
-            default_flow_style=False,
-        ))
+        (contexts_dir / "ctx_root.yaml").write_text(
+            yaml.dump(
+                {
+                    "id": "ctx_root",
+                    "name": "Root",
+                    "assumptions": ["task == 'singing'"],
+                },
+                default_flow_style=False,
+            )
+        )
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
-    def test_rebuild_when_form_files_change(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_rebuild_when_form_files_change(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
         form_path = concept_dir.parent / "forms" / "frequency.yaml"
@@ -810,39 +879,59 @@ class TestRebuildSkipping:
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
-    def test_rebuild_when_stance_files_change(self, concept_dir, knowledge_reader, sidecar_path, claim_files):
+    def test_rebuild_when_stance_files_change(
+        self, concept_dir, knowledge_reader, sidecar_path, claim_files
+    ):
         assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
         stances_dir = concept_dir.parent / "stances"
         stances_dir.mkdir(parents=True, exist_ok=True)
-        claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
-        claim5_id = make_claim_identity("claim5", namespace="test_paper_alpha")["artifact_id"]
-        stance_payload = stamp_stance_artifact_id({
-            "source_claim": claim1_id,
-            "type": "supports",
-            "target": claim5_id,
-            "note": "new stance file",
-        })
-        stance_filename = str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
-        (stances_dir / stance_filename).write_text(yaml.dump(stance_payload, default_flow_style=False))
+        claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")[
+            "artifact_id"
+        ]
+        claim5_id = make_claim_identity("claim5", namespace="test_paper_alpha")[
+            "artifact_id"
+        ]
+        stance_payload = stamp_stance_artifact_id(
+            {
+                "source_claim": claim1_id,
+                "type": "supports",
+                "target": claim5_id,
+                "note": "new stance file",
+            }
+        )
+        stance_filename = (
+            str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
+        )
+        (stances_dir / stance_filename).write_text(
+            yaml.dump(stance_payload, default_flow_style=False)
+        )
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
-    def test_rebuild_when_new_commit_changes(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_rebuild_when_new_commit_changes(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
         contexts_dir = concept_dir.parent / "contexts"
-        (contexts_dir / "ctx_commit_key.yaml").write_text(yaml.dump(
-            {"id": "ctx_commit_key", "name": "Commit-key context"},
-            default_flow_style=False,
-        ))
+        (contexts_dir / "ctx_commit_key.yaml").write_text(
+            yaml.dump(
+                {"id": "ctx_commit_key", "name": "Commit-key context"},
+                default_flow_style=False,
+            )
+        )
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
     @pytest.mark.property
     @given(
-        assumption_a=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
-        assumption_b=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
+        assumption_a=st.sampled_from(
+            ["task == 'speech'", "task == 'singing'", "task == 'whisper'"]
+        ),
+        assumption_b=st.sampled_from(
+            ["task == 'speech'", "task == 'singing'", "task == 'whisper'"]
+        ),
     )
     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_content_hash_changes_when_context_semantics_change(
@@ -856,26 +945,30 @@ class TestRebuildSkipping:
         contexts_dir = concept_dir.parent / "contexts"
         contexts_dir.mkdir(exist_ok=True)
 
-        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {
-                "id": "ctx_root",
-                "name": "Root",
-                "assumptions": [assumption_a],
-            },
-            default_flow_style=False,
-        ))
+        (contexts_dir / "ctx_root.yaml").write_text(
+            yaml.dump(
+                {
+                    "id": "ctx_root",
+                    "name": "Root",
+                    "assumptions": [assumption_a],
+                },
+                default_flow_style=False,
+            )
+        )
         repo = Repository(concept_dir.parent)
         assert build_sidecar(repo, sidecar_path, force=True) is True
         hash_a = sidecar_path.with_suffix(".hash").read_text()
 
-        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
-            {
-                "id": "ctx_root",
-                "name": "Root",
-                "assumptions": [assumption_b],
-            },
-            default_flow_style=False,
-        ))
+        (contexts_dir / "ctx_root.yaml").write_text(
+            yaml.dump(
+                {
+                    "id": "ctx_root",
+                    "name": "Root",
+                    "assumptions": [assumption_b],
+                },
+                default_flow_style=False,
+            )
+        )
         assert build_sidecar(repo, sidecar_path) is True
         hash_b = sidecar_path.with_suffix(".hash").read_text()
 
@@ -883,6 +976,7 @@ class TestRebuildSkipping:
 
 
 # ── Claim fixtures ───────────────────────────────────────────────────
+
 
 @pytest.fixture
 def claim_files(concept_dir):
@@ -917,7 +1011,11 @@ def claim_files(concept_dir):
                         "note": "same task, conflicting value",
                     }
                 ],
-                "provenance": {"paper": "test_paper_alpha", "page": 8, "table": "Table 2"},
+                "provenance": {
+                    "paper": "test_paper_alpha",
+                    "page": 8,
+                    "table": "Table 2",
+                },
             },
             {
                 "id": "claim3",
@@ -942,7 +1040,11 @@ def claim_files(concept_dir):
                 "type": "observation",
                 "statement": "Fundamental frequency increases with subglottal pressure in a roughly logarithmic relationship.",
                 "concepts": ["concept1", "concept2"],
-                "provenance": {"paper": "test_paper_alpha", "page": 20, "section": "Discussion"},
+                "provenance": {
+                    "paper": "test_paper_alpha",
+                    "page": 20,
+                    "section": "Discussion",
+                },
             },
         ],
     }
@@ -979,7 +1081,11 @@ def claim_files(concept_dir):
                 ],
                 "fit": {"r": 0.965, "r_sd": 0.04, "slope": 0.88, "slope_sd": 0.186},
                 "conditions": ["task == 'speech'"],
-                "provenance": {"paper": "test_paper_beta", "page": 19, "table": "Table 3"},
+                "provenance": {
+                    "paper": "test_paper_beta",
+                    "page": 19,
+                    "table": "Table 3",
+                },
             },
             {
                 "id": "claim9",
@@ -996,8 +1102,12 @@ def claim_files(concept_dir):
     alpha = _normalize_claim_concept_refs(alpha)
     beta = _normalize_claim_concept_refs(beta)
 
-    (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
-    (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
+    (claims_dir / "test_paper_alpha.yaml").write_text(
+        yaml.dump(alpha, default_flow_style=False)
+    )
+    (claims_dir / "test_paper_beta.yaml").write_text(
+        yaml.dump(beta, default_flow_style=False)
+    )
 
     return None
 
@@ -1011,11 +1121,14 @@ def sidecar_with_claims(knowledge_reader, sidecar_path, claim_files):
 
 # ── Claim table ──────────────────────────────────────────────────────
 
+
 class TestClaimTable:
     def test_claim_table_exists(self, sidecar_with_claims):
         """Normalized claim tables are created when claim_files are provided."""
         conn = sqlite3.connect(sidecar_with_claims)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
@@ -1163,7 +1276,9 @@ class TestClaimTable:
         conn = sqlite3.connect(sidecar_path)
         justification_ids = [
             row[0]
-            for row in conn.execute("SELECT id FROM justification ORDER BY id").fetchall()
+            for row in conn.execute(
+                "SELECT id FROM justification ORDER BY id"
+            ).fetchall()
         ]
         assert justification_ids == []
         conn.close()
@@ -1282,7 +1397,9 @@ class TestClaimTable:
         assert "log(Ps)" in row[1]
         conn.close()
 
-    def test_equation_claim_preserves_sympy_error(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_equation_claim_preserves_sympy_error(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         """Equation claims preserve the auto-generation error when sympy cannot be derived."""
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
@@ -1340,12 +1457,16 @@ class TestClaimTable:
             ],
         }
         claim_data = _normalize_claim_concept_refs(claim_data)
-        (claims_dir / "range_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
+        (claims_dir / "range_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
 
         with pytest.raises(DocumentSchemaError, match="value"):
             build_sidecar(knowledge_reader, sidecar_path, force=True)
 
-    def test_proper_bounds_without_value(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_proper_bounds_without_value(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         """Proper bounds format (lower_bound + upper_bound, no value) stores correctly."""
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
@@ -1364,7 +1485,9 @@ class TestClaimTable:
             ],
         }
         claim_data = _normalize_claim_concept_refs(claim_data)
-        (claims_dir / "bounds_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
+        (claims_dir / "bounds_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
 
@@ -1385,7 +1508,9 @@ class TestClaimTable:
         """Stable sidecar schema keeps claim tables present even with zero claims."""
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'"
+        )
         assert cursor.fetchone() == ("claim_core",)
         claim_count = conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
         assert claim_count == 0
@@ -1394,11 +1519,14 @@ class TestClaimTable:
 
 # ── Conflicts table ──────────────────────────────────────────────────
 
+
 class TestConflictsTable:
     def test_conflicts_table_exists(self, sidecar_with_claims):
         """conflict_witness table created when claim_files provided."""
         conn = sqlite3.connect(sidecar_with_claims)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='conflict_witness'")
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='conflict_witness'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
@@ -1423,8 +1551,12 @@ class TestClaimStanceTable:
 
     def test_claim_stance_rows_persisted(self, sidecar_with_claims):
         conn = sqlite3.connect(sidecar_with_claims)
-        claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
-        claim2_id = make_claim_identity("claim2", namespace="test_paper_alpha")["artifact_id"]
+        claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")[
+            "artifact_id"
+        ]
+        claim2_id = make_claim_identity("claim2", namespace="test_paper_alpha")[
+            "artifact_id"
+        ]
         row = conn.execute(
             """
             SELECT source_id, target_id, relation_type, strength, note
@@ -1675,7 +1807,9 @@ class TestClaimStanceTable:
         )
         assert "references nonexistent target claim" in diagnostics[0][5]
 
-    def test_invalid_inline_stance_type_raises(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_invalid_inline_stance_type_raises(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
@@ -1733,11 +1867,13 @@ class TestClaimStanceTable:
                     "concept": "concept1",
                     "value": 220.0,
                     "unit": "Hz",
-                    "stances": [{
-                        "type": "supports",
-                        "target": "claim1",
-                        "resolution": ["nli_first_pass"],
-                    }],
+                    "stances": [
+                        {
+                            "type": "supports",
+                            "target": "claim1",
+                            "resolution": ["nli_first_pass"],
+                        }
+                    ],
                     "provenance": {"paper": "invalid_stance_resolution", "page": 2},
                 },
             ],
@@ -1774,15 +1910,21 @@ class TestClaimStanceTable:
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claims = []
-        for claim_id, value in (("claim1", 100.0), ("claim2", 120.0), ("claim3", 140.0)):
-            claims.append({
-                "id": claim_id,
-                "type": "parameter",
-                "concept": "concept1",
-                "value": value,
-                "unit": "Hz",
-                "provenance": {"paper": "stance_property", "page": 1},
-            })
+        for claim_id, value in (
+            ("claim1", 100.0),
+            ("claim2", 120.0),
+            ("claim3", 140.0),
+        ):
+            claims.append(
+                {
+                    "id": claim_id,
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": value,
+                    "unit": "Hz",
+                    "provenance": {"paper": "stance_property", "page": 1},
+                }
+            )
         stances_by_source: dict[str, list[dict[str, str]]] = {}
         for source, target, stance_type in stance_pairs:
             if source == target:
@@ -1804,7 +1946,9 @@ class TestClaimStanceTable:
 
         conn = sqlite3.connect(sidecar_path)
         try:
-            claim_ids = {row[0] for row in conn.execute("SELECT id FROM claim_core").fetchall()}
+            claim_ids = {
+                row[0] for row in conn.execute("SELECT id FROM claim_core").fetchall()
+            }
             stance_rows = conn.execute(
                 """
                 SELECT source_id, target_id
@@ -1812,7 +1956,10 @@ class TestClaimStanceTable:
                 WHERE source_kind='claim' AND target_kind='claim'
                 """
             ).fetchall()
-            assert all(source in claim_ids and target in claim_ids for source, target in stance_rows)
+            assert all(
+                source in claim_ids and target in claim_ids
+                for source, target in stance_rows
+            )
         finally:
             conn.close()
 
@@ -1850,6 +1997,7 @@ class TestClaimStanceTable:
 
 # ── Claim FTS ────────────────────────────────────────────────────────
 
+
 class TestClaimFTS:
     def test_claim_fts_search(self, sidecar_with_claims):
         """Can search claim statements via FTS."""
@@ -1858,7 +2006,9 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'logarithmic'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        expected_id = make_claim_identity("claim5", namespace="test_paper_alpha")["artifact_id"]
+        expected_id = make_claim_identity("claim5", namespace="test_paper_alpha")[
+            "artifact_id"
+        ]
         assert expected_id in ids
         conn.close()
 
@@ -1869,7 +2019,9 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'log'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        expected_id = make_claim_identity("claim8", namespace="test_paper_beta")["artifact_id"]
+        expected_id = make_claim_identity("claim8", namespace="test_paper_beta")[
+            "artifact_id"
+        ]
         assert expected_id in ids
         conn.close()
 
@@ -1880,12 +2032,15 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'singing'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        expected_id = make_claim_identity("claim3", namespace="test_paper_alpha")["artifact_id"]
+        expected_id = make_claim_identity("claim3", namespace="test_paper_alpha")[
+            "artifact_id"
+        ]
         assert expected_id in ids
         conn.close()
 
 
 # ── Parameterization group table ────────────────────────────────────
+
 
 class TestParameterizationGroupTable:
     def test_parameterization_group_table_exists(self, knowledge_reader, sidecar_path):
@@ -1893,11 +2048,14 @@ class TestParameterizationGroupTable:
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='parameterization_group'")
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='parameterization_group'"
+        )
         assert cursor.fetchone() is not None
         conn.close()
 
-    def test_parameterization_groups_reflect_components(self, knowledge_reader, sidecar_path):
+    def test_parameterization_groups_reflect_components(
+        self, knowledge_reader, sidecar_path
+    ):
         """Groups reflect connected components from parameterizations."""
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
@@ -1917,79 +2075,131 @@ class TestParameterizationGroupTable:
             if CONCEPT1_ID in members and CONCEPT5_ID in members:
                 found = True
                 break
-        assert found, f"concept1 and concept5 should be in the same parameterization group. Groups: {by_group}"
+        assert found, (
+            f"concept1 and concept5 should be in the same parameterization group. Groups: {by_group}"
+        )
 
         conn.close()
 
 
 # ── Concept form metadata ────────────────────────────────────────────
 
+
 class TestConceptFormMetadata:
     def _setup_forms(self, concept_dir):
         """Write real form definitions for the test concepts."""
         forms_dir = concept_dir.parent / "forms"
         forms_dir.mkdir(exist_ok=True)
-        yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"},
-                  (forms_dir / "frequency.yaml").open("w"))
-        yaml.dump({"name": "pressure", "dimensionless": False, "unit_symbol": "Pa",
-                   "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
-                  (forms_dir / "pressure.yaml").open("w"))
-        yaml.dump({"name": "category", "dimensionless": True, "parameters": {"values": [], "extensible": False}},
-                  (forms_dir / "category.yaml").open("w"))
-        yaml.dump({"name": "structural", "dimensionless": True, "note": "Non-measurable organizing concepts."},
-                  (forms_dir / "structural.yaml").open("w"))
-        yaml.dump({"name": "duration_ratio", "dimensionless": True, "base": "ratio",
-                   "parameters": {"numerator": "duration", "denominator": "duration"}},
-                  (forms_dir / "duration_ratio.yaml").open("w"))
+        yaml.dump(
+            {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"},
+            (forms_dir / "frequency.yaml").open("w"),
+        )
+        yaml.dump(
+            {
+                "name": "pressure",
+                "dimensionless": False,
+                "unit_symbol": "Pa",
+                "common_alternatives": [
+                    {"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}
+                ],
+            },
+            (forms_dir / "pressure.yaml").open("w"),
+        )
+        yaml.dump(
+            {
+                "name": "category",
+                "dimensionless": True,
+                "parameters": {"values": [], "extensible": False},
+            },
+            (forms_dir / "category.yaml").open("w"),
+        )
+        yaml.dump(
+            {
+                "name": "structural",
+                "dimensionless": True,
+                "note": "Non-measurable organizing concepts.",
+            },
+            (forms_dir / "structural.yaml").open("w"),
+        )
+        yaml.dump(
+            {
+                "name": "duration_ratio",
+                "dimensionless": True,
+                "base": "ratio",
+                "parameters": {"numerator": "duration", "denominator": "duration"},
+            },
+            (forms_dir / "duration_ratio.yaml").open("w"),
+        )
 
-    def test_concept_has_is_dimensionless_column(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_concept_has_is_dimensionless_column(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         assert "is_dimensionless" in {
             column.name for column in world_schema().table("concept").columns
         }
 
-    def test_frequency_concept_not_dimensionless(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_frequency_concept_not_dimensionless(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
+        row = conn.execute(
+            "SELECT is_dimensionless FROM concept WHERE id=?", (CONCEPT1_ID,)
+        ).fetchone()
         assert row[0] == 0
         conn.close()
 
-    def test_ratio_concept_is_dimensionless(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_ratio_concept_is_dimensionless(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id=?", (CONCEPT5_ID,)).fetchone()
+        row = conn.execute(
+            "SELECT is_dimensionless FROM concept WHERE id=?", (CONCEPT5_ID,)
+        ).fetchone()
         assert row[0] == 1
         conn.close()
 
-    def test_concept_has_unit_symbol_column(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_concept_has_unit_symbol_column(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         assert "unit_symbol" in {
             column.name for column in world_schema().table("concept").columns
         }
 
-    def test_frequency_concept_unit_symbol(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_frequency_concept_unit_symbol(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT unit_symbol FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
+        row = conn.execute(
+            "SELECT unit_symbol FROM concept WHERE id=?", (CONCEPT1_ID,)
+        ).fetchone()
         assert row[0] == "Hz"
         conn.close()
 
-    def test_ratio_concept_unit_symbol_null(self, concept_dir, knowledge_reader, sidecar_path):
+    def test_ratio_concept_unit_symbol_null(
+        self, concept_dir, knowledge_reader, sidecar_path
+    ):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT unit_symbol FROM concept WHERE id=?", (CONCEPT5_ID,)).fetchone()
+        row = conn.execute(
+            "SELECT unit_symbol FROM concept WHERE id=?", (CONCEPT5_ID,)
+        ).fetchone()
         assert row[0] is None
         conn.close()
 
 
 # ── Algorithm claim tests ─────────────────────────────────────────────
+
 
 @pytest.fixture
 def algorithm_claim_files(concept_dir):
@@ -2077,7 +2287,10 @@ class TestAlgorithmBindings:
     canonical AST that includes the concept bindings (not empty bindings)."""
 
     def test_algorithm_canonical_ast_includes_bindings(
-        self, concept_dir, knowledge_reader, sidecar_path,
+        self,
+        concept_dir,
+        knowledge_reader,
+        sidecar_path,
     ):
         """List-of-dict variables must feed durable concept bindings into canonical_ast."""
         claims_dir = concept_dir.parent / "claims"
@@ -2153,8 +2366,7 @@ class TestNormalizedSidecarStorage:
     def test_claim_core_drops_generic_concept_id_column(self, sidecar_with_claims):
         conn = sqlite3.connect(sidecar_with_claims)
         columns = {
-            row[1]
-            for row in conn.execute("PRAGMA table_info(claim_core)").fetchall()
+            row[1] for row in conn.execute("PRAGMA table_info(claim_core)").fetchall()
         }
         conn.close()
 
@@ -2205,6 +2417,7 @@ class TestNormalizedSidecarStorage:
 
 # ── Form algebra: dim_verified flag ──────────────────────────────────
 
+
 class TestFormAlgebraDimVerified:
     """Form algebra entries must never be dropped at build time.
 
@@ -2222,7 +2435,9 @@ class TestFormAlgebraDimVerified:
         rows = conn.execute("SELECT dim_verified FROM form_algebra").fetchall()
         conn.close()
         # concept5 has a parameterization_relationship → expect at least 1 row
-        assert len(rows) >= 1, "form_algebra must not drop entries with missing dimensions"
+        assert len(rows) >= 1, (
+            "form_algebra must not drop entries with missing dimensions"
+        )
         row = rows[0]
         assert row[0] == 0, "entry without dimensions should have dim_verified=0"
 
@@ -2232,43 +2447,62 @@ class TestFormAlgebraDimVerified:
         """Forms WITH valid dimensions and no sympy to verify → dim_verified=1."""
         # Add dimensions to the form files
         forms_dir = concept_dir.parent / "forms"
-        (forms_dir / "duration_ratio.yaml").write_text(yaml.dump({
-            "name": "duration_ratio",
-            "dimensions": {"T": 0},
-            "dimensionless": True,
-        }, default_flow_style=False))
-        (forms_dir / "frequency.yaml").write_text(yaml.dump({
-            "name": "frequency",
-            "dimensionless": False,
-            "dimensions": {"T": -1},
-        }, default_flow_style=False))
+        (forms_dir / "duration_ratio.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "duration_ratio",
+                    "dimensions": {"T": 0},
+                    "dimensionless": True,
+                },
+                default_flow_style=False,
+            )
+        )
+        (forms_dir / "frequency.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "frequency",
+                    "dimensionless": False,
+                    "dimensions": {"T": -1},
+                },
+                default_flow_style=False,
+            )
+        )
 
         # Add a concept with a parameterization that has NO sympy field,
         # so dimensional verification succeeds purely on dimension presence
         concepts_path = concept_dir
-        period_payload = normalize_concept_payloads([{
-            "id": "concept6",
-            "canonical_name": "period",
-            "status": "accepted",
-            "definition": "Duration of one cycle.",
-            "domain": "speech",
-            "form": "duration_ratio",
-            "parameterization_relationships": [{
-                "formula": "T0 = 1/f0",
-                "inputs": ["concept1"],
-                "exactness": "exact",
-                "source": "definition",
-                "bidirectional": False,
-            }],
-        }], default_domain="speech")[0]
-        (concepts_path / "period.yaml").write_text(yaml.dump(period_payload, default_flow_style=False))
+        period_payload = normalize_concept_payloads(
+            [
+                {
+                    "id": "concept6",
+                    "canonical_name": "period",
+                    "status": "accepted",
+                    "definition": "Duration of one cycle.",
+                    "domain": "speech",
+                    "form": "duration_ratio",
+                    "parameterization_relationships": [
+                        {
+                            "formula": "T0 = 1/f0",
+                            "inputs": ["concept1"],
+                            "exactness": "exact",
+                            "source": "definition",
+                            "bidirectional": False,
+                        }
+                    ],
+                }
+            ],
+            default_domain="speech",
+        )[0]
+        (concepts_path / "period.yaml").write_text(
+            yaml.dump(period_payload, default_flow_style=False)
+        )
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         rows = conn.execute(
             "SELECT dim_verified FROM form_algebra WHERE output_form='duration_ratio' "
             "AND source_concept_id=?",
-            (_concept_artifact("concept6"),)
+            (_concept_artifact("concept6"),),
         ).fetchall()
         conn.close()
         assert len(rows) >= 1, "form_algebra must contain entries for dimensioned forms"
@@ -2277,6 +2511,7 @@ class TestFormAlgebraDimVerified:
 
 
 # ── value_si normalization ────────────────────────────────────────────
+
 
 class TestClaimValueSI:
     """value_si / lower_bound_si / upper_bound_si columns are populated
@@ -2313,6 +2548,7 @@ class TestClaimValueSI:
                 )
         # Clear form cache so new YAML is picked up
         from propstore.families.forms.stages import _form_cache
+
         _form_cache.clear()
 
     def _build_with_claims(self, concept_dir, sidecar_path, claims_list):
@@ -2334,16 +2570,20 @@ class TestClaimValueSI:
 
     def test_claim_value_si_normalized(self, concept_dir, sidecar_path):
         """0.2 kHz -> value_si = 200.0 Hz."""
-        db = self._build_with_claims(concept_dir, sidecar_path, [
-            {
-                "id": "si_claim1",
-                "type": "parameter",
-                "concept": "concept1",  # fundamental_frequency, form=frequency
-                "value": 0.2,
-                "unit": "kHz",
-                "provenance": {"paper": "si_test_paper", "page": 1},
-            },
-        ])
+        db = self._build_with_claims(
+            concept_dir,
+            sidecar_path,
+            [
+                {
+                    "id": "si_claim1",
+                    "type": "parameter",
+                    "concept": "concept1",  # fundamental_frequency, form=frequency
+                    "value": 0.2,
+                    "unit": "kHz",
+                    "provenance": {"paper": "si_test_paper", "page": 1},
+                },
+            ],
+        )
         conn = sqlite3.connect(db)
         row = conn.execute(
             """
@@ -2361,16 +2601,20 @@ class TestClaimValueSI:
 
     def test_claim_value_si_canonical_unit(self, concept_dir, sidecar_path):
         """Claim with canonical unit Hz -> value_si = same as value."""
-        db = self._build_with_claims(concept_dir, sidecar_path, [
-            {
-                "id": "si_claim2",
-                "type": "parameter",
-                "concept": "concept1",
-                "value": 440.0,
-                "unit": "Hz",
-                "provenance": {"paper": "si_test_paper", "page": 2},
-            },
-        ])
+        db = self._build_with_claims(
+            concept_dir,
+            sidecar_path,
+            [
+                {
+                    "id": "si_claim2",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 440.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "si_test_paper", "page": 2},
+                },
+            ],
+        )
         conn = sqlite3.connect(db)
         row = conn.execute(
             """
@@ -2386,15 +2630,19 @@ class TestClaimValueSI:
 
     def test_claim_value_si_no_unit(self, concept_dir, sidecar_path):
         """Claim with no unit field -> value_si = same as value."""
-        db = self._build_with_claims(concept_dir, sidecar_path, [
-            {
-                "id": "si_claim3",
-                "type": "parameter",
-                "concept": "concept1",
-                "value": 100.0,
-                "provenance": {"paper": "si_test_paper", "page": 3},
-            },
-        ])
+        db = self._build_with_claims(
+            concept_dir,
+            sidecar_path,
+            [
+                {
+                    "id": "si_claim3",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 100.0,
+                    "provenance": {"paper": "si_test_paper", "page": 3},
+                },
+            ],
+        )
         conn = sqlite3.connect(db)
         row = conn.execute(
             """
@@ -2410,17 +2658,21 @@ class TestClaimValueSI:
 
     def test_claim_bounds_si_normalized(self, concept_dir, sidecar_path):
         """lower_bound=0.1, upper_bound=0.3, unit=kHz -> _si = 100.0, 300.0."""
-        db = self._build_with_claims(concept_dir, sidecar_path, [
-            {
-                "id": "si_claim4",
-                "type": "parameter",
-                "concept": "concept1",
-                "lower_bound": 0.1,
-                "upper_bound": 0.3,
-                "unit": "kHz",
-                "provenance": {"paper": "si_test_paper", "page": 4},
-            },
-        ])
+        db = self._build_with_claims(
+            concept_dir,
+            sidecar_path,
+            [
+                {
+                    "id": "si_claim4",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "lower_bound": 0.1,
+                    "upper_bound": 0.3,
+                    "unit": "kHz",
+                    "provenance": {"paper": "si_test_paper", "page": 4},
+                },
+            ],
+        )
         conn = sqlite3.connect(db)
         row = conn.execute(
             """

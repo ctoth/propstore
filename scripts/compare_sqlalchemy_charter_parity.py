@@ -265,10 +265,7 @@ def _snapshot_sqlite(path: Path) -> dict[str, Any]:
         return {
             "path": str(path),
             "schema_hash": _schema_hash(conn),
-            "tables": {
-                table: _table_snapshot(conn, table)
-                for table in tables
-            },
+            "tables": {table: _table_snapshot(conn, table) for table in tables},
         }
     finally:
         conn.close()
@@ -351,7 +348,9 @@ def _compare_snapshots(
         report_table = before_table if before_table is not None else after_table
         tables[table] = {
             "columns": None if report_table is None else report_table["columns"],
-            "primary_key": None if report_table is None else report_table["primary_key"],
+            "primary_key": None
+            if report_table is None
+            else report_table["primary_key"],
             "status": table_comparison["status"],
         }
         row_counts[table] = {
@@ -392,10 +391,14 @@ def _compare_table(
         if after["row_count"] == 0:
             return _comparison_block(name, "pass", 0, 0, (), (), (), failures)
         failures.append(f"extra table {name}")
-        return _comparison_block(name, "fail", 0, after["row_count"], (), after["keys"], (), failures)
+        return _comparison_block(
+            name, "fail", 0, after["row_count"], (), after["keys"], (), failures
+        )
     if after is None:
         failures.append(f"missing table {name}")
-        return _comparison_block(name, "fail", before["row_count"], 0, before["keys"], (), (), failures)
+        return _comparison_block(
+            name, "fail", before["row_count"], 0, before["keys"], (), (), failures
+        )
     before_rows = _rows_by_key(before)
     after_rows = _rows_by_key(after)
     missing = tuple(sorted(set(before_rows) - set(after_rows)))
@@ -487,9 +490,7 @@ def _add_required_vector_blocks(
         if not dependencies:
             continue
         failures = [
-            failure
-            for dependency in dependencies
-            for failure in dependency["failures"]
+            failure for dependency in dependencies for failure in dependency["failures"]
         ]
         status = "pass" if not failures else "fail"
         blocks.append(
@@ -647,7 +648,9 @@ def _world_query_payload(world: Any) -> dict[str, Any]:
             "authored_justification_count": world.authored_justification_count(),
             "claims": [_stable_value(claim) for claim in claims],
             "concepts": [_stable_value(concept) for concept in concepts],
-            "relationships": [_stable_value(relationship) for relationship in relationships],
+            "relationships": [
+                _stable_value(relationship) for relationship in relationships
+            ],
             "stances": [_stable_value(stance) for stance in stances],
             "conflicts": [_stable_value(conflict) for conflict in conflicts],
             "parameterizations": [
@@ -658,7 +661,9 @@ def _world_query_payload(world: Any) -> dict[str, Any]:
                 _stable_value(micropublication)
                 for micropublication in micropublications
             ],
-            "justifications": [_stable_value(justification) for justification in justifications],
+            "justifications": [
+                _stable_value(justification) for justification in justifications
+            ],
         }
     )
 
@@ -712,8 +717,7 @@ def _worldline_payload(world: Any) -> dict[str, Any]:
         {
             "compiled_graph": world.compiled_graph().to_dict(),
             "empty_bound_claim_ids": [
-                str(claim.id)
-                for claim in world.bind().active_claims(None)
+                str(claim.id) for claim in world.bind().active_claims(None)
             ],
         }
     )
@@ -897,7 +901,9 @@ def _collapse_phase6_source_columns(path: Path) -> None:
                     ),
                     _json_dump_dataclass(
                         SourceQuality(**quality)
-                        if isinstance((quality := _json_load_optional(row["quality"])), dict)
+                        if isinstance(
+                            (quality := _json_load_optional(row["quality"])), dict
+                        )
                         else None
                     ),
                     _json_dump_value(_json_load_optional(row["derived_from"])),
@@ -1031,7 +1037,9 @@ def _json_dump_value(value: Any) -> str | None:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
-def _require_block(blocks: list[dict[str, Any]], block_kind: str, name: str) -> list[str]:
+def _require_block(
+    blocks: list[dict[str, Any]], block_kind: str, name: str
+) -> list[str]:
     for block in blocks:
         if block["name"] == name and block["status"] == "pass":
             return []
@@ -1092,7 +1100,9 @@ def _side_report(path: Path | None, snapshot: dict[str, Any] | None) -> dict[str
     return {
         "path": "" if path is None else str(path),
         "build": "not_run" if path is None else "available",
-        "schema_hash": "" if snapshot is None else str(snapshot.get("schema_hash") or ""),
+        "schema_hash": ""
+        if snapshot is None
+        else str(snapshot.get("schema_hash") or ""),
         "diagnostics": [],
         "tables": [] if snapshot is None else sorted(snapshot["tables"]),
     }

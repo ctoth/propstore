@@ -30,7 +30,10 @@ def _module_has_migration_mark(tree: ast.Module) -> bool:
     for statement in tree.body:
         if not isinstance(statement, ast.Assign):
             continue
-        if not any(isinstance(target, ast.Name) and target.id == "pytestmark" for target in statement.targets):
+        if not any(
+            isinstance(target, ast.Name) and target.id == "pytestmark"
+            for target in statement.targets
+        ):
             continue
         value = statement.value
         if _is_migration_marker(value):
@@ -40,7 +43,9 @@ def _module_has_migration_mark(tree: ast.Module) -> bool:
     return False
 
 
-def _decorators_include_migration(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> bool:
+def _decorators_include_migration(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef,
+) -> bool:
     return any(_is_migration_marker(decorator) for decorator in node.decorator_list)
 
 
@@ -50,23 +55,34 @@ def _collect_nodes(path: Path) -> list[MigrationNode]:
     results: list[MigrationNode] = []
 
     for statement in tree.body:
-        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)) and statement.name.startswith("test_"):
+        if isinstance(
+            statement, (ast.FunctionDef, ast.AsyncFunctionDef)
+        ) and statement.name.startswith("test_"):
             if module_marked or _decorators_include_migration(statement):
-                results.append(MigrationNode(path, f"{path.as_posix()}::{statement.name}"))
+                results.append(
+                    MigrationNode(path, f"{path.as_posix()}::{statement.name}")
+                )
             continue
         if isinstance(statement, ast.ClassDef) and statement.name.startswith("Test"):
             class_marked = module_marked or _decorators_include_migration(statement)
             for member in statement.body:
-                if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)) and member.name.startswith("test_"):
+                if isinstance(
+                    member, (ast.FunctionDef, ast.AsyncFunctionDef)
+                ) and member.name.startswith("test_"):
                     if class_marked or _decorators_include_migration(member):
                         results.append(
-                            MigrationNode(path, f"{path.as_posix()}::{statement.name}::{member.name}")
+                            MigrationNode(
+                                path,
+                                f"{path.as_posix()}::{statement.name}::{member.name}",
+                            )
                         )
     return results
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="List migration-marked tests in the suite.")
+    parser = argparse.ArgumentParser(
+        description="List migration-marked tests in the suite."
+    )
     parser.add_argument(
         "--root",
         default="tests",

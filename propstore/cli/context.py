@@ -1,4 +1,5 @@
 """pks context — subcommands for managing contexts."""
+
 from __future__ import annotations
 
 import click
@@ -110,7 +111,11 @@ def show(obj: dict, name: str) -> None:
 
 @context.command("remove")
 @click.argument("name")
-@click.option("--force", is_flag=True, help="Remove even if claims or worldlines still reference this context")
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Remove even if claims or worldlines still reference this context",
+)
 @click.option("--dry-run", is_flag=True)
 @click.pass_obj
 def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
@@ -130,17 +135,23 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     if not report.removed:
         emit(f"Would remove {report.filepath}")
         if report.references:
-            emit(f"  ({len(report.references)} artifact(s) still reference this context)")
+            emit(
+                f"  ({len(report.references)} artifact(s) still reference this context)"
+            )
         return
 
     emit_success(f"Removed {report.filepath}")
     if report.references:
-        emit(f"  WARNING: {len(report.references)} artifact(s) still reference this context")
+        emit(
+            f"  WARNING: {len(report.references)} artifact(s) still reference this context"
+        )
 
 
 @context.command("search")
 @click.argument("query")
-@click.option("--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show.")
+@click.option(
+    "--limit", default=20, type=click.IntRange(min=1), help="Maximum rows to show."
+)
 @click.pass_obj
 def search(obj: dict, query: str, limit: int) -> None:
     """Search contexts by id, description, or perspective."""
@@ -206,7 +217,9 @@ def show_lifting_rule(obj: dict, context_name: str, rule_id: str) -> None:
     show_default=True,
     help="Lifting mode",
 )
-@click.option("--justification", default=None, help="Optional authored justification text")
+@click.option(
+    "--justification", default=None, help="Optional authored justification text"
+)
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 @click.pass_obj
 def add_lifting_rule(
@@ -243,8 +256,14 @@ def add_lifting_rule(
 @lifting.command("update")
 @click.argument("context_name")
 @click.argument("rule_id")
-@click.option("--source", "source_context", default=None, help="Replacement source context id")
-@click.option("--condition", multiple=True, help="Replace rule conditions with these CEL expressions")
+@click.option(
+    "--source", "source_context", default=None, help="Replacement source context id"
+)
+@click.option(
+    "--condition",
+    multiple=True,
+    help="Replace rule conditions with these CEL expressions",
+)
 @click.option("--clear-conditions", is_flag=True, help="Remove all rule conditions")
 @click.option(
     "--mode",
@@ -253,7 +272,9 @@ def add_lifting_rule(
     help="Replacement lifting mode",
 )
 @click.option("--justification", default=None, help="Replacement justification text")
-@click.option("--clear-justification", is_flag=True, help="Remove the existing justification")
+@click.option(
+    "--clear-justification", is_flag=True, help="Remove the existing justification"
+)
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 @click.pass_obj
 def update_lifting_rule(

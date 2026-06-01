@@ -53,8 +53,13 @@ def test_observatory_harness_exports_stable_traceable_reports() -> None:
     assert restored == first
     assert restored.content_hash == first.content_hash
     assert first.operator_summaries["citation-distortion"].falsification_count == 1
-    assert first.scenario_results[0].trace_records[0].source_artifact_id == "source:clark:figure-7"
-    assert first.scenario_results[0].trace_records[0].journal_entry_hash == "journal:def"
+    assert (
+        first.scenario_results[0].trace_records[0].source_artifact_id
+        == "source:clark:figure-7"
+    )
+    assert (
+        first.scenario_results[0].trace_records[0].journal_entry_hash == "journal:def"
+    )
 
 
 @pytest.mark.property
@@ -69,16 +74,22 @@ def test_observatory_report_roundtrips_generated_fixtures(
     policy_id: str,
     replay_hash: str,
 ) -> None:
-    from propstore.observatory import EvaluationScenario, ObservatoryReport, evaluate_scenarios
+    from propstore.observatory import (
+        EvaluationScenario,
+        ObservatoryReport,
+        evaluate_scenarios,
+    )
 
-    report = evaluate_scenarios((
-        EvaluationScenario(
-            scenario_id=scenario_id,
-            operator_family="generated",
-            policy_id=policy_id,
-            replay_result_hash=replay_hash,
-        ),
-    ))
+    report = evaluate_scenarios(
+        (
+            EvaluationScenario(
+                scenario_id=scenario_id,
+                operator_family="generated",
+                policy_id=policy_id,
+                replay_result_hash=replay_hash,
+            ),
+        )
+    )
 
     assert ObservatoryReport.from_dict(report.to_dict()).to_dict() == report.to_dict()
 
@@ -108,7 +119,9 @@ def test_observatory_cli_adapter_builds_typed_app_request(
         calls.append((repo, request))
         return evaluate_scenarios(request.scenarios)
 
-    monkeypatch.setattr("propstore.cli.observatory.run_observatory", fake_run_observatory)
+    monkeypatch.setattr(
+        "propstore.cli.observatory.run_observatory", fake_run_observatory
+    )
     repo = MagicMock()
     result = CliRunner().invoke(
         observatory,

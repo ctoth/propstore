@@ -156,13 +156,24 @@ class SourceFinalizeReportDocument(CharterDoc):
     artifact_code_status: str
     calibration: SourceFinalizeCalibrationDocument
     micropub_status: Annotated[str, charter_field(nullable=True)] = "not_composed"
-    claim_reference_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
-    micropub_coverage_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
-    justification_reference_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
-    stance_reference_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
-    concept_alignment_candidates: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
+    claim_reference_errors: Annotated[
+        tuple[str, ...], charter_field(nullable=True)
+    ] = ()
+    micropub_coverage_errors: Annotated[
+        tuple[str, ...], charter_field(nullable=True)
+    ] = ()
+    justification_reference_errors: Annotated[
+        tuple[str, ...], charter_field(nullable=True)
+    ] = ()
+    stance_reference_errors: Annotated[
+        tuple[str, ...], charter_field(nullable=True)
+    ] = ()
+    concept_alignment_candidates: Annotated[
+        tuple[str, ...], charter_field(nullable=True)
+    ] = ()
     parameterization_group_merges: Annotated[
-        tuple[SourceParameterizationGroupMergeDocument, ...], charter_field(nullable=True)
+        tuple[SourceParameterizationGroupMergeDocument, ...],
+        charter_field(nullable=True),
     ] = ()
 
 

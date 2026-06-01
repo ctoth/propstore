@@ -25,7 +25,10 @@ def _extract_stance_rows(
         active_ids = set(active_graph.active_claim_ids)
         rows: list[Stance] = []
         for relation in active_graph.compiled.relations:
-            if relation.source_id not in active_ids or relation.target_id not in active_ids:
+            if (
+                relation.source_id not in active_ids
+                or relation.target_id not in active_ids
+            ):
                 continue
             if (
                 relation.relation_type not in ATTACK_TYPES

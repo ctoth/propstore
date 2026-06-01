@@ -88,7 +88,9 @@ class InvestigationPlan:
 
     def __post_init__(self) -> None:
         if self.schema_version != _INVESTIGATION_PLAN_VERSION:
-            raise ValueError(f"unsupported investigation plan version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported investigation plan version: {self.schema_version}"
+            )
         object.__setattr__(self, "objective", str(self.objective))
         object.__setattr__(self, "analysis_scope", str(self.analysis_scope))
         object.__setattr__(self, "world_fragility", float(self.world_fragility))
@@ -96,7 +98,9 @@ class InvestigationPlan:
         object.__setattr__(self, "assertion_ids", _strings(self.assertion_ids))
         if self.source_report_hash is not None:
             object.__setattr__(self, "source_report_hash", str(self.source_report_hash))
-        object.__setattr__(self, "plan_id", f"urn:propstore:investigation-plan:{self.content_hash}")
+        object.__setattr__(
+            self, "plan_id", f"urn:propstore:investigation-plan:{self.content_hash}"
+        )
 
     @classmethod
     def from_fragility_report(
@@ -132,14 +136,22 @@ class InvestigationPlan:
             objective=str(data.get("objective") or ""),
             analysis_scope=str(data.get("analysis_scope") or ""),
             world_fragility=float(data.get("world_fragility") or 0.0),
-            intervention_ids=_strings(_sequence(data.get("intervention_ids") or (), "intervention_ids")),
-            assertion_ids=_strings(_sequence(data.get("assertion_ids") or (), "assertion_ids")),
+            intervention_ids=_strings(
+                _sequence(data.get("intervention_ids") or (), "intervention_ids")
+            ),
+            assertion_ids=_strings(
+                _sequence(data.get("assertion_ids") or (), "assertion_ids")
+            ),
             source_report_hash=(
-                None if data.get("source_report_hash") is None else str(data.get("source_report_hash"))
+                None
+                if data.get("source_report_hash") is None
+                else str(data.get("source_report_hash"))
             ),
             schema_version=str(data.get("schema_version") or ""),
         )
-        _check_recorded_identity(data, plan.plan_id, plan.content_hash, "investigation plan")
+        _check_recorded_identity(
+            data, plan.plan_id, plan.content_hash, "investigation plan"
+        )
         return plan
 
     @property
@@ -185,7 +197,9 @@ class InterventionPlan:
 
     def __post_init__(self) -> None:
         if self.schema_version != _INTERVENTION_PLAN_VERSION:
-            raise ValueError(f"unsupported intervention plan version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported intervention plan version: {self.schema_version}"
+            )
         object.__setattr__(self, "objective", str(self.objective))
         object.__setattr__(self, "target", str(self.target))
         object.__setattr__(self, "plan_surface", str(self.plan_surface))
@@ -198,7 +212,9 @@ class InterventionPlan:
         object.__setattr__(self, "consistent", bool(self.consistent))
         object.__setattr__(self, "minimality_basis", str(self.minimality_basis))
         object.__setattr__(self, "assertion_ids", _strings(self.assertion_ids))
-        object.__setattr__(self, "plan_id", f"urn:propstore:intervention-plan:{self.content_hash}")
+        object.__setattr__(
+            self, "plan_id", f"urn:propstore:intervention-plan:{self.content_hash}"
+        )
 
     @classmethod
     def from_atms_plan(
@@ -213,7 +229,9 @@ class InterventionPlan:
             current_status = plan.current_status.value
             target_status = plan.target_status.value
             result_status = plan.result_status.value
-            derived_assertions = (plan.node_id,) if plan.node_id.startswith("ps:assertion:") else ()
+            derived_assertions = (
+                (plan.node_id,) if plan.node_id.startswith("ps:assertion:") else ()
+            )
         else:
             plan_surface = "atms_concept"
             current_status = plan.current_status.value
@@ -244,15 +262,25 @@ class InterventionPlan:
             current_status=str(data.get("current_status") or ""),
             target_status=str(data.get("target_status") or ""),
             result_status=str(data.get("result_status") or ""),
-            queryable_ids=_strings(_sequence(data.get("queryable_ids") or (), "queryable_ids")),
-            queryable_cels=_strings(_sequence(data.get("queryable_cels") or (), "queryable_cels")),
-            environment=_strings(_sequence(data.get("environment") or (), "environment")),
+            queryable_ids=_strings(
+                _sequence(data.get("queryable_ids") or (), "queryable_ids")
+            ),
+            queryable_cels=_strings(
+                _sequence(data.get("queryable_cels") or (), "queryable_cels")
+            ),
+            environment=_strings(
+                _sequence(data.get("environment") or (), "environment")
+            ),
             consistent=bool(data.get("consistent", False)),
             minimality_basis=str(data.get("minimality_basis") or ""),
-            assertion_ids=_strings(_sequence(data.get("assertion_ids") or (), "assertion_ids")),
+            assertion_ids=_strings(
+                _sequence(data.get("assertion_ids") or (), "assertion_ids")
+            ),
             schema_version=str(data.get("schema_version") or ""),
         )
-        _check_recorded_identity(data, plan.plan_id, plan.content_hash, "intervention plan")
+        _check_recorded_identity(
+            data, plan.plan_id, plan.content_hash, "intervention plan"
+        )
         return plan
 
     @property
@@ -319,8 +347,12 @@ class ProcessJob:
         object.__setattr__(self, "policy_payload", _plain(dict(self.policy_payload)))
         object.__setattr__(self, "work_item", _plain(dict(self.work_item)))
         object.__setattr__(self, "assertion_ids", _strings(self.assertion_ids))
-        object.__setattr__(self, "journal_entry_hashes", _strings(self.journal_entry_hashes))
-        object.__setattr__(self, "job_id", f"urn:propstore:process-job:{self.content_hash}")
+        object.__setattr__(
+            self, "journal_entry_hashes", _strings(self.journal_entry_hashes)
+        )
+        object.__setattr__(
+            self, "job_id", f"urn:propstore:process-job:{self.content_hash}"
+        )
 
     @classmethod
     def for_plan(
@@ -341,7 +373,8 @@ class ProcessJob:
             policy_id=policy.profile_id,
             policy_payload=policy.to_dict(),
             work_item=plan.to_dict(),
-            assertion_ids=tuple(assertion_ids) + tuple(getattr(plan, "assertion_ids", ())),
+            assertion_ids=tuple(assertion_ids)
+            + tuple(getattr(plan, "assertion_ids", ())),
             journal_entry_hashes=tuple(entry.content_hash for entry in journal_entries),
         )
 
@@ -376,9 +409,13 @@ class ProcessJob:
             policy_id=str(data.get("policy_id") or ""),
             policy_payload=_mapping(data.get("policy_payload") or {}, "policy_payload"),
             work_item=_mapping(data.get("work_item") or {}, "work_item"),
-            assertion_ids=_strings(_sequence(data.get("assertion_ids") or (), "assertion_ids")),
+            assertion_ids=_strings(
+                _sequence(data.get("assertion_ids") or (), "assertion_ids")
+            ),
             journal_entry_hashes=_strings(
-                _sequence(data.get("journal_entry_hashes") or (), "journal_entry_hashes")
+                _sequence(
+                    data.get("journal_entry_hashes") or (), "journal_entry_hashes"
+                )
             ),
             schema_version=str(data.get("schema_version") or ""),
         )
@@ -442,10 +479,16 @@ class ProcessCompletionRecord:
 
     def __post_init__(self) -> None:
         if self.schema_version != _COMPLETION_VERSION:
-            raise ValueError(f"unsupported process completion version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported process completion version: {self.schema_version}"
+            )
         object.__setattr__(self, "job_id", str(self.job_id))
-        object.__setattr__(self, "completed_snapshot_hash", str(self.completed_snapshot_hash))
-        object.__setattr__(self, "journal_entry_hashes", _strings(self.journal_entry_hashes))
+        object.__setattr__(
+            self, "completed_snapshot_hash", str(self.completed_snapshot_hash)
+        )
+        object.__setattr__(
+            self, "journal_entry_hashes", _strings(self.journal_entry_hashes)
+        )
         object.__setattr__(self, "result_payload", _plain(dict(self.result_payload)))
 
     @classmethod
@@ -454,7 +497,9 @@ class ProcessCompletionRecord:
             job_id=str(data.get("job_id") or ""),
             completed_snapshot_hash=str(data.get("completed_snapshot_hash") or ""),
             journal_entry_hashes=_strings(
-                _sequence(data.get("journal_entry_hashes") or (), "journal_entry_hashes")
+                _sequence(
+                    data.get("journal_entry_hashes") or (), "journal_entry_hashes"
+                )
             ),
             result_payload=_mapping(data.get("result_payload") or {}, "result_payload"),
             schema_version=str(data.get("schema_version") or ""),
@@ -499,7 +544,9 @@ class EpistemicProcessManager:
 
     def __post_init__(self) -> None:
         if self.schema_version != _PROCESS_MANAGER_VERSION:
-            raise ValueError(f"unsupported process manager version: {self.schema_version}")
+            raise ValueError(
+                f"unsupported process manager version: {self.schema_version}"
+            )
         object.__setattr__(
             self,
             "queued_jobs",
@@ -514,7 +561,10 @@ class EpistemicProcessManager:
         object.__setattr__(
             self,
             "completions",
-            {str(job_id): completion for job_id, completion in sorted(self.completions.items())},
+            {
+                str(job_id): completion
+                for job_id, completion in sorted(self.completions.items())
+            },
         )
 
     @classmethod
@@ -565,7 +615,9 @@ class EpistemicProcessManager:
     ) -> EpistemicProcessManager:
         normalized_job_id = str(job_id)
         if normalized_job_id not in self.queued_jobs:
-            raise ValueError(f"cannot complete unqueued process job: {normalized_job_id}")
+            raise ValueError(
+                f"cannot complete unqueued process job: {normalized_job_id}"
+            )
         record = ProcessCompletionRecord(
             job_id=normalized_job_id,
             completed_snapshot_hash=snapshot.content_hash,

@@ -39,7 +39,9 @@ class PolynomialTerm:
             "powers",
             tuple(
                 VariablePower(variable, exponent)
-                for variable, exponent in sorted(combined.items(), key=lambda item: str(item[0]))
+                for variable, exponent in sorted(
+                    combined.items(), key=lambda item: str(item[0])
+                )
             ),
         )
 
@@ -66,7 +68,9 @@ class ProvenancePolynomial:
                 PolynomialTerm(coefficient, powers)
                 for powers, coefficient in sorted(
                     coefficients.items(),
-                    key=lambda item: tuple((str(power.variable), power.exponent) for power in item[0]),
+                    key=lambda item: tuple(
+                        (str(power.variable), power.exponent) for power in item[0]
+                    ),
                 )
                 if coefficient > 0
             ),

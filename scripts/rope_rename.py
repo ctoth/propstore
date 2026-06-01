@@ -57,7 +57,9 @@ def main() -> int:
         ignored_resources=IGNORED_RESOURCES,
     )
     try:
-        resource = project.get_file(str(target_path.relative_to(root)).replace("\\", "/"))
+        resource = project.get_file(
+            str(target_path.relative_to(root)).replace("\\", "/")
+        )
         source = resource.read()
         offset = source.find(args.name)
         if offset < 0:

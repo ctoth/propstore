@@ -148,18 +148,22 @@ def materialize_reasoning_demo(root: Path) -> Repository:
         "source": {"paper": "reasoning_demo"},
         "authoring_group": "reasoning_demo",
     }
-    stance_against_yes = stamp_stance_artifact_id({
-        "source_claim": claim_map["claim_cannot_fly"],
-        "target": claim_map["claim_can_fly"],
-        "type": "supersedes",
-        "note": "Negative assessment overrides the positive one.",
-    })
-    stance_against_no = stamp_stance_artifact_id({
-        "source_claim": claim_map["claim_override"],
-        "target": claim_map["claim_cannot_fly"],
-        "type": "supersedes",
-        "note": "External evidence defeats the negative assessment.",
-    })
+    stance_against_yes = stamp_stance_artifact_id(
+        {
+            "source_claim": claim_map["claim_cannot_fly"],
+            "target": claim_map["claim_can_fly"],
+            "type": "supersedes",
+            "note": "Negative assessment overrides the positive one.",
+        }
+    )
+    stance_against_no = stamp_stance_artifact_id(
+        {
+            "source_claim": claim_map["claim_override"],
+            "target": claim_map["claim_cannot_fly"],
+            "type": "supersedes",
+            "note": "External evidence defeats the negative assessment.",
+        }
+    )
 
     with repo.families.transact(message="Seed reasoning demo") as transaction:
         for ref, payload in (
@@ -208,7 +212,9 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 predicates_ref,
                 transaction.predicates.coerce(
                     predicate_payload,
-                    source=repo.families.predicates.address(predicates_ref).require_path(),
+                    source=repo.families.predicates.address(
+                        predicates_ref
+                    ).require_path(),
                 ),
             )
         rules_ref = RuleRef("r_flies_from_bird")

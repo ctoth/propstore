@@ -1,4 +1,5 @@
 """pks world - presentation adapters for compiled knowledge-base workflows."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -19,7 +20,9 @@ def _format_assumption_ids(assumption_ids: Sequence[str]) -> str:
     return "[" + ", ".join(str(assumption_id) for assumption_id in assumption_ids) + "]"
 
 
-def parse_world_binding_args(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
+def parse_world_binding_args(
+    args: tuple[str, ...],
+) -> tuple[dict[str, str], str | None]:
     """Parse raw CLI binding tokens into bindings and an optional target."""
 
     parsed: dict[str, str] = {}

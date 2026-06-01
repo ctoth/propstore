@@ -9,8 +9,13 @@ from pathlib import Path
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.state import BeliefBase, RevisionEpisode, RevisionScope
-from tests.support_revision.formal_realization_helpers import contract_via_formal_decision
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
+from tests.support_revision.formal_realization_helpers import (
+    contract_via_formal_decision,
+)
+from tests.support_revision.revision_assertion_helpers import (
+    make_assertion_atom,
+    make_assumption_atom,
+)
 from tests.test_revision_operators import _base_with_shared_support
 
 
@@ -29,14 +34,21 @@ def test_make_epistemic_state_captures_base_entrenchment_and_empty_history() -> 
 
 
 def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
-    from propstore.support_revision.iterated import advance_epistemic_state, make_epistemic_state
+    from propstore.support_revision.iterated import (
+        advance_epistemic_state,
+        make_epistemic_state,
+    )
 
     base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
-            atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
+            atom_id
+            for atom_id in entrenchment.ranked_atom_ids
+            if atom_id in result.accepted_atom_ids
         ),
         reasons=dict(entrenchment.reasons),
     )
@@ -60,14 +72,22 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
 
 
 def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
-    from propstore.support_revision.iterated import advance_epistemic_state, epistemic_state_payload, make_epistemic_state
+    from propstore.support_revision.iterated import (
+        advance_epistemic_state,
+        epistemic_state_payload,
+        make_epistemic_state,
+    )
 
     base, entrenchment, ids = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
-    result = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
-            atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
+            atom_id
+            for atom_id in entrenchment.ranked_atom_ids
+            if atom_id in result.accepted_atom_ids
         ),
         reasons=dict(entrenchment.reasons),
     )
@@ -101,7 +121,9 @@ def test_iterated_revision_module_does_not_import_ic_merge() -> None:
     assert "propstore.storage.ic_merge" not in imports
 
 
-def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, EntrenchmentReport, dict[str, str]]:
+def _history_sensitive_base() -> tuple[
+    BeliefBase, EntrenchmentReport, EntrenchmentReport, dict[str, str]
+]:
     legacy = make_assertion_atom("legacy")
     left_dependent = make_assertion_atom("left_dependent")
     right_dependent = make_assertion_atom("right_dependent")
@@ -159,21 +181,22 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
     return base, left_first, right_first, ids
 
 
-def test_iterated_revise_recomputes_entrenchment_independent_of_stale_history_ranking() -> None:
-    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+def test_iterated_revise_recomputes_entrenchment_independent_of_stale_history_ranking() -> (
+    None
+):
+    from propstore.support_revision.iterated import (
+        iterated_revise,
+        make_epistemic_state,
+    )
 
     base, left_first, right_first, ids = _history_sensitive_base()
     state_left = replace(
         make_epistemic_state(base, left_first),
-        history=(
-            RevisionEpisode(operator="seed-left"),
-        ),
+        history=(RevisionEpisode(operator="seed-left"),),
     )
     state_right = replace(
         make_epistemic_state(base, right_first),
-        history=(
-            RevisionEpisode(operator="seed-right"),
-        ),
+        history=(RevisionEpisode(operator="seed-right"),),
     )
     new_atom = make_assertion_atom("new")
     conflicts = {new_atom.atom_id: (ids["legacy"],)}
@@ -203,7 +226,10 @@ def test_iterated_revise_recomputes_entrenchment_independent_of_stale_history_ra
 
 
 def test_iterated_revise_reports_formal_operator_policy() -> None:
-    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+    from propstore.support_revision.iterated import (
+        iterated_revise,
+        make_epistemic_state,
+    )
 
     base, entrenchment, _, ids = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
@@ -230,7 +256,9 @@ def test_iterated_revise_reports_formal_operator_policy() -> None:
 
     assert restrained_episode.operator == "restrained"
     assert lexicographic_episode.operator == "lexicographic"
-    assert restrained_episode.accepted_atom_ids == lexicographic_episode.accepted_atom_ids
+    assert (
+        restrained_episode.accepted_atom_ids == lexicographic_episode.accepted_atom_ids
+    )
     assert restrained_result.decision is not None
     assert lexicographic_result.decision is not None
     assert restrained_result.decision.policy == "belief_set.iterated.restrained"
@@ -238,7 +266,10 @@ def test_iterated_revise_reports_formal_operator_policy() -> None:
 
 
 def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -> None:
-    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+    from propstore.support_revision.iterated import (
+        iterated_revise,
+        make_epistemic_state,
+    )
 
     base, entrenchment, _, ids = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
@@ -271,7 +302,10 @@ def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -
 def test_iterated_revise_refuses_merge_point_states() -> None:
     import pytest
 
-    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+    from propstore.support_revision.iterated import (
+        iterated_revise,
+        make_epistemic_state,
+    )
 
     base, entrenchment, _, ids = _history_sensitive_base()
     new_atom = make_assertion_atom("new")
