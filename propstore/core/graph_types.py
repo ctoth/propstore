@@ -159,53 +159,6 @@ def _condition_set_from_dicts(
     )
 
 
-def _provenance_from_dict(data: object) -> Provenance | None:
-    if data is None:
-        return None
-    if not isinstance(data, Mapping):
-        raise ValueError("opinion provenance must be a mapping")
-    payload = cast(Mapping[str, object], data)
-    status = payload.get("status")
-    if not isinstance(status, str) or not status:
-        raise ValueError("opinion provenance requires status")
-    raw_witnesses = payload.get("witnesses") or ()
-    if not isinstance(raw_witnesses, list | tuple):
-        raise ValueError("opinion provenance witnesses must be a sequence")
-    witnesses: list[ProvenanceWitness] = []
-    for raw_witness in cast(tuple[object, ...] | list[object], raw_witnesses):
-        if not isinstance(raw_witness, Mapping):
-            raise ValueError("opinion provenance witness must be a mapping")
-        witness = cast(Mapping[str, object], raw_witness)
-        witnesses.append(
-            ProvenanceWitness(
-                asserter=str(witness["asserter"]),
-                timestamp=str(witness["timestamp"]),
-                source_artifact_code=str(witness["source_artifact_code"]),
-                method=str(witness["method"]),
-            )
-        )
-    graph_name = payload.get("graph_name")
-    raw_derived_from = payload.get("derived_from") or ()
-    raw_operations = payload.get("operations") or ()
-    if not isinstance(raw_derived_from, list | tuple):
-        raise ValueError("opinion provenance derived_from must be a sequence")
-    if not isinstance(raw_operations, list | tuple):
-        raise ValueError("opinion provenance operations must be a sequence")
-    return Provenance(
-        status=ProvenanceStatus(status),
-        witnesses=tuple(witnesses),
-        graph_name=(None if graph_name is None else str(graph_name)),
-        derived_from=tuple(
-            str(value)
-            for value in cast(tuple[object, ...] | list[object], raw_derived_from)
-        ),
-        operations=tuple(
-            str(value)
-            for value in cast(tuple[object, ...] | list[object], raw_operations)
-        ),
-    )
-
-
 def _opinion_to_dict(opinion: Opinion | None) -> dict[str, Any] | None:
     if opinion is None:
         return None

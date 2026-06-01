@@ -326,39 +326,6 @@ def test_ic_merge_replay_rejects_policy_drift_before_semantic_replay() -> None:
     assert "policy snapshot mismatch" in replayed.errors[0]
 
 
-def test_worldline_capture_serializes_ic_merge_event() -> None:
-    state, atom_ids = _merge_state()
-    query = WorldlineRevisionQuery.from_dict(
-        {
-            "operation": "ic_merge",
-            "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
-            "integrity_constraint": {
-                "kind": "literals",
-                "required": [atom_ids["a"]],
-                "forbidden": [atom_ids["b"]],
-            },
-            "merge_parent_commits": ["left", "right"],
-            "merge_operator": "sigma",
-            "max_alphabet_size": 8,
-        }
-    )
-    assert query is not None
-
-    journal = _capture_journal_for(state, (query,))
-
-    payload = journal.to_dict()
-    entry = payload["entries"][0]
-    assert entry["operator"] == "ic_merge"
-    assert entry["operator_input"]["merge_parent_commits"] == ["left", "right"]
-    assert entry["operator_input"]["integrity_constraint"]["required"] == [
-        atom_ids["a"]
-    ]
-    event = entry["normalized_state_out"]["history"][-1]["event"]
-    assert event["operation"] == "ic_merge"
-    assert event["decision"]["trace"]["merge_operator"] == "sigma"
-    assert event["realization"]["rejected_atom_ids"] == [atom_ids["b"]]
-
-
 def _dispatch_realizable_merge(state, atom_ids: dict[str, str]):
     return _dispatch_merge(
         state,

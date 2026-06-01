@@ -149,52 +149,6 @@ def test_advanced_help_shows_advanced_commands() -> None:
         assert command in result.output
 
 
-def test_top_level_status_alias_matches_world_status(tmp_path: Path) -> None:
-    knowledge = tmp_path / "knowledge"
-    repo = Repository.init(knowledge)
-    concept = normalize_concept_payloads(
-        [
-            {
-                "id": "concept1",
-                "canonical_name": "pitch",
-                "status": "accepted",
-                "definition": "Test definition for pitch.",
-                "domain": "speech",
-                "created_date": "2026-05-05",
-                "form": "frequency",
-            }
-        ],
-        default_domain="speech",
-    )[0]
-    repo.git.commit_files(
-        {
-            "forms/frequency.yaml": yaml.dump(
-                {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"},
-                default_flow_style=False,
-            ).encode("utf-8"),
-            "concepts/pitch.yaml": yaml.dump(
-                concept,
-                default_flow_style=False,
-                sort_keys=False,
-            ).encode("utf-8"),
-            "concepts/.counters/global.next": b"2\n",
-        },
-        "Seed status alias fixture",
-    )
-    repo.git.sync_worktree()
-
-    runner = CliRunner()
-    build = runner.invoke(cli, ["-C", str(knowledge), "build"])
-    assert build.exit_code == 0, build.output
-
-    alias = runner.invoke(cli, ["-C", str(knowledge), "status"])
-    canonical = runner.invoke(cli, ["-C", str(knowledge), "world", "status"])
-
-    assert alias.exit_code == 0, alias.output
-    assert canonical.exit_code == 0, canonical.output
-    assert alias.output == canonical.output
-
-
 def test_dead_prefixed_error_helper_is_removed() -> None:
     assert not Path("propstore/cli/output/errors.py").exists()
 

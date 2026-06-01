@@ -15,9 +15,6 @@ class _EscapingGit:
     def branch_sha(self, name: str) -> str | None:
         return "source-tip"
 
-    def iter_tree_files(self, *, commit: str | None = None, roots=()):
-        yield TreeFile(relpath=self.relpath, content=b"payload")
-
 
 class _Repository:
     def __init__(self, root: Path, relpath: str) -> None:

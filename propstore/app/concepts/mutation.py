@@ -675,31 +675,6 @@ def _claims_ref(claim_file: LoadedClaimsFile) -> ClaimRef:
     return ClaimRef(artifact_id)
 
 
-def _normalize_concept_data(
-    data: dict,
-    *,
-    canonical_name: str | None = None,
-    domain: str | None = None,
-    local_handle: str | None = None,
-) -> dict:
-    return normalize_canonical_concept_payload(
-        deepcopy(data),
-        canonical_name=canonical_name,
-        domain=domain,
-        local_handle=local_handle,
-    )
-
-
-def _concept_document(
-    repo: Repository, ref: ConceptFileRef, data: dict
-) -> ConceptDocument:
-    payload = _normalize_concept_data(data)
-    return repo.families.concepts.coerce(
-        payload,
-        source=repo.families.concepts.address(ref).require_path(),
-    )
-
-
 def _claims_document(repo: Repository, ref: ClaimRef, data: dict) -> ClaimDocument:
     return repo.families.claims.coerce(
         data,

@@ -146,16 +146,6 @@ def preview_source_parameterization_group_merges(
     )
 
 
-def _derived_concept_artifact_id(handle: str) -> str:
-    artifact_id = normalize_canonical_concept_payload(
-        {"canonical_name": handle},
-        local_handle=_safe_source_concept_handle(handle),
-    )["artifact_id"]
-    if not isinstance(artifact_id, str) or not artifact_id:
-        raise ValueError("normalized concept payload did not produce an artifact_id")
-    return artifact_id
-
-
 def _safe_source_concept_handle(handle: str) -> str:
     cleaned = "".join(
         ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in handle.strip()

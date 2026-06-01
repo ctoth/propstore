@@ -119,37 +119,6 @@ def _optional_mapping(value: object) -> Mapping[str, object] | None:
     return value
 
 
-def build_stance_proposal_document(
-    source_claim_id: str,
-    stance: StanceProposalInput,
-    model_name: str,
-) -> StanceDocument:
-    payload = {
-        "source_claim": stance.source_claim or source_claim_id,
-        "target": stance.target,
-        "type": stance.type,
-        "perspective_source_claim_id": stance.perspective_source_claim_id,
-        "strength": stance.strength,
-        "note": stance.note,
-        "conditions_differ": stance.conditions_differ,
-        "opinion": stance.opinion,
-        "resolution": stance.resolution,
-        "target_justification_id": stance.target_justification_id,
-        "artifact_code": stance.artifact_code,
-        "classification_model": model_name,
-        "classification_date": str(date.today()),
-    }
-    stamped = stamp_stance_artifact_id(payload)
-    artifact_id = stamped["artifact_code"]
-    if not isinstance(artifact_id, str) or not artifact_id:
-        raise ValueError("stance proposal document missing artifact_code")
-    return convert_document_value(
-        stamped,
-        StanceDocument,
-        source=stance_proposal_relpath(artifact_id),
-    )
-
-
 def plan_stance_proposal_promotion(
     repo: "Repository",
     *,

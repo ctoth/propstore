@@ -92,37 +92,6 @@ class BaseRateAssertionRecord:
     def assertion_id(self) -> AssertionId:
         return AssertionId(f"ps:assertion:{self.source_key}:{self.claim_id}")
 
-    @classmethod
-    def from_parameter_claim(
-        cls,
-        *,
-        source_key: str,
-        claim_payload: Mapping[str, object],
-    ) -> BaseRateAssertionRecord:
-        if claim_payload.get("type") != "parameter":
-            raise ValueError("base-rate source claim must be a parameter claim")
-
-        claim_id = claim_payload.get("id")
-        concept = claim_payload.get("concept")
-        value = claim_payload.get("value")
-        unit = claim_payload.get("unit")
-        if not isinstance(claim_id, str):
-            raise ValueError("base-rate source claim requires string id")
-        if not isinstance(concept, str):
-            raise ValueError("base-rate source claim requires string concept")
-        if not isinstance(value, int | float):
-            raise ValueError("base-rate source claim requires numeric value")
-        if not isinstance(unit, str):
-            raise ValueError("base-rate source claim requires string unit")
-
-        return cls(
-            source_key=source_key,
-            claim_id=claim_id,
-            concept=concept,
-            value=float(value),
-            unit=unit,
-        )
-
     def to_profile(self, *, target_assertion_id: AssertionId) -> BaseRateProfile:
         return BaseRateProfile(
             profile_assertion_id=self.assertion_id,

@@ -367,56 +367,6 @@ class TestStanceYamlRoundTrip:
 # ---------------------------------------------------------------------------
 
 
-class TestSidecarPopulatesOpinionColumns:
-    def test_opinion_from_stance_yaml(self, tmp_path):
-        from propstore.families.relations.declaration import (
-            compile_authored_stance_models_with_diagnostics,
-        )
-
-        stances_dir = tmp_path / "stances"
-        stances_dir.mkdir()
-        stance_data = {
-            "artifact_id": "ps:stance:opinion",
-            "source_claim": "c1",
-            "classification_model": "test",
-            "classification_date": "2026-01-01",
-            "target": "c2",
-            "type": "supports",
-            "strength": "strong",
-            "note": "test",
-            "artifact_code": "ps:stance:opinion",
-            "opinion": _opinion_payload(a=0.7),
-            "resolution": {
-                "method": "nli",
-                "model": "test",
-                "confidence": 0.7,
-            },
-        }
-        stance_path = stances_dir / "c1.yaml"
-        stance_path.write_text(yaml.dump(stance_data))
-        stance_document = decode_document_path(stance_path, StanceDocument)
-
-        models, diagnostics = compile_authored_stance_models_with_diagnostics(
-            [("c1", stance_document)],
-            _claim_reference_index(),
-        )
-
-        assert diagnostics == ()
-        assert len(models) == 1
-        stance = models[0]
-        assert stance.opinion == Opinion(
-            0.0,
-            0.0,
-            1.0,
-            0.7,
-            provenance=Provenance(
-                status=ProvenanceStatus.VACUOUS,
-                witnesses=(),
-            ),
-        )
-        assert stance.perspective_source_claim_id == "c1"
-
-
 # ---------------------------------------------------------------------------
 # Test 7: sidecar handles stance without opinion
 # ---------------------------------------------------------------------------

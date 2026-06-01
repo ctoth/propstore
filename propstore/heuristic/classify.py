@@ -100,76 +100,6 @@ def _vacuous_classifier_opinion(operation: str) -> Opinion:
     )
 
 
-def classify_stance_from_llm_output(raw: dict) -> ClassifiedStance:
-    """Classify a single LLM stance payload into an explicit domain object.
-
-    Per Jøsang 2001, p.8, Def. 9, classifier failures are represented as a
-    vacuous opinion rather than a fabricated negative or reverse stance.
-    """
-    if raw.get("type") == "error":
-        return ClassifiedStance(
-            stance_type=StanceType.ABSTAIN,
-            opinion=_vacuous_classifier_opinion("stance_classification_error"),
-            note=str(raw.get("note", "")),
-            conditions_differ=raw.get("conditions_differ"),
-        )
-
-    confidence = raw.get("confidence")
-    if confidence is None and isinstance(raw.get("resolution"), dict):
-        confidence = raw["resolution"].get("confidence")
-    try:
-        confidence_value = None if confidence is None else float(confidence)
-    except (TypeError, ValueError):
-        confidence_value = None
-    if confidence_value is None or confidence_value <= 0.0:
-        operation = (
-            "stance_classification_missing_confidence"
-            if confidence_value is None
-            else "stance_classification_zero_confidence"
-        )
-        return ClassifiedStance(
-            stance_type=StanceType.ABSTAIN,
-            opinion=_vacuous_classifier_opinion(operation),
-            note=str(raw.get("note", "")),
-            conditions_differ=raw.get("conditions_differ"),
-        )
-
-    stance_type = StanceType.NONE
-    raw_type = raw.get("type")
-    if raw_type in VALID_STANCE_TYPES:
-        stance_type = StanceType(str(raw_type))
-
-    if stance_type is StanceType.NONE or stance_type is StanceType.ABSTAIN:
-        opinion = _vacuous_classifier_opinion("stance_classification_none")
-    else:
-        strength = raw.get("strength")
-        if strength is None:
-            return ClassifiedStance(
-                stance_type=StanceType.ABSTAIN,
-                opinion=_vacuous_classifier_opinion(
-                    "stance_classification_missing_strength",
-                ),
-                note=str(raw.get("note", "")),
-                conditions_differ=raw.get("conditions_differ"),
-            )
-        opinion = categorical_to_opinion(str(strength), 1)
-        if isinstance(opinion, BaseRateUnresolved):
-            return ClassifiedStance(
-                stance_type=StanceType.ABSTAIN,
-                opinion=_vacuous_classifier_opinion(
-                    "stance_classification_missing_base_rate"
-                ),
-                note=str(raw.get("note", "")),
-                conditions_differ=raw.get("conditions_differ"),
-            )
-    return ClassifiedStance(
-        stance_type=stance_type,
-        opinion=opinion,
-        note=str(raw.get("note", "")),
-        conditions_differ=raw.get("conditions_differ"),
-    )
-
-
 def build_enrichment_context(
     distance: float | None,
     threshold: float,
@@ -188,42 +118,6 @@ def build_enrichment_context(
         "Look specifically for subtle relationships that might not be obvious at first glance."
     )
     return " ".join(parts)
-
-
-def _build_error_stance(
-    target_id: str,
-    model_name: str,
-    embedding_model: str | None,
-    embedding_distance: float | None,
-    note: str,
-    *,
-    perspective_source_claim_id: str | None = None,
-    prompt: str | None = None,
-    raw_response: object | None = None,
-    llm_call_id: str | None = None,
-) -> dict:
-    """Build a single error stance without inferring an unobserved direction."""
-    base = {
-        "type": "error",
-        "strength": "weak",
-        "note": note,
-        "conditions_differ": None,
-        "opinion": _vacuous_classifier_opinion("stance_classification_error"),
-        "resolution": {
-            "method": "nli",
-            "model": model_name,
-            "embedding_model": embedding_model,
-            "embedding_distance": embedding_distance,
-            "confidence": 0.0,
-            "llm_call_id": llm_call_id,
-            "prompt": prompt,
-            "raw_response": raw_response,
-        },
-    }
-    payload = {**base, "target": target_id}
-    if perspective_source_claim_id is not None:
-        payload["perspective_source_claim_id"] = perspective_source_claim_id
-    return payload
 
 
 def _build_error_pair(
@@ -252,108 +146,6 @@ def _build_error_pair(
     return [forward, reverse]
 
 
-def _build_stance_dict(
-    raw: dict,
-    target_id: str,
-    model_name: str,
-    embedding_model: str | None,
-    embedding_distance: float | None,
-    reference_distances: list[float] | None,
-    calibration_counts: dict[tuple[int, str], tuple[int, int]] | None,
-    category_prior_registry: CategoryPriorRegistry | None,
-    *,
-    perspective_source_claim_id: str,
-    prompt: str,
-    raw_response: dict,
-    llm_call_id: str,
-) -> dict:
-    """Build a single stance dict from raw LLM output for one direction."""
-    if not _is_directional_stance_payload(raw):
-        shape_unknown_opinion = _vacuous_classifier_opinion("llm_output_shape_unknown")
-        return {
-            "target": target_id,
-            "perspective_source_claim_id": perspective_source_claim_id,
-            "type": StanceType.ABSTAIN.value,
-            "strength": "weak",
-            "note": "LLM output shape unknown",
-            "conditions_differ": None,
-            "opinion": shape_unknown_opinion,
-            "resolution": {
-                "method": "nli",
-                "model": model_name,
-                "embedding_model": embedding_model,
-                "embedding_distance": embedding_distance,
-                "confidence": None,
-                "unresolved_calibration": None,
-                "llm_call_id": llm_call_id,
-                "prompt": prompt,
-                "raw_response": raw_response,
-            },
-        }
-
-    stance_type = raw.get("type", "none")
-    if stance_type not in VALID_STANCE_TYPES:
-        stance_type = "none"
-
-    strength = raw.get("strength", "moderate")
-    unresolved: BaseRateUnresolved | None = None
-    if stance_type != "none":
-        category_opinion = categorical_to_opinion(
-            strength,
-            1,
-            calibration_counts=calibration_counts,
-            prior_registry=category_prior_registry,
-        )
-        if isinstance(category_opinion, BaseRateUnresolved):
-            opinion = None
-            unresolved = category_opinion
-        else:
-            opinion = category_opinion
-
-        if (
-            opinion is not None
-            and reference_distances is not None
-            and embedding_distance is not None
-            and len(reference_distances) > 0
-        ):
-            from propstore.heuristic.calibrate import CorpusCalibrator
-            from propstore.opinion import Opinion
-
-            corpus_cal = CorpusCalibrator(
-                reference_distances, corpus_base_rate=opinion.a
-            )
-            corpus_opinion = corpus_cal.to_opinion(embedding_distance)
-            opinion = Opinion.fuse(opinion, corpus_opinion)
-
-        confidence = None if opinion is None else opinion.expectation()
-    else:
-        confidence = None
-        opinion = None
-
-    resolution = {
-        "method": "nli",
-        "model": model_name,
-        "embedding_model": embedding_model,
-        "embedding_distance": embedding_distance,
-        "confidence": confidence,
-        "unresolved_calibration": _unresolved_payload(unresolved),
-        "llm_call_id": llm_call_id,
-        "prompt": prompt,
-        "raw_response": raw_response,
-    }
-
-    return {
-        "target": target_id,
-        "perspective_source_claim_id": perspective_source_claim_id,
-        "type": stance_type,
-        "strength": strength,
-        "note": raw.get("note", ""),
-        "conditions_differ": raw.get("conditions_differ"),
-        "opinion": opinion,
-        "resolution": resolution,
-    }
-
-
 def _directional_prompt(
     source_claim: dict,
     target_claim: dict,
@@ -371,19 +163,6 @@ def _directional_prompt(
         target_statement=target_claim["text"],
         enrichment_context=enrichment_context,
     )
-
-
-def _llm_call_id(*, model_name: str, prompt: str, response_text: str) -> str:
-    payload = json.dumps(
-        {
-            "model": model_name,
-            "prompt": prompt,
-            "response": response_text,
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 async def _classify_one_direction(

@@ -91,22 +91,3 @@ def with_standard_synthetic_bindings(
     if not synthetic_concepts:
         return dict(registry)
     return with_synthetic_concepts(registry, synthetic_concepts)
-
-
-def condition_registry_fingerprint(
-    registry: Mapping[str, ConceptInfo],
-) -> CelRegistryFingerprint:
-    """Return a deterministic fingerprint of condition-relevant registry semantics."""
-    payload = [
-        {
-            "canonical_name": canonical_name,
-            "id": info.id,
-            "kind": info.kind.value,
-            "category_values": sorted(info.category_values),
-            "category_extensible": info.category_extensible,
-        }
-        for canonical_name, info in sorted(registry.items())
-    ]
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-    return CelRegistryFingerprint(f"sha256:{digest}")

@@ -16,26 +16,6 @@ from tests.conftest import (
 )
 
 
-def _make_concept(
-    name: str,
-    cid: str,
-    domain: str,
-    status: str = "accepted",
-    form: str = "frequency",
-    **extra: object,
-) -> dict:
-    data: dict = {
-        "canonical_name": name,
-        "status": status,
-        "definition": f"Test definition for {name}.",
-        "domain": domain,
-        "created_date": "2026-03-15",
-        "form": form,
-    }
-    data.update(extra)
-    return normalize_concept_payloads([{"id": cid, **data}], default_domain=domain)[0]
-
-
 def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:
     concepts_dir.mkdir(parents=True, exist_ok=True)
     path = concepts_dir / f"{name}.yaml"
@@ -47,18 +27,6 @@ def _write_counter(concepts_dir: Path, value: int) -> None:
     counters = concepts_dir / ".counters"
     counters.mkdir(parents=True, exist_ok=True)
     (counters / "global.next").write_text(f"{value}\n")
-
-
-def _write_claim_file(repo: Repository, filename: str, data: dict) -> None:
-    normalized = normalize_claims_payload(data)
-    for relative_path, content in claim_artifact_commit_payloads(
-        repo,
-        normalized,
-        source=f"claims/{filename}",
-    ).items():
-        path = repo.root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(content)
 
 
 @pytest.fixture()

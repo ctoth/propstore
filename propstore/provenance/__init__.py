@@ -235,18 +235,6 @@ def write_provenance_note(
     )
 
 
-def read_provenance_note(
-    repo: BaseRepo,
-    object_sha: bytes | str,
-) -> Provenance | None:
-    """Read a provenance named graph from the provenance notes ref."""
-
-    payload = read_git_note(repo, PROVENANCE_NOTES, _object_sha_bytes(object_sha))
-    if payload is None:
-        return None
-    return decode_named_graph(payload)
-
-
 # ---------------------------------------------------------------------------
 # YAML block builder
 # ---------------------------------------------------------------------------

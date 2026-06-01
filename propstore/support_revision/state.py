@@ -311,15 +311,6 @@ class RevisionEvent:
             {str(key): str(value) for key, value in self.policy_snapshot.items()},
         )
 
-    @property
-    def content_hash(self) -> str:
-        return hashlib.sha256(canonical_json_bytes(self._content_payload())).hexdigest()
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
-
 
 class RevisionRealizationFailure(RuntimeError):
     def __init__(self, event: RevisionEvent) -> None:

@@ -332,32 +332,3 @@ def single_chapter_journal(
 
 # ---------------------------------------------------------------------------
 # direct_dispatch — the HONEST oracle (calls dispatch.dispatch step-by-step)
-
-
-def direct_dispatch(journal: TransitionJournal, k: int) -> EpistemicState:
-    """Re-execute ``journal.entries[: k+1]`` against ``support_revision.dispatch.dispatch``.
-
-    Threads the *actual dispatch result* of step ``i`` forward as ``state_in``
-    for step ``i+1``. Returns the final ``EpistemicState``.
-
-    This is the ground truth for the Dixon-equivalence property (P5).
-    Reading ``journal.entries[k].state_out`` is the round-1 sin and is
-    explicitly forbidden here.
-    """
-    if k < 0 or k >= len(journal.entries):
-        raise IndexError(
-            f"step {k} out of range for {len(journal.entries)}-step journal"
-        )
-    state_in_payload: Mapping[str, Any] = journal.entries[0].normalized_state_in
-    last_state: EpistemicState | None = None
-    for index in range(k + 1):
-        entry = journal.entries[index]
-        last_state = dispatch(
-            entry.operator,
-            state_in=state_in_payload,
-            operator_input=entry.operator_input,
-            policy=entry.version_policy_snapshot,
-        )
-        state_in_payload = EpistemicStateSnapshot.from_state(last_state).to_dict()
-    assert last_state is not None
-    return last_state

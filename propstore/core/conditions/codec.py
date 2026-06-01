@@ -96,18 +96,6 @@ def _span_from_json(value: object) -> ConditionSourceSpan:
     return ConditionSourceSpan(start, end)
 
 
-def _mapping(value: object) -> Mapping[str, Any]:
-    if not isinstance(value, Mapping):
-        raise ValueError("ConditionIR nested payload must be a mapping")
-    return cast(Mapping[str, Any], value)
-
-
-def _sequence(value: object) -> tuple[object, ...]:
-    if not isinstance(value, list | tuple):
-        raise ValueError("ConditionIR sequence payload must be a sequence")
-    return tuple(value)
-
-
 def _string_sequence(value: object) -> tuple[str, ...]:
     result: list[str] = []
     for item in _sequence(value):

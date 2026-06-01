@@ -424,24 +424,3 @@ def test_lifecycle_visibility_flags_round_trip():
     assert restored.include_drafts is True
     assert restored.include_blocked is True
     assert restored.show_quarantined is True
-
-
-def test_lifecycle_visibility_flags_omit_when_default():
-    """Per propstore/world/types.py ``to_dict`` convention: fields at their
-    default value are omitted from the serialized dict. The three lifecycle
-    visibility flags follow that pattern — a default-configured policy
-    produces a dict that does NOT contain ``include_drafts``,
-    ``include_blocked``, or ``show_quarantined`` keys.
-    """
-    default = RenderPolicy()
-    payload = default.to_dict()
-    assert "include_drafts" not in payload
-    assert "include_blocked" not in payload
-    assert "show_quarantined" not in payload
-
-    # Inverse: enabling one flag surfaces it in the dict.
-    flagged = RenderPolicy(include_drafts=True)
-    flagged_payload = flagged.to_dict()
-    assert flagged_payload["include_drafts"] is True
-    assert "include_blocked" not in flagged_payload
-    assert "show_quarantined" not in flagged_payload

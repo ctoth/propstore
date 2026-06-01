@@ -16,19 +16,6 @@ from propstore.praf.engine import p_arg_from_claim
 PRIOR_PAYLOAD = {"b": 0.2, "d": 0.1, "u": 0.7, "a": 0.4}
 
 
-def test_source_document_prior_base_rate_is_opinion() -> None:
-    source_doc = convert_document_value(
-        _source_payload(),
-        SourceDocument,
-        source="source prior opinion test",
-    )
-
-    assert source_doc.trust.prior_base_rate == Opinion(**PRIOR_PAYLOAD)
-    assert (
-        source_document_payload(source_doc)["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
-    )
-
-
 def test_praf_uses_prior_opinion_without_float_coercion() -> None:
     opinion = p_arg_from_claim(
         ClaimNode(

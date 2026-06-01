@@ -19,47 +19,6 @@ from tests.claim_model_helpers import claim_from_test_payload
 
 
 class _Store:
-    def __init__(self) -> None:
-        claims = [
-            self._claim("claim_low", "concept1", value=10.0, sample_size=5),
-            self._claim("claim_high", "concept1", value=20.0, sample_size=50),
-            self._claim("claim_left", "concept2", value=5.0),
-            self._claim("claim_right", "concept4", value=7.0),
-        ]
-        parameterizations = {
-            "concept3": [
-                {
-                    "concept_ids": json.dumps(["concept2", "concept4"]),
-                    "sympy": "Eq(concept3, concept2 + concept4)",
-                    "formula": "concept3 = concept2 + concept4",
-                    "exactness": "exact",
-                    "conditions_cel": json.dumps(["x == 1", "y == 2"]),
-                }
-            ]
-        }
-        all_rows = claims + [row for rows in parameterizations.values() for row in rows]
-        self._condition_registry = condition_registry_for_rows(all_rows)
-        self._claims = [
-            claim_from_test_payload(row)
-            for row in rows_with_condition_ir(claims, self._condition_registry)
-        ]
-        self._parameterizations = {
-            concept_id: [
-                Parameterization(
-                    output_concept_id=concept_id,
-                    concept_ids=row["concept_ids"],
-                    formula=row["formula"],
-                    sympy=row.get("sympy"),
-                    exactness=row["exactness"],
-                    conditions_cel=row.get("conditions_cel"),
-                    conditions_ir=row.get("conditions_ir"),
-                )
-                for row in rows_with_condition_ir(rows, self._condition_registry)
-            ]
-            for concept_id, rows in parameterizations.items()
-        }
-        self._solver = ConditionSolver(self._condition_registry)
-
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)

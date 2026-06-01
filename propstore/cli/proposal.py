@@ -54,39 +54,6 @@ def predicates() -> None:
     """Manage predicate proposal artifacts."""
 
 
-@predicates.command("declare")
-@click.option("--paper", required=True)
-@click.option("--model", "model_name", default="default-model", show_default=True)
-@click.option("--prompt-version", default="v1", show_default=True)
-@click.option("--dry-run", is_flag=True)
-@click.option("--mock-llm-fixture", type=click.Path(exists=True, dir_okay=False))
-@click.pass_context
-def declare_predicates(
-    ctx: click.Context,
-    paper: str,
-    model_name: str,
-    prompt_version: str,
-    dry_run: bool,
-    mock_llm_fixture: str | None,
-) -> None:
-    """Propose predicate declarations for a meta-paper."""
-    from propstore.heuristic.predicate_extraction import propose_predicates_for_paper
-
-    repo = ctx.obj["repo"]
-    result = propose_predicates_for_paper(
-        repo,
-        source_paper=paper,
-        model_name=model_name,
-        prompt_version=prompt_version,
-        dry_run=dry_run,
-        llm_response=_fixture_payload(mock_llm_fixture),
-    )
-    for declaration in result.declarations:
-        emit(f"{declaration.name}/{declaration.arity} {tuple(declaration.arg_types)}")
-    if result.commit_sha is not None:
-        emit_success(f"Proposal commit: {result.commit_sha[:8]} on proposal/predicates")
-
-
 @predicates.command("promote")
 @click.option("--paper", required=True)
 @click.pass_context
@@ -104,46 +71,6 @@ def promote_predicates(ctx: click.Context, paper: str) -> None:
         raise click.ClickException(f"UnknownProposalPath: {exc}") from exc
     result = apply_predicate_proposal_promotion(repo, plan)
     emit_success(f"Promoted {result.moved} predicate proposal file(s).")
-
-
-@proposal.command("propose-rules")
-@click.option("--paper", required=True)
-@click.option("--model", "model_name", default="default-model", show_default=True)
-@click.option("--prompt-version", default="v1", show_default=True)
-@click.option("--dry-run", is_flag=True)
-@click.option("--mock-llm-fixture", type=click.Path(exists=True, dir_okay=False))
-@click.pass_context
-def propose_rules(
-    ctx: click.Context,
-    paper: str,
-    model_name: str,
-    prompt_version: str,
-    dry_run: bool,
-    mock_llm_fixture: str | None,
-) -> None:
-    """Propose rule artifacts for a meta-paper."""
-    from propstore.heuristic.rule_extraction import propose_rules_for_paper
-
-    repo = ctx.obj["repo"]
-    result = propose_rules_for_paper(
-        repo,
-        source_paper=paper,
-        model_name=model_name,
-        prompt_version=prompt_version,
-        dry_run=dry_run,
-        llm_response=_fixture_payload(mock_llm_fixture),
-    )
-    for proposal_doc in result.proposals:
-        emit(
-            f"{proposal_doc.rule_id} {proposal_doc.proposed_rule.kind} "
-            f"{proposal_doc.proposed_rule.head.predicate} "
-            f"{', '.join(proposal_doc.predicates_referenced)} "
-            f"{proposal_doc.page_reference or ''}"
-        )
-    for rejection in result.rejections:
-        emit(f"Rejected {rejection.rule_id}: {rejection.reason}")
-    if result.commit_sha is not None:
-        emit_success(f"Proposal commit: {result.commit_sha[:8]} on proposal/rules")
 
 
 @proposal.command("promote-rules")

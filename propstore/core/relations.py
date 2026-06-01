@@ -83,11 +83,6 @@ class RelationConceptRef:
         if self.description_kind_id == "":
             raise ValueError("description kind id must be non-empty when provided")
 
-    def identity_key(self) -> tuple[str, str]:
-        """Return the relation identity payload used by later assertions."""
-
-        return ("relation_concept", str(self.concept_id))
-
 
 @dataclass(frozen=True, order=True)
 class RoleBinding:

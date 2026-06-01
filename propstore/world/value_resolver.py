@@ -146,29 +146,6 @@ class ClaimValueResolver:
         )
 
     @staticmethod
-    def claim_value(claim: Claim) -> float | str | None:
-        numeric_payload = claim.numeric_payload
-        value = None if numeric_payload is None else numeric_payload.value
-        if isinstance(value, bool):
-            return None
-        if isinstance(value, int | float):
-            return float(value)
-        if isinstance(value, str):
-            return value
-        return None
-
-    @classmethod
-    def claim_value_view(cls, claim: Claim) -> ClaimValueView:
-        algorithm_payload = claim.algorithm_payload
-        return ClaimValueView(
-            claim=claim,
-            claim_id=str(claim.id),
-            claim_type=None if claim.type is None else ClaimType(claim.type),
-            value=cls.claim_value(claim),
-            body=None if algorithm_payload is None else algorithm_payload.body,
-        )
-
-    @staticmethod
     def display_claim_id(world: WorldStore | None, claim_id: str | None) -> str | None:
         if claim_id is None:
             return None

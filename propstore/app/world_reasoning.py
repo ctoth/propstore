@@ -273,36 +273,6 @@ def _praf_extensions(
     )
 
 
-def _claim_lines(
-    world: "WorldQuery",
-    active: Sequence[Claim],
-) -> tuple[WorldExtensionsClaimLine, ...]:
-
-    lines: list[WorldExtensionsClaimLine] = []
-    for claim in active:
-        concept_id = _claim_primary_concept_id(claim)
-        concept_name = None
-        if concept_id:
-            concept = world.get_concept(concept_id)
-            if concept is not None:
-                concept_name = concept.canonical_name
-        numeric_payload = claim.numeric_payload
-        text_payload = claim.text_payload
-        lines.append(
-            WorldExtensionsClaimLine(
-                claim_id=str(claim.id),
-                claim_type=str(claim.type or "unknown"),
-                concept_id=concept_id,
-                concept_name=concept_name,
-                value=None if numeric_payload is None else numeric_payload.value,
-                expression=None if text_payload is None else text_payload.expression,
-                statement=None if text_payload is None else text_payload.statement,
-                description=None if text_payload is None else text_payload.description,
-            )
-        )
-    return tuple(lines)
-
-
 def _int_summary_field(raw: Mapping[str, object], key: str, default: int = 0) -> int:
     value = raw.get(key, default)
     if isinstance(value, bool):

@@ -32,10 +32,6 @@ class SituatedAssertion:
     condition: ConditionRef
     provenance_ref: ProvenanceGraphRef = field(compare=False)
 
-    @property
-    def assertion_id(self) -> AssertionId:
-        return derive_assertion_id(self.identity_payload())
-
 
 def derive_assertion_id(identity: object) -> AssertionId:
     rendered = json.dumps(

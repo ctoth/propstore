@@ -47,51 +47,6 @@ class ClaimProvenance:
     page: int | None = None
     payload: Mapping[str, object] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "payload", dict(self.payload or {}))
-
-    @classmethod
-    def from_components(
-        cls,
-        *,
-        paper: str | None = None,
-        page: int | None = None,
-        provenance_json: object = None,
-    ) -> ClaimProvenance | None:
-        payload = _parse_provenance_payload(provenance_json)
-        resolved_paper = paper
-        if resolved_paper is None and isinstance(payload.get("paper"), str):
-            resolved_paper = str(payload["paper"])
-        resolved_page = page
-        page_value = payload.get("page")
-        if resolved_page is None and page_value is not None:
-            if isinstance(page_value, bool):
-                raise ValueError("claim provenance page must be an integer")
-            if isinstance(page_value, int):
-                resolved_page = page_value
-            elif isinstance(page_value, str):
-                resolved_page = int(page_value)
-            else:
-                raise ValueError("claim provenance page must be an integer")
-        provenance = cls(
-            paper=resolved_paper,
-            page=resolved_page,
-            payload=payload,
-        )
-        return None if provenance.is_empty else provenance
-
-    @property
-    def is_empty(self) -> bool:
-        return self.paper is None and self.page is None and not self.payload
-
-    def to_dict(self) -> dict[str, object]:
-        data = dict(self.payload)
-        if self.paper is not None:
-            data["paper"] = self.paper
-        if self.page is not None:
-            data["page"] = self.page
-        return data
-
     def to_json(self) -> str | None:
         data = self.to_dict()
         if not data:
@@ -110,16 +65,6 @@ class _ResolutionClaimView:
 
 def _claim_id(claim: Claim) -> ClaimId:
     return ClaimId(claim.id)
-
-
-def _claim_sample_size(claim: Claim) -> int | None:
-    numeric_payload = claim.numeric_payload
-    value = None if numeric_payload is None else numeric_payload.sample_size
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    return None
 
 
 def _claim_provenance(claim: Claim) -> ClaimProvenance | None:

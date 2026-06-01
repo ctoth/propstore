@@ -78,15 +78,6 @@ class SemanticTraceRecord:
         _check_hash(data, record.content_hash, "semantic trace")
         return record
 
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
-
 
 @dataclass(frozen=True)
 class EvaluationScenario:
@@ -134,15 +125,6 @@ class EvaluationScenario:
         )
         _check_hash(data, scenario.content_hash, "evaluation scenario")
         return scenario
-
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
 
 
 @dataclass(frozen=True)
@@ -207,15 +189,6 @@ class ScenarioEvaluation:
     def passed(self) -> bool:
         return not self.falsification_ids
 
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
-
 
 @dataclass(frozen=True)
 class OperatorFamilySummary:
@@ -254,15 +227,6 @@ class OperatorFamilySummary:
         )
         _check_hash(data, summary.content_hash, "operator summary")
         return summary
-
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
 
 
 @dataclass(frozen=True)
@@ -314,15 +278,6 @@ class ObservatoryReport:
         _check_hash(data, report.content_hash, "observatory report")
         return report
 
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
-
 
 def evaluate_scenarios(scenarios: Iterable[EvaluationScenario]) -> ObservatoryReport:
     results = tuple(
@@ -345,12 +300,6 @@ def evaluate_scenarios(scenarios: Iterable[EvaluationScenario]) -> ObservatoryRe
         scenario_results=results,
         operator_summaries=summaries,
     )
-
-
-def _check_hash(data: Mapping[str, Any], expected_hash: str, label: str) -> None:
-    recorded_hash = data.get("content_hash")
-    if recorded_hash is not None and str(recorded_hash) != expected_hash:
-        raise ValueError(f"{label} content_hash does not match payload")
 
 
 __all__ = [

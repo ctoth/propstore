@@ -13,35 +13,6 @@ from tests.conftest import make_test_context_commit_entry, normalize_concept_pay
 from tests.family_helpers import materialized_world_store_path
 
 
-def _seed_master_concept(repo: Repository, *, name: str) -> str:
-    concept = normalize_concept_payloads(
-        [
-            {
-                "id": name,
-                "canonical_name": name,
-                "status": "accepted",
-                "definition": f"{name} definition",
-                "domain": "source",
-                "form": "structural",
-            }
-        ],
-        default_domain="source",
-    )[0]
-    repo.git.commit_batch(
-        adds={
-            f"concepts/{name}.yaml": yaml.safe_dump(
-                concept,
-                sort_keys=False,
-                allow_unicode=True,
-            ).encode("utf-8")
-        },
-        deletes=[],
-        message=f"Seed concept {name}",
-        branch="master",
-    )
-    return str(concept["artifact_id"])
-
-
 def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     tmp_path: Path,
 ) -> None:

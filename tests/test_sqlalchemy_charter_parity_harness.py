@@ -231,51 +231,6 @@ Accepted parity difference allowlist:
     ]
 
 
-def _fixture_db(
-    path: Path,
-    *,
-    include_second: bool = True,
-    schema_hash: str | None = None,
-    extra_table: bool = False,
-    populate_extra: bool = False,
-) -> None:
-    conn = sqlite3.connect(path)
-    try:
-        conn.execute("CREATE TABLE entity (id TEXT PRIMARY KEY, value TEXT NOT NULL)")
-        conn.execute(
-            "CREATE TABLE entity_vec (id TEXT PRIMARY KEY, value TEXT NOT NULL)"
-        )
-        conn.execute(
-            "CREATE TABLE behavior_claim_lookup (id TEXT PRIMARY KEY, value TEXT NOT NULL)"
-        )
-        conn.execute("INSERT INTO entity VALUES ('a', 'alpha')")
-        conn.execute("INSERT INTO entity_vec VALUES ('a', 'alpha')")
-        conn.execute("INSERT INTO behavior_claim_lookup VALUES ('a', 'alpha')")
-        if include_second:
-            conn.execute("INSERT INTO entity VALUES ('b', 'beta')")
-        if extra_table:
-            conn.execute("CREATE TABLE extra_empty (id TEXT PRIMARY KEY)")
-            if populate_extra:
-                conn.execute("INSERT INTO extra_empty VALUES ('extra')")
-        if schema_hash is not None:
-            conn.execute(
-                """
-                CREATE TABLE quire_schema_catalog (
-                    key TEXT PRIMARY KEY,
-                    schema_hash TEXT NOT NULL,
-                    payload_json TEXT NOT NULL
-                )
-                """
-            )
-            conn.execute(
-                "INSERT INTO quire_schema_catalog VALUES ('default', ?, '{}')",
-                (schema_hash,),
-            )
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def _baseline(before: Path, *, semantic_input_hash: str = "") -> None:
     (before.parent / "baseline.json").write_text(
         json.dumps(

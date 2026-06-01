@@ -479,42 +479,6 @@ def materialize_worldline(
     return WorldlineRunReport(name=request.name, result=result)
 
 
-def build_worldline_journal(
-    repo: Repository,
-    request: WorldlineBuildJournalRequest,
-) -> WorldlineJournalReport:
-    from propstore.policies import policy_profile_from_render_policy
-    from propstore.worldline.revision_capture import capture_journal
-
-    ref = WorldlineRef(request.name)
-    definition = load_worldline_definition(repo, request.name)
-    if definition.revision is None:
-        raise WorldlineValidationError("worldline has no revision query to capture")
-
-    with open_app_world_model(repo) as world:
-        bound = world.bind(definition.inputs.environment, policy=definition.policy)
-        try:
-            journal = capture_journal(
-                bound,
-                (definition.revision,),
-                policy_payload=policy_profile_from_render_policy(
-                    definition.policy
-                ).to_dict(),
-            )
-        except ValueError as exc:
-            raise WorldlineValidationError(str(exc)) from exc
-    definition.journal = journal
-    repo.families.worldlines.save(
-        ref,
-        definition.to_document(),
-        message=f"Build worldline journal: {request.name}",
-    )
-    return WorldlineJournalReport(
-        name=request.name,
-        step_count=len(journal.entries),
-    )
-
-
 def worldline_at_step(
     repo: Repository,
     request: WorldlineAtStepRequest,

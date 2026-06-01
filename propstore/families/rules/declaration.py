@@ -351,34 +351,6 @@ def persist_grounded_bundle(
     return inserted
 
 
-def _grounded_bundle_input_models(bundle: Any) -> tuple[GroundedBundleInput, ...]:
-    rows = (
-        ("source_rule", bundle.source_rules),
-        ("source_superiority", bundle.source_superiority),
-        ("source_fact", bundle.source_facts),
-        ("argument", bundle.arguments),
-    )
-    return tuple(
-        GroundedBundleInput(
-            kind=kind,
-            position=position,
-            payload=_encode_bundle_input(kind, value),
-        )
-        for kind, values in rows
-        for position, value in enumerate(values)
-    )
-
-
-def _load_bundle_inputs(derived: DerivedSession, kind: str) -> tuple[object, ...]:
-    table = derived.schema.table("grounded_bundle_input")
-    rows = derived.session.execute(
-        select(GroundedBundleInput)
-        .where(table.c.kind == kind)
-        .order_by(table.c.position)
-    ).scalars()
-    return tuple(_decode_bundle_input(kind, getattr(row, "payload")) for row in rows)
-
-
 def load_grounded_sections(
     derived: DerivedSession,
 ) -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
@@ -437,11 +409,6 @@ def load_grounded_sections(
         }
         frozen[section_name] = MappingProxyType(inner_frozen)
     return MappingProxyType(frozen)
-
-
-def _encode_bundle_input(kind: str, value: object) -> bytes:
-    payload = _bundle_input_payload(kind, value)
-    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def _is_json_value(value: object) -> bool:

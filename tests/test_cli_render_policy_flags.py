@@ -48,23 +48,6 @@ from tests.sidecar_schema_helpers import insert_minimal_source
 # ── Fixtures ────────────────────────────────────────────────────────
 
 
-def _make_concept_doc(name: str, cid: str, domain: str, form: str) -> dict:
-    return normalize_concept_payloads(
-        [
-            {
-                "id": cid,
-                "canonical_name": name,
-                "status": "accepted",
-                "definition": f"Test definition for {name}.",
-                "domain": domain,
-                "created_date": "2026-04-16",
-                "form": form,
-            }
-        ],
-        default_domain=domain,
-    )[0]
-
-
 @pytest.fixture()
 def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Seed a minimal repo with a single concept and a single valid claim,

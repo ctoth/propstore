@@ -323,54 +323,6 @@ def _concept_claim_entry(claim) -> ConceptClaimEntry:
     )
 
 
-def _value_summary(visible_claims) -> ConceptValueSummary:
-    claims_with_values = tuple(
-        claim
-        for claim in visible_claims
-        if claim.numeric_payload is not None and claim.numeric_payload.value is not None
-    )
-    if claims_with_values:
-        unit = _first_value_unit(claims_with_values)
-        return ConceptValueSummary(
-            state="known",
-            claim_count=len(claims_with_values),
-            unit=unit,
-            sentence=f"{len(claims_with_values)} visible claims provide values.",
-        )
-    return ConceptValueSummary(
-        state="missing",
-        claim_count=0,
-        unit=None,
-        sentence="Visible claims do not provide a value summary.",
-    )
-
-
-def _uncertainty_summary(visible_claims) -> ConceptUncertaintySummary:
-    claims_with_uncertainty = tuple(
-        claim
-        for claim in visible_claims
-        if claim.numeric_payload is not None
-        and (
-            claim.numeric_payload.uncertainty is not None
-            or claim.numeric_payload.sample_size is not None
-        )
-    )
-    if claims_with_uncertainty:
-        return ConceptUncertaintySummary(
-            state="known",
-            claim_count=len(claims_with_uncertainty),
-            sentence=(
-                f"{len(claims_with_uncertainty)} visible claims provide "
-                "uncertainty information."
-            ),
-        )
-    return ConceptUncertaintySummary(
-        state="missing",
-        claim_count=0,
-        sentence="Visible claims do not provide uncertainty information.",
-    )
-
-
 def _provenance_summary(visible_claims) -> ConceptProvenanceSummary:
     claims_with_provenance = tuple(
         claim
@@ -441,25 +393,6 @@ def _claim_type_text(claim) -> str:
     if claim.type is None:
         return "unknown"
     return claim.type.value
-
-
-def _value_display(claim) -> str:
-    numeric_payload = claim.numeric_payload
-    if numeric_payload is not None and numeric_payload.value is not None:
-        value = _format_scalar(numeric_payload.value)
-        return value if not numeric_payload.unit else f"{value} {numeric_payload.unit}"
-    text_payload = claim.text_payload
-    if text_payload is not None and text_payload.statement:
-        return text_payload.statement
-    return "(missing)"
-
-
-def _first_value_unit(claims) -> str | None:
-    for claim in claims:
-        numeric_payload = claim.numeric_payload
-        if numeric_payload is not None and numeric_payload.unit:
-            return numeric_payload.unit
-    return None
 
 
 def _format_scalar(value: float) -> str:

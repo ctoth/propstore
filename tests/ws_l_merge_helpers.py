@@ -15,47 +15,6 @@ from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import normalize_claims_payload
 
 
-def claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    return yaml.dump(doc, sort_keys=False).encode()
-
-
-def claim_yaml_with_explicit_identities(
-    claims: list[dict],
-    paper: str = "test_paper",
-) -> bytes:
-    normalized = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    rewritten_claims: list[dict] = []
-    for original, normalized_claim in zip(claims, normalized["claims"], strict=True):
-        merged = dict(normalized_claim)
-        if "artifact_id" in original:
-            merged["artifact_id"] = original["artifact_id"]
-        if "logical_ids" in original:
-            merged["logical_ids"] = original["logical_ids"]
-        merged["version_id"] = compute_claim_version_id(merged)
-        rewritten_claims.append(merged)
-    normalized["claims"] = rewritten_claims
-    return yaml.dump(normalized, sort_keys=False).encode()
-
-
 def obs_claim(
     cid: str,
     statement: str,
@@ -123,9 +82,3 @@ def snapshot(kr: GitStore) -> RepositorySnapshot:
     if kr.root is None:
         raise ValueError("test snapshot requires a filesystem-backed git store")
     return RepositorySnapshot(Repository(Path(kr.root)))
-
-
-def _repo_for_store(kr: GitStore) -> Repository:
-    if kr.root is None:
-        raise ValueError("test claim payloads require a filesystem-backed git store")
-    return Repository(Path(kr.root))

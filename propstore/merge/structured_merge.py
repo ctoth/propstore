@@ -219,21 +219,6 @@ def _summary_assertion_ids(active_claims: list[MergeClaim]) -> tuple[str, ...]:
     return tuple(sorted(str(claim.assertion_id) for claim in active_claims))
 
 
-def _summary_claim_provenance(
-    active_claims: list[MergeClaim],
-) -> dict[str, dict[str, Any]]:
-    provenance: dict[str, dict[str, Any]] = {}
-    for claim in active_claims:
-        raw_provenance = claim.provenance_payload()
-        provenance[claim.artifact_id] = {
-            str(key): _normalize_for_signature(value)
-            for key, value in sorted(
-                raw_provenance.items(), key=lambda item: str(item[0])
-            )
-        }
-    return provenance
-
-
 def _summary_relation_surface() -> dict[str, str]:
     return {
         "attack": "preserved_via_projection",

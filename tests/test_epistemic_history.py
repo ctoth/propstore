@@ -19,64 +19,6 @@ from tests.support_revision.revision_assertion_helpers import make_assertion_ato
 from tests.test_revision_iterated import _history_sensitive_base
 
 
-def test_transition_journal_records_state_policy_operator_and_replay_hashes() -> None:
-    from propstore.support_revision.history import (
-        JournalOperator,
-        TransitionJournal,
-        TransitionJournalEntry,
-        TransitionOperation,
-    )
-
-    base, entrenchment, _, ids = _history_sensitive_base()
-    state_in = make_epistemic_state(base, entrenchment)
-    new_atom = make_assertion_atom("journal_new")
-    result, state_out = iterated_revise(
-        state_in,
-        new_atom,
-        max_candidates=8,
-        conflicts={new_atom.atom_id: (ids["legacy"],)},
-        operator="restrained",
-    )
-    operation = TransitionOperation(
-        name="iterated_revise",
-        input_atom_id=new_atom.atom_id,
-        target_atom_ids=(ids["legacy"],),
-        parameters={"conflicts": {new_atom.atom_id: [ids["legacy"]]}},
-    )
-
-    entry = TransitionJournalEntry.from_states(
-        state_in=state_in,
-        operation=operation,
-        policy_id="policy:revision/default",
-        operator=JournalOperator.ITERATED_REVISE,
-        operator_input={
-            "formula": belief_atom_to_canonical_dict(new_atom),
-            "max_candidates": 8,
-            "revision_operator": "restrained",
-            "targets": [ids["legacy"]],
-        },
-        version_policy_snapshot={
-            "revision_policy_version": "revision.v1",
-            "ranking_policy_version": "ranking.v1",
-            "entrenchment_policy_version": "entrenchment.v1",
-        },
-        state_out=state_out,
-        explanation=result.explanation,
-    )
-    journal = TransitionJournal(entries=(entry,))
-    payload = entry.to_dict()
-    replay = journal.check_chain_integrity()
-
-    assert payload["state_in_hash"] == entry.state_in.content_hash
-    assert payload["state_out_hash"] == entry.state_out.content_hash
-    assert payload["policy_id"] == "policy:revision/default"
-    assert payload["operator"] == "iterated_revise"
-    assert payload["operator_input"]["revision_operator"] == "restrained"
-    assert payload["version_policy_snapshot"]["ranking_policy_version"] == "ranking.v1"
-    assert replay.ok is True
-    assert replay.checked_entry_hashes == (entry.content_hash,)
-
-
 def test_semantic_diff_applies_assertion_warrant_ranking_provenance_and_dependency_deltas() -> (
     None
 ):

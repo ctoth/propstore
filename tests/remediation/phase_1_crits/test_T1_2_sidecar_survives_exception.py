@@ -11,58 +11,6 @@ from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 from tests.family_helpers import claim_artifact_commit_payloads
 
 
-def _seed_claim_repo(root) -> Repository:
-    repo = Repository.init(root)
-    concept = normalize_concept_payloads(
-        [
-            {
-                "id": "concept1",
-                "canonical_name": "fundamental_frequency",
-                "status": "accepted",
-                "definition": "The rate of vocal fold vibration.",
-                "domain": "speech",
-                "form": "frequency",
-            }
-        ],
-        default_domain="speech",
-    )[0]
-    claims = normalize_claims_payload(
-        {
-            "source": {
-                "paper": "sidecar_exception_test",
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": [
-                {
-                    "id": "claim1",
-                    "type": "parameter",
-                    "concept": concept["artifact_id"],
-                    "concepts": [concept["artifact_id"]],
-                    "value": 120.0,
-                    "unit": "Hz",
-                    "provenance": {"paper": "sidecar_exception_test", "page": 1},
-                }
-            ],
-        }
-    )
-    repo.git.commit_files(
-        {
-            "forms/frequency.yaml": yaml.dump(
-                {"name": "frequency", "dimensionless": False},
-                sort_keys=False,
-            ).encode(),
-            "concepts/fundamental_frequency.yaml": yaml.dump(
-                concept,
-                sort_keys=False,
-            ).encode(),
-            **claim_artifact_commit_payloads(repo, claims, source="claims/claim.yaml"),
-        },
-        "seed sidecar exception test",
-    )
-    return repo
-
-
 def test_sidecar_not_deleted_on_build_exception(tmp_path, monkeypatch) -> None:
     import propstore.compiler.workflows as build_module
 

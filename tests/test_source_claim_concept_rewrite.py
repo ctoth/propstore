@@ -10,59 +10,6 @@ from propstore.families.claims.lifecycle import (
 )
 
 
-@pytest.mark.parametrize(
-    ("claim_type", "expected_field"),
-    (
-        ("parameter", "output_concept"),
-        ("algorithm", "output_concept"),
-        ("measurement", "target_concept"),
-        ("observation", "concepts"),
-    ),
-)
-def test_source_local_concept_placement_is_shared_for_import_and_promotion(
-    claim_type: str,
-    expected_field: str,
-) -> None:
-    raw_payload = {
-        "type": claim_type,
-        "context": {"id": "ctx"},
-        "concept": "local_concept",
-        "statement": "Observed." if claim_type == "observation" else None,
-        "value": 1.0 if claim_type in {"parameter", "measurement"} else None,
-        "expression": "x + 1" if claim_type == "algorithm" else None,
-    }
-    raw_payload = {
-        key: value for key, value in raw_payload.items() if value is not None
-    }
-    source_claim = _source_claim(
-        {
-            **raw_payload,
-            "context": "ctx",
-        }
-    )
-    concept_map = {"local_concept": "ps:concept:mapped"}
-
-    import_payload = rewrite_imported_claim_concept_refs(
-        raw_payload,
-        concept_map,
-        unresolved=set(),
-    )
-    promotion_payload = rewrite_source_claim_concept_refs(
-        source_claim,
-        concept_map,
-        unresolved=set(),
-    )
-
-    assert "concept" not in import_payload
-    assert "concept" not in promotion_payload
-    if expected_field == "concepts":
-        assert import_payload["concepts"] == ["ps:concept:mapped"]
-        assert promotion_payload["concepts"] == ["ps:concept:mapped"]
-    else:
-        assert import_payload[expected_field] == "ps:concept:mapped"
-        assert promotion_payload[expected_field] == "ps:concept:mapped"
-
-
 def test_source_claim_concept_rewrite_updates_nested_variables_and_parameters() -> None:
     unresolved: set[str] = set()
 

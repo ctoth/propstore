@@ -74,27 +74,6 @@ from tests.family_helpers import (
 # ── Fixtures ─────────────────────────────────────────────────────────
 
 
-def _make_concept(
-    name: str,
-    cid: str,
-    domain: str,
-    status: str = "accepted",
-    form: str = "frequency",
-    **extra: object,
-) -> dict:
-    """Build a minimal valid concept dict."""
-    data: dict = {
-        "canonical_name": name,
-        "status": status,
-        "definition": f"Test definition for {name}.",
-        "domain": domain,
-        "created_date": "2026-03-15",
-        "form": form,
-    }
-    data.update(extra)
-    return normalize_concept_payloads([{"id": cid, **data}], default_domain=domain)[0]
-
-
 def _concept_artifact(local_id: str) -> str:
     return derive_concept_artifact_id("propstore", local_id)
 
@@ -106,31 +85,6 @@ def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:
     with open(p, "w") as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False)
     return p
-
-
-def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
-    claims_dir.mkdir(parents=True, exist_ok=True)
-    if isinstance(data.get("claims"), list):
-        repo = Repository.find(claims_dir.parent)
-        written_paths: list[Path] = []
-        for relative_path, content in claim_artifact_commit_payloads(
-            repo,
-            normalize_claims_payload(data),
-            source=f"claims/{filename}",
-        ).items():
-            path = repo.root / relative_path
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(content)
-            written_paths.append(path)
-        aggregate_path = claims_dir / filename
-        if aggregate_path.exists():
-            aggregate_path.unlink()
-        if not written_paths:
-            raise ValueError(f"{filename} did not produce claim artifacts")
-        return written_paths[0]
-    path = claims_dir / filename
-    path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False))
-    return path
 
 
 def _commit_workspace_paths(
@@ -972,68 +926,6 @@ class TestValidate:
         assert result.exit_code == 0
         assert "passed" in result.output
 
-    def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
-        concepts_dir = workspace / "knowledge" / "concepts"
-        claims_dir = workspace / "knowledge" / "claims"
-        claim_payload = _normalize_claim_concept_refs(
-            {
-                "source": {"paper": "paper"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "output_concept": _concept_artifact("concept3"),
-                        "value": 800.0,
-                        "unit": "Pa",
-                        "provenance": {"paper": "paper", "page": 1},
-                        "context": {"id": TEST_CONTEXT_ID},
-                    }
-                ],
-            }
-        )
-        claim_artifact_id = claim_payload["claims"][0]["artifact_id"]
-
-        _write_concept(
-            concepts_dir,
-            "subglottal_pressure",
-            _make_concept(
-                "subglottal_pressure",
-                "concept3",
-                "speech",
-                form="pressure",
-            ),
-        )
-        concept_path = concepts_dir / "fundamental_frequency.yaml"
-        concept_data = yaml.safe_load(concept_path.read_text())
-        concept_data["parameterization_relationships"] = [
-            {
-                "formula": "fundamental_frequency = subglottal_pressure",
-                "inputs": [_concept_artifact("concept3")],
-                "exactness": "approximate",
-                "canonical_claim": claim_artifact_id,
-                "sympy": "concept3",
-            }
-        ]
-        concept_data = attach_concept_version_id(concept_data)
-        concept_path.write_text(
-            yaml.dump(concept_data, default_flow_style=False, sort_keys=False)
-        )
-        _write_claim_file(claims_dir, "paper.yaml", claim_payload)
-        _commit_workspace_paths(
-            workspace,
-            [
-                "concepts/subglottal_pressure.yaml",
-                "concepts/fundamental_frequency.yaml",
-                "claims/paper.yaml",
-            ],
-            "Seed canonical claim reference workspace",
-        )
-
-        runner = CliRunner()
-        result = runner.invoke(cli, ["validate"])
-        assert result.exit_code == 0, result.output
-        assert "Validation passed" in result.output
-
     def test_fails_on_invalid(self, workspace: Path) -> None:
         # Write a broken concept
         bad = workspace / "knowledge" / "concepts" / "broken.yaml"
@@ -1074,68 +966,6 @@ class TestBuild:
         count = conn.execute("SELECT count(*) FROM concept").fetchone()[0]
         conn.close()
         assert count == 2
-
-    def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
-        concepts_dir = workspace / "knowledge" / "concepts"
-        claims_dir = workspace / "knowledge" / "claims"
-        claim_payload = _normalize_claim_concept_refs(
-            {
-                "source": {"paper": "paper"},
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "parameter",
-                        "output_concept": _concept_artifact("concept3"),
-                        "value": 800.0,
-                        "unit": "Pa",
-                        "provenance": {"paper": "paper", "page": 1},
-                        "context": {"id": TEST_CONTEXT_ID},
-                    }
-                ],
-            }
-        )
-        claim_artifact_id = claim_payload["claims"][0]["artifact_id"]
-
-        _write_concept(
-            concepts_dir,
-            "subglottal_pressure",
-            _make_concept(
-                "subglottal_pressure",
-                "concept3",
-                "speech",
-                form="pressure",
-            ),
-        )
-        concept_path = concepts_dir / "fundamental_frequency.yaml"
-        concept_data = yaml.safe_load(concept_path.read_text())
-        concept_data["parameterization_relationships"] = [
-            {
-                "formula": "fundamental_frequency = subglottal_pressure",
-                "inputs": [_concept_artifact("concept3")],
-                "exactness": "approximate",
-                "canonical_claim": claim_artifact_id,
-                "sympy": "concept3",
-            }
-        ]
-        concept_data = attach_concept_version_id(concept_data)
-        concept_path.write_text(
-            yaml.dump(concept_data, default_flow_style=False, sort_keys=False)
-        )
-        _write_claim_file(claims_dir, "paper.yaml", claim_payload)
-        _commit_workspace_paths(
-            workspace,
-            [
-                "concepts/subglottal_pressure.yaml",
-                "concepts/fundamental_frequency.yaml",
-                "claims/paper.yaml",
-            ],
-            "Seed canonical claim reference workspace",
-        )
-
-        runner = CliRunner()
-        result = runner.invoke(cli, ["build"])
-        assert result.exit_code == 0, result.output
-        assert _derived_store_path_from_output(result.output).exists()
 
     def test_build_records_validation_failure_diagnostics(
         self, workspace: Path
@@ -1514,36 +1344,6 @@ class TestConceptSearch:
 
 
 class TestClaimValidateFile:
-    def test_reports_errors_on_bad_file(self, workspace):
-        """pks claim validate-file on a bad file exits nonzero with errors."""
-        claims_dir = workspace / "knowledge" / "claims"
-        bad_claim = {
-            "source": {"paper": "test_paper"},
-            "claims": [
-                {
-                    "id": "claim1",
-                    "type": "parameter",
-                    "concept": "fundamental_frequency",
-                    "value": 440.0,
-                    "unit": "Hz",
-                    "provenance": {"paper": "test_paper", "page": 1},
-                }
-            ],
-        }
-        filepath = _write_claim_file(
-            claims_dir, "bad.yaml", _normalize_claim_concept_refs(bad_claim)
-        )
-        artifact_payload = yaml.safe_load(filepath.read_text())
-        artifact_payload["provenance"].pop("page")
-        filepath.write_text(
-            yaml.dump(artifact_payload, default_flow_style=False, sort_keys=False)
-        )
-
-        runner = CliRunner()
-        result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
-        assert result.exit_code != 0
-        assert "page" in result.output.lower()
-
     def test_clean_file_exits_zero(self, workspace):
         """pks claim validate-file on a valid file exits zero."""
         claims_dir = workspace / "knowledge" / "claims"

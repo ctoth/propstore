@@ -369,57 +369,6 @@ def _similar_vector_rows(
         )
 
 
-def _claim_similarity_hits(
-    derived_store: DerivedStoreHandle,
-    rows: Sequence[dict],
-) -> list[ClaimSimilarityHit]:
-    entity_ids = tuple(str(row["entity_id"]) for row in rows)
-    if not entity_ids:
-        return []
-    schema = world_schema()
-    claim = schema.model(CLAIM_CORE_CHARTER.family.name)
-    concept_link = schema.model("claim_concept_link")
-    with derived_store.readonly_session(schema) as derived:
-        claims = {
-            model.id: model
-            for model in derived.execute(
-                select(claim).where(claim.id.in_(entity_ids))
-            ).scalars()
-        }
-        concept_rows = derived.execute(
-            select(concept_link.claim_id, concept_link.concept_id).where(
-                concept_link.claim_id.in_(entity_ids)
-            )
-        )
-        concepts_by_claim_id: dict[str, str] = {}
-        for claim_id, concept_id in concept_rows:
-            concepts_by_claim_id.setdefault(str(claim_id), str(concept_id))
-    enriched: list[ClaimSimilarityHit] = []
-    for row in rows:
-        claim_id = str(row["entity_id"])
-        claim_model = claims.get(claim_id)
-        if claim_model is None:
-            continue
-        text_payload = claim_model.text_payload
-        enriched.append(
-            ClaimSimilarityHit(
-                claim_id=ClaimId(claim_id),
-                distance=float(row["distance"]),
-                auto_summary=None
-                if text_payload is None
-                else text_payload.auto_summary,
-                statement=None if text_payload is None else text_payload.statement,
-                source_paper=claim_model.source_paper,
-                concept_id=(
-                    None
-                    if concepts_by_claim_id.get(claim_id) is None
-                    else ConceptId(str(concepts_by_claim_id[claim_id]))
-                ),
-            )
-        )
-    return enriched
-
-
 def _concept_similarity_hits(
     derived_store: DerivedStoreHandle,
     rows: Sequence[dict],

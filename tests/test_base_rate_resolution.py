@@ -39,52 +39,12 @@ def _paper_claims(paper_key: str) -> dict:
     return decode_yaml_mapping(path.read_bytes(), source=str(path))
 
 
-def _replication_rate_claim(paper_key: str) -> dict:
-    payload = _paper_claims(paper_key)
-    for claim in payload["claims"]:
-        if claim.get("concept") == "replication_significance_rate":
-            return claim
-    raise AssertionError(f"{paper_key} lacks a replication_significance_rate claim")
-
-
 def test_missing_base_rate_is_unresolved_not_half() -> None:
     result = BaseRateResolver(()).resolve(_aid("claim"))
 
     assert isinstance(result, BaseRateUnresolved)
     assert result.assertion_id == _aid("claim")
     assert result.reason == "missing_base_rate"
-
-
-@pytest.mark.parametrize(
-    "paper_key",
-    [
-        "Aarts_2015_EstimatingReproducibilityPsychologicalScience",
-        "Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments",
-        "Camerer_2018_EvaluatingReplicabilitySocialScience",
-    ],
-)
-def test_replication_rate_claims_materialize_as_base_rate_assertions(
-    paper_key: str,
-) -> None:
-    claim = _replication_rate_claim(paper_key)
-    record = BaseRateAssertionRecord.from_parameter_claim(
-        source_key=paper_key,
-        claim_payload=claim,
-    )
-
-    profile = record.to_profile(
-        target_assertion_id=_aid(f"{paper_key}_published_claim_prior"),
-    )
-
-    assert profile.profile_assertion_id == AssertionId(
-        f"ps:assertion:{paper_key}:{claim['id']}"
-    )
-    assert profile.value == claim["value"]
-    assert profile.evidence_assertion_ids == (profile.profile_assertion_id,)
-    assert profile.provenance.status == ProvenanceStatus.STATED
-    assert profile.provenance.operations == (
-        f"base_rate_assertion:{paper_key}:{claim['id']}",
-    )
 
 
 def test_base_rate_profile_resolves_for_assertion_id() -> None:

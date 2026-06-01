@@ -189,46 +189,6 @@ def _validate_context_assumption_cel(
         raise ContextWorkflowError(str(exc)) from exc
 
 
-@_serialized_context_mutation
-def add_context(
-    repo: Repository,
-    request: ContextAddRequest,
-    *,
-    dry_run: bool,
-) -> ContextAddReport:
-    ref = ContextRef(request.name)
-    relpath = repo.families.contexts.family.address_for(repo, ref).require_path()
-    filepath = repo.root / relpath
-    if repo.families.contexts.exists(ref):
-        raise ContextWorkflowError(f"Context file '{filepath}' already exists")
-
-    _validate_context_assumption_cel(repo, request)
-
-    source = f"dry-run:{relpath}" if dry_run else relpath
-    document = convert_document_value(
-        _context_document_payload(request),
-        ContextDocument,
-        source=source,
-    )
-    if dry_run:
-        return ContextAddReport(
-            filepath=filepath,
-            document=document,
-            created=False,
-        )
-
-    repo.families.contexts.save(
-        ref,
-        document,
-        message=f"Add context: {request.name}",
-    )
-    return ContextAddReport(
-        filepath=filepath,
-        document=document,
-        created=True,
-    )
-
-
 def list_context_items(repo: Repository) -> tuple[ContextListItem, ...]:
     items = [
         ContextListItem(

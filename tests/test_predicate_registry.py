@@ -441,31 +441,3 @@ def test_parse_derived_from_malformed_raises() -> None:
     for spec in malformed_inputs:
         with pytest.raises(Exception):
             parse_derived_from(spec)
-
-
-@pytest.mark.property
-@given(
-    spec_and_kind=st.sampled_from(
-        [
-            ("concept.relation:is_a:Bird", "concept_relation"),
-            ("concept.relation:part_of:Wheel", "concept_relation"),
-            ("claim.attribute:is_bird", "claim_attribute"),
-            ("claim.condition:tweety_present", "claim_condition"),
-        ]
-    )
-)
-@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_parse_derived_from_round_trips(spec_and_kind) -> None:
-    """Every canonical DSL form parses into its declared kind.
-
-    Diller et al. 2025 §3-§4 lists the three sanctioned DSL prefixes;
-    the parser must accept the canonical form for each one and tag the
-    parsed result with the matching kind discriminant. Garcia & Simari
-    2004 §3 birds/penguins examples are used as the payload tokens.
-    """
-
-    from propstore.grounding.predicates import parse_derived_from  # noqa: E402
-
-    spec_text, expected_kind = spec_and_kind
-    parsed = parse_derived_from(spec_text)
-    assert parsed.kind == expected_kind

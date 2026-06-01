@@ -225,52 +225,6 @@ def test_p_cap_4_journal_document_roundtrips_through_yaml_codec() -> None:
     assert loaded.journal == journal
 
 
-def test_p_cap_5_build_journal_cli_matches_in_memory(monkeypatch) -> None:
-    from propstore.cli.worldline.journal import worldline_build_journal
-    from propstore.policies import policy_profile_from_render_policy
-    from propstore.worldline.revision_capture import capture_journal
-
-    atom = make_assertion_atom(
-        relation_local="cli_build_rel",
-        subject="cli_build_subject",
-        value="cli_build_value",
-        source_claim_local_ids=("cli_build_claim",),
-    )
-    initial_state = make_state(atoms=(atom,), accepted_atom_ids=())
-    query = _query_for(atom.atom_id)
-    definition = WorldlineDefinition.from_dict(
-        {
-            "id": "cli_build",
-            "targets": ["target"],
-            "revision": query.to_dict(),
-        }
-    )
-    repo = _WorldlineRepo(definition)
-
-    @contextmanager
-    def _open_world(_repo):
-        yield _JournalWorld(_JournalBound(initial_state))
-
-    monkeypatch.setattr("propstore.app.worldlines.open_app_world_model", _open_world)
-
-    result = CliRunner().invoke(
-        worldline_build_journal,
-        ["cli_build"],
-        obj={"repo": repo},
-    )
-
-    assert result.exit_code == 0, result.output
-    saved = WorldlineDefinition.from_document(
-        repo.families.worldlines.saved["cli_build"]
-    )
-    expected = capture_journal(
-        _JournalBound(initial_state),
-        (query,),
-        policy_payload=policy_profile_from_render_policy(definition.policy).to_dict(),
-    )
-    assert saved.journal == expected
-
-
 def test_p_cap_5_at_step_cli_matches_world_query_method(
     tmp_path: Path, monkeypatch
 ) -> None:

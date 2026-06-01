@@ -47,11 +47,6 @@ def canonicalize_concept_for_version(concept: dict[str, Any]) -> dict[str, Any]:
     return canonical
 
 
-def compute_concept_version_id(concept: dict[str, Any]) -> str:
-    """Compute the immutable version identifier for a concept payload."""
-    return canonical_json_sha256(canonicalize_concept_for_version(concept))
-
-
 def concept_reference_keys(
     data: dict[str, Any], *, raw_id: str | None = None
 ) -> set[str]:
@@ -186,35 +181,6 @@ def _ensure_ontology_reference(
     }
     data["ontology_reference"] = ontology_reference
     return ontology_reference
-
-
-def _ensure_lexical_entry(
-    data: dict[str, Any],
-    *,
-    propstore_handle: str,
-    effective_name: str,
-    ontology_reference: dict[str, Any],
-    definition: object,
-    dimension_form: object,
-) -> None:
-    if isinstance(data.get("lexical_entry"), dict):
-        return
-    lexical_payload: dict[str, Any] = {
-        "identifier": f"entry:{propstore_handle}",
-        "canonical_form": {
-            "written_rep": effective_name,
-            "language": DEFAULT_LEXICAL_LANGUAGE,
-        },
-        "senses": [
-            {
-                "reference": ontology_reference,
-                "usage": definition if isinstance(definition, str) else None,
-            }
-        ],
-    }
-    if isinstance(dimension_form, str):
-        lexical_payload["physical_dimension_form"] = dimension_form
-    data["lexical_entry"] = lexical_payload
 
 
 def _normalize_numeric_range(data: dict[str, Any]) -> None:

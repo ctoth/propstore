@@ -100,51 +100,6 @@ def test_validator_is_value_error_subclass():
 # ── Helpers shared by CLI integration tests ──────────────────────────
 
 
-def _init_repo_with_structural_concept(tmp_path: Path) -> Repository:
-    """Seed a repo with a form, one structural concept on master, and a
-    context so CLI add-claim can resolve ``ctx_test``."""
-    repo = Repository.init(tmp_path / "knowledge")
-    # Master needs a ``structural`` form, the ``intention_to_treat``
-    # concept, and a context used by later claims.
-    concept_payload = normalize_concept_payloads(
-        [
-            {
-                "id": "concept_itt",
-                "canonical_name": "intention_to_treat",
-                "status": "accepted",
-                "definition": "Intention-to-treat marker (structural).",
-                "domain": "trials",
-                "form": "structural",
-            }
-        ],
-        default_domain="trials",
-    )[0]
-    repo.git.commit_batch(
-        adds={
-            "forms/structural.yaml": yaml.safe_dump(
-                {"name": "structural", "dimensionless": True},
-                sort_keys=False,
-            ).encode("utf-8"),
-            "concepts/intention_to_treat.yaml": yaml.safe_dump(
-                concept_payload,
-                sort_keys=False,
-            ).encode("utf-8"),
-            "contexts/ctx_test.yaml": yaml.safe_dump(
-                {
-                    "id": "ctx_test",
-                    "name": "ctx_test",
-                    "description": "Test context",
-                },
-                sort_keys=False,
-            ).encode("utf-8"),
-        },
-        deletes=[],
-        message="Seed master with structural concept and context",
-        branch="master",
-    )
-    return repo
-
-
 def _init_source(runner: CliRunner, repo: Repository, name: str = "demo") -> None:
     result = runner.invoke(
         cli,

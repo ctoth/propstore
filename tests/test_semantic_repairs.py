@@ -17,48 +17,6 @@ from tests.conftest import (
 from tests.claim_model_helpers import make_claim
 
 
-def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> WorldQuery:
-    root = tmp_path / "knowledge"
-    concepts_dir = root / "concepts"
-    claims_dir = root / "claims"
-    forms_dir = root / "forms"
-    counters_dir = concepts_dir / ".counters"
-
-    concepts_dir.mkdir(parents=True)
-    claims_dir.mkdir()
-    forms_dir.mkdir()
-    write_test_context(root)
-    counters_dir.mkdir()
-    (counters_dir / "semantic.next").write_text("10")
-
-    form_names = {concept["form"] for concept in concepts}
-    dimensionless_forms = {"category", "structural"}
-    for form_name in sorted(form_names):
-        (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump(
-                {"name": form_name, "dimensionless": form_name in dimensionless_forms},
-                default_flow_style=False,
-            )
-        )
-
-    for concept in concepts:
-        normalized = normalize_concept_payloads([concept], default_domain="semantic")[0]
-        (concepts_dir / f"{concept['canonical_name']}.yaml").write_text(
-            yaml.dump(normalized, default_flow_style=False)
-        )
-
-    for index, claim_doc in enumerate(claim_docs, start=1):
-        (claims_dir / f"claims_{index}.yaml").write_text(
-            yaml.dump(normalize_claims_payload(claim_doc), default_flow_style=False)
-        )
-
-    from propstore.repository import Repository
-
-    repo = Repository(root)
-    materialized_world_store_path(repo)
-    return WorldQuery(repo)
-
-
 @pytest.fixture
 def argumentation_world(tmp_path):
     concepts = [

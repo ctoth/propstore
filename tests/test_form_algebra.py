@@ -36,14 +36,6 @@ def _write_form(forms_dir: Path, name: str, **kwargs) -> None:
     )
 
 
-def _write_concept(concepts_dir: Path, filename: str, data: dict) -> None:
-    """Write a concept YAML file."""
-    normalized = normalize_concept_payloads([data])[0]
-    (concepts_dir / f"{filename}.yaml").write_text(
-        yaml.dump(normalized, default_flow_style=False, sort_keys=False)
-    )
-
-
 def _concept_artifact(local_id: str) -> str:
     return derive_concept_artifact_id("propstore", local_id)
 

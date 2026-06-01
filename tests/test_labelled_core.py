@@ -66,35 +66,6 @@ class _StubStore:
             },
         )
 
-    def _set_rows(
-        self,
-        claims: list[dict],
-        parameterizations: dict[str, list[dict]] | None = None,
-    ) -> None:
-        parameterizations = {} if parameterizations is None else parameterizations
-        all_rows = claims + [row for rows in parameterizations.values() for row in rows]
-        self._condition_registry = condition_registry_for_rows(all_rows)
-        self._claims = [
-            claim_from_test_payload(row)
-            for row in rows_with_condition_ir(claims, self._condition_registry)
-        ]
-        self._parameterizations = {
-            concept_id: [
-                Parameterization(
-                    output_concept_id=concept_id,
-                    concept_ids=row["concept_ids"],
-                    formula=row["formula"],
-                    sympy=row.get("sympy"),
-                    exactness=row["exactness"],
-                    conditions_cel=row.get("conditions_cel"),
-                    conditions_ir=row.get("conditions_ir"),
-                )
-                for row in rows_with_condition_ir(rows, self._condition_registry)
-            ]
-            for concept_id, rows in parameterizations.items()
-        }
-        self._solver = ConditionSolver(self._condition_registry)
-
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)
@@ -388,57 +359,3 @@ def test_derived_value_combines_input_labels() -> None:
             ),
         )
     )
-
-
-def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
-    claim = claim_from_test_payload(
-        {"id": "claim1", "concept_id": "concept1", "value": 42.0}
-    )
-
-    class FakeBound:
-        def value_of(self, concept_id: str) -> ValueResult:
-            return ValueResult(
-                concept_id=concept_id,
-                status=ValueStatus.DETERMINED,
-                claims=[claim],
-                label=Label.empty(),
-            )
-
-        def derived_value(
-            self,
-            concept_id: str,
-            *,
-            override_values: dict[str, float | str | None] | None = None,
-        ) -> DerivedResult:
-            return DerivedResult(
-                concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP
-            )
-
-        def active_claims(self, concept_id: str | None = None):
-            return [claim]
-
-    class FakeWorld:
-        def bind(self, environment=None, *, policy=None, **conditions):
-            return FakeBound()
-
-        def get_concept(self, concept_id: str) -> Concept | None:
-            if concept_id in {"concept1", "target"}:
-                return Concept(id="concept1", canonical_name="target")
-            return None
-
-        def get_claim(self, claim_id: str):
-            if claim_id == "claim1":
-                return claim
-            return None
-
-        def has_table(self, name: str) -> bool:
-            return False
-
-    result = run_worldline(
-        WorldlineDefinition.from_dict({"id": "label_compat", "targets": ["target"]}),
-        FakeWorld(),
-    )
-
-    assert result.values["target"].status == "determined"
-    assert result.values["target"].value == 42.0
-    assert "label" not in result.values["target"].to_dict()

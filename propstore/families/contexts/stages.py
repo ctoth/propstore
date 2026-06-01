@@ -108,67 +108,6 @@ class ContextCheckedGraph:
     lifting_system: LiftingSystem
 
 
-def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
-    payload = {} if data is None else dict(data)
-    if "structure" in payload:
-        raise ValueError("Context record 'structure' is no longer supported")
-
-    raw_context_id = payload.get("id")
-    context_id = (
-        ContextId(raw_context_id)
-        if isinstance(raw_context_id, str) and raw_context_id
-        else None
-    )
-
-    raw_name = payload.get("name")
-    name = raw_name if isinstance(raw_name, str) and raw_name else None
-
-    raw_description = payload.get("description")
-    description = (
-        raw_description
-        if isinstance(raw_description, str) and raw_description
-        else None
-    )
-
-    raw_assumptions = payload.get("assumptions")
-    if raw_assumptions is None:
-        raw_assumptions = ()
-    elif isinstance(raw_assumptions, Sequence) and not isinstance(raw_assumptions, str):
-        raw_assumptions = raw_assumptions
-    else:
-        raise ValueError("Context record 'assumptions' must be a sequence when present")
-    assumptions = tuple(
-        assumption
-        for assumption in raw_assumptions
-        if isinstance(assumption, str) and assumption
-    )
-
-    raw_parameters = payload.get("parameters")
-    if raw_parameters is None:
-        parameters = {}
-    elif isinstance(raw_parameters, Mapping):
-        parameters = {str(key): str(value) for key, value in raw_parameters.items()}
-    else:
-        raise ValueError("Context record 'parameters' must be a mapping when present")
-    raw_perspective = payload.get("perspective")
-    perspective = (
-        raw_perspective
-        if isinstance(raw_perspective, str) and raw_perspective
-        else None
-    )
-    lifting_rules = _parse_lifting_rules(payload.get("lifting_rules"))
-
-    return ContextRecord(
-        context_id=context_id,
-        name=name,
-        description=description,
-        assumptions=assumptions,
-        parameters=parameters,
-        perspective=perspective,
-        lifting_rules=lifting_rules,
-    )
-
-
 def _parse_context_reference_id(raw: object) -> ContextId | None:
     if isinstance(raw, str) and raw:
         return ContextId(raw)

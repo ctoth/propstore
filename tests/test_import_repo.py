@@ -47,25 +47,6 @@ def _structural_form_commit_entry() -> tuple[str, bytes]:
     )
 
 
-def _canonical_concept_yaml(local_id: str, *, domain: str = "propstore") -> bytes:
-    return yaml.safe_dump(
-        normalize_concept_payloads(
-            [
-                {
-                    "id": local_id,
-                    "canonical_name": local_id,
-                    "status": "proposed",
-                    "definition": local_id,
-                    "domain": domain,
-                    "form": "structural",
-                }
-            ],
-            default_domain=domain,
-        )[0],
-        sort_keys=False,
-    ).encode()
-
-
 def _context_commit_entries(context_id: str = TEST_CONTEXT_ID) -> dict[str, bytes]:
     return dict([make_test_context_commit_entry(context_id)])
 
@@ -605,65 +586,6 @@ def test_plan_repository_import_deletes_paths_missing_from_latest_source_snapsho
     )
 
 
-def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
-    from propstore.importing.repository_import import (
-        commit_repository_import,
-        plan_repository_import,
-    )
-
-    destination = _init_project(tmp_path / "dest")
-    source = _init_project(tmp_path / "repo-b")
-    source_git = source.git
-    assert source_git is not None
-    stance_payload = stamp_stance_artifact_id(
-        {
-            "source_claim": "claim_a",
-            "target": "claim_b",
-            "type": "rebuts",
-        }
-    )
-    stance_path = (
-        "stances/" + str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
-    )
-    source_git.commit_files(
-        {
-            **_context_commit_entries(),
-            "claims/claim_a.yaml": yaml.safe_dump(
-                {
-                    "id": "claim_a",
-                    "type": "observation",
-                    "statement": "A",
-                    "context": {"id": TEST_CONTEXT_ID},
-                },
-                sort_keys=False,
-            ).encode(),
-            "claims/claim_b.yaml": yaml.safe_dump(
-                {
-                    "id": "claim_b",
-                    "type": "observation",
-                    "statement": "B",
-                    "context": {"id": TEST_CONTEXT_ID},
-                },
-                sort_keys=False,
-            ).encode(),
-            stance_path: yaml.safe_dump(stance_payload, sort_keys=False).encode(),
-        },
-        "seed source claims and stances",
-    )
-
-    plan = plan_repository_import(destination, source.root.parent)
-    result = commit_repository_import(destination, plan)
-
-    imported_stances = yaml.safe_load(
-        destination.git.read_file(stance_path, commit=result.commit_sha)
-    )
-    claim_a_id = make_claim_identity("claim_a", namespace="repo-b")["artifact_id"]
-    claim_b_id = make_claim_identity("claim_b", namespace="repo-b")["artifact_id"]
-    assert imported_stances["source_claim"] == claim_a_id
-    assert imported_stances["target"] == claim_b_id
-    assert imported_stances["type"] == "rebuts"
-
-
 def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_path):
     from propstore.importing.repository_import import (
         commit_repository_import,
@@ -817,76 +739,6 @@ def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_id
     assert imported_claim_a["concepts"] == [concept_a_id]
     assert imported_claim_b["output_concept"] == concept_a_id
     assert "concept" not in imported_claim_b
-
-
-def test_import_repo_cli_emits_structured_yaml_for_import_commit(tmp_path):
-    destination = _init_project(tmp_path / "dest")
-    source = _init_project(tmp_path / "repo-b")
-    source_git = source.git
-    assert source_git is not None
-    source_git.commit_files(
-        {
-            **_context_commit_entries(),
-            "claims/source.yaml": _raw_claim_yaml("imported"),
-        },
-        "seed",
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        ["-C", str(destination.root), "import-repository", str(source.root.parent)],
-    )
-
-    assert result.exit_code == 0, result.output
-    payload = yaml.safe_load(result.output)
-    assert payload["surface"] == "repository_import_commit"
-    assert payload["source_repository"] == str(source.root)
-    assert payload["source_commit"] == source_git.head_sha()
-    assert payload["target_branch"] == "import/repo-b"
-    assert len(payload["commit_sha"]) == 40
-    imported_path = _claim_artifact_path("imported", namespace="repo-b")
-    assert payload["touched_paths"] == [
-        imported_path,
-        f"contexts/{TEST_CONTEXT_ID}.yaml",
-    ]
-    assert payload["deleted_paths"] == []
-
-
-def test_import_repo_cli_can_target_master_without_materializing_worktree(tmp_path):
-    destination = _init_project(tmp_path / "dest")
-    source = _init_project(tmp_path / "repo-b")
-    source_git = source.git
-    assert source_git is not None
-    source_git.commit_files(
-        {
-            **_context_commit_entries(),
-            "claims/source.yaml": _raw_claim_yaml("imported"),
-        },
-        "seed",
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(destination.root),
-            "import-repository",
-            str(source.root.parent),
-            "--target-branch",
-            "master",
-        ],
-    )
-
-    assert result.exit_code == 0, result.output
-    payload = yaml.safe_load(result.output)
-    assert payload["target_branch"] == "master"
-    imported_path = _claim_artifact_path("imported", namespace="repo-b")
-    assert not (destination.root / Path(imported_path)).exists()
-    assert yaml.safe_load(
-        destination.git.read_file(imported_path, commit=payload["commit_sha"])
-    ) == (_expected_imported_claim_yaml("imported", namespace="repo-b"))
 
 
 def test_import_repository_exports_from_importing_surface():

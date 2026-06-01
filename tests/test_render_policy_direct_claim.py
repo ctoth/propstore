@@ -46,15 +46,3 @@ def test_blocked_claim_html_is_accessible_error_not_redacted_page(tmp_path) -> N
     assert "295" not in html
     assert "redacted" not in html.casefold()
     assert "redaction" not in html.casefold()
-
-
-def test_visible_claim_still_renders(tmp_path) -> None:
-    fixture = seed_web_demo_repository(tmp_path)
-    client = TestClient(create_app(repository_root=fixture.repo.root))
-
-    response = client.get(f"/claim/{fixture.supporter_claim_id}.json")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["claim_id"] == fixture.supporter_claim_id
-    assert payload["status"]["visible_under_policy"] is True

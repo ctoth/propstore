@@ -452,53 +452,6 @@ def _semantic_metadata(
     return metadata
 
 
-def _family_definition(
-    *,
-    key: PropstoreFamily,
-    name: str,
-    contract_version: VersionId,
-    artifact_name: str,
-    document_type: type[Any],
-    placement: Any,
-    artifact_contract_version: VersionId | None = None,
-    accessor: str | None = None,
-    coerce_payload: Callable[..., Any] | None = None,
-    decode_bytes: Callable[..., Any] | None = None,
-    encode_document: Callable[..., Any] | None = None,
-    render_document: Callable[..., Any] | None = None,
-    document_payload: Callable[..., Any] | None = None,
-    scan_type: type[Any] | None = None,
-    foreign_keys: tuple[ForeignKeySpec, ...] = (),
-    identity_policy: FamilyIdentityPolicy | None = None,
-    identity_field: str | None = None,
-    reference_keys: tuple[ReferenceKey, ...] = (),
-    metadata: Mapping[str, object] | None = None,
-) -> FamilyDefinition[Any, PropstoreFamily, Any, Any]:
-    return FamilyDefinition(
-        key=key,
-        name=name,
-        contract_version=contract_version,
-        artifact_family=ArtifactFamily(
-            artifact_name,
-            artifact_contract_version or contract_version,
-            document_type,
-            placement,
-            coerce_payload=coerce_payload,
-            decode_bytes=decode_bytes,
-            encode_document=encode_document,
-            render_document=render_document,
-            document_payload=document_payload,
-            scan_type=scan_type,
-        ),
-        accessor=accessor,
-        foreign_keys=foreign_keys,
-        identity_policy=identity_policy,
-        identity_field=identity_field,
-        reference_keys=reference_keys,
-        metadata=metadata,
-    )
-
-
 def _charter_foreign_keys(charter: FamilyCharter) -> tuple[ForeignKeySpec, ...]:
     specs: list[ForeignKeySpec] = []
     for field in charter.fields:

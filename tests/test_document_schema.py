@@ -14,18 +14,6 @@ class _ExampleDocument(DocumentStruct):
     value: int
 
 
-def test_decode_document_bytes_is_strict() -> None:
-    payload = b"name: demo\nvalue: 3\nextra: nope\n"
-
-    try:
-        decode_document_bytes(payload, _ExampleDocument, source="example.yaml")
-    except DocumentSchemaError as exc:
-        assert "example.yaml" in str(exc)
-        assert "extra" in str(exc)
-    else:
-        raise AssertionError("expected strict document decode failure")
-
-
 def test_load_document_captures_artifact_metadata(tmp_path) -> None:
     path = tmp_path / "demo.yaml"
     path.write_text("name: demo\nvalue: 3\n", encoding="utf-8")

@@ -40,45 +40,6 @@ class ClaimAlgorithmVariable:
         object.__setattr__(self, "attributes", dict(self.attributes))
 
 
-def parse_claim_algorithm_variable_entry(
-    entry: Mapping[object, object],
-) -> ClaimAlgorithmVariable:
-    values: dict[str, str] = {}
-    consumed_payload_keys: set[str] = set()
-
-    for variable_field in fields(ClaimAlgorithmVariable):
-        payload_name = variable_field.metadata.get("payload")
-        if not isinstance(payload_name, str):
-            continue
-        consumed_payload_keys.add(payload_name)
-        value = entry.get(payload_name)
-        if value is None:
-            continue
-        if not isinstance(value, str):
-            raise TypeError(
-                f"algorithm variable field {payload_name!r} must be a string"
-            )
-        values[variable_field.name] = value
-
-    return ClaimAlgorithmVariable(
-        name=values.get("name"),
-        symbol=values.get("symbol"),
-        concept_id=(
-            None
-            if values.get("concept_id") is None
-            else ConceptId(values["concept_id"])
-        ),
-        role=values.get("role"),
-        attributes={
-            key: value
-            for key, value in entry.items()
-            if isinstance(key, str)
-            and key not in consumed_payload_keys
-            and value is not None
-        },
-    )
-
-
 def parse_claim_algorithm_variables(
     raw: object,
 ) -> tuple[ClaimAlgorithmVariable, ...]:

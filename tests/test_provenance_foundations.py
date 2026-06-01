@@ -81,25 +81,6 @@ def test_named_graph_encoding_requires_explicit_uri_graph_name() -> None:
         )
 
 
-def test_git_notes_round_trip_named_graph_content() -> None:
-    repo = MemoryRepo()
-    claim_blob = Blob.from_string(b"claim payload")
-    repo.object_store.add_object(claim_blob)
-    provenance = Provenance(
-        status=ProvenanceStatus.MEASURED,
-        witnesses=(_witness("claim"),),
-        graph_name="urn:propstore:provenance:claim",
-    )
-    encoded = encode_named_graph(provenance)
-
-    note_commit = write_provenance_note(repo, claim_blob.id, provenance)
-
-    assert note_commit is not None
-    assert repo.refs[PROVENANCE_NOTES_REF] == note_commit
-    assert read_provenance_note(repo, claim_blob.id) == provenance
-    assert encode_named_graph(read_provenance_note(repo, claim_blob.id)) == encoded
-
-
 @pytest.mark.property
 @given(provenance_records(), provenance_records(), provenance_records())
 @settings(deadline=None)

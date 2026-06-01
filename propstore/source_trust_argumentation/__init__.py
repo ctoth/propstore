@@ -81,17 +81,6 @@ def _load_rules_from_repo(repo: Repository) -> tuple[Mapping[str, Any], ...]:
     return tuple(rules)
 
 
-def _rule_matches(
-    rule: Mapping[str, Any], metadata_payload: Mapping[str, object]
-) -> bool:
-    conditions = rule.get("conditions", {})
-    if not isinstance(conditions, Mapping):
-        raise ValueError("source trust rule conditions must be a mapping")
-    return all(
-        metadata_payload.get(str(key)) == value for key, value in conditions.items()
-    )
-
-
 def _firing(rule: Mapping[str, Any], *, in_extension: bool) -> RuleFiring:
     conditions = rule.get("conditions", {})
     if not isinstance(conditions, Mapping):
@@ -139,51 +128,4 @@ def _opinion_from_firings(firings: Sequence[RuleFiring]) -> Opinion:
         uncertainty,
         sum(base_rates) / len(base_rates),
         allow_dogmatic=uncertainty <= 1e-9,
-    )
-
-
-def calibrate_source_trust(
-    repo: Repository,
-    source_name: str,
-    *,
-    rule_corpus: Sequence[Mapping[str, Any]] | None = None,
-    world_snapshot: object | None = None,
-) -> SourceTrustResult:
-    rules = (
-        tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
-    )
-    metadata_payload = repo.families.source_metadata.load(SourceRef(source_name)) or {}
-    fired_rules = tuple(rule for rule in rules if _rule_matches(rule, metadata_payload))
-    repo_head = repo.require_git().head_sha() if repo.git is not None else None
-    world_sha = str(world_snapshot or repo_head or "")
-
-    if not fired_rules:
-        return SourceTrustResult(
-            prior_base_rate=Opinion.vacuous(0.5),
-            derived_from=(),
-            world_snapshot_sha=world_sha,
-            kernel_version=_kernel_version(),
-            status=ProvenanceStatus.DEFAULTED,
-        )
-
-    extension = grounded_extension(_framework_for(fired_rules))
-    firings = tuple(
-        _firing(rule, in_extension=str(rule["id"]) in extension) for rule in fired_rules
-    )
-    active_firings = tuple(firing for firing in firings if firing.in_grounded_extension)
-    if not active_firings:
-        return SourceTrustResult(
-            prior_base_rate=Opinion.vacuous(0.5),
-            derived_from=firings,
-            world_snapshot_sha=world_sha,
-            kernel_version=_kernel_version(),
-            status=ProvenanceStatus.VACUOUS,
-        )
-
-    return SourceTrustResult(
-        prior_base_rate=_opinion_from_firings(firings),
-        derived_from=firings,
-        world_snapshot_sha=world_sha,
-        kernel_version=_kernel_version(),
-        status=ProvenanceStatus.CALIBRATED,
     )

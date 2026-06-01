@@ -42,58 +42,6 @@ def _copy_claim_file(
     )
 
 
-def _count_claims(claims_root: Path) -> int:
-    return sum(
-        len(claim_file_payload(claim_file).get("claims", []))
-        for claim_file in load_claim_files(claims_root)
-    )
-
-
-def _branch_claim_stats(repo: Repository, branch: str) -> dict[str, Any]:
-    assert repo.git is not None
-    tree = repo.git.tree(commit=repo.git.branch_sha(branch))
-    claims_root = tree / "claims"
-    claim_files = load_claim_files(claims_root)
-
-    raw_ids: list[str] = []
-    per_file_counts: dict[str, int] = {}
-    for claim_file in claim_files:
-        claims = [
-            claim
-            for claim in claim_file_payload(claim_file).get("claims", [])
-            if isinstance(claim, dict)
-        ]
-        per_file_counts[claim_file.filename] = len(claims)
-        for claim in claims:
-            claim_id = claim.get("id")
-            if isinstance(claim_id, str):
-                raw_ids.append(claim_id)
-
-    duplicates = {
-        claim_id: count for claim_id, count in Counter(raw_ids).items() if count > 1
-    }
-    return {
-        "branch": branch,
-        "claim_file_count": len(claim_files),
-        "raw_claim_count": len(raw_ids),
-        "unique_claim_id_count": len(set(raw_ids)),
-        "duplicate_claim_ids": duplicates,
-        "per_file_counts": per_file_counts,
-    }
-
-
-def _merged_claim_ids(repo: Repository, merge_sha: str) -> list[str]:
-    assert repo.git is not None
-    merged_tree = repo.git.tree(commit=merge_sha)
-    merged_docs = load_claim_files(merged_tree / "claims")
-    ids: list[str] = []
-    for claim_file in merged_docs:
-        for claim in claim_file_payload(claim_file).get("claims", []):
-            if isinstance(claim, dict) and isinstance(claim.get("id"), str):
-                ids.append(claim["id"])
-    return ids
-
-
 def _toy_claim(
     claim_id: str,
     statement: str,
@@ -130,17 +78,6 @@ def _toy_doc(paper: str, claims: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "claims": claims,
     }
-
-
-def _commit_doc(
-    repo: Repository, relative_path: str, payload: dict[str, Any], message: str
-) -> None:
-    data = yaml.safe_dump(payload, sort_keys=False).encode("utf-8")
-    path = repo.root / relative_path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    assert repo.git is not None
-    repo.git.commit_files({relative_path.replace("\\", "/"): data}, message)
 
 
 def experiment_toy_unique_ids(base: Path) -> dict[str, Any]:

@@ -672,38 +672,6 @@ class ClaimBehavior(FamilyModel):
     def target_concept_ids(self) -> tuple[str, ...]:
         return self.concept_ids_for_role(ClaimConceptLinkRole.TARGET)
 
-    @property
-    def checked_conditions(self) -> CheckedConditionSet | None:
-        text_payload = self.text_payload
-        if text_payload is None or not text_payload.conditions_ir:
-            return None
-        loaded = json.loads(text_payload.conditions_ir)
-        if not isinstance(loaded, Mapping):
-            raise ValueError("claim conditions_ir must decode to a mapping")
-        return checked_condition_set_from_json(loaded)
-
-    @property
-    def conditions(self) -> tuple[CelExpr, ...]:
-        checked_conditions = self.checked_conditions
-        if checked_conditions is not None:
-            return to_cel_exprs(checked_conditions.sources)
-        text_payload = self.text_payload
-        if text_payload is None or not text_payload.conditions_cel:
-            return ()
-        loaded = json.loads(text_payload.conditions_cel)
-        if not isinstance(loaded, list):
-            raise ValueError("claim conditions_cel must decode to a list")
-        return to_cel_exprs(str(item) for item in loaded)
-
-    @property
-    def variables(self) -> tuple[ClaimAlgorithmVariable, ...]:
-        from propstore.families.claims.stages import parse_claim_algorithm_variables
-
-        algorithm_payload = self.algorithm_payload
-        if algorithm_payload is None:
-            return ()
-        return parse_claim_algorithm_variables(algorithm_payload.variables_json)
-
     def variable_bindings(self) -> dict[str, str]:
         bindings: dict[str, str] = {}
         for variable in self.variables:
@@ -1671,24 +1639,3 @@ def write_promotion_blocked_models(
         delete_promotion_blocked_diagnostics(derived, claim_id)
     derived.add_all(claim_objects)
     derived.add_all(diagnostic_objects)
-
-
-def _delete_claim_children(
-    derived: DerivedSession,
-    claim_ids: tuple[str, ...],
-) -> None:
-    schema = derived.schema
-    session = derived.session
-    for table_name in (
-        "claim_concept_link",
-        "claim_numeric_payload",
-        "claim_text_payload",
-        "claim_algorithm_payload",
-        "micropublication_claim",
-    ):
-        table = schema.tables.get(table_name)
-        if table is None or "claim_id" not in table.c:
-            continue
-        session.execute(delete(table).where(table.c.claim_id.in_(claim_ids)))
-    claim_core = schema.table("claim_core")
-    session.execute(delete(claim_core).where(claim_core.c.id.in_(claim_ids)))

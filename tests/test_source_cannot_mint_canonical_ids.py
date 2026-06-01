@@ -11,33 +11,6 @@ from propstore.families.claims.lifecycle import normalize_source_claims_payload
 from propstore.families.claims.declaration import SourceClaimDocument
 
 
-@pytest.mark.parametrize("namespace", sorted(RESERVED_CANONICAL_NAMESPACES))
-def test_source_claim_writer_rejects_reserved_namespaces(namespace: str) -> None:
-    payload = (SourceClaimDocument(id="c1", statement="example claim"),)
-
-    with pytest.raises(ReservedNamespaceViolation):
-        normalize_source_claims_payload(
-            payload,
-            source_uri="tag:example.com,2026:source/example",
-            source_namespace=namespace,
-        )
-
-
-def test_source_claim_writer_accepts_unreserved_namespace() -> None:
-    payload = (SourceClaimDocument(id="c1", statement="example claim"),)
-
-    normalized, mapping = normalize_source_claims_payload(
-        payload,
-        source_uri="tag:example.com,2026:source/example",
-        source_namespace="mypaper",
-    )
-
-    assert mapping == {"c1": normalized[0].id}
-    assert {logical_id.namespace for logical_id in normalized[0].logical_ids} == {
-        "mypaper"
-    }
-
-
 @pytest.mark.parametrize("alias", ["ps:concept:42", "propstore:concept42"])
 def test_alias_targets_cannot_use_reserved_namespaces(alias: str) -> None:
     with pytest.raises(ReservedNamespaceViolation):

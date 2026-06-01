@@ -71,20 +71,6 @@ class CheckedConditionSet:
         return tuple(condition.source for condition in self.conditions)
 
     @property
-    def reference_id(self) -> ConditionId:
-        if not self.conditions:
-            return UNCONDITIONAL_CONDITION_ID
-        digest = hashlib.sha256(
-            json.dumps(
-                self.identity_payload(),
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=True,
-            ).encode("utf-8")
-        ).hexdigest()
-        return ConditionId(f"ps:condition:{digest}")
-
-    @property
     def reference_registry_fingerprint(self) -> str:
         if not self.conditions:
             return UNCONDITIONAL_CONDITION_REGISTRY_FINGERPRINT
@@ -137,45 +123,6 @@ def checked_condition_set_to_json(
             for condition in condition_set.conditions
         ],
     }
-
-
-def checked_condition_set_from_json(
-    payload: Mapping[str, Any],
-) -> CheckedConditionSet:
-    version = payload.get("version")
-    if version != CHECKED_CONDITION_SET_JSON_VERSION:
-        raise ValueError(
-            f"unsupported checked condition-set encoding version: {version!r}"
-        )
-    fingerprint = payload.get("registry_fingerprint")
-    if not isinstance(fingerprint, str) or not fingerprint:
-        raise ValueError("checked condition-set encoding requires registry_fingerprint")
-    entries = payload.get("conditions")
-    if not isinstance(entries, list):
-        raise ValueError("checked condition-set encoding requires conditions list")
-
-    conditions: list[CheckedCondition] = []
-    for entry in entries:
-        if not isinstance(entry, Mapping):
-            raise ValueError("checked condition entry must be a mapping")
-        source = entry.get("source")
-        if not isinstance(source, str) or not source:
-            raise ValueError("checked condition entry requires source")
-        warnings = entry.get("warnings", ())
-        if not isinstance(warnings, list | tuple):
-            raise ValueError("checked condition warnings must be a sequence")
-        conditions.append(
-            CheckedCondition(
-                source=source,
-                ir=condition_ir_from_json(_entry_mapping(entry.get("ir"))),
-                registry_fingerprint=fingerprint,
-                warnings=tuple(str(warning) for warning in warnings),
-            )
-        )
-    return CheckedConditionSet(
-        conditions=tuple(conditions),
-        registry_fingerprint=fingerprint,
-    )
 
 
 def _entry_mapping(value: object) -> Mapping[str, Any]:

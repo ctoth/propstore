@@ -45,16 +45,6 @@ FIXTURES: tuple[tuple[str, type[Any], frozenset[str]], ...] = (
 )
 
 
-def _load_fixture(filename: str, document_type: type[Any]) -> Any:
-    path = FIXTURE_ROOT / filename
-    payload = msgspec.yaml.decode(path.read_bytes(), type=dict[str, Any], strict=True)
-    return convert_document_value(
-        payload,
-        document_type,
-        source=path.relative_to(FIXTURE_ROOT.parent.parent).as_posix(),
-    )
-
-
 def test_claim_yaml_fixture_set_covers_phase_4_precondition_shapes() -> None:
     observed = frozenset().union(*(shape_tags for _, _, shape_tags in FIXTURES))
 

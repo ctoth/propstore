@@ -62,37 +62,8 @@ class MergeClaim:
         return self.document.value
 
     @property
-    def assertion(self) -> SituatedAssertion:
-        return SituatedAssertion(
-            relation=RelationConceptRef(
-                f"ps:relation:claim:{self.claim_type or 'unknown'}"
-            ),
-            role_bindings=RoleBindingSet(
-                (
-                    RoleBinding(
-                        "subject", self.value_concept_id or "ps:concept:unscoped"
-                    ),
-                    RoleBinding(
-                        "content", _stable_json(_semantic_payload(self.document))
-                    ),
-                )
-            ),
-            context=ContextReference(ContextId(self.document.context.id)),
-            condition=ConditionRef.unconditional(),
-            provenance_ref=_provenance_ref(self),
-        )
-
-    @property
     def assertion_id(self) -> AssertionId:
         return self.assertion.assertion_id
-
-
-def _provenance_ref(claim: MergeClaim) -> ProvenanceGraphRef:
-    return ProvenanceGraphRef(
-        ProvenanceGraphId(
-            f"urn:propstore:claim-provenance:{_digest(claim.provenance_payload())}"
-        )
-    )
 
 
 def _stable_json(value: object) -> str:

@@ -3,24 +3,6 @@ from __future__ import annotations
 from propstore.families.concepts.alignment import classify_relation
 
 
-def _proposal(
-    *,
-    handle: str,
-    name: str,
-    definition: str,
-    uri: str | None = None,
-) -> dict[str, str]:
-    payload = {
-        "local_handle": handle,
-        "proposed_name": name,
-        "definition": definition,
-        "form": "structural",
-    }
-    if uri is not None:
-        payload["proposed_uri"] = uri
-    return payload
-
-
 def test_alignment_default_keeps_distinct_conflicting_proposals_non_attacking() -> None:
     left = _proposal(
         handle="velocity",

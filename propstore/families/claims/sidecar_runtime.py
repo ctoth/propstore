@@ -69,42 +69,6 @@ def embed_claims_for_request(
     return reports
 
 
-def claim_texts_by_id(
-    derived_store: DerivedStoreHandle,
-    claim_ids: Sequence[str],
-) -> dict[str, dict[str, Any]]:
-    if not claim_ids:
-        return {}
-    schema = world_schema()
-    claim = schema.model(CLAIM_CORE_CHARTER.family.name)
-    with derived_store.readonly_session(schema) as derived:
-        rows = tuple(
-            derived.execute(
-                select(claim).where(claim.id.in_(tuple(claim_ids)))
-            ).scalars()
-        )
-        result: dict[str, dict[str, Any]] = {}
-        for claim_model in rows:
-            text_payload = claim_model.text_payload
-            decoded = {
-                "id": claim_model.id,
-                "auto_summary": (
-                    None if text_payload is None else text_payload.auto_summary
-                ),
-                "statement": None if text_payload is None else text_payload.statement,
-                "expression": None if text_payload is None else text_payload.expression,
-                "source_paper": claim_model.source_paper,
-            }
-            decoded["text"] = (
-                decoded["auto_summary"]
-                or decoded["statement"]
-                or decoded["expression"]
-                or decoded["id"]
-            )
-            result[str(claim_model.id)] = decoded
-        return result
-
-
 def claim_text_by_id(
     derived_store: DerivedStoreHandle,
     claim_id: str,

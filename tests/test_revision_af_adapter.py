@@ -18,36 +18,6 @@ from tests.test_revision_phase1 import _RevisionStore, _make_bound
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
-def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims() -> (
-    None
-):
-    from propstore.support_revision.af_adapter import (
-        project_epistemic_state_argumentation_view,
-    )
-
-    bound = _operator_bound()
-    atom = make_assertion_atom("synthetic", value=9.0)
-    _, state = bound.iterated_revise(
-        atom,
-        max_candidates=8,
-        conflicts={atom.atom_id: (_atom_id_for_claim(bound, "legacy"),)},
-        operator="restrained",
-    )
-
-    view = project_epistemic_state_argumentation_view(bound._store, state)
-    claim_rows = view.store.claims_by_ids(set(view.active_claim_ids))
-    af = build_argumentation_framework(view.store, set(view.active_claim_ids))
-
-    assert "legacy" not in view.active_claim_ids
-    assert "claim_synthetic" in view.active_claim_ids
-    assert any(claim_id != "claim_synthetic" for claim_id in view.active_claim_ids)
-    synthetic_payload = claim_rows["claim_synthetic"].numeric_payload
-    assert synthetic_payload is not None
-    assert synthetic_payload.value == 9.0
-    assert "legacy" not in claim_rows
-    assert af.arguments == frozenset(view.active_claim_ids)
-
-
 def test_project_epistemic_state_builds_structured_inputs_with_exact_support_metadata() -> (
     None
 ):

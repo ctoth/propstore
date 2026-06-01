@@ -43,37 +43,6 @@ def _seed_context(repo: Repository) -> None:
     )
 
 
-def _seed_concept(repo: Repository) -> str:
-    concept = normalize_concept_payloads(
-        [
-            {
-                "id": "roundtrip_topic",
-                "canonical_name": "roundtrip_topic",
-                "status": "accepted",
-                "definition": "Concept used by the authoring round-trip test.",
-                "domain": "test",
-                "form": "structural",
-            }
-        ],
-        default_domain="test",
-    )[0]
-    repo.git.commit_batch(
-        adds={
-            "concepts/roundtrip_topic.yaml": yaml.safe_dump(
-                concept,
-                sort_keys=False,
-            ).encode("utf-8"),
-            "concepts/.counters/global.next": b"2\n",
-        },
-        deletes=[],
-        message="Seed round-trip concept",
-        branch="master",
-    )
-    artifact_id = concept.get("artifact_id")
-    assert isinstance(artifact_id, str)
-    return artifact_id
-
-
 def _run(runner: CliRunner, repo: Repository, args: list[str]) -> None:
     result = runner.invoke(cli, ["-C", str(repo.root), *args])
     assert result.exit_code == 0, result.output

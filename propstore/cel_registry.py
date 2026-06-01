@@ -93,36 +93,6 @@ def concept_info_from_concept_document(document: ConceptDocument) -> ConceptInfo
     )
 
 
-def concept_info_from_concept_row(row: Any) -> ConceptInfo:
-    concept_id = str(row.concept_id)
-    if not concept_id:
-        raise ValueError("concept row must define a non-empty concept_id")
-    if not isinstance(row.canonical_name, str) or not row.canonical_name:
-        raise ValueError("concept row must define a non-empty canonical_name")
-    kind_type = row.kind_type
-    form = row.form
-    form_parameters_payload = row.form_parameters
-    kind = _kind_type_from_optional_fields(
-        kind_type=kind_type
-        if isinstance(kind_type, str | KindType) or kind_type is None
-        else None,
-        form=form if isinstance(form, str) or form is None else None,
-    )
-    form_parameters = _parse_row_form_parameters(
-        form_parameters_payload
-        if isinstance(form_parameters_payload, str) or form_parameters_payload is None
-        else None
-    )
-    category_values, category_extensible = _category_metadata(form_parameters)
-    return ConceptInfo(
-        id=concept_id,
-        canonical_name=row.canonical_name,
-        kind=kind,
-        category_values=category_values,
-        category_extensible=category_extensible,
-    )
-
-
 def _parse_row_form_parameters(value: str | None) -> Mapping[str, Any]:
     if value is None or value == "":
         return {}

@@ -77,34 +77,6 @@ class RepositorySnapshot:
     def tree(self, commit: str | None = None):
         return self._repo.tree(commit=commit)
 
-    def read_document(
-        self,
-        relpath: str | Path,
-        document_type: type[TDocument],
-        *,
-        branch: str | None = None,
-        commit: str | None = None,
-    ) -> TDocument | None:
-        target_commit = commit
-        source_label = str(relpath).replace("\\", "/")
-        if target_commit is None:
-            branch_name = branch
-            if branch_name is None:
-                branch_name = (
-                    self.git.current_branch_name() or self.git.primary_branch_name()
-                )
-            target_commit = self.git.branch_sha(branch_name)
-            if target_commit is None:
-                return None
-            source_label = f"{branch_name}:{source_label}"
-        else:
-            source_label = f"{target_commit}:{source_label}"
-        try:
-            payload = self.git.read_file(relpath, commit=target_commit)
-        except FileNotFoundError:
-            return None
-        return decode_document_bytes(payload, document_type, source=source_label)
-
     def materialize(
         self,
         *,

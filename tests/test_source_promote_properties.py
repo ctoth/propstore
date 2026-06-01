@@ -80,26 +80,3 @@ def test_ws_e_generated_repromote_preserves_claim_artifacts(
 
         assert first == second
         assert len(second) == 1
-
-
-@pytest.mark.property
-@given(source_local_fields=_SOURCE_LOCAL_FIELD_VALUES)
-def test_ws_e_generated_source_local_fields_do_not_enter_canonical_claims(
-    source_local_fields: dict[str, str],
-) -> None:
-    """WS-E property: source-local promotion metadata is not canonical identity."""
-    promoted = {
-        "artifact_id": "ps:claim:demo",
-        "type": "observation",
-        "context": "ctx_test",
-        "statement": "A generated source-local field stripping check.",
-        "provenance": {"paper": "demo", "page": 1},
-        **source_local_fields,
-    }
-
-    normalized = normalize_canonical_claim_payload(
-        promoted,
-        strip_source_local=True,
-    )
-
-    assert not ({"id", "source_local_id", "artifact_code"} & set(normalized))

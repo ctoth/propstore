@@ -344,45 +344,6 @@ def _literal_ids(value: object) -> tuple[str, ...]:
     return tuple(str(atom_id) for atom_id in value)
 
 
-def _decision_report(
-    *,
-    operation: str,
-    policy: str,
-    bundle: FormalProjectionBundle,
-    outcome: BeliefSet | RevisionOutcome | ICMergeOutcome | SpohnEpistemicState,
-    input_formula_ids: tuple[str, ...],
-    trace: Mapping[str, Any] | None = None,
-) -> FormalRevisionDecisionReport:
-    belief_set = _outcome_belief_set(outcome)
-    accepted = tuple(
-        atom_id
-        for atom_id, formula in bundle.formula_by_atom_id.items()
-        if belief_set.entails(formula)
-    )
-    rejected = tuple(
-        atom_id for atom_id in bundle.formula_by_atom_id if atom_id not in set(accepted)
-    )
-    state = _outcome_state(outcome)
-    state_hash = None if state is None else _state_hash(state)
-    trace_payload = dict(_trace_payload(outcome))
-    trace_payload.update(dict(trace or {}))
-    if state_hash is not None:
-        trace_payload["ranking_provenance"] = {
-            "status": "defaulted",
-            "method": "hamming_distance",
-            "input_hash": state_hash,
-        }
-    return FormalRevisionDecisionReport(
-        operation=operation,
-        policy=policy,
-        input_formula_ids=input_formula_ids,
-        accepted_formula_ids=accepted,
-        rejected_formula_ids=rejected,
-        epistemic_state_hash=state_hash,
-        trace=trace_payload,
-    )
-
-
 def _revision_formula(
     bundle: FormalProjectionBundle,
     atom_id: str,
@@ -452,20 +413,6 @@ def _distance_ranked_state(belief_set: BeliefSet) -> SpohnEpistemicState:
 
 def _hamming_distance(left: frozenset[str], right: frozenset[str]) -> int:
     return len(left.symmetric_difference(right))
-
-
-def _state_hash(state: SpohnEpistemicState) -> str:
-    payload = {
-        "alphabet": sorted(state.alphabet),
-        "ranks": [
-            [sorted(world), _json_rank(rank)]
-            for world, rank in sorted(
-                state.ranks.items(), key=lambda item: tuple(sorted(item[0]))
-            )
-        ],
-    }
-    body = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
 def _worlds_hash(worlds: frozenset[frozenset[str]]) -> str:

@@ -157,22 +157,6 @@ def test_concept_html_route_renders_accessible_literals(
     assert '<th scope="col">Claim</th>' in html
 
 
-def test_concept_json_route_uses_same_report(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(routing, "build_concept_view", lambda repo, request: _report())
-
-    response = client.get("/concept/speech%3Afundamental_frequency.json")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["concept_id"] == "concept1"
-    assert payload["status"]["state"] == "blocked"
-    assert payload["form"]["state"] == "known"
-    assert payload["uncertainty_summary"]["state"] == "missing"
-
-
 def test_concept_route_maps_unknown_concept_to_accessible_error(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

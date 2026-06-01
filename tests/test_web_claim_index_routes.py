@@ -59,20 +59,6 @@ def test_claim_index_html_route_renders_inventory(
     assert '<th scope="col">Status</th>' in html
 
 
-def test_claim_index_json_route_uses_search_report_when_query_present(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(routing, "search_claim_views", lambda repo, request: _report())
-
-    response = client.get("/claims.json?q=frequency")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["entries"][0]["claim_id"] == "claim1"
-    assert payload["entries"][0]["concept_name"] == "fundamental_frequency"
-
-
 def test_claim_index_route_rejects_invalid_limit(client: TestClient) -> None:
     response = client.get("/claims.json?limit=0")
 

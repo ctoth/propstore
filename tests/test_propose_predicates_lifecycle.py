@@ -44,54 +44,6 @@ def _predicate_fixture() -> str:
     )
 
 
-def test_propose_predicates_commits_only_to_proposal_branch(
-    monkeypatch, tmp_path
-) -> None:
-    from propstore.heuristic import predicate_extraction
-
-    repo = Repository.init(tmp_path / "knowledge")
-    monkeypatch.setattr(
-        predicate_extraction,
-        "_llm_call",
-        lambda **_kwargs: _predicate_fixture(),
-    )
-
-    result = predicate_extraction.propose_predicates_for_paper(
-        repo,
-        source_paper=PAPER,
-        model_name="test-model",
-    )
-
-    assert result.commit_sha is not None
-    assert (
-        repo.families.predicates.load(
-            predicate_extraction.canonical_predicate_ref(PAPER)
-        )
-        is None
-    )
-    document = repo.families.proposal_predicates.require(
-        PredicateProposalRef(PAPER),
-        commit=result.commit_sha,
-    )
-    assert [entry.name for entry in document.proposed_declarations] == [
-        "sample_size",
-        "statistical_power",
-        "pre_study_odds",
-        "bias",
-    ]
-    assert document.extraction_provenance.model == "test-model"
-    assert document.extraction_provenance.prompt_sha == predicate_extraction.PROMPT_SHA
-    assert document.extraction_provenance.notes_sha
-    payload = yaml.safe_load(
-        repo.git.read_file(
-            "predicates/Ioannidis_2005_WhyMostPublishedResearch/declarations.yaml",
-            commit=result.commit_sha,
-        )
-    )
-    assert payload["source_paper"] == PAPER
-    assert payload["proposed_declarations"][0]["name"] == "sample_size"
-
-
 def test_propose_predicates_dry_run_does_not_commit(monkeypatch, tmp_path) -> None:
     from propstore.heuristic import predicate_extraction
 

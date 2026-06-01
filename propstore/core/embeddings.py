@@ -17,23 +17,6 @@ class EmbeddingEntity:
     text: str
 
 
-def claim_embedding_text(claim: Any) -> str:
-    """Return the text representation used for claim embeddings."""
-
-    text_payload = claim.text_payload
-    if text_payload is None:
-        return str(claim.id)
-    for value in (
-        text_payload.auto_summary,
-        text_payload.statement,
-        text_payload.expression,
-        text_payload.name,
-    ):
-        if value:
-            return str(value)
-    return str(claim.id)
-
-
 def concept_embedding_text(
     concept: Any,
     aliases: Sequence[str] = (),

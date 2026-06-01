@@ -293,32 +293,3 @@ def _bootstrap_manifest(
     if uri_authority is not None:
         manifest["uri_authority"] = uri_authority
     return manifest
-
-
-def _write_bootstrap_manifest(
-    git,
-    *,
-    seed_commit: str | None,
-    uri_authority: str | None = None,
-) -> None:
-    payload = json.dumps(
-        _bootstrap_manifest(seed_commit, uri_authority),
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    git.write_blob_ref(PROPSTORE_BOOTSTRAP_REF, payload)
-
-
-def _read_bootstrap_manifest(git) -> dict[str, object] | None:
-    payload = git.read_blob_ref(PROPSTORE_BOOTSTRAP_REF)
-    if payload is None:
-        return None
-    try:
-        loaded = json.loads(payload.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        return None
-    if not isinstance(loaded, dict):
-        return None
-    if loaded.get("repository_format_version") != PROPSTORE_REPOSITORY_FORMAT_VERSION:
-        return None
-    return loaded

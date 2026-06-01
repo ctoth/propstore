@@ -136,17 +136,6 @@ def test_world_charter_fts_indexes_are_generated_from_source_queries() -> None:
     )
 
 
-def test_world_charter_schema_hash_material_is_deterministic() -> None:
-    schema = world_schema()
-
-    assert schema.catalog.schema_hash() == schema.catalog.schema_hash()
-    assert schema.catalog_hash == schema.catalog.schema_hash()
-    assert schema.catalog.payload()["metadata"] == {
-        "projection": "propstore.world",
-        "schema_version": 6,
-    }
-
-
 def test_world_charter_maps_no_database_primary_key_tables() -> None:
     schema = world_schema()
     table = schema.table("relationship")

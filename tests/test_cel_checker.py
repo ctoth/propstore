@@ -489,27 +489,6 @@ def test_closed_category_undeclared_literals_are_hard_errors(val):
 class TestBuildCelRegistry:
     """Tests for typed CEL registry projection."""
 
-    @staticmethod
-    def _record(
-        artifact_id: str,
-        canonical_name: str,
-        *,
-        form: str,
-        form_parameters: dict | None = None,
-    ) -> ConceptRecord:
-        payload = {
-            "artifact_id": artifact_id,
-            "canonical_name": canonical_name,
-            "status": "accepted",
-            "definition": f"Definition of {canonical_name}.",
-            "form": form,
-            "logical_ids": [{"namespace": "speech", "value": canonical_name}],
-            "version_id": "sha256:" + ("0" * 64),
-        }
-        if form_parameters is not None:
-            payload["form_parameters"] = form_parameters
-        return parse_concept_record(payload)
-
     def test_canonical_input_quantity(self):
         result = build_canonical_cel_registry(
             [

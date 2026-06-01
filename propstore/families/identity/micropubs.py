@@ -22,10 +22,6 @@ MICROPUB_SORTED_STRING_LIST_FIELDS = ("claims", "assumptions")
 MICROPUB_SORTED_DICT_LIST_FIELDS = ("evidence",)
 
 
-def micropub_artifact_id(document: MicropublicationDocument) -> str:
-    return compute_ni_uri(canonical_micropub_payload(document))
-
-
 def micropub_version_id(document: MicropublicationDocument) -> str:
     return canonical_json_sha256(canonicalize_micropub_for_identity(document))
 

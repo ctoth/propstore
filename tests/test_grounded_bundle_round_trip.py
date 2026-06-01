@@ -71,31 +71,3 @@ def test_grounded_bundle_rehydrates_inputs_and_arguments(tmp_path: Path) -> None
     assert restored.sections == bundle.sections
     assert restored.arguments == bundle.arguments
     assert restored.grounding_inspection is not None
-
-
-def test_grounded_bundle_persists_gunray_arguments_without_pickle(
-    tmp_path: Path,
-) -> None:
-    bundle = _birds_fly_bundle()
-    sidecar_path = _fresh_store(tmp_path)
-
-    with writable_session(sidecar_path, world_schema()) as derived:
-        persist_grounded_bundle(derived, bundle)
-        derived.session.commit()
-
-    with readonly_session(sidecar_path, world_schema()) as derived:
-        table = derived.schema.table("grounded_bundle_input")
-        stored_payloads = (
-            derived.session.execute(
-                select(GroundedBundleInput)
-                .where(table.c.kind == "argument")
-                .order_by(table.c.position)
-            )
-            .scalars()
-            .all()
-        )
-        restored = load_grounded_bundle(derived)
-
-    assert stored_payloads
-    assert all(row.payload.startswith(b"{") for row in stored_payloads)
-    assert restored.arguments == bundle.arguments

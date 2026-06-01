@@ -85,10 +85,6 @@ class EpistemicSnapshot:
     def from_state(cls, state: EpistemicState) -> EpistemicSnapshot:
         return cls(state=EpistemicStateSnapshot.from_state(state))
 
-    @property
-    def content_hash(self) -> str:
-        return _stable_hash(self._hash_payload())
-
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, EpistemicSnapshot):
             return NotImplemented
@@ -96,11 +92,6 @@ class EpistemicSnapshot:
 
     def __hash__(self) -> int:
         return hash(self.content_hash)
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._hash_payload()
-        data["content_hash"] = self.content_hash
-        return data
 
     def to_canonical_json(self) -> str:
         return _canonical_text(self.to_dict())
@@ -150,86 +141,6 @@ class TransitionJournalEntry:
     explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
     policy_payload: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = TransitionJournalVersion
-
-    def __post_init__(self) -> None:
-        if self.schema_version != TransitionJournalVersion:
-            raise ValueError(
-                f"unsupported transition journal version: {self.schema_version}"
-            )
-        object.__setattr__(self, "policy_id", str(self.policy_id))
-        object.__setattr__(self, "operator", _journal_operator(self.operator))
-        object.__setattr__(
-            self, "operator_input", _to_plain_data(dict(self.operator_input))
-        )
-        object.__setattr__(
-            self,
-            "version_policy_snapshot",
-            _version_policy_snapshot(self.version_policy_snapshot),
-        )
-        object.__setattr__(
-            self, "normalized_state_in", _to_plain_data(dict(self.normalized_state_in))
-        )
-        object.__setattr__(
-            self,
-            "normalized_state_out",
-            _to_plain_data(dict(self.normalized_state_out)),
-        )
-        canonical_json_bytes(_to_plain_data(self.operator_input))
-        canonical_json_bytes(_to_plain_data(self.version_policy_snapshot))
-        canonical_json_bytes(_to_plain_data(self.normalized_state_in))
-        canonical_json_bytes(_to_plain_data(self.normalized_state_out))
-        object.__setattr__(
-            self, "policy_payload", _to_plain_data(dict(self.policy_payload))
-        )
-        object.__setattr__(
-            self,
-            "explanation",
-            {
-                str(atom_id): coerce_revision_atom_detail(detail)
-                for atom_id, detail in self.explanation.items()
-            },
-        )
-
-    @classmethod
-    def from_states(
-        cls,
-        *,
-        state_in: EpistemicState,
-        operation: TransitionOperation,
-        policy_id: str,
-        operator: JournalOperator,
-        operator_input: Mapping[str, Any],
-        version_policy_snapshot: Mapping[str, str],
-        state_out: EpistemicState,
-        explanation: Mapping[str, RevisionAtomDetail],
-        policy_payload: Mapping[str, Any] | None = None,
-    ) -> TransitionJournalEntry:
-        journal_state_out = _state_with_journal_event_policy(
-            state_out,
-            version_policy_snapshot=version_policy_snapshot,
-        )
-        return cls(
-            state_in=EpistemicSnapshot.from_state(state_in),
-            operation=operation,
-            policy_id=policy_id,
-            operator=operator,
-            operator_input=operator_input,
-            version_policy_snapshot=version_policy_snapshot,
-            normalized_state_in=state_in.to_canonical_dict(),
-            normalized_state_out=journal_state_out.to_canonical_dict(),
-            state_out=EpistemicSnapshot.from_state(journal_state_out),
-            explanation=explanation,
-            policy_payload={} if policy_payload is None else policy_payload,
-        )
-
-    @property
-    def content_hash(self) -> str:
-        return _stable_hash(self._hash_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._hash_payload()
-        data["content_hash"] = self.content_hash
-        return data
 
 
 def _state_with_journal_event_policy(
@@ -482,86 +393,3 @@ def _mapping_deltas(
         if old_value != new_value:
             deltas.append(SemanticFieldDelta(surface, key, old_value, new_value))
     return tuple(deltas)
-
-
-def _assert_current_value(
-    state_payload: Mapping[str, Any], delta: SemanticFieldDelta
-) -> None:
-    current = None
-    if delta.surface == "assertion_acceptance":
-        current = _accepted_assertions(state_payload).get(delta.key)
-    elif delta.surface == "warrant":
-        current = (state_payload.get("entrenchment_reasons") or {}).get(delta.key)
-    elif delta.surface == "ranking":
-        current = (state_payload.get("ranking") or {}).get(delta.key)
-    elif delta.surface == "provenance":
-        current = _assertion_provenance(state_payload).get(delta.key)
-    elif delta.surface == "dependency":
-        current = _dependencies(state_payload).get(delta.key)
-    if _to_plain_data(current) != delta.old_value:
-        raise ValueError(
-            f"semantic diff old value mismatch for {delta.surface}.{delta.key}"
-        )
-
-
-def _apply_acceptance_delta(
-    state_payload: dict[str, Any], delta: SemanticFieldDelta
-) -> None:
-    accepted = [
-        str(atom_id) for atom_id in (state_payload.get("accepted_atom_ids") or ())
-    ]
-    if delta.new_value is True and delta.key not in accepted:
-        accepted.append(delta.key)
-    if delta.new_value is not True:
-        accepted = [atom_id for atom_id in accepted if atom_id != delta.key]
-    state_payload["accepted_atom_ids"] = accepted
-
-
-def _set_mapping_value(
-    state_payload: dict[str, Any],
-    field_name: str,
-    key: str,
-    value: Any,
-) -> None:
-    field = dict(state_payload.get(field_name) or {})
-    if value is None:
-        field.pop(key, None)
-    else:
-        field[key] = value
-    state_payload[field_name] = field
-
-
-def _set_atom_provenance(
-    state_payload: dict[str, Any], atom_id: str, value: Any
-) -> None:
-    base = dict(state_payload.get("base") or {})
-    atoms: list[Any] = []
-    for atom in base.get("atoms") or ():
-        if not isinstance(atom, Mapping) or str(atom.get("atom_id")) != atom_id:
-            atoms.append(atom)
-            continue
-        updated_atom = dict(atom)
-        payload = dict(updated_atom.get("payload") or {})
-        payload["source_claim_ids"] = [] if value is None else value
-        updated_atom["payload"] = payload
-        atoms.append(updated_atom)
-    base["atoms"] = atoms
-    state_payload["base"] = base
-
-
-def _apply_dependency_delta(
-    state_payload: dict[str, Any], delta: SemanticFieldDelta
-) -> None:
-    if "." not in delta.key:
-        raise ValueError(f"dependency delta key must identify atom field: {delta.key}")
-    atom_id, field_name = delta.key.rsplit(".", 1)
-    if field_name not in {"support_sets", "essential_support"}:
-        raise ValueError(f"unsupported dependency field: {field_name}")
-    base = dict(state_payload.get("base") or {})
-    field = dict(base.get(field_name) or {})
-    if delta.new_value is None:
-        field.pop(atom_id, None)
-    else:
-        field[atom_id] = delta.new_value
-    base[field_name] = field
-    state_payload["base"] = base

@@ -18,30 +18,6 @@ class EmbeddingModelIdentity:
     content_digest: str = ""
 
     @classmethod
-    def from_model_name(
-        cls,
-        model_name: str,
-        *,
-        provider: str = "litellm",
-        model_version: str = "",
-        normalize: bool | None = None,
-        provider_kwargs: dict[str, Any] | None = None,
-    ) -> "EmbeddingModelIdentity":
-        digest_payload = {
-            "provider": provider,
-            "model_name": model_name,
-            "model_version": model_version,
-            "normalize": normalize,
-            "provider_kwargs": provider_kwargs or {},
-        }
-        return cls(
-            provider=provider,
-            model_name=model_name,
-            model_version=model_version,
-            content_digest=canonical_json_sha256(digest_payload),
-        )
-
-    @classmethod
     def from_registry_row(cls, row: dict[str, Any]) -> "EmbeddingModelIdentity":
         return cls(
             provider=str(row["provider"]),

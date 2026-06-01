@@ -67,64 +67,6 @@ def _init_cli_source(runner: CliRunner, repo: Repository, name: str) -> None:
     assert result.exit_code == 0, result.output
 
 
-def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
-    concept = normalize_concept_payloads(
-        [
-            {
-                "id": name,
-                "canonical_name": name,
-                "status": "accepted",
-                "definition": f"{name} definition",
-                "domain": "source",
-                "form": "structural",
-            }
-        ],
-        default_domain="source",
-    )[0]
-    adds = {
-        f"concepts/{name}.yaml": yaml.safe_dump(
-            concept, sort_keys=False, allow_unicode=True
-        ).encode("utf-8")
-    }
-    try:
-        repo.git.read_file("forms/structural.yaml")
-    except FileNotFoundError:
-        adds["forms/structural.yaml"] = yaml.safe_dump(
-            {"name": "structural", "dimensionless": True},
-            sort_keys=False,
-        ).encode("utf-8")
-    repo.git.commit_batch(
-        adds=adds,
-        deletes=[],
-        message=f"Seed concept {name}",
-        branch="master",
-    )
-    return str(concept["artifact_id"])
-
-
-def _save_source_claims_directly(
-    repo: Repository,
-    source_name: str,
-    claims_payload: dict,
-) -> None:
-    source_doc = repo.families.source_documents.require(SourceRef(source_name))
-    raw_claims = decode_document_batch_bytes(
-        encode_yaml_value(claims_payload),
-        SOURCE_CLAIM_BATCH_SPEC,
-        source=f"source/{source_name}:claims.yaml",
-    )
-    normalized_claims, _ = normalize_source_claims_payload(
-        raw_claims,
-        source_uri=source_doc.id,
-        source_namespace=source_name,
-    )
-    repo.families.source_claims.save(
-        SourceRef(source_name),
-        normalized_claims,
-        message=f"Write drifted claims for {source_name}",
-    )
-
-
 @pytest.fixture()
 def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
     """Build + promote a source with 2 valid + 1 blocked claim.

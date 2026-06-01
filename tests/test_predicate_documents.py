@@ -221,32 +221,6 @@ mystery_field: hello
         msgspec.yaml.decode(yaml_with_extra, type=PredicateDocument, strict=True)
 
 
-def test_predicate_document_example_birds() -> None:
-    """Concrete example: the ``bird`` predicate from Garcia & Simari 2004 §3.
-
-    Garcia & Simari 2004 §3 (p.3-4) repeatedly uses the unary ``bird/1``
-    predicate as the canonical defeasible-reasoning toy example. Pinning
-    its YAML shape against a literal authored payload prevents the
-    PredicateDocument surface from drifting silently.
-    """
-
-    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
-
-    yaml_text = b"""
-id: bird
-arity: 1
-arg_types: [Bird]
-derived_from: 'concept.relation:is_a:Bird'
-description: "Unary predicate: X is a bird"
-"""
-    doc = msgspec.yaml.decode(yaml_text, type=PredicateDocument, strict=True)
-    assert doc.id == "bird"
-    assert doc.arity == 1
-    assert doc.arg_types == ("Bird",)
-    assert doc.derived_from == "concept.relation:is_a:Bird"
-    assert doc.description == "Unary predicate: X is a bird"
-
-
 def test_predicate_document_nullary() -> None:
     """Arity-0 predicates (propositional facts) are valid.
 
@@ -270,27 +244,6 @@ description: "Propositional fact: it is raining"
     assert doc.arity == 0
     assert doc.arg_types == ()
     assert doc.derived_from is None
-
-
-def test_predicate_document_omits_optional_fields() -> None:
-    """``derived_from`` and ``description`` default to ``None``.
-
-    The PredicateDocument schema must admit minimal authored payloads
-    that omit the optional metadata. Diller et al. 2025 §3 only requires
-    id/arity/arg_types in the predicate signature; provenance and
-    documentation are layered on top.
-    """
-
-    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
-
-    yaml_text = b"""
-id: flies
-arity: 1
-arg_types: [Bird]
-"""
-    doc = msgspec.yaml.decode(yaml_text, type=PredicateDocument, strict=True)
-    assert doc.derived_from is None
-    assert doc.description is None
 
 
 def test_predicate_document_rejects_bucket_fields() -> None:

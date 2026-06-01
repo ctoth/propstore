@@ -23,29 +23,6 @@ def _dump_yaml(data: dict[str, Any]) -> bytes:
     return yaml.safe_dump(data, sort_keys=False).encode("utf-8")
 
 
-def _commit_yaml(
-    repo: Repository,
-    relative_path: str,
-    data: dict[str, Any],
-    message: str,
-    *,
-    branch: str | None = None,
-    normalize: bool = False,
-    default_namespace: str | None = None,
-) -> str:
-    payload = data
-    if normalize:
-        payload, _ = normalize_claim_file_payload(
-            data, default_namespace=default_namespace
-        )
-    content = _dump_yaml(payload)
-    assert repo.git is not None
-    effective_branch = "master" if branch is None else branch
-    return repo.git.commit_files(
-        {relative_path: content}, message, branch=effective_branch
-    )
-
-
 def _toy_claim(
     claim_id: str,
     statement: str,

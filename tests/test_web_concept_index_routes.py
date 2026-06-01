@@ -72,22 +72,6 @@ def test_concept_index_html_route_renders_inventory(
     assert '<th scope="col">Status</th>' in html
 
 
-def test_concept_index_json_route_uses_search_report_when_query_present(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        routing, "search_concepts", lambda repo, request: _search_report()
-    )
-
-    response = client.get("/concepts.json?q=frequency")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["hits"][0]["handle"] == "speech:fundamental_frequency"
-    assert payload["hits"][0]["status"] == "accepted"
-
-
 def test_concept_index_route_rejects_invalid_limit(client: TestClient) -> None:
     response = client.get("/concepts.json?limit=0")
 

@@ -127,28 +127,6 @@ def _rule_kind(raw: object) -> str:
     return value
 
 
-def _registered_predicates(repo: Repository, source_paper: str) -> tuple[set[str], str]:
-    predicates = tuple(
-        handle.document
-        for handle in repo.families.predicates.iter_handles()
-        if handle.document.authoring_group == source_paper
-    )
-    refs = {f"{predicate.id}/{predicate.arity}" for predicate in predicates}
-    payload = json.dumps(
-        [
-            {
-                "id": predicate.id,
-                "arity": predicate.arity,
-                "arg_types": list(predicate.arg_types),
-            }
-            for predicate in predicates
-        ],
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return refs, _sha(payload)
-
-
 def _proposal_from_raw(
     raw_rule: dict[str, Any],
     *,
@@ -182,90 +160,4 @@ def _proposal_from_raw(
         ),
         extraction_date=str(date.today()),
         page_reference=str(raw_rule.get("page_reference") or ""),
-    )
-
-
-def propose_rules_for_paper(
-    repo: Repository,
-    *,
-    source_paper: str,
-    model_name: str,
-    prompt_version: str = "v1",
-    dry_run: bool = False,
-    llm_response: str | None = None,
-) -> RuleProposalResult:
-    notes = _paper_notes(source_paper)
-    registered, predicates_sha = _registered_predicates(repo, source_paper)
-    raw = llm_response
-    if raw is None:
-        raw = _llm_call(
-            model_name=model_name,
-            prompt=PROMPT_TEMPLATE,
-            prompt_version=prompt_version,
-            source_paper=source_paper,
-            notes=notes,
-            predicates=sorted(registered),
-        )
-    raw_rules = _loads_payload(raw).get("rules")
-    if not isinstance(raw_rules, list):
-        raise ValueError("rule extraction output requires rules list")
-
-    proposals: list[AuthoredRuleProposalArtifact] = []
-    rejections: list[RuleRejection] = []
-    notes_sha = _sha(notes)
-    for index, item in enumerate(raw_rules, start=1):
-        if not isinstance(item, dict):
-            raise ValueError(f"rule candidate {index} must be an object")
-        refs = tuple(str(ref) for ref in item.get("predicates_referenced", ()))
-        missing = tuple(ref for ref in refs if ref not in registered)
-        if missing:
-            rejections.append(
-                RuleRejection(
-                    rule_id=str(item.get("rule_id", f"rule-{index:03d}")),
-                    reason="rule_extraction_predicate_unknown",
-                    predicates_referenced=missing,
-                    status="vacuous",
-                )
-            )
-            continue
-        proposals.append(
-            _proposal_from_raw(
-                item,
-                source_paper=source_paper,
-                model_name=model_name,
-                notes_sha=notes_sha,
-                predicates_sha=predicates_sha,
-            )
-        )
-
-    refs = [RuleProposalRef(source_paper, proposal.rule_id) for proposal in proposals]
-    relpaths = tuple(
-        repo.families.proposal_rules.address(ref).require_path() for ref in refs
-    )
-    if dry_run or not proposals:
-        return RuleProposalResult(
-            commit_sha=None,
-            rule_ids=tuple(proposal.rule_id for proposal in proposals),
-            relpaths=relpaths,
-            proposals=tuple(proposals),
-            rejections=tuple(rejections),
-        )
-
-    commit_sha: str | None = None
-    with repo.families.transact(
-        message=f"Record {len(proposals)} rule proposal file(s) for {source_paper}",
-        branch=rule_proposal_branch(),
-    ) as transaction:
-        for ref, proposal in zip(refs, proposals, strict=True):
-            transaction.proposal_rules.save(ref, proposal)
-        transaction.transaction.commit()
-        commit_sha = transaction.commit_sha
-    if commit_sha is None:
-        raise ValueError("rule proposal transaction did not produce a commit")
-    return RuleProposalResult(
-        commit_sha=commit_sha,
-        rule_ids=tuple(proposal.rule_id for proposal in proposals),
-        relpaths=relpaths,
-        proposals=tuple(proposals),
-        rejections=tuple(rejections),
     )

@@ -454,9 +454,3 @@ def _display_for_id(world, claim_id: str) -> str:
 
 def _claim_display_id(claim) -> str:
     return claim.primary_logical_id or str(claim.id)
-
-
-def _claim_conditions_cel(claim) -> str | None:
-    if claim.text_payload is None:
-        return None
-    return claim.text_payload.conditions_cel

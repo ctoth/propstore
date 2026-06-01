@@ -64,40 +64,6 @@ BRIDGE_RATIONALITY_MAX_ARGUMENTS = 10
 BRIDGE_RATIONALITY_MAX_COMPLETE_CANDIDATES = 1 << BRIDGE_RATIONALITY_MAX_ARGUMENTS
 
 
-def _make_claim(
-    claim_id: str,
-    *,
-    concept_id: str | None = None,
-    sample_size: int | None = None,
-    uncertainty: float | None = None,
-    confidence: float | None = None,
-    premise_kind: str = "ordinary",
-) -> Claim:
-    """Build a typed claim model matching propstore's active claim format."""
-    claim = Claim(
-        id=claim_id,
-        type="parameter",
-        target_concept=concept_id or f"concept_{claim_id}",
-        context_id=None,
-        premise_kind=premise_kind,
-    )
-    claim.concept_links = []
-    claim.source_assertions = []
-    claim.numeric_payload = ClaimNumericPayload(
-        claim_id=claim_id,
-        sample_size=sample_size,
-        uncertainty=uncertainty,
-        confidence=confidence,
-    )
-    if sample_size is not None:
-        claim.sample_size = sample_size
-    if uncertainty is not None:
-        claim.uncertainty = uncertainty
-    if confidence is not None:
-        claim.confidence = confidence
-    return claim
-
-
 def _claim_id(claim: Claim) -> str:
     return str(claim.id)
 

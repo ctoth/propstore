@@ -515,12 +515,3 @@ class OverlayWorld(BeliefSpace):
             ) != _value_set(hypothetical_result):
                 result[concept_id] = (base_result, hypothetical_result)
         return result
-
-
-def _value_set(vr: ValueResult) -> set[float]:
-    return {
-        numeric_payload.value
-        for claim in vr.claims
-        if (numeric_payload := claim.numeric_payload) is not None
-        and numeric_payload.value is not None
-    }

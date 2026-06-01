@@ -63,23 +63,6 @@ def _decode_yaml(content: bytes, *, path: str) -> dict[str, Any]:
     return decode_yaml_mapping(content, source=path)
 
 
-def _planned_write(
-    store: DocumentFamilyStore["Repository"],
-    path: str,
-    payload: object,
-) -> PlannedSemanticWrite:
-    family = _semantic_import_registry().family_for_path(path).artifact_family
-    ref = store.ref_from_path(cast(Any, family), path)
-    document = store.coerce(cast(Any, family), payload, source=path)
-    address = store.address(cast(Any, family), ref)
-    return PlannedSemanticWrite(
-        family=family,
-        ref=ref,
-        document=document,
-        relpath=SemanticFamilyAddress(address.require_path()),
-    )
-
-
 def _planned_claim_document_write(
     store: DocumentFamilyStore["Repository"],
     document: ClaimDocument,
@@ -118,89 +101,6 @@ def _rewrite_indexed_reference(value: Any, index) -> Any:
     return index.resolve_id(value) or value
 
 
-def _normalize_concept_batch(
-    store: DocumentFamilyStore["Repository"],
-    paths: Sequence[str],
-    writes: Mapping[str, bytes],
-    state: SourceImportState,
-) -> Mapping[str, PlannedSemanticWrite]:
-    seeded: dict[str, PlannedSemanticWrite] = {}
-    for path in paths:
-        payload = _decode_yaml(writes[path], path=path)
-        canonical_name = payload.get("canonical_name")
-        raw_id = payload.get("id")
-        effective_name = (
-            canonical_name
-            if isinstance(canonical_name, str) and canonical_name
-            else str(raw_id or Path(path).stem or "concept")
-        )
-        payload.setdefault("canonical_name", effective_name)
-        payload.setdefault("status", "proposed")
-        payload.setdefault("definition", effective_name)
-        payload.setdefault("form", "structural")
-
-        normalized_payload, reference_keys = _normalize_concept_payload(
-            payload, default_domain=state.repository_name
-        )
-        concept_write = _planned_write(store, path, normalized_payload)
-        seeded[path] = concept_write
-        artifact_id = getattr(concept_write.document, "artifact_id", None)
-        if not isinstance(artifact_id, str) or not artifact_id:
-            raise ValueError(
-                f"Imported concept {path!r} is missing artifact_id after normalization"
-            )
-        for reference_key in reference_keys:
-            state.concept_ref_map[str(reference_key)] = artifact_id
-
-    normalized: dict[str, PlannedSemanticWrite] = {}
-    for path, concept_write in seeded.items():
-        payload = _document_payload(store, concept_write)
-        if not isinstance(payload, dict):
-            raise TypeError(
-                f"Imported concept {path!r} did not render to a mapping payload"
-            )
-        normalized[path] = _planned_write(
-            store,
-            path,
-            _rewrite_concept_payload_refs(
-                payload, concept_ref_map=state.concept_ref_map
-            ),
-        )
-    return normalized
-
-
-def _normalize_claim_batch(
-    store: DocumentFamilyStore["Repository"],
-    paths: Sequence[str],
-    writes: Mapping[str, bytes],
-    state: SourceImportState,
-) -> Mapping[str, PlannedSemanticWrite]:
-    normalized: dict[str, PlannedSemanticWrite] = {}
-    for path in paths:
-        payload = _decode_yaml(writes[path], path=path)
-        if isinstance(payload.get("claims"), list):
-            raise ValueError(
-                f"Imported claim path {path!r} is an aggregate; "
-                "canonical repository imports require one claim artifact per file"
-            )
-        normalized_claim = normalize_imported_claim_artifact(
-            payload,
-            default_namespace=state.repository_name,
-            default_source=_claim_source_from_import_path(path),
-            concept_map=state.concept_ref_map,
-            source=path,
-        )
-        planned_write = _planned_claim_document_write(
-            store, normalized_claim.document, source=path
-        )
-        normalized[planned_write.relpath] = planned_write
-        for local_id, artifact_id in normalized_claim.local_handle_map.items():
-            state.imported_claim_handles.append(
-                ImportedClaimReference(handle=local_id, artifact_id=artifact_id)
-            )
-    return normalized
-
-
 def _record_imported_claim_handle_ambiguities(state: SourceImportState) -> None:
     try:
         imported_claim_reference_index(state.imported_claim_handles)
@@ -209,45 +109,6 @@ def _record_imported_claim_handle_ambiguities(state: SourceImportState) -> None:
             "ambiguous imported claim handle "
             f"{exc.reference!r}: {', '.join(exc.candidates)}"
         )
-
-
-def _normalize_stance_batch(
-    store: DocumentFamilyStore["Repository"],
-    paths: Sequence[str],
-    writes: Mapping[str, bytes],
-    state: SourceImportState,
-) -> Mapping[str, PlannedSemanticWrite]:
-    normalized: dict[str, PlannedSemanticWrite] = {}
-    claim_index = imported_claim_reference_index(state.imported_claim_handles)
-    for path in paths:
-        payload = dict(_decode_yaml(writes[path], path=path))
-        payload["source_claim"] = _rewrite_indexed_reference(
-            payload.get("source_claim"),
-            claim_index,
-        )
-        raw_stances = payload.get("stances")
-        if isinstance(raw_stances, list):
-            payload["stances"] = [
-                (
-                    {
-                        **stance,
-                        "target": _rewrite_indexed_reference(
-                            stance.get("target"),
-                            claim_index,
-                        ),
-                    }
-                    if isinstance(stance, dict)
-                    else stance
-                )
-                for stance in raw_stances
-            ]
-        if isinstance(payload.get("target"), str):
-            payload["target"] = _rewrite_indexed_reference(
-                payload.get("target"),
-                claim_index,
-            )
-        normalized[path] = _planned_write(store, path, payload)
-    return normalized
 
 
 def _normalize_passthrough_batch(

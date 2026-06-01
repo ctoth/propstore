@@ -175,53 +175,6 @@ class ClaimRelateReport:
     no_relation: int | None = None
 
 
-def compare_algorithm_claims(
-    world: WorldQuery,
-    request: ClaimCompareRequest,
-) -> ClaimCompareReport:
-    from ast_equiv import compare as ast_compare
-
-    claim_a = world.get_claim(request.claim_a_id)
-    if claim_a is None:
-        raise UnknownClaimError(request.claim_a_id)
-    claim_b = world.get_claim(request.claim_b_id)
-    if claim_b is None:
-        raise UnknownClaimError(request.claim_b_id)
-
-    body_a = (
-        None if claim_a.algorithm_payload is None else claim_a.algorithm_payload.body
-    )
-    body_b = (
-        None if claim_b.algorithm_payload is None else claim_b.algorithm_payload.body
-    )
-    if (
-        not isinstance(body_a, str)
-        or not isinstance(body_b, str)
-        or not body_a
-        or not body_b
-    ):
-        raise ClaimComparisonError("Both claims must be algorithm claims with a body.")
-
-    try:
-        result = ast_compare(
-            body_a,
-            claim_a.variable_bindings(),
-            body_b,
-            claim_b.variable_bindings(),
-            known_values=dict(request.known_values) if request.known_values else None,
-        )
-    except RecursionError as exc:
-        raise ClaimComparisonError(
-            "Algorithm comparison exceeded recursion depth."
-        ) from exc
-    return ClaimCompareReport(
-        tier=result.tier,
-        equivalent=result.equivalent,
-        similarity=float(result.similarity),
-        details=result.details,
-    )
-
-
 def compare_algorithm_claims_from_repo(
     repo: Repository,
     request: ClaimCompareRequest,

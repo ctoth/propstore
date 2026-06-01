@@ -561,54 +561,6 @@ def _add_required_behavior_blocks(
         blocks.append(_world_behavior_comparison(name, before_path, after_path))
 
 
-def _world_behavior_comparison(
-    name: str,
-    before_path: Path,
-    after_path: Path,
-) -> dict[str, Any]:
-    try:
-        with _world_behavior_baseline_path(
-            before_path,
-            after_path=after_path,
-        ) as behavior_before_path:
-            before_value = _world_behavior_payload(name, behavior_before_path)
-            after_value = _world_behavior_payload(name, after_path)
-    except Exception as exc:
-        return _comparison_block(
-            name,
-            "fail",
-            0,
-            0,
-            (),
-            (),
-            (f"error:{type(exc).__name__}:{exc}",),
-            [f"{name} behavior comparison failed: {type(exc).__name__}: {exc}"],
-        )
-    if before_value == after_value:
-        return _comparison_block(name, "pass", 1, 1, (), (), (), [])
-    before_hash = _stable_value_hash(before_value)
-    after_hash = _stable_value_hash(after_value)
-    return _comparison_block(
-        name,
-        "fail",
-        1,
-        1,
-        (),
-        (),
-        (f"{before_hash}->{after_hash}",),
-        [f"{name} behavior changed: {before_hash} -> {after_hash}"],
-    )
-
-
-def _stable_value_hash(value: Any) -> str:
-    payload = json.dumps(
-        _stable_value(value),
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
 def _stable_value(value: Any) -> Any:
     if is_dataclass(value) and not isinstance(value, type):
         return _stable_value(asdict(value))

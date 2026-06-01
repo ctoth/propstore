@@ -303,12 +303,6 @@ def _validate_logical_ids(
     return formatted_ids
 
 
-def normalize_concept_record(data: dict) -> dict:
-    from propstore.families.concepts.stages import normalize_concept_payload
-
-    return normalize_concept_payload(data)
-
-
 @dataclass(frozen=True)
 class ConceptPipelineContext:
     claims_dir: KnowledgePath | None = None
@@ -338,18 +332,6 @@ class ConceptIdentityPass:
     version = "1"
     input_stage = ConceptStage.NORMALIZED
     output_stage = ConceptStage.BOUND
-
-    def run(
-        self,
-        value: ConceptNormalizedSet,
-        context: object,
-    ) -> PassResult[ConceptBoundRegistry]:
-        return PassResult.ok(
-            ConceptBoundRegistry(
-                concepts=value.concepts,
-                registry=concept_payload_registry(value.concepts),
-            )
-        )
 
 
 class ConceptSemanticCheckPass:

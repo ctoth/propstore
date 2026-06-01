@@ -20,27 +20,6 @@ from tests.claim_model_helpers import make_claim
 
 
 class _RevisionStore:
-    def __init__(self, *, claims: list[Claim]) -> None:
-        condition_rows = [
-            {"conditions_cel": claim.text_payload.conditions_cel}
-            for claim in claims
-            if claim.text_payload is not None
-        ]
-        self._condition_registry = condition_registry_for_rows(condition_rows)
-        self._claims = tuple(claims)
-        for claim in self._claims:
-            text_payload = claim.text_payload
-            if (
-                text_payload is not None
-                and text_payload.conditions_cel
-                and not text_payload.conditions_ir
-            ):
-                text_payload.conditions_ir = condition_ir_json(
-                    text_payload.conditions_cel,
-                    self._condition_registry,
-                )
-        self._solver = ConditionSolver(self._condition_registry)
-
     def claims_for(self, concept_id: str | None) -> list[Claim]:
         if concept_id is None:
             return list(self._claims)

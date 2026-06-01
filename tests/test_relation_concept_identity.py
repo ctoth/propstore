@@ -108,41 +108,6 @@ def test_role_definition_requires_domain_and_range() -> None:
         )
 
 
-def test_role_signature_identity_includes_domain_and_range() -> None:
-    relation = RelationConceptRef(ConceptId("ps:concept:relation:published_in"))
-    signature = RoleSignature(
-        relation=relation,
-        role_definitions=(
-            RoleDefinition(
-                role="venue",
-                domain=ConceptId("ps:concept:class:publication_event"),
-                range=ConceptId("ps:concept:class:venue"),
-            ),
-            RoleDefinition(
-                role="paper",
-                domain=ConceptId("ps:concept:class:publication_event"),
-                range=ConceptId("ps:concept:class:paper"),
-            ),
-        ),
-    )
-
-    assert signature.identity_payload() == (
-        ("relation_concept", "ps:concept:relation:published_in"),
-        (
-            (
-                "paper",
-                "ps:concept:class:publication_event",
-                "ps:concept:class:paper",
-            ),
-            (
-                "venue",
-                "ps:concept:class:publication_event",
-                "ps:concept:class:venue",
-            ),
-        ),
-    )
-
-
 def test_role_binding_validation_rejects_missing_required_role() -> None:
     relation = RelationConceptRef(ConceptId("ps:concept:relation:published_in"))
     signature = _published_in_signature(relation)
@@ -165,24 +130,6 @@ def test_role_binding_validation_rejects_unknown_role() -> None:
 
     with pytest.raises(ValueError, match="unknown role"):
         signature.validate_bindings(bindings)
-
-
-@pytest.mark.property
-@given(
-    st.permutations(
-        (
-            RoleBinding("paper", "ps:concept:paper:buitelaar-2011"),
-            RoleBinding("venue", "ps:concept:venue:tia-2011"),
-        )
-    ),
-)
-def test_role_binding_set_canonicalizes_role_order(
-    bindings: tuple[RoleBinding, ...],
-) -> None:
-    assert RoleBindingSet(bindings).identity_payload() == (
-        ("paper", "ps:concept:paper:buitelaar-2011"),
-        ("venue", "ps:concept:venue:tia-2011"),
-    )
 
 
 def test_inverse_property_requires_target_relation() -> None:

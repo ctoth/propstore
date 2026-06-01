@@ -94,70 +94,6 @@ class _LiftingSystemLoader(Protocol):
     def _load_lifting_system(self) -> LiftingSystem | None: ...
 
 
-def _recomputed_conflicts(
-    world,
-    claims: list[Claim],
-    *,
-    precomputed_inputs: ConflictDetectorInputs | None = None,
-) -> list[ConflictWitness]:
-    """Revalidate active conflicts against the live belief space.
-
-    ``precomputed_inputs`` is an optional typed cache payload carrying the
-    concept + CEL registry. When ``None`` (the default, used by overlay call
-    sites in ``propstore.world.overlay``), the registry is rebuilt from
-    ``world`` — this is the correct behavior for ``_GraphOverlayStore``,
-    because overlay instances must not share cache state with the base
-    ``BoundWorld._store``. ``BoundWorld.conflicts`` passes its own per-instance
-    cached inputs through to skip the rebuild.
-    """
-
-    from propstore.conflict_detector import detect_conflicts
-    from propstore.conflict_detector.collectors import conflict_claim_from_claim
-
-    if len(claims) < 2:
-        return []
-    if not isinstance(world, WorldConflictProjectionStore):
-        return []
-
-    conflict_claims = [
-        conflict_claim
-        for active_claim in claims
-        if (conflict_claim := conflict_claim_from_claim(active_claim)) is not None
-    ]
-    if precomputed_inputs is None:
-        inputs = conflict_detector_inputs_for_world(world)
-        concept_registry = inputs.concept_registry
-        cel_registry = inputs.cel_registry
-    else:
-        concept_registry = precomputed_inputs.concept_registry
-        cel_registry = precomputed_inputs.cel_registry
-    lifting_system = (
-        world._load_lifting_system()
-        if isinstance(world, _LiftingSystemLoader)
-        else None
-    )
-    records = detect_conflicts(
-        conflict_claims,
-        concept_registry,
-        cel_registry,
-        lifting_system=lifting_system,
-    )
-    return [
-        ConflictWitness(
-            concept_id=ConceptId(record.concept_id),
-            claim_a_id=ClaimId(record.claim_a_id),
-            claim_b_id=ClaimId(record.claim_b_id),
-            warning_class=record.warning_class.value,
-            conditions_a=json.dumps(record.conditions_a),
-            conditions_b=json.dumps(record.conditions_b),
-            value_a=record.value_a,
-            value_b=record.value_b,
-            derivation_chain=record.derivation_chain,
-        )
-        for record in records
-    ]
-
-
 class BoundWorld(BeliefSpace):
     """The world under specific condition bindings, optionally scoped to a context."""
 
@@ -545,20 +481,6 @@ class BoundWorld(BeliefSpace):
             max_candidates=max_candidates,
         )
 
-    def revision_explain(
-        self,
-        result,
-        *,
-        overrides: Mapping[str, Mapping[str, object]] | None = None,
-    ):
-        """Render the default explanation payload for a revision result."""
-        from propstore.support_revision.explain import build_revision_explanation
-
-        return build_revision_explanation(
-            result,
-            entrenchment=self.revision_entrenchment(overrides=overrides),
-        )
-
     def epistemic_state(
         self,
         *,
@@ -571,12 +493,6 @@ class BoundWorld(BeliefSpace):
             self.revision_base(),
             self.revision_entrenchment(overrides=overrides),
         )
-
-    def revision_state_snapshot(self, state):
-        """Render an iterated revision state as the worldline persistence payload."""
-        from propstore.support_revision.history import EpistemicSnapshot
-
-        return EpistemicSnapshot.from_state(state)
 
     def iterated_revise(
         self,

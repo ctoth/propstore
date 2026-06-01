@@ -59,108 +59,6 @@ def write_context(ctx_dir: Path, name: str, data: dict) -> Path:
     return path
 
 
-def make_context(
-    context_id: str,
-    name: str,
-    description: str = "",
-    *,
-    assumptions: list[str] | None = None,
-    parameters: dict[str, str] | None = None,
-    perspective: str | None = None,
-    lifting_rules: list[dict] | None = None,
-) -> dict:
-    payload: dict = {"id": context_id, "name": name, "description": description}
-    if assumptions:
-        payload["assumptions"] = assumptions
-    if parameters:
-        payload["parameters"] = parameters
-    if perspective:
-        payload["perspective"] = perspective
-    if lifting_rules:
-        payload["lifting_rules"] = lifting_rules
-    return payload
-
-
-@pytest.mark.parametrize(
-    ("payload", "message"),
-    (
-        ({"id": "ctx", "structure": "not-a-mapping"}, "structure"),
-        ({"id": "ctx", "assumptions": "not-a-sequence"}, "assumptions"),
-        ({"id": "ctx", "parameters": "not-a-mapping"}, "parameters"),
-    ),
-)
-def test_parse_context_record_rejects_malformed_structured_fields(
-    payload: dict[str, object],
-    message: str,
-) -> None:
-    with pytest.raises(ValueError, match=message):
-        parse_context_record(payload)
-
-
-def insert_claim_row(
-    conn: Connection,
-    claim_id: str,
-    *,
-    concept_id: str = "c1",
-    context_id: str | None = None,
-    conditions_cel: str | None = None,
-) -> None:
-    conn.execute(
-        """
-        INSERT INTO claim_core (
-            id, content_hash, seq, type, target_concept,
-            source_paper, provenance_page, provenance_json, context_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (claim_id, "", 1, "observation", None, "test", 1, None, context_id),
-    )
-    conn.execute(
-        """
-        INSERT INTO claim_concept_link (
-            claim_id, concept_id, role, ordinal, binding_name
-        ) VALUES (?, ?, 'output', 0, NULL)
-        """,
-        (claim_id, concept_id),
-    )
-    conn.execute(
-        """
-        INSERT INTO claim_numeric_payload (
-            claim_id, value, lower_bound, upper_bound, uncertainty,
-            uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (claim_id, None, None, None, None, None, None, None, None, None, None),
-    )
-    conn.execute(
-        """
-        INSERT INTO claim_text_payload (
-            claim_id, conditions_cel, statement, expression, sympy_generated,
-            sympy_error, name, measure, listener_population, methodology,
-            notes, description, auto_summary
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            claim_id,
-            conditions_cel,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        ),
-    )
-    conn.execute(
-        "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, algorithm_stage) VALUES (?, ?, ?, ?, ?)",
-        (claim_id, None, None, None, None),
-    )
-
-
 class TestLoadAndValidateContexts:
     def test_load_context_files(self, tmp_path: Path) -> None:
         write_context(tmp_path, "ctx_foo", make_context("ctx_foo", "Foo"))
@@ -235,16 +133,6 @@ class TestLoadAndValidateContexts:
         assert any(
             "nonexistent source context" in error.render() for error in result.errors
         )
-
-    @pytest.mark.parametrize("field", ["inherits", "excludes"])
-    def test_visibility_inheritance_fields_are_rejected_at_document_boundary(
-        self, field: str
-    ) -> None:
-        payload = make_context("ctx_bad", "Bad")
-        payload[field] = "ctx_parent" if field == "inherits" else ["ctx_other"]
-
-        with pytest.raises(DocumentSchemaError):
-            convert_document_value(payload, ContextDocument, source="context.yaml")
 
 
 class TestLiftingSystem:

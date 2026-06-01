@@ -97,34 +97,6 @@ class InvestigationPlan:
         )
 
     @classmethod
-    def from_fragility_report(
-        cls,
-        report: FragilityReport,
-        *,
-        objective: str,
-        assertion_ids: Sequence[str] = (),
-    ) -> InvestigationPlan:
-        report_payload = {
-            "analysis_scope": report.analysis_scope,
-            "world_fragility": report.world_fragility,
-            "interventions": [
-                intervention.target.intervention_id
-                for intervention in report.interventions
-            ],
-        }
-        return cls(
-            objective=objective,
-            analysis_scope=report.analysis_scope,
-            world_fragility=report.world_fragility,
-            intervention_ids=tuple(
-                intervention.target.intervention_id
-                for intervention in report.interventions
-            ),
-            assertion_ids=tuple(assertion_ids),
-            source_report_hash=_hash(report_payload),
-        )
-
-    @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> InvestigationPlan:
         plan = cls(
             objective=str(data.get("objective") or ""),
@@ -147,16 +119,6 @@ class InvestigationPlan:
             data, plan.plan_id, plan.content_hash, "investigation plan"
         )
         return plan
-
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["plan_id"] = self.plan_id
-        data["content_hash"] = self.content_hash
-        return data
 
 
 @dataclass(frozen=True)
@@ -264,16 +226,6 @@ class InterventionPlan:
         )
         return plan
 
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["plan_id"] = self.plan_id
-        data["content_hash"] = self.content_hash
-        return data
-
 
 def plan_fragility_investigation(
     world: "WorldQuery",
@@ -301,100 +253,6 @@ class ProcessJob:
     journal_entry_hashes: tuple[str, ...] = ()
     schema_version: str = _PROCESS_JOB_VERSION
     job_id: str = ""
-
-    def __post_init__(self) -> None:
-        if self.schema_version != _PROCESS_JOB_VERSION:
-            raise ValueError(f"unsupported process job version: {self.schema_version}")
-        object.__setattr__(self, "kind", JobKind(self.kind))
-        object.__setattr__(self, "snapshot_hash", str(self.snapshot_hash))
-        object.__setattr__(self, "policy_id", str(self.policy_id))
-        object.__setattr__(self, "policy_payload", _plain(dict(self.policy_payload)))
-        object.__setattr__(self, "work_item", _plain(dict(self.work_item)))
-        object.__setattr__(self, "assertion_ids", _strings(self.assertion_ids))
-        object.__setattr__(
-            self, "journal_entry_hashes", _strings(self.journal_entry_hashes)
-        )
-        object.__setattr__(
-            self, "job_id", f"urn:propstore:process-job:{self.content_hash}"
-        )
-
-    @classmethod
-    def for_plan(
-        cls,
-        *,
-        kind: JobKind,
-        plan: InvestigationPlan | InterventionPlan,
-        snapshot: EpistemicSnapshot,
-        policy: PolicyProfile,
-        assertion_ids: Sequence[str] = (),
-        journal_entries: Sequence[TransitionJournalEntry] = (),
-    ) -> ProcessJob:
-        if JobKind(kind) not in {JobKind.INVESTIGATION, JobKind.INTERVENTION}:
-            raise ValueError("plan jobs must be investigation or intervention jobs")
-        return cls(
-            kind=kind,
-            snapshot_hash=snapshot.content_hash,
-            policy_id=policy.profile_id,
-            policy_payload=policy.to_dict(),
-            work_item=plan.to_dict(),
-            assertion_ids=tuple(assertion_ids)
-            + tuple(getattr(plan, "assertion_ids", ())),
-            journal_entry_hashes=tuple(entry.content_hash for entry in journal_entries),
-        )
-
-    @classmethod
-    def for_operation(
-        cls,
-        *,
-        kind: JobKind,
-        operation: TransitionOperation,
-        snapshot: EpistemicSnapshot,
-        policy: PolicyProfile,
-        assertion_ids: Sequence[str] = (),
-        journal_entries: Sequence[TransitionJournalEntry] = (),
-    ) -> ProcessJob:
-        if JobKind(kind) not in {JobKind.REVISION, JobKind.MERGE}:
-            raise ValueError("operation jobs must be revision or merge jobs")
-        return cls(
-            kind=kind,
-            snapshot_hash=snapshot.content_hash,
-            policy_id=policy.profile_id,
-            policy_payload=policy.to_dict(),
-            work_item=operation.to_dict(),
-            assertion_ids=tuple(assertion_ids),
-            journal_entry_hashes=tuple(entry.content_hash for entry in journal_entries),
-        )
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> ProcessJob:
-        job = cls(
-            kind=JobKind(data.get("kind") or ""),
-            snapshot_hash=str(data.get("snapshot_hash") or ""),
-            policy_id=str(data.get("policy_id") or ""),
-            policy_payload=_mapping(data.get("policy_payload") or {}, "policy_payload"),
-            work_item=_mapping(data.get("work_item") or {}, "work_item"),
-            assertion_ids=_strings(
-                _sequence(data.get("assertion_ids") or (), "assertion_ids")
-            ),
-            journal_entry_hashes=_strings(
-                _sequence(
-                    data.get("journal_entry_hashes") or (), "journal_entry_hashes"
-                )
-            ),
-            schema_version=str(data.get("schema_version") or ""),
-        )
-        _check_recorded_identity(data, job.job_id, job.content_hash, "process job")
-        return job
-
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["job_id"] = self.job_id
-        data["content_hash"] = self.content_hash
-        return data
 
 
 @dataclass(frozen=True)
@@ -428,47 +286,6 @@ class ProcessCompletionRecord:
     journal_entry_hashes: tuple[str, ...] = ()
     result_payload: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = _COMPLETION_VERSION
-
-    def __post_init__(self) -> None:
-        if self.schema_version != _COMPLETION_VERSION:
-            raise ValueError(
-                f"unsupported process completion version: {self.schema_version}"
-            )
-        object.__setattr__(self, "job_id", str(self.job_id))
-        object.__setattr__(
-            self, "completed_snapshot_hash", str(self.completed_snapshot_hash)
-        )
-        object.__setattr__(
-            self, "journal_entry_hashes", _strings(self.journal_entry_hashes)
-        )
-        object.__setattr__(self, "result_payload", _plain(dict(self.result_payload)))
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> ProcessCompletionRecord:
-        record = cls(
-            job_id=str(data.get("job_id") or ""),
-            completed_snapshot_hash=str(data.get("completed_snapshot_hash") or ""),
-            journal_entry_hashes=_strings(
-                _sequence(
-                    data.get("journal_entry_hashes") or (), "journal_entry_hashes"
-                )
-            ),
-            result_payload=_mapping(data.get("result_payload") or {}, "result_payload"),
-            schema_version=str(data.get("schema_version") or ""),
-        )
-        recorded_hash = data.get("content_hash")
-        if recorded_hash is not None and str(recorded_hash) != record.content_hash:
-            raise ValueError("process completion content_hash does not match payload")
-        return record
-
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
 
 
 @dataclass(frozen=True)
@@ -510,30 +327,6 @@ class EpistemicProcessManager:
             },
         )
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> EpistemicProcessManager:
-        queued = {}
-        for item in _sequence(data.get("queued_jobs") or (), "queued_jobs"):
-            queued_item = QueuedProcessJob.from_dict(_mapping(item, "queued_job"))
-            queued[queued_item.job.job_id] = queued_item
-        completions = {}
-        for item in _sequence(data.get("completions") or (), "completions"):
-            completion = ProcessCompletionRecord.from_dict(_mapping(item, "completion"))
-            completions[completion.job_id] = completion
-        manager = cls(
-            queued_jobs=queued,
-            completions=completions,
-            schema_version=str(data.get("schema_version") or ""),
-        )
-        recorded_hash = data.get("content_hash")
-        if recorded_hash is not None and str(recorded_hash) != manager.content_hash:
-            raise ValueError("process manager content_hash does not match payload")
-        return manager
-
-    @property
-    def content_hash(self) -> str:
-        return _hash(self._content_payload())
-
     def queue(self, job: ProcessJob) -> EpistemicProcessManager:
         existing = self.queued_jobs.get(job.job_id)
         if existing is not None:
@@ -546,37 +339,6 @@ class EpistemicProcessManager:
         return EpistemicProcessManager(
             queued_jobs=queued_jobs,
             completions=self.completions,
-        )
-
-    def complete(
-        self,
-        job_id: str,
-        *,
-        snapshot: EpistemicSnapshot,
-        journal_entries: Sequence[TransitionJournalEntry] = (),
-        result_payload: Mapping[str, Any] | None = None,
-    ) -> EpistemicProcessManager:
-        normalized_job_id = str(job_id)
-        if normalized_job_id not in self.queued_jobs:
-            raise ValueError(
-                f"cannot complete unqueued process job: {normalized_job_id}"
-            )
-        record = ProcessCompletionRecord(
-            job_id=normalized_job_id,
-            completed_snapshot_hash=snapshot.content_hash,
-            journal_entry_hashes=tuple(entry.content_hash for entry in journal_entries),
-            result_payload={} if result_payload is None else result_payload,
-        )
-        existing = self.completions.get(normalized_job_id)
-        if existing is not None:
-            if existing == record:
-                return self
-            raise ValueError(f"conflicting completion for {normalized_job_id}")
-        completions = dict(self.completions)
-        completions[normalized_job_id] = record
-        return EpistemicProcessManager(
-            queued_jobs=self.queued_jobs,
-            completions=completions,
         )
 
     def replay(self) -> ProcessReplayReport:
@@ -604,25 +366,6 @@ class EpistemicProcessManager:
             completed_job_ids=tuple(sorted(self.completions)),
             errors=tuple(errors),
         )
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self._content_payload()
-        data["content_hash"] = self.content_hash
-        return data
-
-
-def _check_recorded_identity(
-    data: Mapping[str, Any],
-    expected_id: str,
-    expected_hash: str,
-    label: str,
-) -> None:
-    recorded_id = data.get("plan_id") or data.get("job_id")
-    if recorded_id is not None and str(recorded_id) != expected_id:
-        raise ValueError(f"{label} id does not match content")
-    recorded_hash = data.get("content_hash")
-    if recorded_hash is not None and str(recorded_hash) != expected_hash:
-        raise ValueError(f"{label} content_hash does not match payload")
 
 
 __all__ = [

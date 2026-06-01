@@ -235,32 +235,6 @@ def search_form_items(
     return tuple(matches)
 
 
-def add_form(
-    repo: Repository, request: FormAddRequest, *, dry_run: bool
-) -> FormAddReport:
-    ref = FormRef(request.name)
-    relpath = repo.families.forms.address(ref).require_path()
-    path = repo.root / relpath
-    if repo.families.forms.exists(ref):
-        raise FormWorkflowError(f"Form '{request.name}' already exists")
-
-    source = f"dry-run:{relpath}" if dry_run else relpath
-    document = convert_document_value(
-        _form_add_payload(request),
-        FORM_DOCUMENT_TYPE,
-        source=source,
-    )
-    if dry_run:
-        return FormAddReport(path=path, document=document, created=False)
-
-    repo.families.forms.save(
-        ref,
-        document,
-        message=f"Add form: {request.name}",
-    )
-    return FormAddReport(path=path, document=document, created=True)
-
-
 def form_references(repo: Repository, name: str) -> tuple[str, ...]:
     references: list[str] = []
     for handle in repo.families.concepts.iter_handles():

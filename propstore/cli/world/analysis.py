@@ -48,44 +48,6 @@ def _coerce_hypothetical_value(value: object) -> float | str | None:
         return value
 
 
-def _parse_hypothetical_add(
-    add_json: str | None,
-) -> tuple[WorldHypotheticalSyntheticClaimSpec, ...]:
-    """Parse the CLI JSON payload for ``world hypothetical --add``."""
-    if add_json is None:
-        return ()
-    try:
-        raw = json.loads(add_json)
-    except json.JSONDecodeError as exc:
-        raise click.ClickException(f"invalid --add JSON: {exc}") from exc
-    entries = [raw] if isinstance(raw, dict) else raw
-    if not isinstance(entries, list):
-        raise click.ClickException("--add JSON must be an object or a list of objects")
-    specs: list[WorldHypotheticalSyntheticClaimSpec] = []
-    for entry in entries:
-        if not isinstance(entry, dict):
-            raise click.ClickException("--add JSON entries must be objects")
-        claim_id = entry.get("id")
-        concept_id = entry.get("concept_id")
-        if not isinstance(claim_id, str) or not claim_id:
-            raise click.ClickException("--add JSON entries require string id")
-        if not isinstance(concept_id, str) or not concept_id:
-            raise click.ClickException("--add JSON entries require string concept_id")
-        conditions = entry.get("conditions", [])
-        if not isinstance(conditions, list):
-            raise click.ClickException("--add JSON conditions must be a list")
-        specs.append(
-            WorldHypotheticalSyntheticClaimSpec(
-                claim_id=claim_id,
-                concept_id=concept_id,
-                claim_type=entry.get("type", "parameter"),
-                value=_coerce_hypothetical_value(entry.get("value")),
-                conditions=tuple(conditions),
-            )
-        )
-    return tuple(specs)
-
-
 def _format_chain_concept(concept) -> str:
     if concept.canonical_name:
         return f"{concept.display_id} ({concept.canonical_name})"

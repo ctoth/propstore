@@ -338,27 +338,6 @@ def _document_contract_name(document_type: type[msgspec.Struct]) -> str:
     return document_type.__name__
 
 
-def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:
-    return ContractEntry(
-        kind="artifact_family",
-        name=family.name,
-        contract_version=family.contract_version,
-        body={
-            **family.contract_body(),
-            "coerce_payload": _callback_id(family.coerce_payload),
-            "decode_bytes": _callback_id(family.decode_bytes),
-            "encode_document": _callback_id(family.encode_document),
-            "render_document": _callback_id(family.render_document),
-            "document_payload": _callback_id(family.document_payload),
-            "scan_type": (
-                None
-                if family.scan_type is None
-                else f"{family.scan_type.__module__}.{family.scan_type.__qualname__}"
-            ),
-        },
-    )
-
-
 def _foreign_key_contract(spec: ForeignKeySpec) -> ContractEntry:
     return ContractEntry(
         kind="foreign_key",

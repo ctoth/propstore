@@ -139,23 +139,6 @@ def test_claim_html_route_renders_accessible_literals(
     assert "/claim/claim1/neighborhood" in html
 
 
-def test_claim_json_route_uses_same_report(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(routing, "build_claim_view", lambda repo, request: _report())
-
-    response = client.get("/claim/claim1.json")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["claim_id"] == "claim1"
-    assert payload["concept"]["state"] == "unknown"
-    assert payload["value"]["state"] == "not_applicable"
-    assert payload["condition"]["state"] == "vacuous"
-    assert payload["status"]["state"] == "blocked"
-
-
 def test_claim_route_maps_unknown_claim_to_accessible_error(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

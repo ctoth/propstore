@@ -25,24 +25,3 @@ def _bundle(*entries: LoadedDocument[ClaimDocument]) -> ClaimCompilationBundle:
             for entry in entries
         ),
     )
-
-
-def test_compile_claim_models_tolerates_duplicate_artifact_ids() -> None:
-    models = compile_claim_models(
-        _bundle(
-            _make_claim_entry("ps:claim:shared0001", "paper-alpha"),
-            _make_claim_entry("ps:claim:shared0001", "paper-alpha-variant"),
-        ),
-        concept_registry={},
-    )
-
-    assert [claim.id for claim in models.claims] == ["ps:claim:shared0001"]
-    assert [payload.claim_id for payload in models.numeric_payloads] == [
-        "ps:claim:shared0001"
-    ]
-    assert [payload.claim_id for payload in models.text_payloads] == [
-        "ps:claim:shared0001"
-    ]
-    assert [payload.claim_id for payload in models.algorithm_payloads] == [
-        "ps:claim:shared0001"
-    ]

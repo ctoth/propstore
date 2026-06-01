@@ -31,12 +31,5 @@ def _safe_ref_part(value: str) -> str:
     return safe.strip("_") or "branch"
 
 
-def _source_paper(argument: MergeArgument) -> str | None:
-    paper = argument.claim.provenance_payload().get("paper")
-    if isinstance(paper, str) and paper:
-        return paper
-    return None
-
-
 def _family_for_path(path: str) -> str:
     return path.replace("\\", "/").split("/", 1)[0]

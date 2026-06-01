@@ -33,42 +33,6 @@ def _seed_context(repo: Repository) -> None:
         )
 
 
-def _seed_master_concept(repo: Repository) -> None:
-    concept = normalize_concept_payloads(
-        [
-            {
-                "id": "claims_identical",
-                "canonical_name": "claims_identical",
-                "status": "accepted",
-                "definition": "A weak identity relation.",
-                "domain": "source",
-                "form": "structural",
-            }
-        ],
-        default_domain="source",
-    )[0]
-    adds = {
-        "concepts/claims_identical.yaml": yaml.safe_dump(
-            concept,
-            sort_keys=False,
-            allow_unicode=True,
-        ).encode("utf-8")
-    }
-    try:
-        repo.git.read_file("forms/structural.yaml")
-    except FileNotFoundError:
-        adds["forms/structural.yaml"] = yaml.safe_dump(
-            {"name": "structural", "dimensionless": True},
-            sort_keys=False,
-        ).encode("utf-8")
-    repo.git.commit_batch(
-        adds=adds,
-        deletes=[],
-        message="Seed claims_identical concept",
-        branch="master",
-    )
-
-
 def _init_source(repo: Repository, runner: CliRunner, name: str) -> None:
     _seed_context(repo)
     result = runner.invoke(
@@ -138,36 +102,6 @@ def _add_claims(
     stored = yaml.safe_load(repo.git.read_file("claims.yaml", commit=source_head))
     return {
         claim["source_local_id"]: claim["artifact_id"] for claim in stored["claims"]
-    }
-
-
-def _save_claims_directly(
-    repo: Repository,
-    source_name: str,
-    claims_payload: dict,
-) -> dict[str, str]:
-    source_doc = repo.families.source_documents.require(SourceRef(source_name))
-    branch = repo.families.source_claims.address(SourceRef(source_name)).branch
-    raw_claims = decode_document_batch_bytes(
-        encode_yaml_value(claims_payload),
-        SOURCE_CLAIM_BATCH_SPEC,
-        source=f"{branch}:claims.yaml",
-    )
-    normalized_claims, _ = normalize_source_claims_payload(
-        raw_claims,
-        source_uri=source_doc.id,
-        source_namespace=source_name,
-    )
-    repo.families.source_claims.save(
-        SourceRef(source_name),
-        normalized_claims,
-        message=f"Write drifted claims for {source_name}",
-        branch=branch,
-    )
-    return {
-        claim.source_local_id: claim.artifact_id
-        for claim in normalized_claims
-        if claim.source_local_id is not None
     }
 
 

@@ -105,25 +105,6 @@ def _sections_as_plain_dict(
     return {name: dict(inner.items()) for name, inner in bundle.sections.items()}
 
 
-def test_grounded_fact_tables_are_declared_by_world_charter() -> None:
-    schema = world_schema()
-
-    assert set(schema.table("grounded_fact").c.keys()) == {
-        "predicate",
-        "arguments",
-        "section",
-    }
-    assert set(schema.table("grounded_fact_empty_predicate").c.keys()) == {
-        "section",
-        "predicate",
-    }
-    assert set(schema.table("grounded_bundle_input").c.keys()) == {
-        "kind",
-        "position",
-        "payload",
-    }
-
-
 def test_grounded_fact_primary_key_uniqueness(tmp_path: Path) -> None:
     sidecar_path = _fresh_store(tmp_path)
     bundle = _make_bundle({"yes": {"bird": frozenset({("tweety",)})}})

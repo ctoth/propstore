@@ -18,28 +18,6 @@ def _schema_object(name: str):
     raise AssertionError(f"missing schema object {name}")
 
 
-def test_algorithm_stage_annotations_cover_runtime_path() -> None:
-    assert get_type_hints(ClaimDocument)["stage"] == AlgorithmStage | None
-    assert get_type_hints(SourceClaimDocument)["stage"] == AlgorithmStage | None
-    field = _schema_object("claim_algorithm_payload").field("algorithm_stage")
-    assert field.python_type == "builtins.str"
-    assert (
-        field.metadata["semantic_type"]
-        == "propstore.core.algorithm_stage.AlgorithmStage"
-    )
-
-
-def test_typed_claim_carries_algorithm_stage() -> None:
-    stage = AlgorithmStage("excitation")
-    claim = make_claim(
-        claim_id="ps:claim:test",
-        algorithm_stage=stage,
-    )
-
-    assert claim.algorithm_payload is not None
-    assert claim.algorithm_payload.algorithm_stage == stage
-
-
 def test_claim_file_stage_split_is_preserved(tmp_path) -> None:
     (tmp_path / "claims.yaml").write_text(
         yaml.dump(

@@ -234,55 +234,6 @@ def reject_rule_document_conflicts(
             )
 
 
-def add_rule(
-    repo: Repository,
-    request: RuleAddRequest,
-) -> RuleAddReport:
-    """Add a rule as ``rules/<rule-id>.yaml``."""
-
-    if not isinstance(request.rule_id, str) or not request.rule_id:
-        raise RuleWorkflowError("rule id must be a non-empty string")
-    if request.kind not in _RULE_KINDS:
-        raise RuleWorkflowError(
-            f"rule kind must be one of {list(_RULE_KINDS)}, got {request.kind!r}"
-        )
-    if not isinstance(request.paper, str) or not request.paper:
-        raise RuleWorkflowError("rule paper slug must be a non-empty string")
-
-    ref = RuleRef(request.rule_id)
-    relpath = repo.families.rules.address(ref).require_path()
-    filepath = repo.root / relpath
-
-    git = repo.git
-    if git is None:
-        raise ValueError("rule authoring requires a git-backed repository")
-    with (
-        _RULE_MUTATION_LOCK,
-        git.head_bound_transaction(
-            repo.require_git().primary_branch_name(),
-        ) as head_txn,
-    ):
-        document = convert_document_value(
-            _rule_document_payload(request),
-            RuleDocument,
-            source=relpath,
-        )
-        reject_rule_document_conflicts(
-            repo,
-            commit=head_txn.expected_head,
-            target_ref=ref,
-            document=document,
-        )
-
-        with head_txn.families_transact(
-            repo.families,
-            message=f"Declare rule {request.rule_id}",
-        ) as transaction:
-            transaction.rules.save(ref, document)
-
-    return RuleAddReport(filepath=filepath, document=document, created=True)
-
-
 def list_rules(repo: Repository) -> tuple[RuleListItem, ...]:
     items: list[RuleListItem] = []
     for handle in repo.families.rules.iter_handles():

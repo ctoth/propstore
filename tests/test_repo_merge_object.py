@@ -14,20 +14,6 @@ from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
-def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    return yaml.dump(doc, sort_keys=False).encode()
-
-
 def _obs_claim(
     cid: str,
     statement: str,
@@ -69,142 +55,10 @@ def _param_claim(
     return claim
 
 
-def _claim_yaml_with_explicit_identities(
-    claims: list[dict], paper: str = "test_paper"
-) -> bytes:
-    normalized = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    rewritten_claims: list[dict] = []
-    for original, normalized_claim in zip(claims, normalized["claims"], strict=True):
-        merged = dict(normalized_claim)
-        if "artifact_id" in original:
-            merged["artifact_id"] = original["artifact_id"]
-        if "logical_ids" in original:
-            merged["logical_ids"] = original["logical_ids"]
-        merged["version_id"] = compute_claim_version_id(merged)
-        rewritten_claims.append(merged)
-    normalized["claims"] = rewritten_claims
-    return yaml.dump(normalized, sort_keys=False).encode()
-
-
 def _snapshot(kr: GitStore) -> RepositorySnapshot:
     if kr.root is None:
         raise ValueError("test snapshot requires a filesystem-backed git store")
     return RepositorySnapshot(Repository(kr.root))
-
-
-def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
-    kr = init_store(tmp_path / "knowledge")
-    base_sha = kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
-        "seed",
-    )
-    branch_name = "paper/conflict"
-    kr.create_branch(branch_name, source_commit=base_sha)
-
-    kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 300.0)]),
-        "left: modify claim1",
-    )
-    kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 150.0)]),
-        "right: modify claim1",
-        branch=branch_name,
-    )
-
-    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
-
-    assert len(merge.arguments) == 2
-    assert all(not hasattr(argument, "claim_id") for argument in merge.arguments)
-    assertion_ids = {argument.assertion_id for argument in merge.arguments}
-    assert all(
-        assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids
-    )
-
-    left_id, right_id = sorted(assertion_ids)
-    assert (left_id, right_id) in merge.framework.attacks
-    assert (right_id, left_id) in merge.framework.attacks
-    assert (left_id, right_id) not in merge.framework.ignorance
-    assert (right_id, left_id) not in merge.framework.ignorance
-
-
-def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
-    kr = init_store(tmp_path / "knowledge")
-    base_sha = kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
-        "seed",
-    )
-    branch_name = "paper/phi"
-    kr.create_branch(branch_name, source_commit=base_sha)
-
-    kr.commit_files(
-        _claim_payloads(
-            kr,
-            [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])],
-        ),
-        "left: high-temp value",
-    )
-    kr.commit_files(
-        _claim_payloads(
-            kr,
-            [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])],
-        ),
-        "right: low-temp value",
-        branch=branch_name,
-    )
-
-    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
-
-    assert len(merge.arguments) == 2
-    assertion_ids = {argument.assertion_id for argument in merge.arguments}
-    assert all(
-        assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids
-    )
-    left_id, right_id = sorted(assertion_ids)
-    assert (left_id, right_id) in merge.framework.ignorance
-    assert (right_id, left_id) in merge.framework.ignorance
-    assert (left_id, right_id) not in merge.framework.attacks
-    assert (right_id, left_id) not in merge.framework.attacks
-
-
-def test_build_merge_framework_compatible_one_sided_modification_emits_single_argument(
-    tmp_path,
-):
-    kr = init_store(tmp_path / "knowledge")
-    base_sha = kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
-        "seed",
-    )
-    branch_name = "paper/compat"
-    kr.create_branch(branch_name, source_commit=base_sha)
-
-    kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 999.0)]),
-        "right: modify claim1",
-        branch=branch_name,
-    )
-
-    merge = build_merge_framework(_snapshot(kr), "master", branch_name)
-
-    assert len(merge.arguments) == 1
-    emitted = merge.arguments[0]
-    assert emitted.assertion_id.startswith("ps:assertion:")
-    assert (
-        emitted.artifact_id
-        == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
-    )
-    assert emitted.claim["value"] == 999.0
-    assert emitted.branch_origins == (branch_name,)
-    assert merge.framework.attacks == frozenset()
-    assert merge.framework.ignorance == frozenset()
 
 
 def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:

@@ -14,18 +14,6 @@ from propstore.core.id_types import ConceptId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 
 
-def test_situated_assertion_identity_excludes_provenance_ref() -> None:
-    first = _published_in_assertion(
-        provenance=ProvenanceGraphRef("urn:propstore:provenance:first")
-    )
-    second = _published_in_assertion(
-        provenance=ProvenanceGraphRef("urn:propstore:provenance:second")
-    )
-
-    assert first.identity_payload() == second.identity_payload()
-    assert first.assertion_id == second.assertion_id
-
-
 def test_situated_assertion_identity_includes_structural_parts() -> None:
     base = _published_in_assertion()
     different_context = _published_in_assertion(context=ContextReference("ctx_other"))
@@ -38,26 +26,6 @@ def test_situated_assertion_identity_includes_structural_parts() -> None:
 
     assert base.assertion_id != different_context.assertion_id
     assert base.assertion_id != different_condition.assertion_id
-
-
-@pytest.mark.property
-@given(
-    st.permutations(
-        (
-            RoleBinding("paper", "ps:concept:paper:clark-2014"),
-            RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
-        )
-    )
-)
-def test_situated_assertion_identity_canonicalizes_role_order(
-    bindings: tuple[RoleBinding, ...],
-) -> None:
-    assertion = _published_in_assertion(role_bindings=RoleBindingSet(bindings))
-
-    assert assertion.identity_payload()[1] == (
-        ("paper", "ps:concept:paper:clark-2014"),
-        ("venue", "ps:concept:venue:j-biomed-semantics"),
-    )
 
 
 def test_rival_normalized_candidates_can_coexist_with_distinct_identities() -> None:

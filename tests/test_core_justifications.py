@@ -12,30 +12,6 @@ from tests.claim_model_helpers import claim_from_test_payload
 
 
 class _JustificationStore:
-    def __init__(self) -> None:
-        self._claims = [
-            {"id": "claim_a", "concept_id": "c1", "type": "parameter", "value": 1.0},
-            {"id": "claim_b", "concept_id": "c2", "type": "parameter", "value": 2.0},
-            {"id": "claim_c", "concept_id": "c3", "type": "parameter", "value": 3.0},
-        ]
-        self._claim_models = [claim_from_test_payload(claim) for claim in self._claims]
-        self._stances = [
-            Stance(
-                source_kind="claim",
-                source_id="claim_a",
-                relation_type="supports",
-                target_kind="claim",
-                target_id="claim_b",
-            ),
-            Stance(
-                source_kind="claim",
-                source_id="claim_b",
-                relation_type="explains",
-                target_kind="claim",
-                target_id="claim_c",
-            ),
-        ]
-
     def claims_for(self, concept_id: str | None) -> list[Claim]:
         if concept_id is None:
             return list(self._claim_models)

@@ -238,11 +238,6 @@ class ATMSClaimNode:
             else str(self.claim.value_concept_id)
         )
 
-    @property
-    def value(self) -> float | str | None:
-        numeric_payload = self.claim.numeric_payload
-        return None if numeric_payload is None else numeric_payload.value
-
 
 @dataclass(frozen=True)
 class ATMSMicropublicationNode:

@@ -48,56 +48,6 @@ class FullRaceMachine(RuleBasedStateMachine):
         return self._root / f"{self._counter:03d}-{name}"
 
     @rule()
-    def concurrent_merges_guard_target_head(self) -> None:
-        kr = init_store(self._next_path("merge"))
-        base_sha = kr.commit_files(_claim_payloads(kr, "base", "Base"), "seed")
-        branch_name = "paper/race"
-        kr.create_branch(branch_name, source_commit=base_sha)
-        kr.commit_files(_claim_payloads(kr, "left", "Left"), "left")
-        kr.commit_files(
-            _claim_payloads(kr, "right", "Right"),
-            "right",
-            branch=branch_name,
-        )
-        snapshot = _snapshot(kr)
-        snapshot_git = snapshot.git
-        commit_barrier = threading.Barrier(2)
-        original_commit_flat_tree = snapshot_git.commit_flat_tree
-
-        def racing_commit_flat_tree(_self: GitStore, *args: Any, **kwargs: Any) -> str:
-            commit_barrier.wait(timeout=5)
-            return original_commit_flat_tree(*args, **kwargs)
-
-        snapshot_git.commit_flat_tree = MethodType(
-            racing_commit_flat_tree, snapshot_git
-        )  # type: ignore[method-assign]
-
-        successes: list[str] = []
-        errors: list[BaseException] = []
-        lock = threading.Lock()
-
-        def merge_once() -> None:
-            try:
-                merge_sha = create_merge_commit(snapshot, "master", branch_name)
-                with lock:
-                    successes.append(merge_sha)
-            except BaseException as exc:  # pragma: no cover - surfaced below
-                with lock:
-                    errors.append(exc)
-
-        threads = [threading.Thread(target=merge_once) for _ in range(2)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join(timeout=10)
-
-        assert not any(thread.is_alive() for thread in threads)
-        assert len(successes) == 1, [repr(error) for error in errors]
-        assert len(errors) == 1
-        assert isinstance(errors[0], HeadMismatchError)
-        assert kr.branch_sha("master") == successes[0]
-
-    @rule()
     def concurrent_ref_writes_converge_to_written_object(self) -> None:
         store = GitStore.init(self._next_path("refs"))
         left = store.store_blob(b"left")

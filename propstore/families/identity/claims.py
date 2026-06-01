@@ -63,11 +63,6 @@ def canonicalize_claim_for_version(claim: dict[str, Any]) -> dict[str, Any]:
     return canonical
 
 
-def compute_claim_version_id(claim: dict[str, Any]) -> str:
-    """Compute the immutable version identifier for a claim payload."""
-    return canonical_json_sha256(canonicalize_claim_for_version(claim))
-
-
 def _claim_file_namespace(data: dict[str, Any], default_namespace: str | None) -> str:
     source = data.get("source")
     raw_namespace = (

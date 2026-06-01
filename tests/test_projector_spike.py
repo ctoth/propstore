@@ -378,12 +378,6 @@ def canonical_value(value: RelationValue) -> tuple:
     raise TypeError(f"unknown RelationValue: {value!r}")
 
 
-def instance_identity(instance: RelationInstance) -> str:
-    parts = sorted((b.role, canonical_value(b.value)) for b in instance.bindings)
-    payload = repr((instance.relation, parts))
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-
 def validate_against_signature(
     instance: RelationInstance, signature: DescriptionKind
 ) -> list[str]:
@@ -539,16 +533,6 @@ def test_observation_text_is_not_castable_to_a_one_role_relation() -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 # FINDING 4 — tagged identity distinguishes what the old str(value) blob collapsed.
 # ──────────────────────────────────────────────────────────────────────────────
-
-
-@pytest.mark.unit
-def test_tagged_identity_distinguishes_scalar_string_from_scalar_int() -> None:
-    # The old RoleBinding.identity_payload used str(value): str("1") == str(1) == "1"
-    # -> COLLISION. Tagged canonicalization keeps them distinct.
-    assert str(1) == str("1")  # the present-day collapse, demonstrated
-    assert canonical_value(ScalarValue(1)) != canonical_value(ScalarValue("1"))
-    assert canonical_value(ScalarValue(1)) == (KIND_SCALAR, "int", "1")
-    assert canonical_value(ScalarValue("1")) == (KIND_SCALAR, "str", "1")
 
 
 @pytest.mark.unit

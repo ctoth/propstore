@@ -159,35 +159,6 @@ class InterventionTarget:
     provenance: InterventionProvenance
     payload: InterventionPayload
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "kind", InterventionKind(self.kind))
-        object.__setattr__(self, "family", InterventionFamily(self.family))
-        object.__setattr__(
-            self,
-            "subject_id",
-            None if self.subject_id is None else str(self.subject_id),
-        )
-        object.__setattr__(self, "intervention_id", str(self.intervention_id))
-        object.__setattr__(self, "description", str(self.description))
-        object.__setattr__(self, "cost_tier", int(self.cost_tier))
-        expected_family = _KIND_TO_FAMILY[self.kind]
-        if self.family is not expected_family:
-            raise ValueError(
-                f"Intervention kind {self.kind.value!r} requires family {expected_family.value!r}"
-            )
-        if self.provenance.family is not self.family:
-            raise ValueError(
-                "Intervention provenance family must match the target family"
-            )
-        if self.cost_tier <= 0:
-            raise ValueError("Intervention cost_tier must be a positive integer")
-        expected_payload_type = _KIND_TO_PAYLOAD_TYPE[self.kind]
-        if not isinstance(self.payload, expected_payload_type):
-            raise TypeError(
-                f"Intervention payload for kind {self.kind.value!r} must be "
-                f"{expected_payload_type.__name__}"
-            )
-
 
 @dataclass(frozen=True)
 class RankedIntervention:

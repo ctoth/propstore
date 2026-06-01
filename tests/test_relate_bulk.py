@@ -26,54 +26,6 @@ FIXTURE_CLAIMS = (
 )
 
 
-@pytest.fixture
-def handle(tmp_path: Path) -> DerivedStoreHandle:
-    sqlite_path = tmp_path / "sidecar.sqlite"
-    schema = world_schema()
-    create_sqlalchemy_store(sqlite_path, schema)
-    handle = DerivedStoreHandle(
-        projection_id="propstore.world.test",
-        source_commit="test",
-        content_hash="test",
-        cache_key="test",
-        path=sqlite_path,
-    )
-    with handle.writable_session(schema) as derived:
-        for seq, (claim_id, paper, summary, statement, expression) in enumerate(
-            FIXTURE_CLAIMS
-        ):
-            derived.add(
-                schema.construct(
-                    "claim_core",
-                    {
-                        "id": claim_id,
-                        "primary_logical_id": claim_id,
-                        "logical_ids_json": "[]",
-                        "version_id": "",
-                        "content_hash": "",
-                        "seq": seq,
-                        "type": ClaimType.MEASUREMENT,
-                        "source_paper": paper,
-                        "provenance_page": 1,
-                        "premise_kind": "ordinary",
-                    },
-                )
-            )
-            derived.add(
-                schema.construct(
-                    "claim_text_payload",
-                    {
-                        "claim_id": claim_id,
-                        "statement": statement,
-                        "expression": expression,
-                        "auto_summary": summary,
-                    },
-                )
-            )
-        derived.commit()
-    return handle
-
-
 def test_bulk_fetch_returns_requested_claim_texts(handle: DerivedStoreHandle) -> None:
     result = claim_texts_by_id(handle, ("c1", "c3", "c5"))
 

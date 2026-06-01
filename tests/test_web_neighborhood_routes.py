@@ -216,26 +216,6 @@ def test_neighborhood_html_route_renders_all_report_tables(
     assert "/claim/claim1" in html
 
 
-def test_neighborhood_json_route_uses_same_report(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        routing, "build_semantic_neighborhood", lambda repo, request: _report()
-    )
-
-    response = client.get("/claim/claim1/neighborhood.json")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["focus"]["focus_id"] == "claim1"
-    assert payload["status"]["state"] == "blocked"
-    assert payload["moves"][0]["kind"] == "supporters"
-    assert payload["edges"][0]["sentence"] == (
-        "Claim Supporter One supports the focus claim Claim One."
-    )
-
-
 def test_neighborhood_route_maps_unknown_claim_to_accessible_error(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

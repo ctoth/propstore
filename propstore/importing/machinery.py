@@ -366,69 +366,6 @@ class ImportAuthoredFormLens:
             ),
         )
 
-    def put(
-        self,
-        form: AuthoredAssertionForm,
-        surface: AuthoredAssertionSurface,
-    ) -> AuthoredAssertionSurface:
-        del surface
-        return AuthoredAssertionSurface(
-            source_id=form.source_identity.source_id,
-            source_label=form.source_identity.label,
-            source_version_id=form.source.version_id,
-            source_content_hash=form.source.content_hash,
-            retrieval_uri=form.source.retrieval_uri,
-            license_id=form.license.license_id,
-            license_label=form.license.label,
-            license_uri=form.license.uri,
-            import_run_id=form.import_run.run_id,
-            importer_id=form.import_run.importer_id,
-            imported_at=form.import_run.imported_at,
-            external_statement_id=form.external_statement.statement_id,
-            external_statement_locator=form.external_statement.locator,
-            external_inference=_surface_from_external_inference(
-                form.external_inference
-            ),
-            mapping_policy_id=form.mapping_policy.policy_id,
-            mapping_policy_label=form.mapping_policy.label,
-            relation_id=str(form.relation.concept_id),
-            role_bindings=tuple(
-                SurfaceRoleBinding(role=role, value=value)
-                for role, value in form.role_bindings.identity_payload()
-            ),
-            context_id=str(form.context_mapping.context.id),
-            microtheory_id=form.context_mapping.microtheory_id,
-            lifting_rule_id=form.context_mapping.lifting_rule_id,
-            condition_id=str(form.condition.id),
-            condition_registry_fingerprint=form.condition.registry_fingerprint,
-        )
-
-
-class ImportCompiler:
-    def compile(self, form: AuthoredAssertionForm) -> CompiledImportAssertion:
-        metadata = ImportMetadata(
-            source_identity=form.source_identity,
-            source=form.source,
-            license=form.license,
-            import_run=form.import_run,
-            external_statement=form.external_statement,
-            external_inference=form.external_inference,
-            mapping_policy=form.mapping_policy,
-            context_mapping=form.context_mapping,
-        )
-        assertion = SituatedAssertion(
-            relation=form.relation,
-            role_bindings=form.role_bindings,
-            context=form.context_mapping.context,
-            condition=form.condition,
-            provenance_ref=ProvenanceGraphRef(
-                ProvenanceGraphId(
-                    f"urn:propstore:import-provenance:{_digest(metadata.identity_payload())}"
-                )
-            ),
-        )
-        return CompiledImportAssertion(assertion=assertion, import_metadata=metadata)
-
 
 @dataclass(frozen=True, order=True)
 class EquivalenceWitness:
@@ -529,37 +466,6 @@ class EquivalenceWitnessStore:
 
     def identity_for(self, candidate_id: str) -> str:
         return _require_uri(candidate_id, "candidate_id")
-
-    def _record(
-        self,
-        first_candidate_id: str,
-        second_candidate_id: str,
-        *,
-        mapping_policy_id: str,
-        evidence_statement_ids: tuple[str, ...],
-        status: EquivalenceWitnessStatus,
-        source_witness_ids: tuple[str, ...],
-    ) -> EquivalenceWitness:
-        candidate_ids = _canonical_candidate_pair(
-            first_candidate_id, second_candidate_id
-        )
-        payload = (
-            candidate_ids,
-            mapping_policy_id,
-            tuple(sorted(evidence_statement_ids)),
-            status,
-            tuple(sorted(source_witness_ids)),
-        )
-        witness = EquivalenceWitness(
-            witness_id=f"urn:propstore:equivalence-witness:{_digest(payload)}",
-            candidate_ids=candidate_ids,
-            mapping_policy_id=mapping_policy_id,
-            evidence_statement_ids=evidence_statement_ids,
-            status=status,
-            source_witness_ids=source_witness_ids,
-        )
-        self._witnesses[witness.witness_id] = witness
-        return witness
 
 
 def _external_inference_from_surface(

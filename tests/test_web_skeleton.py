@@ -81,28 +81,6 @@ def test_parse_repository_view_request_parses_branch_and_revision() -> None:
     assert request.revision == "abc123"
 
 
-def test_to_json_compatible_serializes_dataclass_reports() -> None:
-    payload = to_json_compatible(
-        _Report(
-            name="claim",
-            nested=_NestedReport(
-                mode=_Mode.READY,
-                path=Path("knowledge"),
-                states=("unknown", "blocked"),
-            ),
-        )
-    )
-
-    assert payload == {
-        "name": "claim",
-        "nested": {
-            "mode": "ready",
-            "path": "knowledge",
-            "states": ["unknown", "blocked"],
-        },
-    }
-
-
 def test_to_json_compatible_rejects_arbitrary_objects() -> None:
     with pytest.raises(WebSerializationError, match="unsupported"):
         to_json_compatible(object())

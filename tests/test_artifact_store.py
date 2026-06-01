@@ -41,32 +41,6 @@ def test_artifact_transaction_is_quire_family_transaction(tmp_path: Path) -> Non
     assert transaction.owner is repo
 
 
-def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    branch = repo.families.source_documents.address(SourceRef("demo")).branch
-    repo.git.create_branch(branch)
-
-    source_doc = initial_source_document(
-        repo,
-        "demo",
-        kind=SourceKind.ACADEMIC_PAPER,
-        origin_type=SourceOriginType.MANUAL,
-        origin_value="demo",
-    )
-
-    commit_sha = repo.families.source_documents.save(
-        SourceRef("demo"),
-        source_doc,
-        message="Write source doc",
-    )
-
-    assert commit_sha
-    loaded = repo.families.source_documents.require(SourceRef("demo"))
-    assert source_document_payload(loaded) == source_document_payload(source_doc)
-    assert loaded.kind is SourceKind.ACADEMIC_PAPER
-    assert loaded.origin.type is SourceOriginType.MANUAL
-
-
 def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 

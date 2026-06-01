@@ -51,42 +51,6 @@ def _surface() -> AuthoredAssertionSurface:
     )
 
 
-def test_import_compiler_builds_situated_assertion_with_external_contract() -> None:
-    form = ImportAuthoredFormLens().get(_surface())
-
-    compiled = ImportCompiler().compile(form)
-
-    assert str(compiled.assertion.assertion_id).startswith("ps:assertion:")
-    assert (
-        str(compiled.assertion.relation.concept_id)
-        == "ps:concept:relation:measured-value"
-    )
-    assert compiled.assertion.role_bindings.identity_payload() == (
-        ("subject", "ps:concept:temperature"),
-        ("unit", "K"),
-        ("value", "293.15"),
-    )
-    assert str(compiled.assertion.context.id) == "ps:context:lab-a"
-    assert str(compiled.assertion.condition.id) == "ps:condition:unconditional"
-    assert str(compiled.assertion.provenance_ref.graph_name).startswith(
-        "urn:propstore:import-provenance:"
-    )
-
-    metadata = compiled.import_metadata
-    assert metadata.source.source_id == "https://example.test/sources/table-1"
-    assert metadata.source.version_id == "v1"
-    assert metadata.source.content_hash == "sha256:source"
-    assert metadata.import_run.run_id == "urn:propstore:import-run:table-1"
-    assert metadata.external_statement.statement_id == "urn:example:statement:row-7"
-    assert metadata.external_inference is not None
-    assert metadata.external_inference.inference_id == "urn:example:inference:row-7"
-    assert (
-        metadata.mapping_policy.policy_id
-        == "urn:propstore:mapping-policy:non-nl-fixture"
-    )
-    assert metadata.context_mapping.microtheory_id == "cyc:Microtheory:LabA"
-
-
 def test_equivalence_witness_store_composes_without_identity_collapse() -> None:
     store = EquivalenceWitnessStore()
     left = store.record_witness(

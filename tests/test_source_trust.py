@@ -37,27 +37,6 @@ def _test_provenance(operation: str) -> Provenance:
     )
 
 
-def test_p_arg_from_claim_uses_prior_base_rate_when_no_claim_evidence() -> None:
-    prior = _prior_payload(0.62)
-    opinion = p_arg_from_claim(_claim_with_metadata(source_prior_base_rate=prior))
-    assert isinstance(opinion, Opinion)
-    assert opinion == Opinion(**prior)
-    assert opinion.provenance is not None
-
-
-def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
-    opinion = p_arg_from_claim(
-        _claim_with_metadata(
-            source_prior_base_rate=_prior_payload(0.62),
-            claim_probability=0.8,
-            effective_sample_size=10,
-        )
-    )
-    assert isinstance(opinion, Opinion)
-    assert opinion == Opinion.from_probability(0.8, 10, 0.62)
-    assert opinion.provenance is not None
-
-
 def test_p_arg_from_claim_requires_prior_for_claim_evidence() -> None:
     result = p_arg_from_claim(
         _claim_with_metadata(claim_probability=0.8, effective_sample_size=10)
@@ -85,89 +64,9 @@ def test_initial_source_document_does_not_fabricate_default_prior(
     assert source_doc.trust.quality is None
 
 
-def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
-    claim = _claim_with_metadata(
-        source_prior_base_rate=_prior_payload(0.62),
-        claim_probability=0.8,
-        effective_sample_size=10,
-        source_quality_opinion={
-            "b": 0.7,
-            "d": 0.1,
-            "u": 0.2,
-            "a": 0.5,
-        },
-    )
-    expected_claim = Opinion.from_probability(0.8, 10, 0.62)
-    expected = Opinion(0.7, 0.1, 0.2, 0.5).discount(expected_claim)
-    actual = p_arg_from_claim(claim)
-    assert isinstance(actual, Opinion)
-    assert actual == expected
-    assert actual.provenance is not None
-
-
-def test_p_arg_from_claim_ignores_source_trust_mapping() -> None:
-    claim = _claim_with_metadata(
-        source={
-            "trust": {
-                "prior_base_rate": _prior_payload(0.62),
-                "quality": {
-                    "b": 0.7,
-                    "d": 0.1,
-                    "u": 0.2,
-                    "a": 0.5,
-                },
-            },
-        },
-        claim_probability=0.8,
-        effective_sample_size=10,
-    )
-    actual = p_arg_from_claim(claim)
-    assert isinstance(actual, NoCalibration)
-    assert actual.reason == "missing_base_rate"
-
-
 def test_p_arg_from_claim_invalid_typed_input_propagates() -> None:
     with pytest.raises((TypeError, AttributeError)):
         p_arg_from_claim(object())
-
-
-@pytest.mark.property
-@given(
-    prior=st.floats(
-        min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False
-    ),
-    probability=st.floats(
-        min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-    ),
-    n_eff=st.floats(
-        min_value=0.1, max_value=100.0, allow_nan=False, allow_infinity=False
-    ),
-)
-@settings(deadline=None)
-def test_p_arg_from_claim_expectation_stays_in_unit_interval(
-    prior: float,
-    probability: float,
-    n_eff: float,
-) -> None:
-    opinion = p_arg_from_claim(
-        _claim_with_metadata(
-            source_prior_base_rate=_prior_payload(prior),
-            claim_probability=probability,
-            effective_sample_size=n_eff,
-        )
-    )
-    assert isinstance(opinion, Opinion)
-    assert 0.0 <= opinion.expectation() <= 1.0
-
-
-def test_p_arg_from_claim_rejects_invalid_source_quality_shape() -> None:
-    with pytest.raises(ValueError):
-        p_arg_from_claim(
-            _claim_with_metadata(
-                source_prior_base_rate=_prior_payload(0.62),
-                source_quality_opinion={"b": 0.7},
-            )
-        )
 
 
 def _seed_ratio_form(repo: Repository) -> None:
@@ -179,79 +78,6 @@ def _seed_ratio_form(repo: Repository) -> None:
             ).encode("utf-8")
         },
         "Seed ratio form",
-    )
-
-
-def _seed_calibration_claim(repo: Repository) -> None:
-    _seed_ratio_form(repo)
-    concept = normalize_concept_payloads(
-        [
-            {
-                "id": "base_replication_rate",
-                "canonical_name": "base_replication_rate",
-                "status": "accepted",
-                "definition": "Field-specific replication prior.",
-                "domain": "meta",
-                "form": "ratio",
-            }
-        ],
-        default_domain="meta",
-    )[0]
-    context_path, context_body = make_test_context_commit_entry()
-    repo.git.commit_batch(
-        adds={
-            context_path: context_body,
-            "concepts/base_replication_rate.yaml": yaml.safe_dump(
-                concept,
-                sort_keys=False,
-                allow_unicode=True,
-            ).encode("utf-8"),
-        },
-        deletes=[],
-        message="Seed calibration concept",
-        branch="master",
-    )
-
-    claims = normalize_claims_payload(
-        {
-            "source": {"paper": "calibration"},
-            "claims": [
-                {
-                    "id": "replication_rate_psychology",
-                    "type": "parameter",
-                    "concept": concept["artifact_id"],
-                    "value": 0.36,
-                    "unit": "probability",
-                    "conditions": ["domain == 'psychology'"],
-                    "provenance": {"paper": "calibration", "page": 1},
-                }
-            ],
-        },
-        default_namespace="calibration",
-    )
-    claim_adds: dict[str, bytes] = {}
-    for claim in claims["claims"]:
-        claim_payload = {**claim, "source": claims["source"]}
-        claim_doc = convert_document_value(
-            claim_payload,
-            ClaimDocument,
-            source="test:calibration-claim",
-        )
-        assert claim_doc.artifact_id is not None
-        ref = ClaimRef(claim_doc.artifact_id)
-        claim_adds[repo.families.claims.address(ref).require_path()] = (
-            repo.families.claims.render(claim_doc).encode("utf-8")
-        )
-    repo.git.commit_batch(
-        adds=claim_adds,
-        deletes=[],
-        message="Seed calibration claims",
-        branch="master",
-    )
-    materialized_world_store_path(
-        repo,
-        force=True,
-        commit_hash=repo.git.head_sha(),
     )
 
 

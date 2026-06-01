@@ -167,40 +167,6 @@ def _emit_iterated_revision(
         )
 
 
-@revision.command("base")
-@click.argument("args", nargs=-1)
-@click.option("--context", default=None, help="Context to scope the revision base")
-@click.pass_obj
-def world_revision_base(obj: dict, args: tuple[str, ...], context: str | None) -> None:
-    """Show the current revision-facing belief base for a scoped world."""
-    repo: Repository = obj["repo"]
-    bindings, _ = parse_world_binding_args(args)
-    base = run_world_revision_base(
-        repo,
-        AppRevisionWorldRequest(bindings=bindings, context=context),
-    )
-
-    emit(
-        f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)"
-    )
-    for atom in base.atoms:
-        display = revision_atom_display(atom)
-        details = _format_revision_payload(display)
-        if details:
-            emit(f"  {display.display_id}: {details}")
-        else:
-            emit(f"  {display.display_id}")
-
-    if base.assumptions:
-        emit_section(
-            "Assumptions:",
-            (
-                _format_revision_assumption(assumption)
-                for assumption in base.assumptions
-            ),
-        )
-
-
 @revision.command("entrenchment")
 @click.argument("args", nargs=-1)
 @click.option(

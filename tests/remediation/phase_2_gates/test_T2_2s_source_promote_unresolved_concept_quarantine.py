@@ -15,30 +15,6 @@ from tests.conftest import make_test_context_commit_entry
 from tests.family_helpers import materialized_world_store_path
 
 
-def _save_source_claims_directly(
-    repo: Repository,
-    source_name: str,
-    claims_payload: dict,
-) -> None:
-    source_doc = repo.families.source_documents.require(SourceRef(source_name))
-    branch = repo.families.source_claims.address(SourceRef(source_name)).branch
-    raw_claims = decode_document_batch_bytes(
-        encode_yaml_value(claims_payload),
-        SOURCE_CLAIM_BATCH_SPEC,
-        source=f"{branch}:claims.yaml",
-    )
-    normalized_claims, _ = normalize_source_claims_payload(
-        raw_claims,
-        source_uri=source_doc.id,
-        source_namespace=source_name,
-    )
-    repo.families.source_claims.save(
-        SourceRef(source_name),
-        normalized_claims,
-        message=f"Write drifted claims for {source_name}",
-    )
-
-
 def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_claims(
     tmp_path: Path,
 ) -> None:
