@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
 
 from propstore.families.registry import MergeManifestRef
 from propstore.repository import Repository
@@ -17,18 +16,8 @@ class MergeInspectRequest:
 
 
 @dataclass(frozen=True)
-class MergeInspectReport:
-    payload: Mapping[str, object]
-
-
-@dataclass(frozen=True)
 class MergeCommitRequest:
     branch_a: str
     branch_b: str
     message: str = ""
     target_branch: str | None = None
-
-
-@dataclass(frozen=True)
-class MergeCommitReport:
-    payload: Mapping[str, object]

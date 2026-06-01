@@ -10,7 +10,7 @@ before their containers (``SourceTrustQualityDocument`` before
 ``SourceFinalizeReportDocument``).
 
 The three ``Source``-document serialization helpers
-(``source_document_payload`` / ``encode_source_document`` /
+(``encode_source_document`` /
 ``render_source_document``) and ``compile_source_models`` stay module-level
 free functions.
 """

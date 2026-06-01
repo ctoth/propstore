@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.families.identity.claims import normalize_claim_file_payload
-from propstore.families.identity.concepts import (
-    normalize_canonical_concept_payload,
-)
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import (
     ClaimRef,

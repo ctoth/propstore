@@ -139,7 +139,6 @@ class TransitionJournalEntry:
     normalized_state_out: Mapping[str, Any]
     state_out: EpistemicSnapshot
     explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
-    policy_payload: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = TransitionJournalVersion
 
 

@@ -8,7 +8,6 @@ from typing import Any
 from propstore.families.concepts.declaration import (
     SourceConceptEntryDocument,
 )
-from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.parameterization_groups import build_groups
 from propstore.repository import Repository
 

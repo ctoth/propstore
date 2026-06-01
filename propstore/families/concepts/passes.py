@@ -34,7 +34,6 @@ from propstore.families.concepts.stages import (
     ConceptNormalizedSet,
     ConceptStage,
     LoadedConcept,
-    concept_payload_registry,
 )
 from propstore.compiler.context import build_compiler_claim_index
 from propstore.families.claims.references import ClaimReferenceRecord

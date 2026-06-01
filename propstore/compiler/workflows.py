@@ -18,7 +18,7 @@ from quire.derived_store import (
 )
 from quire.documents import DocumentSchemaError
 from quire.sqlalchemy_store import create_sqlalchemy_store, populate_fts_index
-from propstore.claims import LoadedClaimsFile, claim_file_payload
+from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import (
     build_compiler_claim_index,
     build_compilation_context_from_loaded,

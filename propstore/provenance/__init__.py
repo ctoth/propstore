@@ -6,7 +6,7 @@ The core provenance model follows the WS-A Phase 1 design:
   chain that keeps the justifying source artifact separate from the value
   being justified.
 * Carroll et al.'s named graph discipline is represented by deterministic
-  JSON-LD payloads stored as Git notes on ``refs/notes/provenance``.
+  JSON-LD data stored as Git notes on ``refs/notes/provenance``.
 
 The older ``stamp_file`` helper remains as the stated-method authoring branch:
 it adds or updates a ``produced_by`` block recording which agent, skill, and

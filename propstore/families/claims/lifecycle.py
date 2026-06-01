@@ -13,9 +13,6 @@ from propstore.families.claims.declaration import (
     SourceClaimDocument,
 )
 from propstore.families.claims.references import resolve_first_claim_reference_id
-from propstore.families.identity.claims import (
-    normalize_claim_file_payload,
-)
 
 
 @dataclass(frozen=True)

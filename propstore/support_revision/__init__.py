@@ -17,7 +17,6 @@ from propstore.support_revision.entrenchment import (
 from propstore.support_revision.explain import build_revision_explanation
 from propstore.support_revision.iterated import (
     advance_epistemic_state,
-    epistemic_state_payload,
     iterated_revise,
     make_epistemic_state,
 )
@@ -52,7 +51,6 @@ __all__ = [
     "advance_epistemic_state",
     "build_revision_explanation",
     "compute_entrenchment",
-    "epistemic_state_payload",
     "iterated_revise",
     "make_epistemic_state",
     "normalize_revision_input",

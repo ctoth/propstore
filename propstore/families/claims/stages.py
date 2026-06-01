@@ -25,16 +25,11 @@ class ClaimStage(StrEnum):
 
 @dataclass(frozen=True)
 class ClaimAlgorithmVariable:
-    name: str | None = field(default=None, metadata={"payload": "name"})
-    symbol: str | None = field(default=None, metadata={"payload": "symbol"})
-    concept_id: ConceptId | None = field(
-        default=None,
-        metadata={"payload": "concept"},
-    )
-    role: str | None = field(default=None, metadata={"payload": "role"})
-    attributes: Mapping[str, Any] = field(
-        default_factory=dict, metadata={"payload_rest": True}
-    )
+    name: str | None = None
+    symbol: str | None = None
+    concept_id: ConceptId | None = None
+    role: str | None = None
+    attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "attributes", dict(self.attributes))

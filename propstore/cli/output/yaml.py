@@ -1,4 +1,4 @@
-"""YAML output helpers for CLI commands with structured payloads."""
+"""YAML output helpers for CLI commands with structured data."""
 
 from __future__ import annotations
 

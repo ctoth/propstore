@@ -20,7 +20,6 @@ from propstore.families.artifacts import (
     ArtifactVerificationRecord,
     build_artifact_verification_index,
 )
-from propstore.families.sources.declaration import source_document_payload
 from propstore.repository import Repository
 from propstore.uri import ni_uri_for_file
 

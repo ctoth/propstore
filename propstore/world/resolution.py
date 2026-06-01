@@ -45,7 +45,6 @@ from propstore.world.types import (
 class ClaimProvenance:
     paper: str | None = None
     page: int | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
 
     def to_json(self) -> str | None:
         data = self.to_dict()

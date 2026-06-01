@@ -99,20 +99,17 @@ from propstore.families.identity.claims import (
     canonicalize_claim_for_version,
     compute_claim_version_id,
     derive_claim_artifact_id,
-    normalize_canonical_claim_payload,
 )
 from propstore.families.sources.declaration import (
     SourceDocument,
     encode_source_document,
     render_source_document,
-    source_document_payload,
 )
 from propstore.families.identity.concepts import (
     CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
     canonicalize_concept_for_version,
     compute_concept_version_id,
     derive_concept_artifact_id,
-    normalize_canonical_concept_payload,
 )
 from propstore.families.concepts.stages import (
     encode_concept_document,
@@ -345,8 +342,6 @@ def _callable_id(callback: object) -> str:
 CLAIM_IDENTITY_POLICY = FamilyIdentityPolicy(
     artifact_id_function=_callable_id(derive_claim_artifact_id),
     version_id_function=_callable_id(compute_claim_version_id),
-    canonical_payload_function=_callable_id(canonicalize_claim_for_version),
-    normalize_payload_function=_callable_id(normalize_canonical_claim_payload),
     logical_id_fields=("logical_ids",),
     version_excluded_fields=CLAIM_VERSION_ID_EXCLUDED_FIELDS,
     source_local_fields=CLAIM_SOURCE_LOCAL_FIELDS,
@@ -355,8 +350,6 @@ CLAIM_IDENTITY_POLICY = FamilyIdentityPolicy(
 CONCEPT_IDENTITY_POLICY = FamilyIdentityPolicy(
     artifact_id_function=_callable_id(derive_concept_artifact_id),
     version_id_function=_callable_id(compute_concept_version_id),
-    canonical_payload_function=_callable_id(canonicalize_concept_for_version),
-    normalize_payload_function=_callable_id(normalize_canonical_concept_payload),
     logical_id_fields=("logical_ids",),
     version_excluded_fields=CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
 )
@@ -415,7 +408,6 @@ CANONICAL_SOURCE_FAMILY = ArtifactFamily[
     CANONICAL_SOURCE_PLACEMENT,
     encode_document=encode_source_document,
     render_document=render_source_document,
-    document_payload=source_document_payload,
 )
 
 
@@ -670,7 +662,6 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             placement=FixedFilePlacement("source.yaml", branch=SOURCE_BRANCH),
             encode_document=encode_source_document,
             render_document=render_source_document,
-            document_payload=source_document_payload,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_NOTES,
@@ -679,11 +670,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             artifact_name="source_notes",
             document_type=str,
             placement=FixedFilePlacement("notes.md", branch=SOURCE_BRANCH),
-            coerce_payload=coerce_text_document,
             decode_bytes=decode_text_document,
             encode_document=encode_text_document,
             render_document=identity_text_document,
-            document_payload=identity_text_document,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_METADATA,
@@ -692,11 +681,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             artifact_name="source_metadata",
             document_type=dict,
             placement=FixedFilePlacement("metadata.json", branch=SOURCE_BRANCH),
-            coerce_payload=coerce_json_mapping,
             decode_bytes=decode_json_mapping,
             encode_document=encode_json_mapping,
             render_document=render_json_mapping,
-            document_payload=identity_json_mapping,
         ),
         FamilyDefinition(
             key=PropstoreFamily.SOURCE_CONCEPTS,

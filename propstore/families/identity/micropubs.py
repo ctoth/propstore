@@ -4,7 +4,7 @@ Kuhn & Dumontier 2014 motivates embedding hashes in URIs for verifiable
 artifacts and reference trees (pp. 1-2). Their implemented modules are
 byte-level files or RDF graphs (p. 7), while propstore micropubs are
 typed JSON/YAML documents. This module therefore defines a propstore-specific
-canonical payload and feeds it to the ni-URI primitive; it does not claim full
+canonical data and feeds it to the ni-URI primitive; it does not claim full
 Kuhn RA/FA module compatibility.
 """
 

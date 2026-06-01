@@ -34,7 +34,7 @@ surfaces stay here.
   - applies the COH rationality constraint to probabilistic argument
     existence opinions.
 - `p_arg_from_claim(...)`
-  - propstore-specific mapping from typed claim payloads into opinions.
+  - propstore-specific mapping from typed claim data into opinions.
 
 ## Extraction Rule
 

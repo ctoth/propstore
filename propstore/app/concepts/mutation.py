@@ -56,7 +56,6 @@ from propstore.core.lemon.qualia import (
     TypeConstraint,
 )
 from propstore.core.lemon.references import OntologyReference
-from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.registry import ClaimRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
 from propstore.families.concepts.types import ConceptRelationshipType, ConceptStatus

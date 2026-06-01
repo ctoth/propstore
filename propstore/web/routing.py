@@ -50,7 +50,6 @@ from propstore.app.repository_views import RepositoryViewUnsupportedStateError
 from propstore.app.rendering import RenderPolicyValidationError
 from propstore.app.world_revision import (
     AppRevisionWorldRequest,
-    world_revision_base_payload,
     world_revision_entrenchment,
 )
 from propstore.app.world import WorldSidecarMissingError

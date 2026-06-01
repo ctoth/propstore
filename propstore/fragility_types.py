@@ -157,7 +157,6 @@ class InterventionTarget:
     description: str
     cost_tier: int
     provenance: InterventionProvenance
-    payload: InterventionPayload
 
 
 @dataclass(frozen=True)

@@ -702,25 +702,7 @@ if TYPE_CHECKING:
     # stubs keep model construction/attribute access type-checking.
     class ClaimConceptLink(FamilyModel): ...
 
-    class ClaimNumericPayload(FamilyModel): ...
-
-    class ClaimTextPayload(FamilyModel): ...
-
-    class ClaimAlgorithmPayload(FamilyModel): ...
-
     class ClaimSourceAssertion(FamilyModel): ...
-
-
-_CLAIM_FTS_SOURCE_QUERY = """
-    SELECT
-        c.id AS claim_id,
-        COALESCE(t.statement, '') AS statement,
-        COALESCE((SELECT group_concat(value, ' ') FROM json_each(t.conditions_cel)), '') AS conditions,
-        COALESCE(t.expression, '') AS expression
-    FROM claim_core c
-    JOIN claim_text_payload t ON t.claim_id = c.id
-    ORDER BY c.seq
-"""
 
 
 @charter(
@@ -746,14 +728,6 @@ _CLAIM_FTS_SOURCE_QUERY = """
         CharterIndex("idx_claim_core_stage", ("stage",)),
         CharterIndex("idx_claim_core_promotion_status", ("promotion_status",)),
     ),
-    fts=(
-        CharterFtsIndex(
-            "claim_fts",
-            "claim_id",
-            ("statement", "conditions", "expression"),
-            source_query=_CLAIM_FTS_SOURCE_QUERY,
-        ),
-    ),
     vector_caches=(
         CharterVectorCache(
             "claim_embeddings",
@@ -777,27 +751,6 @@ _CLAIM_FTS_SOURCE_QUERY = """
             "source",
             target_family="source",
             foreign_key="source_slug",
-            uselist=False,
-        ),
-        CharterRelationship(
-            "numeric_payload",
-            target_family="claim_numeric_payload",
-            foreign_key="claim_id",
-            back_populates="claim",
-            uselist=False,
-        ),
-        CharterRelationship(
-            "text_payload",
-            target_family="claim_text_payload",
-            foreign_key="claim_id",
-            back_populates="claim",
-            uselist=False,
-        ),
-        CharterRelationship(
-            "algorithm_payload",
-            target_family="claim_algorithm_payload",
-            foreign_key="claim_id",
-            back_populates="claim",
             uselist=False,
         ),
         CharterRelationship(
@@ -919,162 +872,6 @@ class Claim_concept_linkDocument(CharterDoc):
 
 
 CLAIM_CONCEPT_LINK_CHARTER: FamilyCharter = Claim_concept_linkDocument.__charter__
-
-
-@charter(
-    key="claim_numeric_payload",
-    name="claim_numeric_payload",
-    contract_version=_WORLD_CONTRACT_VERSION,
-    placement=".derived/claim_numeric_payload",
-    identity_field="claim_id",
-    semantic="propstore.world",
-    artifact_family_name="propstore-world-claim_numeric_payload",
-    model_name="ClaimNumericPayload",
-    relationships=(
-        CharterRelationship(
-            "claim",
-            target_family="claim_core",
-            foreign_key="claim_id",
-            back_populates="numeric_payload",
-            uselist=False,
-        ),
-    ),
-)
-class Claim_numeric_payloadDocument(CharterDoc):
-    claim_id: Annotated[
-        str,
-        charter_field(
-            primary_key=True,
-            nullable=False,
-            foreign_key=ForeignKeySpec(
-                name="claim_numeric_payload_claim",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                source_family="claim_numeric_payload",
-                source_field="claim_id",
-                target_family="claim_core",
-                target_field="id",
-                required=True,
-            ),
-        ),
-    ]
-    value: Annotated[float, charter_field(nullable=True)]
-    lower_bound: Annotated[float, charter_field(nullable=True)]
-    upper_bound: Annotated[float, charter_field(nullable=True)]
-    uncertainty: Annotated[float, charter_field(nullable=True)]
-    uncertainty_type: Annotated[str, charter_field(nullable=True)]
-    sample_size: Annotated[int, charter_field(nullable=True)]
-    confidence: Annotated[float, charter_field(nullable=True)]
-    unit: Annotated[str, charter_field(nullable=True)]
-    value_si: Annotated[float, charter_field(nullable=True)]
-    lower_bound_si: Annotated[float, charter_field(nullable=True)]
-    upper_bound_si: Annotated[float, charter_field(nullable=True)]
-
-
-@charter(
-    key="claim_text_payload",
-    name="claim_text_payload",
-    contract_version=_WORLD_CONTRACT_VERSION,
-    placement=".derived/claim_text_payload",
-    identity_field="claim_id",
-    semantic="propstore.world",
-    artifact_family_name="propstore-world-claim_text_payload",
-    model_name="ClaimTextPayload",
-    relationships=(
-        CharterRelationship(
-            "claim",
-            target_family="claim_core",
-            foreign_key="claim_id",
-            back_populates="text_payload",
-            uselist=False,
-        ),
-    ),
-)
-class Claim_text_payloadDocument(CharterDoc):
-    claim_id: Annotated[
-        str,
-        charter_field(
-            primary_key=True,
-            nullable=False,
-            foreign_key=ForeignKeySpec(
-                name="claim_text_payload_claim",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                source_family="claim_text_payload",
-                source_field="claim_id",
-                target_family="claim_core",
-                target_field="id",
-                required=True,
-            ),
-        ),
-    ]
-    conditions_cel: Annotated[str, charter_field(nullable=True)]
-    conditions_ir: Annotated[str, charter_field(nullable=True)]
-    statement: Annotated[str, charter_field(nullable=True)]
-    expression: Annotated[str, charter_field(nullable=True)]
-    sympy_generated: Annotated[str, charter_field(nullable=True)]
-    sympy_error: Annotated[str, charter_field(nullable=True)]
-    name: Annotated[str, charter_field(nullable=True)]
-    measure: Annotated[str, charter_field(nullable=True)]
-    listener_population: Annotated[str, charter_field(nullable=True)]
-    methodology: Annotated[str, charter_field(nullable=True)]
-    notes: Annotated[str, charter_field(nullable=True)]
-    description: Annotated[str, charter_field(nullable=True)]
-    auto_summary: Annotated[str, charter_field(nullable=True)]
-
-
-@charter(
-    key="claim_algorithm_payload",
-    name="claim_algorithm_payload",
-    contract_version=_WORLD_CONTRACT_VERSION,
-    placement=".derived/claim_algorithm_payload",
-    identity_field="claim_id",
-    semantic="propstore.world",
-    artifact_family_name="propstore-world-claim_algorithm_payload",
-    model_name="ClaimAlgorithmPayload",
-    indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
-    relationships=(
-        CharterRelationship(
-            "claim",
-            target_family="claim_core",
-            foreign_key="claim_id",
-            back_populates="algorithm_payload",
-            uselist=False,
-        ),
-    ),
-)
-class Claim_algorithm_payloadDocument(CharterDoc):
-    claim_id: Annotated[
-        str,
-        charter_field(
-            primary_key=True,
-            nullable=False,
-            foreign_key=ForeignKeySpec(
-                name="claim_algorithm_payload_claim",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                source_family="claim_algorithm_payload",
-                source_field="claim_id",
-                target_family="claim_core",
-                target_field="id",
-                required=True,
-            ),
-        ),
-    ]
-    body: Annotated[str, charter_field(nullable=True)]
-    canonical_ast: Annotated[str, charter_field(nullable=True)]
-    variables_json: Annotated[str, charter_field(nullable=True)]
-    algorithm_stage: Annotated[
-        str,
-        charter_field(
-            nullable=True,
-            metadata={"semantic_type": "propstore.core.algorithm_stage.AlgorithmStage"},
-        ),
-    ]
-
-
-CLAIM_PAYLOAD_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
-    Claim_numeric_payloadDocument.__charter__,
-    Claim_text_payloadDocument.__charter__,
-    Claim_algorithm_payloadDocument.__charter__,
-)
 
 
 @charter(
@@ -1404,9 +1201,6 @@ object.__setattr__(
 @dataclass(frozen=True)
 class ClaimWriteModels:
     claims: tuple[Claim, ...]
-    numeric_payloads: tuple[ClaimNumericPayload, ...]
-    text_payloads: tuple[ClaimTextPayload, ...]
-    algorithm_payloads: tuple[ClaimAlgorithmPayload, ...]
     source_assertions: tuple[ClaimSourceAssertion, ...]
     concept_links: tuple[ClaimConceptLink, ...]
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]

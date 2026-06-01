@@ -3,9 +3,8 @@
 This module persists the four gunray answer sections
 (``yes`` / ``no`` / ``undecided`` / ``unknown``)
 from a :class:`propstore.grounding.bundle.GroundedRulesBundle` into
-the sidecar's Quire SQLAlchemy store. The grounding inputs are persisted with
-explicit JSON payloads rather than Python object pickles because the
-sidecar is a durable boundary, not an in-process cache.
+the sidecar's Quire SQLAlchemy store. The grounding inputs are persisted as
+explicit JSON because the sidecar is a durable boundary, not an in-process cache.
 
 The typed persistence functions are colocated with the rules family because
 grounded facts are the derived read model for authored rule artifacts.
@@ -98,8 +97,6 @@ if TYPE_CHECKING:
     class GroundedFact(FamilyModel): ...
 
     class GroundedFactEmptyPredicate(FamilyModel): ...
-
-    class GroundedBundleInput(FamilyModel): ...
 
 
 class TermDocument(CharterDoc, kw_only=True):
@@ -242,22 +239,6 @@ class Grounded_fact_empty_predicateDocument(CharterDoc):
     predicate: Annotated[str, charter_field(primary_key=True)]
 
 
-@charter(
-    key="grounded_bundle_input",
-    name="grounded_bundle_input",
-    contract_version=_WORLD_CONTRACT_VERSION,
-    placement=".derived/grounded_bundle_input",
-    identity_field="kind",
-    semantic="propstore.world",
-    artifact_family_name="propstore-world-grounded_bundle_input",
-    model_name="GroundedBundleInput",
-)
-class Grounded_bundle_inputDocument(CharterDoc):
-    kind: Annotated[str, charter_field(primary_key=True)]
-    position: Annotated[int, charter_field(primary_key=True)]
-    payload: bytes
-
-
 AUTHORED_RULE_CHARTER: FamilyCharter = RuleDocument.__charter__
 RULE_SUPERIORITY_CHARTER: FamilyCharter = RuleSuperiorityDocument.__charter__
 AUTHORED_RULE_PROPOSAL_CHARTER: FamilyCharter = AuthoredRuleProposalArtifact.__charter__
@@ -268,10 +249,9 @@ AUTHORED_RULE_CHARTERS: tuple[FamilyCharter, ...] = (
     RULE_SUPERIORITY_CHARTER,
 )
 
-RULES_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
+RULES_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
     Grounded_factDocument.__charter__,
     Grounded_fact_empty_predicateDocument.__charter__,
-    Grounded_bundle_inputDocument.__charter__,
 )
 
 

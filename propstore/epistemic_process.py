@@ -247,7 +247,6 @@ class ProcessJob:
     kind: JobKind
     snapshot_hash: str
     policy_id: str
-    policy_payload: Mapping[str, Any]
     work_item: Mapping[str, Any]
     assertion_ids: tuple[str, ...] = ()
     journal_entry_hashes: tuple[str, ...] = ()
@@ -284,7 +283,6 @@ class ProcessCompletionRecord:
     job_id: str
     completed_snapshot_hash: str
     journal_entry_hashes: tuple[str, ...] = ()
-    result_payload: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = _COMPLETION_VERSION
 
 
