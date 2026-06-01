@@ -53,13 +53,6 @@ def _require_claim_type(value: object) -> ClaimType:
     return ClaimType(value)
 
 
-def _pairs_from_json_payload(value: Mapping[str, object]) -> list[tuple[str, object]]:
-    pairs: list[tuple[str, object]] = []
-    for key, item in value.items():
-        pairs.append((str(key), item))
-    return pairs
-
-
 def _pairs_from_iterable(value: tuple[tuple[str, object], ...]) -> list[tuple[str, object]]:
     pairs: list[tuple[str, object]] = []
     for key, item in value:
@@ -84,7 +77,11 @@ def _normalize_pairs(
 ) -> tuple[tuple[str, object], ...]:
     if value is None:
         return ()
-    pairs = _pairs_from_json_payload(value) if isinstance(value, Mapping) else _pairs_from_iterable(value)
+    pairs = (
+        [(str(key), item) for key, item in value.items()]
+        if isinstance(value, Mapping)
+        else _pairs_from_iterable(value)
+    )
     return tuple(
         sorted((key, _freeze_value(item)) for key, item in pairs)
     )
@@ -222,13 +219,6 @@ def _opinion_to_dict(opinion: Opinion | None) -> dict[str, Any] | None:
     }
 
 
-def _float_payload_value(data: Mapping[str, object], key: str) -> float:
-    value = data[key]
-    if isinstance(value, bool) or not isinstance(value, int | float | str):
-        raise ValueError(f"opinion field {key!r} must be numeric")
-    return float(value)
-
-
 def _opinion_from_dict(data: object) -> Opinion | None:
     if data is None:
         return None
@@ -236,18 +226,20 @@ def _opinion_from_dict(data: object) -> Opinion | None:
         return data
     if not isinstance(data, Mapping):
         raise ValueError("opinion field must be a mapping")
-    payload = cast(Mapping[str, object], data)
-    belief = _float_payload_value(payload, "b")
-    disbelief = _float_payload_value(payload, "d")
-    uncertainty = _float_payload_value(payload, "u")
-    base_rate = _float_payload_value(payload, "a")
+    decoded = cast(Mapping[str, object], data)
+    values: dict[str, float] = {}
+    for key in ("b", "d", "u", "a"):
+        value = decoded[key]
+        if isinstance(value, bool) or not isinstance(value, int | float | str):
+            raise ValueError(f"opinion field {key!r} must be numeric")
+        values[key] = float(value)
     return Opinion(
-        belief,
-        disbelief,
-        uncertainty,
-        base_rate,
-        _provenance_from_dict(payload.get("provenance")),
-        allow_dogmatic=uncertainty <= 1e-9,
+        values["b"],
+        values["d"],
+        values["u"],
+        values["a"],
+        _provenance_from_dict(decoded.get("provenance")),
+        allow_dogmatic=values["u"] <= 1e-9,
     )
 
 
