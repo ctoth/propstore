@@ -8,18 +8,16 @@ their existing statement unchanged.
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Sequence
 
 from propstore.families.claims.types import ClaimType
 from propstore.families.claims.declaration import ClaimDocument
 
 
-ConceptDescriptionRegistry = Mapping[str, Mapping[str, object]]
-
-
 def generate_description(
     claim: ClaimDocument,
-    concept_registry: ConceptDescriptionRegistry,
+    *,
+    resolve_concept_name: Callable[[str | None], str] | None = None,
 ) -> str | None:
     """Generate a human-readable description for a claim.
 
@@ -35,14 +33,14 @@ def generate_description(
         return claim.statement
 
     if claim.type is ClaimType.PARAMETER:
-        return _describe_parameter(claim, concept_registry)
+        return _describe_parameter(claim, resolve_concept_name)
     elif claim.type is ClaimType.EQUATION:
         return _expression_as_description(claim)
     elif claim.type is ClaimType.OBSERVATION:
         # Observation claims require statement — return it (or None)
         return claim.statement
     elif claim.type is ClaimType.MEASUREMENT:
-        return _describe_measurement(claim, concept_registry)
+        return _describe_measurement(claim, resolve_concept_name)
     elif claim.type is ClaimType.MODEL:
         name = claim.name or "unnamed"
         return f"Model: {name}"
@@ -54,16 +52,13 @@ def generate_description(
 
 def _resolve_concept_name(
     concept_id: str | None,
-    concept_registry: ConceptDescriptionRegistry,
+    resolve_concept_name: Callable[[str | None], str] | None,
 ) -> str:
     """Look up canonical_name for a concept ID; fall back to the ID itself."""
+    if resolve_concept_name is not None:
+        return resolve_concept_name(concept_id)
     if not concept_id:
         return "unknown"
-    concept_data = concept_registry.get(concept_id)
-    if concept_data:
-        canonical_name = concept_data.get("canonical_name")
-        if isinstance(canonical_name, str) and canonical_name:
-            return canonical_name
     return concept_id
 
 
@@ -76,10 +71,10 @@ def _format_number(n: float | int) -> str:
 
 def _describe_parameter(
     claim: ClaimDocument,
-    concept_registry: ConceptDescriptionRegistry,
+    resolve_concept_name: Callable[[str | None], str] | None,
 ) -> str:
     """Generate description for a parameter claim."""
-    name = _resolve_concept_name(claim.output_concept, concept_registry)
+    name = _resolve_concept_name(claim.output_concept, resolve_concept_name)
     unit = claim.unit or ""
 
     # Build the value part
@@ -118,10 +113,10 @@ def _expression_as_description(claim: ClaimDocument) -> str:
 
 def _describe_measurement(
     claim: ClaimDocument,
-    concept_registry: ConceptDescriptionRegistry,
+    resolve_concept_name: Callable[[str | None], str] | None,
 ) -> str:
     """Generate description for a measurement claim."""
-    target_name = _resolve_concept_name(claim.target_concept, concept_registry)
+    target_name = _resolve_concept_name(claim.target_concept, resolve_concept_name)
     measure = claim.measure or "measure"
     unit = claim.unit or ""
 

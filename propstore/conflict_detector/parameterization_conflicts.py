@@ -8,7 +8,7 @@ import warnings
 from dataclasses import dataclass
 from itertools import product
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.value_comparison import (
@@ -20,7 +20,13 @@ from propstore.value_comparison import (
 
 from .collectors import _collect_parameter_claims
 from .context import _classify_pair_context, _claim_context
-from .models import ConflictClass, ConflictClaim, ConflictRecord
+from .models import (
+    ConflictClass,
+    ConflictClaim,
+    ConflictConcept,
+    ConflictConceptRegistry,
+    ConflictRecord,
+)
 
 if TYPE_CHECKING:
     from propstore.families.forms.stages import FormDefinition
@@ -58,7 +64,7 @@ def _normalize_claim_value(
     value: float,
     claim: ConflictClaim,
     concept_id: str,
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     forms: dict[str, FormDefinition] | None,
 ) -> float:
     if forms is None:
@@ -66,7 +72,7 @@ def _normalize_claim_value(
     unit = claim.unit
     if unit is None:
         return value
-    form_name = concept_registry.get(concept_id, {}).get("form")
+    form_name = concept_registry.form_name(concept_id)
     if form_name is None or form_name not in forms:
         return value
     from propstore.dimensions import normalize_to_si
@@ -81,21 +87,9 @@ def _representative_source_claim_id(source_ids: Sequence[str]) -> str:
     return source_ids[0]
 
 
-def _iter_unique_concepts(concept_registry: dict[str, dict]) -> list[tuple[str, dict]]:
-    unique: list[tuple[str, dict]] = []
-    seen_ids: set[str] = set()
-    for concept_data in concept_registry.values():
-        if not isinstance(concept_data, dict):
-            continue
-        concept_id = concept_data.get("artifact_id") or concept_data.get("id")
-        if not isinstance(concept_id, str) or not concept_id or concept_id in seen_ids:
-            continue
-        seen_ids.add(concept_id)
-        unique.append((concept_id, concept_data))
-    return unique
-
-
-def _concept_symbol_candidates(concept_data: dict) -> tuple[str, ...]:
+def _concept_symbol_candidates(concept_data: ConflictConcept | None) -> tuple[str, ...]:
+    if concept_data is None:
+        return ()
     candidates: list[str] = []
     seen: set[str] = set()
 
@@ -109,11 +103,9 @@ def _concept_symbol_candidates(concept_data: dict) -> tuple[str, ...]:
         seen.add(candidate)
         candidates.append(candidate)
 
-    add(concept_data.get("canonical_name"))
-    for logical_id in concept_data.get("logical_ids", []) or []:
-        if not isinstance(logical_id, dict):
-            continue
-        add(logical_id.get("value"))
+    add(concept_data.canonical_name)
+    for candidate in concept_data.symbol_candidates():
+        add(candidate)
     return tuple(candidates)
 
 
@@ -121,7 +113,7 @@ def _evaluate_parameterization_with_registry(
     sympy_expr: str,
     input_values: dict[str, float],
     output_concept_id: str,
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
 ) -> float | None:
     from propstore.propagation import (
         ParameterizationEvaluation,
@@ -134,9 +126,9 @@ def _evaluate_parameterization_with_registry(
             return evaluation.value
         return None
 
-    output_data = concept_registry.get(output_concept_id, {})
+    output_data = concept_registry.get(output_concept_id)
     input_aliases = {
-        concept_id: _concept_symbol_candidates(concept_registry.get(concept_id, {}))
+        concept_id: _concept_symbol_candidates(concept_registry.get(concept_id))
         for concept_id in input_values
     }
     output_aliases = _concept_symbol_candidates(output_data)
@@ -219,7 +211,7 @@ def _merge_conditions(*groups: Iterable[CelExpr]) -> tuple[CelExpr, ...]:
 def _direct_state_for_claim(
     concept_id: str,
     claim: ConflictClaim,
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     forms: dict[str, FormDefinition] | None,
 ) -> DerivedConflictValue | None:
     interval = _extract_interval(claim)
@@ -243,7 +235,7 @@ def _direct_state_for_claim(
 def _direct_states_for_concept(
     concept_id: str,
     claims: Sequence[ConflictClaim],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     forms: dict[str, FormDefinition] | None,
 ) -> list[DerivedConflictValue]:
     states: list[DerivedConflictValue] = []
@@ -265,9 +257,9 @@ def _direct_states_for_concept(
     return states
 
 
-def _quantity_inputs_only(inputs: Sequence[str], concept_registry: dict[str, dict]) -> bool:
+def _quantity_inputs_only(inputs: Sequence[str], concept_registry: ConflictConceptRegistry) -> bool:
     for concept_id in inputs:
-        inp_form = concept_registry.get(concept_id, {}).get("form", "")
+        inp_form = concept_registry.form_name(concept_id) or ""
         if inp_form in ("category", "structural", "boolean", ""):
             return False
     return True
@@ -278,7 +270,7 @@ def _derive_state(
     sympy_expr: str,
     input_states: Sequence[DerivedConflictValue],
     edge_conditions: Sequence[CelExpr],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     lifting_system: LiftingSystem | None,
     *,
     warn_on_known_failure: bool,
@@ -387,9 +379,9 @@ def _compare_direct_claim_against_derived(
     derived_state: DerivedConflictValue,
     lifting_system: LiftingSystem | None,
     forms: dict[str, FormDefinition] | None,
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
 ) -> None:
-    concept_form = concept_registry.get(concept_id, {}).get("form")
+    concept_form = concept_registry.form_name(concept_id)
     if _values_compatible(
         direct_claim.value,
         derived_state.value,
@@ -428,18 +420,24 @@ def _compare_direct_claim_against_derived(
 
 def _detect_parameterization_conflicts(
     by_concept: dict[str, list[ConflictClaim]],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     claims: Sequence[ConflictClaim],
     *,
     lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
     records: list[ConflictRecord] = []
+    forms = (
+        cast(dict[str, FormDefinition], concept_registry.form_definitions())
+        if forms is None
+        else forms
+    )
     all_param_claims = by_concept or _collect_parameter_claims(claims)
     seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]] = set()
 
-    for concept_id, concept_data in _iter_unique_concepts(concept_registry):
-        param_rels = concept_data.get("parameterization_relationships", [])
+    for concept_data in concept_registry.unique_concepts():
+        concept_id = concept_data.concept_id
+        param_rels = concept_data.parameterizations
         if not param_rels:
             continue
 
@@ -448,11 +446,11 @@ def _detect_parameterization_conflicts(
             continue
 
         for rel in param_rels:
-            if rel.get("exactness") != "exact":
+            if rel.exactness != "exact":
                 continue
 
-            inputs = rel.get("inputs", [])
-            sympy_expr = rel.get("sympy")
+            inputs = rel.inputs
+            sympy_expr = rel.sympy
             if not inputs or not isinstance(sympy_expr, str):
                 continue
             if not _quantity_inputs_only(inputs, concept_registry):
@@ -470,7 +468,7 @@ def _detect_parameterization_conflicts(
             if any(not states for states in input_state_lists):
                 continue
 
-            edge_conditions = to_cel_exprs(sorted(str(condition) for condition in rel.get("conditions", []) or []))
+            edge_conditions = to_cel_exprs(sorted(str(condition) for condition in rel.conditions))
             for input_states in product(*input_state_lists):
                 derived_state = _derive_state(
                     concept_id,
@@ -510,31 +508,21 @@ def _state_key(state: DerivedConflictValue) -> tuple[str, str, tuple[str, ...], 
 
 def _detect_transitive_conflicts_for_claims(
     claims: Sequence[ConflictClaim],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     by_concept: dict[str, list[ConflictClaim]],
     *,
     lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
-    from propstore.parameterization_groups import build_groups
-    from propstore.parameterization_walk import parameterization_edges_from_registry
-
     records: list[ConflictRecord] = []
+    forms = (
+        cast(dict[str, FormDefinition], concept_registry.form_definitions())
+        if forms is None
+        else forms
+    )
     seen_record_keys: set[tuple[str, str, tuple[str, ...], str, tuple[str, ...], str | None, str]] = set()
-    unique_registry = {
-        concept_id: concept_data
-        for concept_id, concept_data in _iter_unique_concepts(concept_registry)
-    }
-
-    concept_list: list[dict] = []
-    for concept_id, concept_data in unique_registry.items():
-        entry = dict(concept_data)
-        entry.setdefault("id", concept_id)
-        concept_list.append(entry)
-
-    groups = build_groups(concept_list)
-    param_edges = parameterization_edges_from_registry(
-        unique_registry,
+    groups = concept_registry.parameterization_groups()
+    param_edges = concept_registry.parameterization_edges(
         exactness_filter={"exact", "approximate"},
     )
 
@@ -546,7 +534,7 @@ def _detect_transitive_conflicts_for_claims(
             concept_id: _direct_states_for_concept(
                 concept_id,
                 by_concept.get(concept_id, []),
-                unique_registry,
+                concept_registry,
                 forms,
             )
             for concept_id in group
@@ -568,15 +556,17 @@ def _detect_transitive_conflicts_for_claims(
             changed = False
             iteration += 1
             for concept_id in sorted(group):
-                for edge in param_edges.get(concept_id, []):
-                    inputs = edge["inputs"]
-                    sympy_expr = edge["sympy"]
-                    if not _quantity_inputs_only(inputs, unique_registry):
+                for edge in param_edges.get(concept_id, ()):
+                    inputs = edge.inputs
+                    sympy_expr = edge.sympy
+                    if not _quantity_inputs_only(inputs, concept_registry):
+                        continue
+                    if sympy_expr is None:
                         continue
                     if any(input_id not in resolved for input_id in inputs):
                         continue
 
-                    edge_conditions = to_cel_exprs(sorted(str(condition) for condition in edge.get("conditions", []) or []))
+                    edge_conditions = to_cel_exprs(sorted(str(condition) for condition in edge.conditions))
                     ordered_input_states = [resolved[input_id] for input_id in inputs]
                     for input_states in product(*ordered_input_states):
                         derived_state = _derive_state(
@@ -584,7 +574,7 @@ def _detect_transitive_conflicts_for_claims(
                             sympy_expr,
                             input_states,
                             edge_conditions,
-                            unique_registry,
+                            concept_registry,
                             lifting_system,
                             warn_on_known_failure=False,
                         )
@@ -615,7 +605,7 @@ def _detect_transitive_conflicts_for_claims(
                         derived_state=derived_state,
                         lifting_system=lifting_system,
                         forms=forms,
-                        concept_registry=unique_registry,
+                        concept_registry=concept_registry,
                     )
 
     return records
@@ -623,7 +613,7 @@ def _detect_transitive_conflicts_for_claims(
 
 def detect_transitive_conflicts(
     claims: Sequence[ConflictClaim],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     *,
     lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,

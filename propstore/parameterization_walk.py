@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from typing import Any
 
 from propstore.families.concepts.declaration import Parameterization
 
@@ -52,43 +51,3 @@ def reachable_concepts(
                     queue.append(iid)
 
     return visited
-
-
-def parameterization_edges_from_registry(
-    concept_registry: dict[str, dict],
-    *,
-    exactness_filter: set[str] | None = None,
-) -> dict[str, list[dict]]:
-    """Build a parameterization edge map from a concept registry.
-
-    Returns a dict mapping output concept ID to a list of parameterization
-    dicts, each with 'inputs', 'sympy', and 'conditions' fields.
-
-    Parameters
-    ----------
-    concept_registry : dict
-        Concept ID → concept data dict.
-    exactness_filter : set[str] or None
-        If provided, only include parameterizations with exactness in
-        this set. Pass {"exact"} for strict, {"exact", "approximate"}
-        for relaxed, or None for all.
-    """
-    edges: dict[str, list[dict]] = {}
-    for cid, cdata in concept_registry.items():
-        for rel in cdata.get("parameterization_relationships", []):
-            exactness = rel.get("exactness", "")
-            if exactness_filter is not None and exactness not in exactness_filter:
-                continue
-            inputs = rel.get("inputs", [])
-            sympy_expr = rel.get("sympy")
-            if not inputs or not sympy_expr:
-                continue
-            if cid not in edges:
-                edges[cid] = []
-            edges[cid].append({
-                "inputs": inputs,
-                "sympy": sympy_expr,
-                "conditions": rel.get("conditions", []),
-                "exactness": exactness,
-            })
-    return edges

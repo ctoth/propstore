@@ -202,7 +202,11 @@ def _classify_pair(
     right_claim: MergeClaim,
 ) -> _DiffKind:
     """Classify disagreement between two concrete claim alternatives."""
-    from propstore.conflict_detector import ConflictClass, detect_conflicts
+    from propstore.conflict_detector import (
+        ConflictClass,
+        ConflictConceptRegistry,
+        detect_conflicts,
+    )
     from propstore.conflict_detector.collectors import conflict_claim_from_payload
 
     comparison_source = (
@@ -231,7 +235,7 @@ def _classify_pair(
     try:
         records = detect_conflicts(
             [left_conflict_claim, right_conflict_claim],
-            concept_registry={},
+            concept_registry=ConflictConceptRegistry(()),
             cel_registry={},
         )
     except (ValueError, Z3TranslationError):

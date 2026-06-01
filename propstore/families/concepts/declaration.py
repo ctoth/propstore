@@ -20,7 +20,7 @@ from quire.documents import DocumentBatchSpec
 from quire.references import ForeignKeySpec, ReferenceKey
 from quire.versions import VersionId
 
-from propstore.cel_types import CelExpr
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
@@ -189,27 +189,6 @@ class ConceptBehavior(FamilyModel):
             return value
         return None
 
-    def conflict_detector_payload(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "id": self.id,
-            "canonical_name": self.canonical_name,
-            "status": self.status,
-            "form": self.form,
-            "kind_type": self.kind_type,
-        }
-        if self.range_min is not None:
-            data["range_min"] = self.range_min
-        if self.range_max is not None:
-            data["range_max"] = self.range_max
-        if self.form_parameters:
-            try:
-                form_parameters = json.loads(self.form_parameters)
-            except json.JSONDecodeError:
-                form_parameters = {}
-            if isinstance(form_parameters, dict):
-                data["form_parameters"] = form_parameters
-        return data
-
 
 class ConceptRelationshipBehavior(FamilyModel):
     @property
@@ -220,23 +199,25 @@ class ConceptRelationshipBehavior(FamilyModel):
 class ParameterizationBehavior(FamilyModel):
     @property
     def input_concept_ids(self) -> tuple[str, ...]:
-        payload = self.conflict_detector_payload()
-        inputs = payload.get("inputs", ())
+        if not self.concept_ids:
+            return ()
+        inputs = json.loads(self.concept_ids)
         if not isinstance(inputs, list):
             return ()
-        return tuple(str(item) for item in inputs)
+        return tuple(str(item) for item in inputs if isinstance(item, str) and item)
 
-    def conflict_detector_payload(self) -> dict[str, Any]:
-        return {
-            "inputs": json.loads(self.concept_ids) if self.concept_ids else [],
-            "sympy": self.sympy,
-            "exactness": self.exactness,
-            "conditions": (
-                json.loads(self.conditions_cel)
-                if self.conditions_cel
-                else []
-            ),
-        }
+    @property
+    def condition_expressions(self) -> tuple[CelExpr, ...]:
+        if not self.conditions_cel:
+            return ()
+        conditions = json.loads(self.conditions_cel)
+        if not isinstance(conditions, list):
+            return ()
+        return to_cel_exprs(
+            condition
+            for condition in conditions
+            if isinstance(condition, str) and condition
+        )
 
 
 if TYPE_CHECKING:

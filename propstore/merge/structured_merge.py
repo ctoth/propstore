@@ -351,7 +351,7 @@ def _compiled_branch_claims(active_claims: list[MergeClaim]) -> tuple[Claim, ...
         normalized_claim_files=entries,
         semantic_files=semantic_files,
     )
-    return compile_claim_models(bundle, concept_registry={}).claims
+    return compile_claim_models(bundle, concept_context=None).claims
 
 
 def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[Stance]:

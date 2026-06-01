@@ -16,7 +16,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from importlib import import_module
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Protocol, cast
 
 import msgspec
 from quire.charter_class import CharterDoc, charter, charter_field, column
@@ -57,10 +57,19 @@ if TYPE_CHECKING:
     from propstore.families.claims.stages import (
         ClaimAlgorithmVariable,
     )
+    from propstore.families.concepts.stages import ConceptRecord
 
 
 _WORLD_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
 Justification: Any = import_module("propstore.core.justifications").Justification
+
+
+class ClaimConceptContext(Protocol):
+    @property
+    def concepts_by_id(self) -> Mapping[str, "ConceptRecord"]: ...
+
+    @property
+    def concept_index(self) -> FamilyReferenceIndex["ConceptRecord"]: ...
 
 
 def _require_claim_type(value: object) -> ClaimType:
@@ -1639,31 +1648,60 @@ def _numeric_si_value(
     )
 
 
-def _claim_form_definition(
-    claim_doc: object,
-    concept_registry: Mapping[str, Mapping[str, Any]],
-    form_registry: Mapping[str, DimensionalForm] | None,
-) -> DimensionalForm | None:
-    if form_registry is None:
-        return None
+def _claim_concept_ref(claim_doc: object) -> str | None:
     concept_id = (
         getattr(claim_doc, "output_concept", None)
         or getattr(claim_doc, "target_concept", None)
     )
-    if concept_id is None:
+    return None if concept_id is None else str(concept_id)
+
+
+def _claim_concept_record(
+    claim_doc: object,
+    concept_context: ClaimConceptContext | None,
+) -> ConceptRecord | None:
+    if concept_context is None:
         return None
-    concept_payload = concept_registry.get(str(concept_id))
-    if not isinstance(concept_payload, Mapping):
+    concept_ref = _claim_concept_ref(claim_doc)
+    if concept_ref is None:
         return None
-    form_name = concept_payload.get("form")
-    if not isinstance(form_name, str) or not form_name:
+    resolved_id = concept_context.concept_index.resolve_id(concept_ref)
+    if resolved_id is None:
+        resolved_id = concept_ref
+    return concept_context.concepts_by_id.get(resolved_id)
+
+
+def _claim_form_definition(
+    claim_doc: object,
+    concept_context: ClaimConceptContext | None,
+    form_registry: Mapping[str, DimensionalForm] | None,
+) -> DimensionalForm | None:
+    if form_registry is None:
         return None
-    return form_registry.get(form_name)
+    concept_record = _claim_concept_record(claim_doc, concept_context)
+    if concept_record is None:
+        return None
+    return form_registry.get(concept_record.form)
+
+
+def _resolve_concept_name(
+    concept_context: ClaimConceptContext | None,
+    concept_ref: str | None,
+) -> str:
+    if concept_ref is None:
+        return "unknown"
+    if concept_context is None:
+        return concept_ref
+    resolved_id = concept_context.concept_index.resolve_id(concept_ref)
+    if resolved_id is None:
+        resolved_id = concept_ref
+    concept_record = concept_context.concepts_by_id.get(resolved_id)
+    return concept_ref if concept_record is None else concept_record.canonical_name
 
 
 def compile_claim_models(
     claim_bundle: ClaimCompilationBundle,
-    concept_registry: Mapping[str, Mapping[str, Any]],
+    concept_context: ClaimConceptContext | None,
     *,
     form_registry: Mapping[str, DimensionalForm] | None = None,
     source_slugs: Collection[str] = (),
@@ -1779,7 +1817,7 @@ def compile_claim_models(
                 continue
             form_definition = _claim_form_definition(
                 claim_doc,
-                concept_registry,
+                concept_context,
                 form_registry,
             )
             numeric_values = {
@@ -1842,7 +1880,13 @@ def compile_claim_models(
                 "methodology": claim_doc.methodology,
                 "notes": claim_doc.notes,
                 "description": None,
-                "auto_summary": generate_description(claim_doc, concept_registry),
+                "auto_summary": generate_description(
+                    claim_doc,
+                    resolve_concept_name=lambda concept_ref: _resolve_concept_name(
+                        concept_context,
+                        concept_ref,
+                    ),
+                ),
             }
             algorithm_values = {
                 "claim_id": claim_id,

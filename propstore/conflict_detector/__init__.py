@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from propstore.core.conditions.registry import ConceptInfo
 
-from .models import ConflictClass, ConflictRecord
+from .models import ConflictClass, ConflictConceptRegistry, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.families.contexts.lifting import LiftingSystem
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 def detect_conflicts(
     claims: Sequence[ConflictClaim],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     cel_registry: Mapping[str, ConceptInfo],
     lifting_system: LiftingSystem | None = None,
 ) -> list[ConflictRecord]:
@@ -33,7 +33,7 @@ def detect_conflicts(
 
 def detect_transitive_conflicts(
     claims: Sequence[ConflictClaim],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     *,
     lifting_system: LiftingSystem | None = None,
     forms: dict[str, FormDefinition] | None = None,
@@ -51,6 +51,7 @@ def detect_transitive_conflicts(
 
 __all__ = [
     "ConflictClass",
+    "ConflictConceptRegistry",
     "ConflictRecord",
     "detect_conflicts",
     "detect_transitive_conflicts",

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Mapping
 from propstore.reporting import JsonReportMixin
 from propstore.claims import LoadedClaimsFile
 from propstore.core.environment import Environment
-from propstore.world.conflict_projection import concept_registry_for_world
+from propstore.world.conflict_projection import conflict_detector_inputs_for_world
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -80,7 +80,7 @@ def _check_transitive_consistency(
     ]
     records = detect_transitive_conflicts(
         conflict_claims_from_claim_files(claim_files),
-        concept_registry_for_world(world),
+        conflict_detector_inputs_for_world(world).concept_registry,
     )
     return WorldConsistencyReport(
         transitive=True,

@@ -19,10 +19,10 @@ from quire.documents import DocumentSchemaError
 from quire.sqlalchemy_store import create_sqlalchemy_store, populate_fts_index
 from propstore.claims import LoadedClaimsFile, claim_file_payload
 from propstore.compiler.context import (
-    build_authored_concept_registry,
     build_compiler_claim_index,
     build_compilation_context_from_loaded,
     build_compilation_context_from_repo,
+    concept_registry_for_context,
 )
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
@@ -456,11 +456,6 @@ def _write_repository_world_store_file(
             claim_files=list(claim_entries) if claim_entries else None,
             context_ids=context_ids,
         )
-    concept_registry = build_authored_concept_registry(
-        concepts,
-        form_registry=form_registry,
-        require_form_definition=False,
-    )
     claim_bundle = None if claim_checked_bundle is None else claim_checked_bundle.bundle
     recorded_claim_diagnostics = list(claim_diagnostics)
     if claim_bundle is None and claim_entries and not recorded_claim_diagnostics:
@@ -518,7 +513,7 @@ def _write_repository_world_store_file(
         claim_index = build_claim_file_reference_index(normalized_claim_files)
         claim_models = compile_claim_models(
             claim_checked_bundle.bundle,
-            concept_registry,
+            compilation_context,
             form_registry=form_registry,
             source_slugs=source_slugs,
         )
@@ -533,7 +528,7 @@ def _write_repository_world_store_file(
         )
         conflict_models = compile_conflict_witness_models(
             list(normalized_claim_files),
-            concept_registry,
+            concept_registry_for_context(compilation_context),
             dict(compilation_context.cel_registry),
             lifting_system=lifting_system,
         )

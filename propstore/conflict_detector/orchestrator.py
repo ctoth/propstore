@@ -8,20 +8,20 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES
+from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import (
     ConceptInfo,
     synthetic_category_concept,
     with_synthetic_concepts,
 )
-from propstore.core.conditions import checked_condition_set
-from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ContextId
 
 from .algorithms import detect_algorithm_conflicts
 from .equations import detect_equation_conflicts
 from .measurements import detect_measurement_conflicts
-from .models import ConflictClaim, ConflictRecord
+from .models import ConflictClaim, ConflictConceptRegistry, ConflictRecord
 from .parameter_claims import detect_parameter_conflicts
 from .parameterization_conflicts import _detect_parameterization_conflicts
 
@@ -42,13 +42,12 @@ class LiftingDecisionCache:
 
 def detect_conflicts(
     claims: Sequence[ConflictClaim],
-    concept_registry: dict[str, dict],
+    concept_registry: ConflictConceptRegistry,
     cel_registry: Mapping[str, ConceptInfo],
     lifting_system: LiftingSystem | None = None,
 ) -> list[ConflictRecord]:
     """Detect conflicts between claims binding to the same concept."""
     records: list[ConflictRecord] = []
-    _validate_conflict_concept_registry(concept_registry)
     # Inject a synthetic 'source' category so Z3 treats source conditions
     # as enum comparisons and recognizes different papers as disjoint.
     source_name_set: set[str] = set()
@@ -95,8 +94,8 @@ def detect_conflicts(
         cel_registry,
         lifting_system=lifting_system,
         solver=condition_solver,
-        forms=_forms_from_conflict_concept_registry(concept_registry),
-        concept_forms=_concept_forms_from_conflict_concept_registry(concept_registry),
+        forms=concept_registry.form_definitions(),
+        concept_forms=concept_registry.concept_forms(),
     )
     records.extend(parameter_records)
     records.extend(
@@ -124,12 +123,14 @@ def detect_conflicts(
         )
     )
 
-    records.extend(_detect_parameterization_conflicts(
-        by_concept,
-        concept_registry,
-        claims,
-        lifting_system=lifting_system,
-    ))
+    records.extend(
+        _detect_parameterization_conflicts(
+            by_concept,
+            concept_registry,
+            claims,
+            lifting_system=lifting_system,
+        )
+    )
     return records
 
 
@@ -229,46 +230,6 @@ def _claim_derivation_chain(claim: ConflictClaim) -> tuple[str, ...]:
     return tuple(str(item) for item in chain)
 
 
-def _forms_from_conflict_concept_registry(concept_registry: Mapping[str, dict]) -> dict[str, object]:
-    forms: dict[str, object] = {}
-    for value in concept_registry.values():
-        if not isinstance(value, dict):
-            continue
-        form_name = value.get("form")
-        form_definition = value.get("_form_definition")
-        if isinstance(form_name, str) and form_definition is not None:
-            forms.setdefault(form_name, form_definition)
-    return forms
-
-
-def _concept_forms_from_conflict_concept_registry(concept_registry: Mapping[str, dict]) -> dict[str, str]:
-    concept_forms: dict[str, str] = {}
-    for key, value in concept_registry.items():
-        if not isinstance(value, dict):
-            continue
-        form_name = value.get("form")
-        if not isinstance(form_name, str):
-            continue
-        _add_concept_form_key(concept_forms, key, form_name)
-        for id_key in ("artifact_id", "id"):
-            _add_concept_form_key(concept_forms, value.get(id_key), form_name)
-        for logical_id in value.get("logical_ids", ()):
-            if not isinstance(logical_id, dict):
-                continue
-            namespace = logical_id.get("namespace")
-            local_value = logical_id.get("value")
-            if isinstance(local_value, str):
-                _add_concept_form_key(concept_forms, local_value, form_name)
-            if isinstance(namespace, str) and isinstance(local_value, str):
-                _add_concept_form_key(concept_forms, f"{namespace}:{local_value}", form_name)
-    return concept_forms
-
-
-def _add_concept_form_key(target: dict[str, str], key: object, form_name: str) -> None:
-    if isinstance(key, str) and key:
-        target.setdefault(key, form_name)
-
-
 def _lifting_rule_applies(
     claim: ConflictClaim,
     rule: LiftingRule,
@@ -291,31 +252,3 @@ def _lifting_rule_applies(
             ),
         )
     )
-
-
-def _validate_conflict_concept_registry(concept_registry: dict[str, dict]) -> None:
-    entries_by_id: dict[str, dict[str, object]] = {}
-    for key, value in concept_registry.items():
-        if not isinstance(value, dict):
-            raise TypeError(
-                "conflict detector CEL projection expects concept_registry values to be mappings"
-            )
-        concept_id = value.get("artifact_id", value.get("id"))
-        if not isinstance(concept_id, str) or not concept_id:
-            raise ValueError(
-                f"invalid concept registry entry for key '{key}': missing artifact_id/id"
-            )
-        normalized = {
-            str(field): field_value
-            for field, field_value in value.items()
-            if not str(field).startswith("_")
-        }
-        normalized.setdefault("artifact_id", concept_id)
-        existing = entries_by_id.get(concept_id)
-        if existing is not None:
-            if existing != normalized:
-                raise ValueError(
-                    f"conflicting concept registry entries for concept id '{concept_id}'"
-                )
-            continue
-        entries_by_id[concept_id] = normalized

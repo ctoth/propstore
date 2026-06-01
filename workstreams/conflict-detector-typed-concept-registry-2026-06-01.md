@@ -106,3 +106,41 @@ Topological order: P1, P2, P3, P4, P5, P6, P7.
 Run one phase at a time. Each phase must either keep a typed reduction that
 removes an old path or stop with the exact first independent caller that blocks
 the phase. Do not add compatibility bridges to make a phase pass.
+
+## Execution Log
+
+### Slice 1 - Detector Registry Contract Cutover
+
+Changed production detector registry flow in place:
+
+- Added detector-owned `ConflictConceptRegistry`, `ConflictConcept`, and
+  `ConflictParameterization` typed inputs.
+- Changed `detect_conflicts`, `detect_transitive_conflicts`,
+  `compile_conflict_witness_models`, compiler conflict projection, world
+  conflict projection, and merge classification to use the typed registry.
+- Deleted `concept_registry_for_context_payloads`.
+- Deleted `concept_registry_for_world`.
+- Deleted `ConceptBehavior.conflict_detector_payload`.
+- Deleted `ParameterizationBehavior.conflict_detector_payload`.
+- Deleted `parameterization_edges_from_registry`.
+- Deleted `build_authored_concept_registry`; claim compilation now reads
+  concept form/name facts through the existing compilation context instead of
+  an authored concept payload registry.
+
+Gate results:
+
+- Pass: `uv run pyright propstore`
+- Pass: `rg -n "concept_registry: dict\\[str, dict\\]|dict\\[str, dict\\].*concept_registry" propstore tests`
+- Pass: `rg -n -F "concept_registry_for_context_payloads" propstore tests`
+- Pass: `rg -n -F "concept_registry_for_world" propstore tests`
+- Pass: `rg -n -F "conflict_detector_payload" propstore tests`
+- Pass: `rg -n -F "parameterization_edges_from_registry" propstore tests`
+- Pass: `rg -n -F "record.to_payload()" propstore/compiler/context.py`
+- Pass: `rg -n -F 'get("form")' propstore/conflict_detector`
+- Pass: `rg -n -F 'get("logical_ids")' propstore/conflict_detector`
+- Pass: `rg -n -F 'get("parameterization_relationships")' propstore/conflict_detector`
+
+Remaining broader payload work after this slice:
+
+- `rg -n -F ".to_payload(" propstore` reports 64 production call sites.
+- `rg -n -F ".from_payload(" propstore` reports 3 production call sites.

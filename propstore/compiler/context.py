@@ -6,11 +6,16 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Mapping, cast
+from typing import TYPE_CHECKING, Any, Mapping
 
 from quire.references import FamilyReferenceIndex
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
+from propstore.conflict_detector.models import (
+    ConflictConcept,
+    ConflictConceptRegistry,
+    ConflictParameterization,
+)
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.claims import LoadedClaimsFile
 from propstore.families.claims.references import (
@@ -220,91 +225,38 @@ def build_compilation_context_from_repo(
 
 def concept_registry_for_context(
     context: CompilationContext,
-) -> dict[str, dict[str, Any]]:
-    return concept_registry_for_context_payloads(
-        context.concepts_by_id,
-        context.concept_index,
-        form_registry=context.form_registry,
-    )
-
-
-def concept_registry_for_context_payloads(
-    concepts_by_id: Mapping[str, ConceptRecord],
-    concept_index: FamilyReferenceIndex[ConceptRecord],
-    *,
-    form_registry: Mapping[str, FormDefinition] | None = None,
-) -> dict[str, dict[str, Any]]:
-    registry: dict[str, dict[str, Any]] = {}
-    payloads_by_id: dict[str, dict[str, Any]] = {}
-    for artifact_id, record in concepts_by_id.items():
-        payload = record.to_payload()
-        form_definition = None if form_registry is None else form_registry.get(record.form)
-        if form_definition is not None:
-            payload["_form_definition"] = form_definition
-        payloads_by_id[artifact_id] = payload
-    registry.update(payloads_by_id)
-    for key, candidates in concept_index.lookup.items():
+) -> ConflictConceptRegistry:
+    unique_reference_keys: dict[str, list[str]] = {
+        artifact_id: [artifact_id]
+        for artifact_id in context.concepts_by_id
+    }
+    for key, candidates in context.concept_index.lookup.items():
         if len(candidates) != 1:
             continue
-        payload = payloads_by_id.get(candidates[0])
-        if payload is None:
-            continue
-        registry.setdefault(key, payload)
-    return registry
-
-
-def build_authored_concept_registry(
-    concepts: list[Any] | list[LoadedConcept],
-    *,
-    forms_dir: Path | KnowledgePath | None = None,
-    form_registry: Mapping[str, FormDefinition] | None = None,
-    require_form_definition: bool = True,
-) -> dict[str, dict[str, Any]]:
-    """Build the canonical authored-concept lookup used by validators/builders."""
-    from propstore.families.concepts.stages import normalize_loaded_concepts
-    from propstore.families.forms.stages import load_form_path
-
-    forms_root = None if forms_dir is None else coerce_knowledge_path(forms_dir)
-    typed_concepts = (
-        concepts
-        if all(isinstance(concept, LoadedConcept) for concept in concepts)
-        else normalize_loaded_concepts(cast(Any, concepts))
-    )
-    registry: dict[str, dict[str, Any]] = {}
-    for concept in typed_concepts:
-        record = concept.record
-        enriched = record.to_payload()
-        cid = str(record.artifact_id)
-        enriched["_storage_id"] = cid
-        form_def = (
-            form_registry.get(record.form)
-            if form_registry is not None and record.form is not None
-            else (
-                None
-                if forms_root is None
-                else load_form_path(forms_root, record.form)
+        unique_reference_keys.setdefault(candidates[0], []).append(key)
+    entries: list[ConflictConcept] = []
+    for artifact_id, record in context.concepts_by_id.items():
+        form_definition = context.form_registry.get(record.form)
+        entries.append(
+            ConflictConcept(
+                concept_id=artifact_id,
+                canonical_name=record.canonical_name,
+                form_name=record.form,
+                reference_keys=tuple(unique_reference_keys.get(artifact_id, (artifact_id,))),
+                form_definition=form_definition,
+                parameterizations=tuple(
+                    ConflictParameterization(
+                        inputs=tuple(str(input_id) for input_id in parameterization.inputs),
+                        sympy=parameterization.sympy,
+                        exactness=(
+                            None
+                            if parameterization.exactness is None
+                            else parameterization.exactness.value
+                        ),
+                        conditions=parameterization.conditions,
+                    )
+                    for parameterization in record.parameterizations
+                ),
             )
         )
-        if record.form:
-            if form_def is None:
-                if require_form_definition:
-                    raise ValueError(
-                        f"concept '{cid}' references missing form definition '{record.form}'"
-                    )
-            else:
-                enriched["_form_definition"] = form_def
-        registry[cid] = enriched
-        if concept.source_local_id and concept.source_local_id not in registry:
-            registry[concept.source_local_id] = enriched
-        canonical = record.canonical_name
-        if canonical not in registry:
-            registry[canonical] = enriched
-        for logical_id in record.logical_ids:
-            if logical_id.formatted not in registry:
-                registry[logical_id.formatted] = enriched
-            if logical_id.value not in registry:
-                registry[logical_id.value] = enriched
-        for alias in record.aliases:
-            if alias.name not in registry:
-                registry[alias.name] = enriched
-    return registry
+    return ConflictConceptRegistry(tuple(entries))
