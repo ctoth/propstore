@@ -94,24 +94,6 @@ class EpistemicSnapshot:
     def from_state(cls, state: EpistemicState) -> EpistemicSnapshot:
         return cls(state=EpistemicStateSnapshot.from_state(state))
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> EpistemicSnapshot:
-        payload = _required_mapping(data, "snapshot")
-        schema_version = str(payload.get("schema_version") or "")
-        if schema_version != EPistemicSnapshotVersion:
-            raise ValueError(
-                f"unsupported epistemic snapshot version: {schema_version}"
-            )
-        state_payload = _required_mapping(payload.get("state"), "state")
-        snapshot = cls(
-            state=EpistemicStateSnapshot.from_json_payload(state_payload),
-            schema_version=schema_version,
-        )
-        recorded_hash = payload.get("content_hash")
-        if recorded_hash is not None and str(recorded_hash) != snapshot.content_hash:
-            raise ValueError("epistemic snapshot content_hash does not match payload")
-        return snapshot
-
     @property
     def content_hash(self) -> str:
         return _stable_hash(self._hash_payload())
@@ -132,12 +114,6 @@ class EpistemicSnapshot:
     def to_canonical_json(self) -> str:
         return _canonical_text(self.to_dict())
 
-    def _hash_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "state": self.state.to_dict(),
-        }
-
 
 @dataclass(frozen=True)
 class TransitionOperation:
@@ -157,22 +133,6 @@ class TransitionOperation:
             self, "target_atom_ids", tuple(str(item) for item in self.target_atom_ids)
         )
         object.__setattr__(self, "parameters", _to_plain_data(dict(self.parameters)))
-
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> TransitionOperation:
-        payload = _required_mapping(data, "operation")
-        return cls(
-            name=str(payload.get("name") or ""),
-            input_atom_id=None
-            if payload.get("input_atom_id") is None
-            else str(payload.get("input_atom_id")),
-            target_atom_ids=tuple(
-                str(item) for item in (payload.get("target_atom_ids") or ())
-            ),
-            parameters=dict(
-                _required_mapping(payload.get("parameters") or {}, "parameters")
-            ),
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -271,60 +231,6 @@ class TransitionJournalEntry:
             policy_payload={} if policy_payload is None else policy_payload,
         )
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> TransitionJournalEntry:
-        payload = _required_mapping(data, "journal entry")
-        schema_version = str(payload.get("schema_version") or "")
-        if schema_version != TransitionJournalVersion:
-            raise ValueError(
-                f"unsupported transition journal version: {schema_version}"
-            )
-        explanation_payload = _required_mapping(
-            payload.get("explanation") or {}, "explanation"
-        )
-        entry = cls(
-            state_in=EpistemicSnapshot.from_json_payload(
-                _required_mapping(payload.get("state_in"), "state_in")
-            ),
-            operation=TransitionOperation.from_json_payload(
-                _required_mapping(payload.get("operation"), "operation")
-            ),
-            policy_id=str(payload.get("policy_id") or ""),
-            operator=_journal_operator(str(payload.get("operator") or "")),
-            operator_input=_required_mapping(
-                payload.get("operator_input"), "operator_input"
-            ),
-            version_policy_snapshot=_version_policy_snapshot(
-                _required_mapping(
-                    payload.get("version_policy_snapshot"),
-                    "version_policy_snapshot",
-                )
-            ),
-            normalized_state_in=_required_mapping(
-                payload.get("normalized_state_in"),
-                "normalized_state_in",
-            ),
-            normalized_state_out=_required_mapping(
-                payload.get("normalized_state_out"),
-                "normalized_state_out",
-            ),
-            state_out=EpistemicSnapshot.from_json_payload(
-                _required_mapping(payload.get("state_out"), "state_out")
-            ),
-            explanation={
-                str(atom_id): coerce_revision_atom_detail(detail)
-                for atom_id, detail in explanation_payload.items()
-            },
-            policy_payload=_required_mapping(payload.get("policy") or {}, "policy"),
-            schema_version=schema_version,
-        )
-        recorded_hash = payload.get("content_hash")
-        if recorded_hash is not None and str(recorded_hash) != entry.content_hash:
-            raise ValueError(
-                "transition journal entry content_hash does not match payload"
-            )
-        return entry
-
     @property
     def content_hash(self) -> str:
         return _stable_hash(self._hash_payload())
@@ -333,27 +239,6 @@ class TransitionJournalEntry:
         data = self._hash_payload()
         data["content_hash"] = self.content_hash
         return data
-
-    def _hash_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "state_in_hash": self.state_in.content_hash,
-            "state_in": self.state_in.to_dict(),
-            "operation": self.operation.to_dict(),
-            "policy_id": self.policy_id,
-            "policy": _to_plain_data(self.policy_payload),
-            "operator": self.operator.value,
-            "operator_input": _to_plain_data(self.operator_input),
-            "version_policy_snapshot": dict(self.version_policy_snapshot),
-            "normalized_state_in": _to_plain_data(self.normalized_state_in),
-            "normalized_state_out": _to_plain_data(self.normalized_state_out),
-            "state_out_hash": self.state_out.content_hash,
-            "state_out": self.state_out.to_dict(),
-            "explanation": {
-                atom_id: detail.to_dict()
-                for atom_id, detail in self.explanation.items()
-            },
-        }
 
 
 def _state_with_journal_event_policy(
@@ -420,23 +305,6 @@ class TransitionJournal:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "entries", tuple(self.entries))
-
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> TransitionJournal:
-        payload = _required_mapping(data, "journal")
-        schema_version = str(payload.get("schema_version") or "")
-        if schema_version != TransitionJournalVersion:
-            raise ValueError(
-                f"unsupported transition journal version: {schema_version}"
-            )
-        return cls(
-            entries=tuple(
-                TransitionJournalEntry.from_json_payload(
-                    _required_mapping(entry, "entries[]")
-                )
-                for entry in (payload.get("entries") or ())
-            )
-        )
 
     def to_dict(self) -> dict[str, Any]:
         return {

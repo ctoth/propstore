@@ -159,38 +159,6 @@ def capture_journal(
     return TransitionJournal(entries=tuple(entries))
 
 
-def _revision_result_payload(
-    bound: WorldlineBoundView,
-    result: RevisionResult,
-) -> WorldlineRevisionResult:
-    return WorldlineRevisionResult(
-        accepted_atom_ids=tuple(result.accepted_atom_ids),
-        rejected_atom_ids=tuple(result.rejected_atom_ids),
-        incision_set=tuple(result.incision_set),
-        explanation=bound.revision_explain(result),
-    )
-
-
-def _revision_event_payload(
-    bound: WorldlineBoundView,
-    *,
-    operation: str,
-    input_atom_id: str | None,
-    target_atom_ids: tuple[str, ...],
-    result: RevisionResult,
-) -> RevisionEvent:
-    return RevisionEvent(
-        operation=operation,
-        pre_state_hash=_bound_epistemic_state_hash(bound),
-        input_atom_id=input_atom_id,
-        target_atom_ids=target_atom_ids,
-        decision=getattr(result, "decision", None),
-        realization=getattr(result, "realization", None),
-        policy_snapshot=_VERSION_POLICY_SNAPSHOT,
-        replay_status="captured",
-    )
-
-
 def _bound_epistemic_state_hash(bound: WorldlineBoundView) -> str:
     state = getattr(bound, "epistemic_state", None)
     if not callable(state):

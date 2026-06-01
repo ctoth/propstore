@@ -107,31 +107,6 @@ class MergeClaim:
     def __getitem__(self, key: str) -> object:
         return self.to_payload(include_id_alias=True)[key]
 
-    def provenance_payload(self) -> dict[str, Any]:
-        provenance = (
-            {}
-            if self.document.provenance is None
-            else cast(dict[str, Any], document_to_payload(self.document.provenance))
-        )
-        if self.branch_origin is not None:
-            provenance["branch_origin"] = self.branch_origin
-        return provenance
-
-
-def _semantic_payload(document: ClaimDocument) -> dict[str, Any]:
-    payload = cast(dict[str, Any], document_to_payload(document))
-    for key in (
-        "artifact_id",
-        "artifact_code",
-        "id",
-        "logical_ids",
-        "version_id",
-        "stances",
-        "context",
-    ):
-        payload.pop(key, None)
-    return payload
-
 
 def _provenance_ref(claim: MergeClaim) -> ProvenanceGraphRef:
     return ProvenanceGraphRef(

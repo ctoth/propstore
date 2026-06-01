@@ -32,22 +32,6 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claim_payloads(
-    repo: Repository, claims: list[dict], paper: str = "test_paper"
-) -> dict[str, bytes]:
-    doc = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    return claim_artifact_commit_payloads(repo, doc, source=f"claims/{paper}.yaml")
-
-
 def _claim_yaml_with_explicit_identities(
     claims: list[dict], paper: str = "test_paper"
 ) -> bytes:
@@ -73,36 +57,6 @@ def _claim_yaml_with_explicit_identities(
         rewritten_claims.append(merged)
     doc["claims"] = rewritten_claims
     return yaml.dump(doc, sort_keys=False).encode()
-
-
-def _claim_payloads_with_explicit_identities(
-    repo: Repository,
-    claims: list[dict],
-    paper: str = "test_paper",
-) -> dict[str, bytes]:
-    doc = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    rewritten_claims: list[dict] = []
-    for original, normalized_claim in zip(claims, doc["claims"], strict=True):
-        merged = deepcopy(normalized_claim)
-        artifact_id = original.get("artifact_id")
-        if isinstance(artifact_id, str) and artifact_id:
-            merged["artifact_id"] = artifact_id
-        logical_ids = original.get("logical_ids")
-        if isinstance(logical_ids, list):
-            merged["logical_ids"] = logical_ids
-        merged["version_id"] = compute_claim_version_id(merged)
-        rewritten_claims.append(merged)
-    doc["claims"] = rewritten_claims
-    return claim_artifact_commit_payloads(repo, doc, source=f"claims/{paper}.yaml")
 
 
 def _param_claim(

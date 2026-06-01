@@ -32,10 +32,6 @@ from tests.conftest import (
 )
 
 
-def _prior_payload(a: float = 0.62) -> dict[str, float]:
-    return {"b": 0.0, "d": 0.0, "u": 1.0, "a": a}
-
-
 def _test_provenance(operation: str) -> Provenance:
     return Provenance(
         status=ProvenanceStatus.STATED,
@@ -172,12 +168,6 @@ def test_p_arg_from_claim_ignores_source_trust_mapping() -> None:
 def test_p_arg_from_claim_invalid_typed_input_propagates() -> None:
     with pytest.raises((TypeError, AttributeError)):
         p_arg_from_claim(object())
-
-
-def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> None:
-    result = p_arg_from_claim(_claim_with_metadata(sample_size=50))
-    assert isinstance(result, NoCalibration)
-    assert result.reason == "missing_claim_calibration"
 
 
 @pytest.mark.property

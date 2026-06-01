@@ -36,21 +36,6 @@ class SituatedAssertion:
     def assertion_id(self) -> AssertionId:
         return derive_assertion_id(self.identity_payload())
 
-    def identity_payload(
-        self,
-    ) -> tuple[
-        tuple[str, str],
-        tuple[tuple[str, str], ...],
-        tuple[str, str],
-        tuple[str, str, str],
-    ]:
-        return (
-            self.relation.identity_key(),
-            self.role_bindings.identity_payload(),
-            self.context.identity_payload(),
-            self.condition.identity_payload(),
-        )
-
 
 def derive_assertion_id(identity: object) -> AssertionId:
     rendered = json.dumps(

@@ -252,15 +252,6 @@ def _build_error_pair(
     return [forward, reverse]
 
 
-def _unresolved_payload(unresolved: BaseRateUnresolved | None) -> dict | None:
-    if unresolved is None:
-        return None
-    return {
-        "reason": unresolved.reason,
-        "missing_fields": list(unresolved.missing_fields),
-    }
-
-
 def _build_stance_dict(
     raw: dict,
     target_id: str,
@@ -361,19 +352,6 @@ def _build_stance_dict(
         "opinion": opinion,
         "resolution": resolution,
     }
-
-
-def _is_directional_stance_payload(raw: dict) -> bool:
-    if "forward" in raw or "reverse" in raw:
-        return False
-    raw_type = raw.get("type")
-    if not isinstance(raw_type, str) or raw_type not in VALID_STANCE_TYPES:
-        return False
-    if not isinstance(raw.get("strength"), str):
-        return False
-    if "note" not in raw:
-        return False
-    return "conditions_differ" in raw
 
 
 def _directional_prompt(

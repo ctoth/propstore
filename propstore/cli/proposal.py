@@ -50,12 +50,6 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     emit_success(f"\nPromoted {result.moved} of {len(plan.items)} file(s).")
 
 
-def _fixture_payload(path: str | None) -> str | None:
-    if path is None:
-        return None
-    return Path(path).read_text(encoding="utf-8")
-
-
 @proposal.group("predicates")
 def predicates() -> None:
     """Manage predicate proposal artifacts."""

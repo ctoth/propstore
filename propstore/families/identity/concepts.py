@@ -47,86 +47,9 @@ def canonicalize_concept_for_version(concept: dict[str, Any]) -> dict[str, Any]:
     return canonical
 
 
-def concept_version_payload_json(concept: dict[str, Any]) -> str:
-    """Serialize canonical concept content for version hashing."""
-    return json.dumps(
-        canonicalize_concept_for_version(concept),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-
-
 def compute_concept_version_id(concept: dict[str, Any]) -> str:
     """Compute the immutable version identifier for a concept payload."""
     return canonical_json_sha256(canonicalize_concept_for_version(concept))
-
-
-def normalize_canonical_concept_payload(
-    data: dict[str, Any],
-    *,
-    canonical_name: str | None = None,
-    domain: str | None = None,
-    default_domain: str | None = None,
-    local_handle: str | None = None,
-    default_status: str | None = None,
-    default_definition: str | None = None,
-    default_form: str | None = None,
-) -> dict[str, Any]:
-    normalized = copy.deepcopy(data)
-    raw_id = normalized.pop("id", None)
-    effective_name = _effective_concept_name(
-        normalized,
-        canonical_name=canonical_name,
-        raw_id=raw_id,
-        local_handle=local_handle,
-    )
-    effective_domain = _effective_concept_domain(
-        normalized,
-        domain=domain,
-        default_domain=default_domain,
-    )
-    definition = _pop_effective_string(
-        normalized,
-        "definition",
-        default_value=default_definition,
-    )
-    dimension_form = _pop_effective_string(
-        normalized,
-        "form",
-        default_value=default_form,
-    )
-    if default_status is not None and not isinstance(normalized.get("status"), str):
-        normalized["status"] = default_status
-
-    propstore_handle = logical_ids.normalize_logical_value(
-        local_handle
-        or _concept_local_handle(normalized, fallback=str(raw_id or effective_name))
-    )
-    artifact_id = _concept_artifact_id(normalized, propstore_handle)
-    normalized["artifact_id"] = artifact_id
-    normalized["logical_ids"] = _concept_logical_ids(
-        domain=effective_domain,
-        canonical_name=effective_name,
-        local_handle=propstore_handle,
-        existing=normalized.get("logical_ids"),
-    )
-    ontology_reference = _ensure_ontology_reference(
-        normalized,
-        artifact_id=artifact_id,
-        label=effective_name,
-    )
-    _ensure_lexical_entry(
-        normalized,
-        propstore_handle=propstore_handle,
-        effective_name=effective_name,
-        ontology_reference=ontology_reference,
-        definition=definition,
-        dimension_form=dimension_form,
-    )
-    _normalize_numeric_range(normalized)
-    normalized["version_id"] = compute_concept_version_id(normalized)
-    return normalized
 
 
 def concept_reference_keys(

@@ -308,28 +308,6 @@ class ProvenanceRecord:
         if self.page is not None:
             object.__setattr__(self, "page", int(self.page))
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any] | None) -> ProvenanceRecord:
-        if not data:
-            return cls()
-        known = {"source_table", "source_id", "paper", "page"}
-        extras = {
-            str(key): value
-            for key, value in data.items()
-            if key not in known and value is not None
-        }
-        return cls(
-            source_table=(
-                None if data.get("source_table") is None else str(data["source_table"])
-            ),
-            source_id=(
-                None if data.get("source_id") is None else str(data["source_id"])
-            ),
-            paper=(None if data.get("paper") is None else str(data["paper"])),
-            page=(None if data.get("page") is None else int(data["page"])),
-            extras=tuple(extras.items()),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         if self.source_table is not None:

@@ -40,23 +40,6 @@ class ClaimAlgorithmVariable:
         object.__setattr__(self, "attributes", dict(self.attributes))
 
 
-def claim_algorithm_variable_payload(
-    variable: ClaimAlgorithmVariable,
-) -> dict[str, Any]:
-    data: dict[str, Any] = {}
-    for variable_field in fields(ClaimAlgorithmVariable):
-        if variable_field.metadata.get("payload_rest") is True:
-            data.update(getattr(variable, variable_field.name))
-            continue
-        payload_name = variable_field.metadata.get("payload")
-        if not isinstance(payload_name, str):
-            continue
-        value = getattr(variable, variable_field.name)
-        if value is not None:
-            data[payload_name] = value
-    return data
-
-
 def parse_claim_algorithm_variable_entry(
     entry: Mapping[object, object],
 ) -> ClaimAlgorithmVariable:

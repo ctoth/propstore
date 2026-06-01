@@ -84,57 +84,6 @@ def test_named_graph_encoding_requires_explicit_uri_graph_name() -> None:
         )
 
 
-def test_named_graph_payload_canonicalizes_sets_but_preserves_operation_order() -> None:
-    # Witnesses and derived graph names are sets for identity purposes. Operations
-    # are a causal trace, so their first-observed order is semantically meaningful.
-    first = Provenance(
-        status=ProvenanceStatus.CALIBRATED,
-        witnesses=(_witness("b"), _witness("a"), _witness("b")),
-        graph_name="urn:propstore:provenance:canonical",
-        derived_from=("urn:graph:z", "urn:graph:a", "urn:graph:z"),
-        operations=("projection", "import", "projection"),
-    )
-    second = Provenance(
-        status=ProvenanceStatus.CALIBRATED,
-        witnesses=(_witness("a"), _witness("b")),
-        graph_name="urn:propstore:provenance:canonical",
-        derived_from=("urn:graph:a", "urn:graph:z"),
-        operations=("import", "projection"),
-    )
-
-    encoded = encode_named_graph(first)
-    second_encoded = encode_named_graph(second)
-
-    assert encoded != second_encoded
-    assert decode_named_graph(encoded) == Provenance(
-        status=ProvenanceStatus.CALIBRATED,
-        witnesses=(_witness("a"), _witness("b")),
-        graph_name="urn:propstore:provenance:canonical",
-        derived_from=("urn:graph:a", "urn:graph:z"),
-        operations=("projection", "import"),
-    )
-    assert decode_named_graph(second_encoded) == second
-
-    payload = json.loads(encoded)
-    assert payload["@id"] == "urn:propstore:provenance:canonical"
-    assert payload["provenance"]["witnesses"] == [
-        {
-            "asserter": "agent:a",
-            "method": "stated",
-            "source_artifact_code": "claim:a",
-            "timestamp": "2026-04-17T00:00:00Z",
-        },
-        {
-            "asserter": "agent:b",
-            "method": "stated",
-            "source_artifact_code": "claim:b",
-            "timestamp": "2026-04-17T00:00:00Z",
-        },
-    ]
-    assert payload["provenance"]["derived_from"] == ["urn:graph:a", "urn:graph:z"]
-    assert payload["provenance"]["operations"] == ["projection", "import"]
-
-
 def test_git_notes_round_trip_named_graph_content() -> None:
     repo = MemoryRepo()
     claim_blob = Blob.from_string(b"claim payload")

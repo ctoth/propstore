@@ -97,10 +97,3 @@ def claim_file_source_paper(claim_file: LoadedClaimsFile) -> str:
 
 def claim_file_stage(claim_file: LoadedClaimsFile) -> str | None:
     return claim_file.stage
-
-
-def claim_file_payload(claim_file: LoadedClaimsFile) -> dict[str, Any]:
-    payload = document_to_payload(claim_file.document)
-    if not isinstance(payload, dict):
-        raise TypeError("claim document payload must be a mapping")
-    return payload

@@ -107,65 +107,6 @@ def _load_resource_cases(resource_path: str) -> list[SuiteCase]:
     ]
 
 
-def _case_from_json_payload(
-    raw: object,
-    *,
-    source: str,
-    tags: list[str],
-    path: str,
-) -> SuiteCase:
-    data = _mapping(raw, path)
-    theory = (
-        _theory_from_json_payload(data["theory"], f"{path}.theory")
-        if "theory" in data
-        else None
-    )
-    expect = _sections(data["expect"], f"{path}.expect") if "expect" in data else None
-    expect_per_policy = None
-    if "expect_per_policy" in data:
-        policy_map = _mapping(data["expect_per_policy"], f"{path}.expect_per_policy")
-        expect_per_policy = {
-            str(policy_name): _sections(
-                expectation,
-                f"{path}.expect_per_policy.{policy_name}",
-            )
-            for policy_name, expectation in policy_map.items()
-        }
-    raw_source = data.get("source")
-    if raw_source is not None and not isinstance(raw_source, str):
-        raise AssertionError(f"{path}.source must be an optional string")
-    case_source = raw_source or source
-    raw_skip = data.get("skip")
-    if raw_skip is not None and not isinstance(raw_skip, str):
-        raise AssertionError(f"{path}.skip must be an optional string")
-    case_tags = [*tags, *_string_list(data.get("tags", []))]
-    return SuiteCase(
-        name=_required_string(data, "name", path),
-        description=_required_string(data, "description", path),
-        source=case_source,
-        tags=case_tags,
-        theory=theory,
-        expect=expect,
-        expect_per_policy=expect_per_policy,
-        skip=raw_skip,
-    )
-
-
-def _theory_from_json_payload(raw: object, path: str) -> SuiteTheory:
-    data = _mapping(raw, path)
-    return SuiteTheory(
-        facts=_predicate_facts(data.get("facts", {}), f"{path}.facts"),
-        strict_rules=_rules(data.get("strict_rules", []), f"{path}.strict_rules"),
-        defeasible_rules=_rules(
-            data.get("defeasible_rules", []),
-            f"{path}.defeasible_rules",
-        ),
-        defeaters=_rules(data.get("defeaters", []), f"{path}.defeaters"),
-        superiority=_pairs(data.get("superiority", []), f"{path}.superiority"),
-        conflicts=_pairs(data.get("conflicts", []), f"{path}.conflicts"),
-    )
-
-
 def _rules(raw: object, path: str) -> list[SuiteRule]:
     return [
         SuiteRule(

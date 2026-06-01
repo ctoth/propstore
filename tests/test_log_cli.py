@@ -22,26 +22,6 @@ from tests.conftest import (
 )
 
 
-def _concept_payload(
-    local_id: str,
-    canonical_name: str,
-    *,
-    domain: str,
-    form: str,
-    **extra: object,
-) -> dict:
-    payload = {
-        "id": local_id,
-        "canonical_name": canonical_name,
-        "status": "proposed",
-        "definition": f"{canonical_name} definition",
-        "domain": domain,
-        "form": form,
-    }
-    payload.update(extra)
-    return normalize_concept_payloads([payload])[0]
-
-
 def test_log_output(tmp_path: Path) -> None:
     """pks log shows history after operations."""
     root = tmp_path / "knowledge"

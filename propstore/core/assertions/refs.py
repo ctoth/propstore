@@ -30,9 +30,6 @@ class ContextReference:
         if str(self.id).strip() != str(self.id) or str(self.id) == "":
             raise ValueError("context id must be non-empty")
 
-    def identity_payload(self) -> tuple[str, str]:
-        return ("context", str(self.id))
-
 
 @dataclass(frozen=True, order=True)
 class ConditionRef:
@@ -66,9 +63,6 @@ class ConditionRef:
             registry_fingerprint=UNCONDITIONAL_CONDITION_REGISTRY_FINGERPRINT,
         )
 
-    def identity_payload(self) -> tuple[str, str, str]:
-        return ("condition", str(self.id), self.registry_fingerprint)
-
 
 @dataclass(frozen=True, order=True)
 class ProvenanceGraphRef:
@@ -88,9 +82,6 @@ class ProvenanceGraphRef:
             self.graph_name
         ).startswith(_GRAPH_NAME_PREFIXES):
             raise ValueError("provenance graph reference must be a URI")
-
-    def identity_payload(self) -> tuple[str, str]:
-        return ("provenance_graph", str(self.graph_name))
 
 
 UNCONDITIONAL_CONDITION_REF = ConditionRef.unconditional()

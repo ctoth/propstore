@@ -106,65 +106,6 @@ class ConceptCheckedRegistry:
     registry: dict[str, dict[str, Any]]
 
 
-def normalize_concept_payload(data: Mapping[str, Any]) -> dict[str, Any]:
-    normalized = dict(data)
-
-    local_seed = str(
-        normalized.pop("id", None)
-        or normalized.get("canonical_name")
-        or normalized.get("artifact_id")
-        or "concept"
-    )
-    canonical_name = normalized.get("canonical_name")
-    primary_namespace = str(normalized.get("domain") or "propstore")
-    primary_value = normalize_logical_value(str(canonical_name or local_seed))
-
-    logical_ids = normalized.get("logical_ids")
-    normalized_logical_ids: list[dict[str, str]] = []
-    if isinstance(logical_ids, list):
-        for entry in logical_ids:
-            if not isinstance(entry, Mapping):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if (
-                isinstance(namespace, str)
-                and namespace
-                and isinstance(value, str)
-                and value
-            ):
-                normalized_logical_ids.append({"namespace": namespace, "value": value})
-
-    if not normalized_logical_ids:
-        normalized_logical_ids = [
-            {"namespace": primary_namespace, "value": primary_value}
-        ]
-        propstore_local = normalize_logical_value(local_seed)
-        if primary_namespace != "propstore" or propstore_local != primary_value:
-            normalized_logical_ids.append(
-                {"namespace": "propstore", "value": propstore_local}
-            )
-    normalized["logical_ids"] = normalized_logical_ids
-
-    artifact_id = normalized.get("artifact_id")
-    if not isinstance(artifact_id, str) or not artifact_id:
-        normalized["artifact_id"] = derive_concept_artifact_id(
-            "propstore",
-            normalize_logical_value(local_seed),
-        )
-
-    version_id = normalized.get("version_id")
-    if not isinstance(version_id, str) or not version_id:
-        version_payload = {
-            key: value
-            for key, value in normalized.items()
-            if not str(key).startswith("_")
-        }
-        normalized["version_id"] = compute_concept_version_id(version_payload)
-
-    return normalized
-
-
 def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
     normalized = normalize_concept_payload(data)
 
@@ -347,34 +288,6 @@ def render_concept_document(document: ConceptDocument) -> str:
     return encode_concept_document(document).decode("utf-8").rstrip()
 
 
-def concept_document_to_record_payload(data: ConceptDocument) -> dict[str, Any]:
-    payload = document_to_payload(data)
-    reference_uri = data.ontology_reference.uri
-    primary_sense = next(
-        (
-            sense
-            for sense in data.lexical_entry.senses
-            if sense.reference.uri == reference_uri
-        ),
-        data.lexical_entry.senses[0],
-    )
-    dimension_form = data.lexical_entry.physical_dimension_form
-    if dimension_form is None:
-        raise ValueError(
-            f"concept '{data.lexical_entry.identifier}' requires lexical_entry.physical_dimension_form"
-        )
-    payload["canonical_name"] = data.lexical_entry.canonical_form.written_rep
-    payload["definition"] = (
-        primary_sense.usage
-        or data.ontology_reference.label
-        or data.lexical_entry.canonical_form.written_rep
-    )
-    payload["form"] = dimension_form
-    if data.domain is None and data.logical_ids:
-        payload["domain"] = data.logical_ids[0].namespace
-    return payload
-
-
 def parse_concept_record_document(data: ConceptDocument) -> ConceptRecord:
     return parse_concept_record(concept_document_to_record_payload(data))
 
@@ -412,63 +325,6 @@ def _rewrite_concept_reference(
     return concept_ref_map.get(value, value)
 
 
-def rewrite_concept_payload_refs(
-    data: Mapping[str, Any],
-    *,
-    concept_ref_map: Mapping[str, str],
-) -> dict[str, Any]:
-    rewritten = dict(data)
-    changed = False
-
-    replaced_by = rewritten.get("replaced_by")
-    if replaced_by is not None:
-        updated_replaced_by = _rewrite_concept_reference(replaced_by, concept_ref_map)
-        if updated_replaced_by != replaced_by:
-            changed = True
-        rewritten["replaced_by"] = updated_replaced_by
-
-    relationships = rewritten.get("relationships")
-    if isinstance(relationships, list):
-        updated_relationships: list[Any] = []
-        for relationship in relationships:
-            if not isinstance(relationship, Mapping):
-                updated_relationships.append(relationship)
-                continue
-            updated = dict(relationship)
-            original_target = updated.get("target")
-            updated["target"] = _rewrite_concept_reference(
-                original_target, concept_ref_map
-            )
-            if updated["target"] != original_target:
-                changed = True
-            updated_relationships.append(updated)
-        rewritten["relationships"] = updated_relationships
-
-    parameterizations = rewritten.get("parameterization_relationships")
-    if isinstance(parameterizations, list):
-        updated_parameterizations: list[Any] = []
-        for parameterization in parameterizations:
-            if not isinstance(parameterization, Mapping):
-                updated_parameterizations.append(parameterization)
-                continue
-            updated = dict(parameterization)
-            inputs = updated.get("inputs")
-            if isinstance(inputs, Sequence) and not isinstance(inputs, str):
-                updated_inputs = [
-                    _rewrite_concept_reference(input_value, concept_ref_map)
-                    for input_value in inputs
-                ]
-                if list(inputs) != updated_inputs:
-                    changed = True
-                updated["inputs"] = updated_inputs
-            updated_parameterizations.append(updated)
-        rewritten["parameterization_relationships"] = updated_parameterizations
-
-    if changed:
-        rewritten["version_id"] = compute_concept_version_id(rewritten)
-    return rewritten
-
-
 def normalize_loaded_concepts(
     concepts: Sequence[LoadedDocument[ConceptDocument]],
 ) -> list[LoadedConcept]:
@@ -503,22 +359,6 @@ def normalize_loaded_concepts(
             )
         )
     return normalized_concepts
-
-
-def concept_payload_registry(
-    concepts: Iterable[LoadedConcept],
-    *,
-    include_source_local_ids: bool = False,
-) -> dict[str, dict[str, Any]]:
-    registry: dict[str, dict[str, Any]] = {}
-    for concept in concepts:
-        payload = concept.record.to_payload()
-        registry[str(concept.record.artifact_id)] = payload
-        for key in concept.record.reference_keys():
-            registry.setdefault(key, payload)
-        if include_source_local_ids and concept.source_local_id is not None:
-            registry.setdefault(concept.source_local_id, payload)
-    return registry
 
 
 def primary_logical_id(record: ConceptRecord) -> str | None:

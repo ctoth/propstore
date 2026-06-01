@@ -39,10 +39,6 @@ from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus
 
 
-def _vacuous_provenance_payload() -> dict:
-    return {"status": "vacuous", "witnesses": []}
-
-
 def _claim_reference_index() -> FamilyReferenceIndex[ClaimReferenceRecord]:
     records = (
         ClaimReferenceRecord(
@@ -92,22 +88,6 @@ def _category_prior_registry() -> CategoryPriorRegistry:
             "weak": _category_prior("weak", 0.3),
         }
     )
-
-
-def _opinion_payload(
-    *,
-    b: float = 0.0,
-    d: float = 0.0,
-    u: float = 1.0,
-    a: float = 0.5,
-) -> dict:
-    return {
-        "b": b,
-        "d": d,
-        "u": u,
-        "a": a,
-        "provenance": _vacuous_provenance_payload(),
-    }
 
 
 # ---------------------------------------------------------------------------

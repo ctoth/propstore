@@ -90,15 +90,6 @@ class CheckedConditionSet:
             return UNCONDITIONAL_CONDITION_REGISTRY_FINGERPRINT
         return self.registry_fingerprint
 
-    def identity_payload(self) -> tuple[str, tuple[tuple[str, str], ...]]:
-        return (
-            self.registry_fingerprint,
-            tuple(
-                (condition.source, condition.encoded_ir or "")
-                for condition in self.conditions
-            ),
-        )
-
 
 def checked_condition_set(
     conditions: Iterable[CheckedCondition],

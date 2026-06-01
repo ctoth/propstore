@@ -38,17 +38,6 @@ def _safe_ref_part(value: str) -> str:
     return safe.strip("_") or "branch"
 
 
-def _materialized_claim_payload(argument: MergeArgument, *, has_rivals: bool) -> dict:
-    payload = cast(dict[str, Any], document_to_payload(argument.claim))
-    if has_rivals:
-        payload["artifact_id"] = argument.assertion_id
-    provenance = payload.get("provenance")
-    if isinstance(provenance, dict) and len(argument.branch_origins) == 1:
-        provenance.setdefault("branch_origin", argument.branch_origins[0])
-    payload["version_id"] = compute_claim_version_id(payload)
-    return payload
-
-
 def _source_paper(argument: MergeArgument) -> str | None:
     paper = argument.claim.provenance_payload().get("paper")
     if isinstance(paper, str) and paper:
@@ -193,20 +182,3 @@ def create_merge_commit(
         branch=target_branch,
         expected_head=target_expected_head,
     )
-
-
-def _source_paper_for_payloads(claims: list[dict]) -> str:
-    papers = sorted(
-        {
-            provenance["paper"]
-            for claim in claims
-            if isinstance((provenance := claim.get("provenance")), dict)
-            and isinstance(provenance.get("paper"), str)
-            and provenance.get("paper")
-        }
-    )
-    if not papers:
-        return "unknown"
-    if len(papers) == 1:
-        return papers[0]
-    return "+".join(papers)

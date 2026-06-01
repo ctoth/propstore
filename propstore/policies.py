@@ -326,17 +326,6 @@ class PolicyProfile:
     def _derived_profile_id(self) -> str:
         return f"urn:propstore:policy-profile:{self.content_hash}"
 
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "label": self.label,
-            "revision": self.revision.to_dict(),
-            "merge": self.merge.to_dict(),
-            "admissibility": self.admissibility.to_dict(),
-            "source_trust": self.source_trust.to_dict(),
-            "escalation": self.escalation.to_dict(),
-        }
-
 
 def default_policy_profile() -> PolicyProfile:
     return PolicyProfile()

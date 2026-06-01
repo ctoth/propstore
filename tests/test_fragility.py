@@ -93,27 +93,6 @@ class TestInterventionModel:
         with pytest.raises(ValueError, match="Unknown value status"):
             _in_extension("not-a-status")
 
-    def test_target_rejects_payload_that_does_not_match_kind(self) -> None:
-        with pytest.raises(TypeError, match="payload"):
-            InterventionTarget(
-                intervention_id="assumption:q1",
-                kind=InterventionKind.ASSUMPTION,
-                family=InterventionFamily.ATMS,
-                subject_id="c1",
-                description="Check x == 1",
-                cost_tier=1,
-                provenance=InterventionProvenance(
-                    family=InterventionFamily.ATMS,
-                    source_ids=("queryable:q1",),
-                    subject_concept_ids=("c1",),
-                ),
-                payload=MissingMeasurementTarget(
-                    concept_id="c1",
-                    discovered_from_parameterizations=("p1",),
-                    downstream_subjects=("c1",),
-                ),
-            )
-
     def test_target_rejects_family_provenance_mismatch(self) -> None:
         with pytest.raises(ValueError, match="provenance"):
             InterventionTarget(

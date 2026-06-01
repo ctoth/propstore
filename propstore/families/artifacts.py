@@ -73,22 +73,6 @@ def _justification_document_type() -> type[Any]:
     )
 
 
-def _projected_payload(
-    charter: FamilyCharter,
-    document: object,
-    *,
-    omit_none: bool = False,
-) -> dict[str, Any]:
-    payload = artifact_payload(charter, document, omit_none=omit_none)
-    if not isinstance(payload, dict):
-        raise TypeError(f"{charter.family.name} artifact payload must be a mapping")
-    return payload
-
-
-def _hash_payload(payload: object) -> str:
-    return canonical_json_sha256(payload)
-
-
 def source_artifact_code(source_doc: SourceDocument) -> str:
     return artifact_digest(SOURCE_CHARTER, source_doc, omit_none=True)
 

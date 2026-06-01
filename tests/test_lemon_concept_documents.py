@@ -15,47 +15,6 @@ from propstore.repository import Repository
 FormDocument = FORM_CHARTER.generated_document()
 
 
-def _provenance_payload() -> dict[str, object]:
-    return {
-        "status": "stated",
-        "witnesses": [
-            {
-                "asserter": "test",
-                "timestamp": "2026-04-17T00:00:00Z",
-                "source_artifact_code": "ps:test:phase3",
-                "method": "unit-test",
-            }
-        ],
-    }
-
-
-def _lemon_concept_payload() -> dict[str, object]:
-    return {
-        "status": "accepted",
-        "ontology_reference": {
-            "uri": "tag:prop.store,2026:concept/temperature",
-            "label": "Temperature",
-        },
-        "lexical_entry": {
-            "identifier": "entry:temperature",
-            "canonical_form": {
-                "written_rep": "temperature",
-                "language": "en",
-            },
-            "senses": [
-                {
-                    "reference": {
-                        "uri": "tag:prop.store,2026:concept/temperature",
-                        "label": "Temperature",
-                    },
-                    "usage": "A thermal state quantity.",
-                }
-            ],
-            "physical_dimension_form": "temperature",
-        },
-    }
-
-
 def test_concept_document_round_trips_phase3_sense_semantics(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     payload = _lemon_concept_payload()

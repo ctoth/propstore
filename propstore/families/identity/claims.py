@@ -63,59 +63,9 @@ def canonicalize_claim_for_version(claim: dict[str, Any]) -> dict[str, Any]:
     return canonical
 
 
-def claim_version_payload_json(claim: dict[str, Any]) -> str:
-    """Serialize canonical claim content for version hashing."""
-    canonical = canonicalize_claim_for_version(claim)
-    return json.dumps(
-        canonical,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-
-
 def compute_claim_version_id(claim: dict[str, Any]) -> str:
     """Compute the immutable version identifier for a claim payload."""
     return canonical_json_sha256(canonicalize_claim_for_version(claim))
-
-
-def normalize_claim_file_payload(
-    data: dict[str, Any],
-    *,
-    default_namespace: str | None = None,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    normalized_data = dict(data)
-    namespace = _claim_file_namespace(normalized_data, default_namespace)
-
-    raw_claims = list(normalized_data.get("claims", []))
-    local_handle_map: dict[str, str] = {}
-    normalized_claims: list[Any] = []
-    for index, claim in enumerate(raw_claims, start=1):
-        normalized, local_handles = _normalize_claim_file_entry(claim, index, namespace)
-        local_handle_map.update(local_handles)
-        normalized_claims.append(normalized)
-
-    for index, normalized in enumerate(normalized_claims):
-        if not isinstance(normalized, dict):
-            continue
-        _rewrite_stance_targets(normalized, local_handle_map)
-        _stamp_claim_version_id(normalized)
-        normalized_claims[index] = normalized
-
-    normalized_data["claims"] = normalized_claims
-    return normalized_data, local_handle_map
-
-
-def normalize_canonical_claim_payload(
-    data: dict[str, Any],
-    *,
-    strip_source_local: bool = False,
-) -> dict[str, Any]:
-    normalized = copy.deepcopy(data)
-    if strip_source_local:
-        _drop_fields(normalized, CLAIM_SOURCE_LOCAL_FIELDS)
-    normalized["version_id"] = compute_claim_version_id(normalized)
-    return normalized
 
 
 def _drop_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> None:

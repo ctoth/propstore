@@ -200,25 +200,6 @@ def _typed_claim_fixture(claim: Mapping[str, object]) -> Claim:
     )
 
 
-def _claim_payload_from_typed_fixture(claim: Mapping[str, object]) -> dict[str, object]:
-    typed_claim = _typed_claim_fixture(claim)
-    payload = {
-        key: value
-        for key, value in claim.items()
-        if key
-        not in {"concept", "output_concept", "target_concept", "concepts", "version_id"}
-    }
-    if typed_claim.output_concept_id is not None:
-        payload["output_concept"] = typed_claim.output_concept_id
-    if typed_claim.target_concept is not None:
-        payload["target_concept"] = typed_claim.target_concept
-    if typed_claim.about_concept_ids:
-        payload["concepts"] = list(typed_claim.about_concept_ids)
-    typed_claim.version_id = compute_claim_version_id(payload)
-    payload["version_id"] = typed_claim.version_id
-    return payload
-
-
 def _normalize_claim_concept_refs(payload: dict) -> dict:
     normalized = normalize_claims_payload(payload)
     source = normalized.get("source")

@@ -161,10 +161,3 @@ def iterated_revise(
         replay_status=replay_status,
     )
     return result, next_state
-
-
-def epistemic_state_payload(state: EpistemicState) -> dict:
-    """Return a JSON-friendly payload for persistence or replay tooling."""
-    from propstore.support_revision.history import EpistemicSnapshot
-
-    return EpistemicSnapshot.from_state(state).to_dict()

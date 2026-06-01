@@ -179,43 +179,6 @@ def _seed_qualia(entry: dict[str, object]) -> dict[str, object] | None:
     return qualia or None
 
 
-def _seed_concept_payload(entry: dict[str, object]) -> dict[str, object]:
-    name = str(entry["name"])
-    artifact_id = str(entry["artifact_id"])
-    form = str(entry.get("form", "structural"))
-    sense: dict[str, object] = {
-        "reference": _ontology_reference(artifact_id, name),
-        "usage": str(entry["definition"]),
-        "provenance": _seed_provenance(),
-    }
-    description_kind = _seed_description_kind(entry)
-    if description_kind is not None:
-        sense["description_kind"] = description_kind
-    qualia = _seed_qualia(entry)
-    if qualia is not None:
-        sense["qualia"] = qualia
-
-    payload: dict[str, object] = {
-        "status": "accepted",
-        "artifact_id": artifact_id,
-        "ontology_reference": _ontology_reference(artifact_id, name),
-        "lexical_entry": {
-            "identifier": f"entry:{entry['ref']}",
-            "canonical_form": {
-                "written_rep": name,
-                "language": "en",
-            },
-            "senses": [sense],
-            "physical_dimension_form": form,
-        },
-        "domain": "propstore-seed",
-    }
-    is_a = entry.get("is_a")
-    if isinstance(is_a, str) and is_a:
-        payload["relationships"] = [{"type": "is_a", "target": is_a}]
-    return payload
-
-
 def _seed_concept_documents(
     repo: Repository,
 ) -> list[tuple[ConceptFileRef, ConceptDocument]]:

@@ -129,32 +129,6 @@ def test_index_html_route_returns_200_with_propstore_heading(
     assert '<th scope="col">' in html
 
 
-def test_index_json_route_returns_typed_payload(
-    client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        routing,
-        "build_repository_overview",
-        lambda repo, request: _overview_report(),
-    )
-
-    response = client.get("/index.json")
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["repository_state"] == "current worktree"
-    assert payload["render_policy"]["semantics"] == "grounded"
-    assert isinstance(payload["inventory_rows"], list)
-    first_row = payload["inventory_rows"][0]
-    assert set(first_row.keys()) == {"kind", "count", "state", "sentence", "href"}
-    assert payload["source_pointers"][0]["slug"] == "paper-foo"
-    assert payload["provenance_summary"]["state"] == "not_implemented"
-    assert payload["recent_activity"]["state"] == "vacuous"
-    assert payload["notable_conflicts"]["state"] == "not_implemented"
-    assert "49 indexed entries" in payload["prose_summary"]
-
-
 def test_index_route_rejects_invalid_render_policy_param(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

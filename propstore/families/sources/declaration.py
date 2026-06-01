@@ -216,20 +216,6 @@ SOURCE_FINALIZE_REPORT_CHARTER: FamilyCharter = SourceFinalizeReportDocument.__c
 SOURCE_CHARTER: FamilyCharter = SourceDocument.__charter__
 
 
-def source_document_payload(source_doc: SourceDocument) -> dict[str, object]:
-    payload: dict[str, object] = {
-        "id": source_doc.id,
-        "kind": source_doc.kind.value,
-        "origin": document_to_payload(source_doc.origin),
-        "trust": document_to_payload(source_doc.trust),
-    }
-    if source_doc.metadata is not None:
-        payload["metadata"] = document_to_payload(source_doc.metadata)
-    if source_doc.artifact_code is not None:
-        payload["artifact_code"] = source_doc.artifact_code
-    return payload
-
-
 def render_source_document(source_doc: SourceDocument) -> str:
     return encode_source_document(source_doc).decode("utf-8").rstrip()
 

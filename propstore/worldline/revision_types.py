@@ -28,30 +28,6 @@ class RevisionAtomRef:
     atom_id: str | None = None
     value: WorldlineScalarValue = None
 
-    @classmethod
-    def from_json_payload(cls, data: object) -> RevisionAtomRef | None:
-        if data is None:
-            return None
-        payload = _optional_mapping(data, "atom")
-        if not payload:
-            return None
-        kind = str(payload.get("kind") or "assertion")
-        assertion_id = payload.get("assertion_id")
-        assumption_id = payload.get("assumption_id")
-        if assertion_id is None and kind == "assertion":
-            assertion_id = payload.get("id")
-        if assumption_id is None and kind == "assumption":
-            assumption_id = payload.get("id")
-        return cls(
-            kind=kind,
-            assertion_id=None if assertion_id is None else str(assertion_id),
-            assumption_id=None if assumption_id is None else str(assumption_id),
-            atom_id=None
-            if payload.get("atom_id") is None
-            else str(payload.get("atom_id")),
-            value=payload.get("value"),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"kind": self.kind}
         if self.kind == "assertion" and self.assertion_id is not None:
@@ -106,20 +82,6 @@ class RevisionConflictSelection:
             },
         )
 
-    @classmethod
-    def from_json_payload(cls, data: object) -> RevisionConflictSelection:
-        if data is None:
-            return cls()
-        payload = _optional_mapping(data, "conflicts")
-        if not payload:
-            return cls()
-        return cls(
-            targets_by_atom_id={
-                str(atom_id): tuple(str(target_id) for target_id in target_ids)
-                for atom_id, target_ids in payload.items()
-            }
-        )
-
     def to_dict(self) -> dict[str, list[str]]:
         return {
             atom_id: list(target_ids)
@@ -158,29 +120,6 @@ class WorldlineRevisionResult:
             self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
         )
 
-    @classmethod
-    def from_json_payload(cls, data: object) -> WorldlineRevisionResult | None:
-        if data is None:
-            return None
-        payload = _optional_mapping(data, "result")
-        if not payload:
-            return None
-        explanation_data = payload.get("explanation")
-        if explanation_data is not None and not isinstance(explanation_data, Mapping):
-            raise ValueError("worldline revision field 'explanation' must be a mapping")
-        return cls(
-            accepted_atom_ids=tuple(
-                str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())
-            ),
-            rejected_atom_ids=tuple(
-                str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())
-            ),
-            incision_set=tuple(
-                str(atom_id) for atom_id in (payload.get("incision_set") or ())
-            ),
-            explanation=None if explanation_data is None else dict(explanation_data),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "accepted_atom_ids": list(self.accepted_atom_ids),
@@ -213,45 +152,6 @@ class WorldlineRevisionState:
             raise TypeError(
                 "WorldlineRevisionState.error must be a WorldlineCaptureError"
             )
-
-    @classmethod
-    def from_json_payload(cls, data: object) -> WorldlineRevisionState | None:
-        if data is None:
-            return None
-        payload = _optional_mapping(data, "revision")
-        if not payload:
-            return None
-        state_data = payload.get("state")
-        result_data = payload.get("result")
-        if result_data is not None and not isinstance(result_data, Mapping):
-            raise ValueError("worldline revision field 'result' must be a mapping")
-        if state_data is not None and not isinstance(state_data, Mapping):
-            raise ValueError("worldline revision field 'state' must be a mapping")
-        event_data = payload.get("event")
-        if event_data is not None and not isinstance(event_data, Mapping):
-            raise ValueError("worldline revision field 'event' must be a mapping")
-        return cls(
-            operation=str(payload.get("operation") or ""),
-            input_atom_id=None
-            if payload.get("input_atom_id") is None
-            else str(payload.get("input_atom_id")),
-            target_atom_ids=tuple(
-                str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())
-            ),
-            result=WorldlineRevisionResult.from_json_payload(result_data),
-            state=None if state_data is None else dict(state_data),
-            status=None
-            if payload.get("status") is None
-            else str(payload.get("status")),
-            error=(
-                None
-                if payload.get("error") is None
-                else WorldlineCaptureError(str(payload["error"]))
-            ),
-            event=None
-            if event_data is None
-            else RevisionEvent.from_json_payload(event_data),
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {

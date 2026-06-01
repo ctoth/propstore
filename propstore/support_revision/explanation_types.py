@@ -37,29 +37,6 @@ class RevisionAtomDetail:
             ),
         )
 
-    @classmethod
-    def from_json_payload(cls, data: object) -> RevisionAtomDetail:
-        if data is None:
-            return cls()
-        payload = _optional_mapping(data, "atom_detail")
-        if not payload:
-            return cls()
-        return cls(
-            reason=None
-            if payload.get("reason") is None
-            else str(payload.get("reason")),
-            incision_set=tuple(
-                str(atom_id) for atom_id in (payload.get("incision_set") or ())
-            ),
-            support_sets=tuple(
-                tuple(AssumptionId(value) for value in support_set)
-                for support_set in (payload.get("support_sets") or ())
-            ),
-            selection_rule=None
-            if payload.get("selection_rule") is None
-            else str(payload.get("selection_rule")),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         if self.reason is not None:
@@ -98,40 +75,6 @@ class EntrenchmentReason:
             self,
             "essential_support",
             tuple(AssumptionId(value) for value in self.essential_support),
-        )
-
-    @classmethod
-    def from_json_payload(cls, data: object) -> EntrenchmentReason:
-        if data is None:
-            return cls()
-        payload = _optional_mapping(data, "entrenchment_reason")
-        if not payload:
-            return cls()
-        raw_override_priority = payload.get(
-            "override_priority", payload.get("override")
-        )
-        raw_support_count = payload.get("support_count")
-        return cls(
-            override_priority=_coerce_override_priority(raw_override_priority),
-            override_key=None
-            if payload.get("override_key") is None
-            else str(payload.get("override_key")),
-            support_count=(
-                None if raw_support_count is None else int(raw_support_count)
-            ),
-            essential_support=tuple(
-                AssumptionId(value) for value in payload.get("essential_support") or ()
-            ),
-            iterated_operator=(
-                None
-                if payload.get("iterated_operator") is None
-                else str(payload.get("iterated_operator"))
-            ),
-            revised_in=(
-                None
-                if payload.get("revised_in") is None
-                else bool(payload.get("revised_in"))
-            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -193,30 +136,6 @@ class RevisionAtomExplanation:
             ),
         )
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> RevisionAtomExplanation:
-        ranking_data = data.get("ranking")
-        if ranking_data is not None and not isinstance(ranking_data, Mapping):
-            raise ValueError(
-                "support revision explanation field 'ranking' must be a mapping"
-            )
-        return cls(
-            status=str(data.get("status") or "accepted"),
-            reason=str(data.get("reason") or "unchanged"),
-            ranking=(
-                None
-                if ranking_data is None
-                else EntrenchmentReason.from_json_payload(ranking_data)
-            ),
-            incision_set=tuple(
-                str(atom_id) for atom_id in (data.get("incision_set") or ())
-            ),
-            support_sets=tuple(
-                tuple(AssumptionId(value) for value in support_set)
-                for support_set in (data.get("support_sets") or ())
-            ),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "status": self.status,
@@ -255,29 +174,6 @@ class RevisionExplanation:
             self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
         )
         object.__setattr__(self, "atoms", dict(self.atoms))
-
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> RevisionExplanation:
-        atoms_payload = _optional_mapping(data.get("atoms"), "atoms")
-        atoms: dict[str, RevisionAtomExplanation] = {}
-        for atom_id, atom_data in atoms_payload.items():
-            if not isinstance(atom_data, Mapping):
-                raise ValueError(
-                    f"support revision explanation field 'atoms.{atom_id}' must be a mapping"
-                )
-            atoms[str(atom_id)] = RevisionAtomExplanation.from_json_payload(atom_data)
-        return cls(
-            accepted_atom_ids=tuple(
-                str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())
-            ),
-            rejected_atom_ids=tuple(
-                str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())
-            ),
-            incision_set=tuple(
-                str(atom_id) for atom_id in (data.get("incision_set") or ())
-            ),
-            atoms=atoms,
-        )
 
     def to_dict(self) -> dict[str, Any]:
         return {

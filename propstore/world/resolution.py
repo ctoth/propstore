@@ -42,22 +42,6 @@ from propstore.world.types import (
 )
 
 
-def _parse_provenance_payload(raw: object) -> Mapping[str, object]:
-    if raw is None or raw == "":
-        return {}
-    if isinstance(raw, Mapping):
-        return dict(raw)
-    if not isinstance(raw, str):
-        raise ValueError("claim provenance must be a mapping or JSON object")
-    try:
-        loaded = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ValueError("claim provenance must be valid JSON") from exc
-    if not isinstance(loaded, Mapping):
-        raise ValueError("claim provenance JSON must decode to a mapping")
-    return dict(loaded)
-
-
 @dataclass(frozen=True)
 class ClaimProvenance:
     paper: str | None = None

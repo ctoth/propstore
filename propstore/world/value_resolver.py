@@ -168,32 +168,6 @@ class ClaimValueResolver:
             body=None if algorithm_payload is None else algorithm_payload.body,
         )
 
-    @classmethod
-    def claim_payload(cls, claim: Claim) -> ClaimValuePayload:
-        text_payload = claim.text_payload
-        algorithm_payload = claim.algorithm_payload
-        return ClaimValuePayload(
-            value=cls.claim_value(claim),
-            claim_type=ClaimType(claim.type),
-            statement=None if text_payload is None else text_payload.statement,
-            expression=None if text_payload is None else text_payload.expression,
-            name=None if text_payload is None else text_payload.name,
-            body=None if algorithm_payload is None else algorithm_payload.body,
-            canonical_ast=None
-            if algorithm_payload is None
-            else algorithm_payload.canonical_ast,
-            variables=tuple(
-                ClaimVariableValue(
-                    name=variable.name,
-                    symbol=variable.symbol,
-                    concept_id=None
-                    if variable.concept_id is None
-                    else str(variable.concept_id),
-                )
-                for variable in claim.variables
-            ),
-        )
-
     @staticmethod
     def display_claim_id(world: WorldStore | None, claim_id: str | None) -> str | None:
         if claim_id is None:

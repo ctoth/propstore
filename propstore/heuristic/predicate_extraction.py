@@ -66,16 +66,6 @@ def _llm_call(**kwargs: object) -> str:
     raise RuntimeError("predicate extraction requires an LLM client or a test fixture")
 
 
-def _loads_payload(raw: str | dict[str, Any]) -> dict[str, Any]:
-    if isinstance(raw, str):
-        loaded = json.loads(raw)
-    else:
-        loaded = raw
-    if not isinstance(loaded, dict):
-        raise ValueError("predicate extraction output must be a JSON object")
-    return loaded
-
-
 def _proposal_document(
     *,
     source_paper: str,

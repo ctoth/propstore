@@ -58,57 +58,6 @@ def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -
     return f"claim_{digest}"
 
 
-def normalize_source_claims_payload(
-    data: tuple[SourceClaimDocument, ...],
-    *,
-    source_uri: str,
-    source_namespace: str,
-) -> tuple[tuple[SourceClaimDocument, ...], dict[str, str]]:
-    normalized_claims: list[SourceClaimDocument] = []
-    local_to_canonical: dict[str, str] = {}
-    namespace = _normalize_source_claim_namespace(source_namespace)
-
-    for index, claim in enumerate(data, start=1):
-        normalized = cast(dict[str, Any], document_to_payload(claim))
-        raw_local_id = claim.source_local_id or claim.id
-        stable_value = stable_claim_logical_value(claim, source_uri=source_uri)
-        normalized["id"] = stable_value
-        normalized.pop("artifact_code", None)
-        logical_ids = [ClaimLogicalIdDocument(namespace=namespace, value=stable_value)]
-        if isinstance(raw_local_id, str) and raw_local_id:
-            normalized["source_local_id"] = raw_local_id
-            local_to_canonical[raw_local_id] = stable_value
-            local_value = normalize_logical_value(raw_local_id)
-            if local_value != stable_value:
-                logical_ids.append(
-                    ClaimLogicalIdDocument(namespace=namespace, value=local_value)
-                )
-        else:
-            normalized.pop("source_local_id", None)
-        normalized["logical_ids"] = logical_ids
-        normalized["artifact_id"] = derive_claim_artifact_id(namespace, stable_value)
-        normalized["version_id"] = compute_claim_version_id(
-            {
-                **normalized,
-                "logical_ids": [
-                    document_to_payload(logical_id) for logical_id in logical_ids
-                ],
-            }
-        )
-        normalized_claims.append(
-            convert_document_value(
-                normalized,
-                SourceClaimDocument,
-                source=f"{source_namespace}:claims[{index}]",
-            )
-        )
-
-    return (
-        tuple(normalized_claims),
-        local_to_canonical,
-    )
-
-
 def rewrite_imported_claim_concept_refs(
     payload: Mapping[str, Any],
     concept_map: Mapping[str, str],
@@ -231,49 +180,6 @@ def normalize_promoted_source_claim_artifact(
     )
 
 
-def normalize_source_justifications_payload(
-    data: tuple[SourceJustificationDocument, ...],
-    *,
-    claim_index: FamilyReferenceIndex[SourceClaimDocument],
-    primary_claim_index: FamilyReferenceIndex[Any] | None = None,
-) -> tuple[SourceJustificationDocument, ...]:
-    normalized_justifications: list[SourceJustificationDocument] = []
-    for index, justification in enumerate(data, start=1):
-        if justification.conclusion is None:
-            raise ValueError("justification conclusion must be a non-empty string")
-        normalized = cast(dict[str, Any], document_to_payload(justification))
-        normalized["conclusion"] = _require_source_or_primary_claim_id(
-            justification.conclusion,
-            source=claim_index,
-            primary=primary_claim_index,
-        )
-        normalized["premises"] = [
-            _require_source_or_primary_claim_id(
-                premise,
-                source=claim_index,
-                primary=primary_claim_index,
-            )
-            for premise in justification.premises
-        ]
-        attack_target = justification.attack_target
-        if attack_target is not None and attack_target.target_claim is not None:
-            updated_target = cast(dict[str, Any], document_to_payload(attack_target))
-            updated_target["target_claim"] = _require_source_or_primary_claim_id(
-                attack_target.target_claim,
-                source=claim_index,
-                primary=primary_claim_index,
-            )
-            normalized["attack_target"] = updated_target
-        normalized_justifications.append(
-            convert_document_value(
-                normalized,
-                SourceJustificationDocument,
-                source=f"justifications[{index}]",
-            )
-        )
-    return tuple(normalized_justifications)
-
-
 def _normalize_source_claim_namespace(source_namespace: str) -> str:
     namespace = "".join(
         ch if ch.isalnum() or ch in {"_", "-", "."} else "_"
@@ -282,58 +188,6 @@ def _normalize_source_claim_namespace(source_namespace: str) -> str:
     namespace = namespace.strip("._-") or "source"
     assert_namespace_not_reserved(namespace, context="source claims namespace")
     return namespace
-
-
-def _rewrite_claim_concept_payload(
-    payload: dict[str, Any],
-    concept_map: Mapping[str, str],
-    *,
-    unresolved: set[str],
-) -> dict[str, Any]:
-    normalized = dict(payload)
-
-    def resolve(value: object) -> object:
-        if not isinstance(value, str):
-            return value
-        if not source_concept_ref_requires_mapping(value):
-            return value
-        resolved = concept_map.get(value)
-        if resolved is None:
-            unresolved.add(value)
-            return value
-        return resolved
-
-    if "concept" in normalized:
-        concept = resolve(normalized.pop("concept"))
-        claim_type = normalized.get("type")
-        if (
-            claim_type in {"parameter", "algorithm"}
-            and "output_concept" not in normalized
-        ):
-            normalized["output_concept"] = concept
-        elif claim_type == "measurement" and "target_concept" not in normalized:
-            normalized["target_concept"] = concept
-        else:
-            concepts = normalized.get("concepts")
-            merged_concepts = list(concepts) if isinstance(concepts, list) else []
-            if concept not in merged_concepts:
-                merged_concepts.insert(0, concept)
-            normalized["concepts"] = merged_concepts
-    if "output_concept" in normalized:
-        normalized["output_concept"] = resolve(normalized.get("output_concept"))
-    if "target_concept" in normalized:
-        normalized["target_concept"] = resolve(normalized.get("target_concept"))
-    if isinstance(normalized.get("concepts"), list):
-        normalized["concepts"] = [resolve(value) for value in normalized["concepts"]]
-    if isinstance(normalized.get("variables"), list):
-        for variable in normalized["variables"]:
-            if isinstance(variable, dict):
-                variable["concept"] = resolve(variable.get("concept"))
-    if isinstance(normalized.get("parameters"), list):
-        for parameter in normalized["parameters"]:
-            if isinstance(parameter, dict):
-                parameter["concept"] = resolve(parameter.get("concept"))
-    return normalize_canonical_claim_payload(normalized)
 
 
 def _require_source_or_primary_claim_id(

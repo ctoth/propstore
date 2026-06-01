@@ -160,22 +160,6 @@ def _parse_parameters(parameters: tuple[str, ...]) -> dict[str, str]:
     return parsed
 
 
-def _context_document_payload(request: ContextAddRequest) -> dict[str, object]:
-    data: dict[str, object] = {
-        "id": request.name,
-        "name": request.name,
-        "description": request.description,
-    }
-    if request.assumptions:
-        data["assumptions"] = list(request.assumptions)
-    parameters = _parse_parameters(request.parameters)
-    if parameters:
-        data["parameters"] = parameters
-    if request.perspective:
-        data["perspective"] = request.perspective
-    return data
-
-
 def _validate_context_assumption_cel(
     repo: Repository,
     request: ContextAddRequest,

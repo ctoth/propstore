@@ -36,62 +36,6 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _claim_payloads(
-    kr: GitStore, claims: list[dict], paper: str = "test_paper"
-) -> dict[str, bytes]:
-    doc = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    return claim_artifact_commit_payloads(
-        Repository(kr.root),
-        doc,
-        source=f"claims/{paper}.yaml",
-    )
-
-
-def _claims_commit_payload(
-    kr: GitStore, claim_ids: list[str], *, prefix: str
-) -> dict[str, bytes]:
-    if not claim_ids:
-        return {}
-    midpoint = max(1, len(claim_ids) // 2)
-    payload: dict[str, bytes] = {}
-    first_half = claim_ids[:midpoint]
-    second_half = claim_ids[midpoint:]
-    if first_half:
-        payload.update(
-            _claim_payloads(
-                kr,
-                [
-                    _obs_claim(
-                        claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]
-                    )
-                    for claim_id in first_half
-                ],
-            )
-        )
-    if second_half:
-        payload.update(
-            _claim_payloads(
-                kr,
-                [
-                    _obs_claim(
-                        claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]
-                    )
-                    for claim_id in reversed(second_half)
-                ],
-            )
-        )
-    return payload
-
-
 def _obs_claim(
     cid: str,
     statement: str,

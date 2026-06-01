@@ -94,16 +94,6 @@ class SemanticTraceRecord:
         data["content_hash"] = self.content_hash
         return data
 
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "source_artifact_id": self.source_artifact_id,
-            "assertion_id": self.assertion_id,
-            "projection_id": self.projection_id,
-            "state_hash": self.state_hash,
-            "journal_entry_hash": self.journal_entry_hash,
-        }
-
 
 @dataclass(frozen=True)
 class EvaluationScenario:
@@ -160,17 +150,6 @@ class EvaluationScenario:
         data = self._content_payload()
         data["content_hash"] = self.content_hash
         return data
-
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "scenario_id": self.scenario_id,
-            "operator_family": self.operator_family,
-            "policy_id": self.policy_id,
-            "replay_result_hash": self.replay_result_hash,
-            "falsification_ids": list(self.falsification_ids),
-            "trace_records": [record.to_dict() for record in self.trace_records],
-        }
 
 
 @dataclass(frozen=True)
@@ -244,18 +223,6 @@ class ScenarioEvaluation:
         data["content_hash"] = self.content_hash
         return data
 
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "scenario_id": self.scenario_id,
-            "operator_family": self.operator_family,
-            "policy_id": self.policy_id,
-            "replay_result_hash": self.replay_result_hash,
-            "falsification_ids": list(self.falsification_ids),
-            "passed": self.passed,
-            "trace_records": [record.to_dict() for record in self.trace_records],
-        }
-
 
 @dataclass(frozen=True)
 class OperatorFamilySummary:
@@ -303,15 +270,6 @@ class OperatorFamilySummary:
         data = self._content_payload()
         data["content_hash"] = self.content_hash
         return data
-
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "operator_family": self.operator_family,
-            "scenario_count": self.scenario_count,
-            "falsification_count": self.falsification_count,
-            "replay_result_hashes": list(self.replay_result_hashes),
-        }
 
 
 @dataclass(frozen=True)
@@ -371,16 +329,6 @@ class ObservatoryReport:
         data = self._content_payload()
         data["content_hash"] = self.content_hash
         return data
-
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "scenario_results": [result.to_dict() for result in self.scenario_results],
-            "operator_summaries": [
-                summary.to_dict()
-                for _, summary in sorted(self.operator_summaries.items())
-            ],
-        }
 
 
 def evaluate_scenarios(scenarios: Iterable[EvaluationScenario]) -> ObservatoryReport:

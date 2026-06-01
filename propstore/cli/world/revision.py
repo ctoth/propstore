@@ -45,20 +45,6 @@ def revision() -> None:
     """Inspect and run scoped revision operations."""
 
 
-def _format_revision_payload(payload: RevisionAtomDisplay) -> str:
-    parts: list[str] = []
-    if payload.claim_type:
-        parts.append(f"type={payload.claim_type}")
-    if payload.concept_id:
-        parts.append(f"concept={payload.concept_id}")
-    if payload.value is not None:
-        if payload.unit:
-            parts.append(f"value={payload.value} {payload.unit}")
-        else:
-            parts.append(f"value={payload.value}")
-    return " ".join(parts)
-
-
 def _format_revision_assumption(assumption) -> str:
     return (
         f"{assumption.assumption_id}: kind={assumption.kind} "

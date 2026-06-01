@@ -71,42 +71,6 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
     assert next_state.history[-1].rejected_atom_ids == result.rejected_atom_ids
 
 
-def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
-    from propstore.support_revision.iterated import (
-        advance_epistemic_state,
-        epistemic_state_payload,
-        make_epistemic_state,
-    )
-
-    base, entrenchment, ids = _base_with_shared_support()
-    state = make_epistemic_state(base, entrenchment)
-    result = contract_via_formal_decision(
-        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
-    )
-    next_entrenchment = EntrenchmentReport(
-        ranked_atom_ids=tuple(
-            atom_id
-            for atom_id in entrenchment.ranked_atom_ids
-            if atom_id in result.accepted_atom_ids
-        ),
-        reasons=dict(entrenchment.reasons),
-    )
-
-    next_state = advance_epistemic_state(
-        state,
-        result,
-        next_entrenchment,
-        operator="contract",
-        target_atom_ids=(ids["legacy"],),
-    )
-    payload = epistemic_state_payload(next_state)
-
-    assert payload["schema_version"] == "propstore.epistemic_snapshot.v1"
-    assert payload["state"]["accepted_atom_ids"] == list(result.accepted_atom_ids)
-    assert payload["state"]["history"][0]["operator"] == "contract"
-    assert payload["state"]["history"][0]["incision_set"] == list(result.incision_set)
-
-
 def test_iterated_revision_module_does_not_import_ic_merge() -> None:
     path = Path("propstore/support_revision/iterated.py")
     assert path.exists()

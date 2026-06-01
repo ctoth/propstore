@@ -66,20 +66,6 @@ def validate_concepts(
     )
 
 
-def provenance_payload() -> dict[str, object]:
-    return {
-        "status": "stated",
-        "witnesses": [
-            {
-                "asserter": "test",
-                "timestamp": "2026-04-17T00:00:00Z",
-                "source_artifact_code": "ps:test:validator",
-                "method": "unit-test",
-            }
-        ],
-    }
-
-
 @pytest.fixture
 def concept_dir(tmp_path):
     """Create a temporary concepts directory with form definitions."""

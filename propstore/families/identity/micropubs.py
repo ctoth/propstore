@@ -57,15 +57,6 @@ def canonicalize_micropub_for_identity(
     return canonical
 
 
-def canonical_micropub_payload(document: MicropublicationDocument) -> bytes:
-    return json.dumps(
-        canonicalize_micropub_for_identity(document),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
-
-
 def micropub_artifact_id(document: MicropublicationDocument) -> str:
     return compute_ni_uri(canonical_micropub_payload(document))
 

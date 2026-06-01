@@ -164,19 +164,6 @@ class InvestigationPlan:
         data["content_hash"] = self.content_hash
         return data
 
-    def _content_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "schema_version": self.schema_version,
-            "objective": self.objective,
-            "analysis_scope": self.analysis_scope,
-            "world_fragility": self.world_fragility,
-            "intervention_ids": list(self.intervention_ids),
-            "assertion_ids": list(self.assertion_ids),
-        }
-        if self.source_report_hash is not None:
-            payload["source_report_hash"] = self.source_report_hash
-        return payload
-
 
 @dataclass(frozen=True)
 class InterventionPlan:
@@ -292,23 +279,6 @@ class InterventionPlan:
         data["plan_id"] = self.plan_id
         data["content_hash"] = self.content_hash
         return data
-
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "objective": self.objective,
-            "target": self.target,
-            "plan_surface": self.plan_surface,
-            "current_status": self.current_status,
-            "target_status": self.target_status,
-            "result_status": self.result_status,
-            "queryable_ids": list(self.queryable_ids),
-            "queryable_cels": list(self.queryable_cels),
-            "environment": list(self.environment),
-            "consistent": self.consistent,
-            "minimality_basis": self.minimality_basis,
-            "assertion_ids": list(self.assertion_ids),
-        }
 
 
 def plan_fragility_investigation(
@@ -432,18 +402,6 @@ class ProcessJob:
         data["content_hash"] = self.content_hash
         return data
 
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "kind": self.kind.value,
-            "snapshot_hash": self.snapshot_hash,
-            "policy_id": self.policy_id,
-            "policy_payload": _plain(self.policy_payload),
-            "work_item": _plain(self.work_item),
-            "assertion_ids": list(self.assertion_ids),
-            "journal_entry_hashes": list(self.journal_entry_hashes),
-        }
-
 
 @dataclass(frozen=True)
 class QueuedProcessJob:
@@ -517,15 +475,6 @@ class ProcessCompletionRecord:
         data = self._content_payload()
         data["content_hash"] = self.content_hash
         return data
-
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "job_id": self.job_id,
-            "completed_snapshot_hash": self.completed_snapshot_hash,
-            "journal_entry_hashes": list(self.journal_entry_hashes),
-            "result_payload": _plain(self.result_payload),
-        }
 
 
 @dataclass(frozen=True)
@@ -666,22 +615,6 @@ class EpistemicProcessManager:
         data = self._content_payload()
         data["content_hash"] = self.content_hash
         return data
-
-    def _content_payload(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "queued_jobs": [
-                queued.to_dict()
-                for queued in sorted(
-                    self.queued_jobs.values(),
-                    key=lambda queued: queued.queue_position,
-                )
-            ],
-            "completions": [
-                completion.to_dict()
-                for _, completion in sorted(self.completions.items())
-            ],
-        }
 
 
 def _check_recorded_identity(

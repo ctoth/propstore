@@ -82,9 +82,6 @@ class SourceVersionProvenanceRecord:
                 _require_uri(self.retrieval_uri, "retrieval_uri"),
             )
 
-    def identity_payload(self) -> tuple[str, str, str, str]:
-        return ("source_version", self.source_id, self.version_id, self.content_hash)
-
 
 @dataclass(frozen=True)
 class LicenseProvenanceRecord:
@@ -101,9 +98,6 @@ class LicenseProvenanceRecord:
         object.__setattr__(self, "label", _require_non_empty(self.label, "label"))
         if self.uri is not None:
             object.__setattr__(self, "uri", _require_uri(self.uri, "license uri"))
-
-    def identity_payload(self) -> tuple[str, str]:
-        return ("license", self.license_id)
 
 
 @dataclass(frozen=True)
@@ -129,9 +123,6 @@ class ImportRunProvenanceRecord:
         if not isinstance(self.license, LicenseProvenanceRecord):
             raise TypeError("license must be LicenseProvenanceRecord")
 
-    def identity_payload(self) -> tuple[str, str, tuple[str, str, str, str]]:
-        return ("import_run", self.run_id, self.source.identity_payload())
-
 
 @dataclass(frozen=True)
 class ProjectionFrameProvenanceRecord:
@@ -152,14 +143,6 @@ class ProjectionFrameProvenanceRecord:
             self,
             "source_assertion_ids",
             _canonical_non_empty_set(self.source_assertion_ids, "source assertion"),
-        )
-
-    def identity_payload(self) -> tuple[str, str, str, tuple[str, ...]]:
-        return (
-            "projection_frame",
-            self.frame_id,
-            self.backend,
-            self.source_assertion_ids,
         )
 
 
@@ -187,17 +170,6 @@ class ExternalStatementProvenanceRecord:
                 "authority_id",
                 _require_uri(self.authority_id, "authority_id"),
             )
-
-    def identity_payload(
-        self,
-    ) -> tuple[str, str, tuple[str, str, str, str], str, str]:
-        return (
-            "external_statement",
-            self.statement_id,
-            self.source.identity_payload(),
-            self.locator,
-            self.attitude.value,
-        )
 
 
 @dataclass(frozen=True)
@@ -227,12 +199,4 @@ class ExternalInferenceProvenanceRecord:
             self,
             "conclusion_statement_id",
             _require_uri(self.conclusion_statement_id, "conclusion_statement_id"),
-        )
-
-    def identity_payload(self) -> tuple[str, str, tuple[str, ...], str]:
-        return (
-            "external_inference",
-            self.inference_id,
-            self.premise_statement_ids,
-            self.conclusion_statement_id,
         )

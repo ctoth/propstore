@@ -235,33 +235,6 @@ def search_form_items(
     return tuple(matches)
 
 
-def _form_add_payload(request: FormAddRequest) -> dict[str, object]:
-    if request.dimensionless is not None:
-        is_dimless = request.dimensionless
-    elif request.dimensions is not None and len(request.dimensions) > 0:
-        is_dimless = False
-    else:
-        is_dimless = request.dimensions is not None and len(request.dimensions) == 0
-
-    data: dict[str, object] = {
-        "name": request.name,
-        "dimensionless": is_dimless,
-    }
-    if request.base is not None:
-        data["base"] = request.base
-    if request.unit_symbol is not None:
-        data["unit_symbol"] = request.unit_symbol
-    if request.qudt is not None:
-        data["qudt"] = request.qudt
-    if request.dimensions is not None:
-        data["dimensions"] = dict(request.dimensions)
-    if request.common_alternatives:
-        data["common_alternatives"] = list(request.common_alternatives)
-    if request.note is not None:
-        data["note"] = request.note
-    return data
-
-
 def add_form(
     repo: Repository, request: FormAddRequest, *, dry_run: bool
 ) -> FormAddReport:

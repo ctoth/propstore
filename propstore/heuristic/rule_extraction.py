@@ -80,13 +80,6 @@ def _llm_call(**kwargs: object) -> str:
     raise RuntimeError("rule extraction requires an LLM client or a test fixture")
 
 
-def _loads_payload(raw: str | dict[str, Any]) -> dict[str, Any]:
-    loaded = json.loads(raw) if isinstance(raw, str) else raw
-    if not isinstance(loaded, dict):
-        raise ValueError("rule extraction output must be a JSON object")
-    return loaded
-
-
 def _coerce_term(raw: str) -> TermDocument:
     token = raw.strip()
     if token.lstrip("+-").isdigit():

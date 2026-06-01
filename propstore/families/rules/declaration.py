@@ -478,47 +478,6 @@ def _decode_bundle_input(kind: str, payload: bytes) -> object:
     raise ValueError(f"unsupported grounded bundle input tag {tag!r}")
 
 
-def _bundle_input_payload(kind: str, value: object) -> dict[str, object]:
-    if _is_json_value(value):
-        return {"kind": kind, "tag": "json", "value": value}
-    if isinstance(value, AspicGroundAtom):
-        return {
-            "kind": kind,
-            "tag": "aspic_ground_atom",
-            "value": {
-                "predicate": value.predicate,
-                "arguments": list(value.arguments),
-            },
-        }
-    if isinstance(value, gunray.Argument):
-        return {
-            "kind": kind,
-            "tag": "gunray_argument",
-            "value": {
-                "rules": [
-                    _encode_gunray_rule(rule)
-                    for rule in sorted(value.rules, key=_rule_key)
-                ],
-                "conclusion": _encode_gunray_atom(value.conclusion),
-            },
-        }
-    if isinstance(value, RuleDocument):
-        return {
-            "kind": kind,
-            "tag": "rule_document",
-            "value": msgspec.to_builtins(value),
-        }
-    if isinstance(value, RuleSuperiorityDocument):
-        return {
-            "kind": kind,
-            "tag": "rule_superiority_document",
-            "value": msgspec.to_builtins(value),
-        }
-    raise TypeError(
-        f"cannot persist grounded bundle {kind} input {type(value).__name__}"
-    )
-
-
 def _is_json_value(value: object) -> bool:
     if value is None or isinstance(value, str | int | float | bool):
         return True

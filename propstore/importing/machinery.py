@@ -236,9 +236,6 @@ class MappingPolicy:
             self, "label", _require_non_empty(self.label, "mapping policy label")
         )
 
-    def identity_payload(self) -> tuple[str, str]:
-        return ("mapping_policy", self.policy_id)
-
 
 @dataclass(frozen=True, order=True)
 class ContextMicrotheoryMapping:
@@ -267,14 +264,6 @@ class ContextMicrotheoryMapping:
                 _require_uri(self.lifting_rule_id, "lifting_rule_id"),
             )
 
-    def identity_payload(self) -> tuple[tuple[str, str], str, str, str | None]:
-        return (
-            self.context.identity_payload(),
-            self.microtheory_id,
-            self.mapping_policy_id,
-            self.lifting_rule_id,
-        )
-
 
 @dataclass(frozen=True)
 class AuthoredAssertionForm:
@@ -301,23 +290,6 @@ class ImportMetadata:
     external_inference: ExternalInferenceProvenanceRecord | None
     mapping_policy: MappingPolicy
     context_mapping: ContextMicrotheoryMapping
-
-    def identity_payload(self) -> tuple[Any, ...]:
-        inference_payload = (
-            None
-            if self.external_inference is None
-            else self.external_inference.identity_payload()
-        )
-        return (
-            self.source_identity.source_id,
-            self.source.identity_payload(),
-            self.license.identity_payload(),
-            self.import_run.identity_payload(),
-            self.external_statement.identity_payload(),
-            inference_payload,
-            self.mapping_policy.identity_payload(),
-            self.context_mapping.identity_payload(),
-        )
 
 
 @dataclass(frozen=True)

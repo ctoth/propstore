@@ -451,17 +451,6 @@ def _outcome_state(
     return None
 
 
-def _trace_payload(
-    outcome: BeliefSet | RevisionOutcome | ICMergeOutcome | SpohnEpistemicState,
-) -> Mapping[str, Any]:
-    if not isinstance(outcome, RevisionOutcome):
-        return {}
-    return {
-        "operator": outcome.trace.operator,
-        "pre_image_fingerprint": outcome.trace.pre_image_fingerprint,
-    }
-
-
 def _state_for(bundle: FormalProjectionBundle) -> SpohnEpistemicState:
     if bundle.epistemic_state is None:
         return _distance_ranked_state(bundle.belief_set)

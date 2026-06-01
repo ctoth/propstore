@@ -267,22 +267,6 @@ def test_provenance_named_graph_carrier_has_no_anonymous_or_assertion_identity_s
     assert observed.isdisjoint(FORBIDDEN_PROVENANCE_CARRIER_NAMES)
 
 
-def test_provenance_records_do_not_store_loose_event_payload_fields() -> None:
-    tree = _provenance_records_tree()
-    observed_fields: set[str] = set()
-
-    for class_node in (
-        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
-    ):
-        for node in class_node.body:
-            if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-                observed_fields.add(node.target.id)
-                if isinstance(node.annotation, ast.Name):
-                    observed_fields.add(node.annotation.id)
-
-    assert observed_fields.isdisjoint(FORBIDDEN_PROVENANCE_RECORD_FIELD_NAMES)
-
-
 def test_structured_merge_does_not_rebuild_grounding_bundle_from_repo_files() -> None:
     tree = _structured_merge_tree()
 

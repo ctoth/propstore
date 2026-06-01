@@ -104,9 +104,6 @@ class RoleBinding:
         if self.value is None:
             raise ValueError("role value must be present")
 
-    def identity_payload(self) -> tuple[str, str]:
-        return (self.role, str(self.value))
-
 
 @dataclass(frozen=True)
 class RoleBindingSet:
@@ -128,9 +125,6 @@ class RoleBindingSet:
 
     def roles(self) -> frozenset[str]:
         return frozenset(binding.role for binding in self.bindings)
-
-    def identity_payload(self) -> tuple[tuple[str, str], ...]:
-        return tuple(binding.identity_payload() for binding in self.bindings)
 
 
 @dataclass(frozen=True, order=True)
@@ -160,9 +154,6 @@ class RoleDefinition:
         object.__setattr__(self, "role", role)
         object.__setattr__(self, "domain", domain)
         object.__setattr__(self, "range", range_id)
-
-    def identity_payload(self) -> tuple[str, str, str]:
-        return (self.role, str(self.domain), str(self.range))
 
 
 @dataclass(frozen=True)
@@ -196,16 +187,6 @@ class RoleSignature:
         unknown = observed.difference(expected)
         if unknown:
             raise ValueError(f"unknown role binding: {sorted(unknown)[0]}")
-
-    def identity_payload(
-        self,
-    ) -> tuple[tuple[str, str], tuple[tuple[str, str, str], ...]]:
-        return (
-            self.relation.identity_key(),
-            tuple(
-                definition.identity_payload() for definition in self.role_definitions
-            ),
-        )
 
 
 class RelationPropertyKind(StrEnum):
@@ -244,10 +225,6 @@ class RelationPropertyAssertion:
             kind=RelationPropertyKind.INVERSE_OF,
             target=self.relation,
         )
-
-    def identity_payload(self) -> tuple[tuple[str, str], str, tuple[str, str] | None]:
-        target_payload = None if self.target is None else self.target.identity_key()
-        return (self.relation.identity_key(), self.kind.value, target_payload)
 
 
 @dataclass(frozen=True)

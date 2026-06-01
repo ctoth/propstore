@@ -29,28 +29,10 @@ from propstore.support_revision.state import (
 )
 
 
-def _environment_key_from_json_payload(data: Mapping[str, Any]) -> EnvironmentKey:
-    return EnvironmentKey(
-        tuple(AssumptionId(value) for value in data.get("assumption_ids") or ())
-    )
-
-
 def _environment_key_to_dict(environment: EnvironmentKey) -> dict[str, Any]:
     return {
         "assumption_ids": list(environment.assumption_ids),
     }
-
-
-def _label_from_json_payload(data: Mapping[str, Any] | None) -> Label | None:
-    if not data:
-        return None
-    return Label(
-        tuple(
-            _environment_key_from_json_payload(entry)
-            for entry in (data.get("environments") or ())
-            if isinstance(entry, Mapping)
-        )
-    )
 
 
 def _label_to_dict(label: Label | None) -> dict[str, Any] | None:
@@ -63,15 +45,6 @@ def _label_to_dict(label: Label | None) -> dict[str, Any] | None:
     }
 
 
-def _assumption_ref_from_json_payload(data: Mapping[str, Any]) -> AssumptionRef:
-    return AssumptionRef(
-        assumption_id=AssumptionId(data.get("assumption_id") or ""),
-        kind=str(data.get("kind") or ""),
-        source=str(data.get("source") or ""),
-        cel=to_cel_expr(str(data.get("cel") or "")),
-    )
-
-
 def _assumption_ref_to_dict(assumption: AssumptionRef) -> dict[str, Any]:
     return {
         "assumption_id": assumption.assumption_id,
@@ -79,20 +52,6 @@ def _assumption_ref_to_dict(assumption: AssumptionRef) -> dict[str, Any]:
         "source": assumption.source,
         "cel": assumption.cel,
     }
-
-
-def _scope_from_json_payload(data: Mapping[str, Any]) -> RevisionScope:
-    return RevisionScope(
-        bindings=dict(_optional_mapping(data.get("bindings"), "bindings")),
-        context_id=None
-        if data.get("context_id") is None
-        else ContextId(str(data["context_id"])),
-        branch=None if data.get("branch") is None else str(data.get("branch")),
-        commit=None if data.get("commit") is None else str(data.get("commit")),
-        merge_parent_commits=tuple(
-            str(item) for item in (data.get("merge_parent_commits") or ())
-        ),
-    )
 
 
 def _required_mapping(data: object, field_name: str) -> Mapping[str, Any]:
@@ -122,48 +81,6 @@ def _scope_to_dict(scope: RevisionScope) -> dict[str, Any]:
     if scope.merge_parent_commits:
         data["merge_parent_commits"] = list(scope.merge_parent_commits)
     return data
-
-
-def _belief_atom_from_json_payload(data: Mapping[str, Any]) -> BeliefAtom:
-    kind = str(data.get("kind") or "")
-    payload_data = data.get("payload")
-    atom_id = str(data.get("atom_id") or "")
-    label = _label_from_json_payload(
-        data.get("label") if isinstance(data.get("label"), Mapping) else None
-    )
-    if kind == "assertion":
-        if not isinstance(payload_data, Mapping):
-            raise ValueError("Assertion atom snapshot requires mapping payload")
-        assertion_payload = payload_data.get("assertion")
-        if not isinstance(assertion_payload, Mapping):
-            raise ValueError(
-                "Assertion atom snapshot requires mapping assertion payload"
-            )
-        source_payload = payload_data.get("source_claims") or ()
-        if source_payload:
-            raise ValueError(
-                "Assertion atom snapshot source_claims must not embed claim mappings"
-            )
-        source_claim_ids = tuple(
-            str(claim_id) for claim_id in (payload_data.get("source_claim_ids") or ())
-        )
-        return AssertionAtom(
-            atom_id=atom_id,
-            assertion=AssertionCanonicalRecord.from_payload(
-                assertion_payload
-            ).to_assertion(),
-            source_claim_ids=source_claim_ids,
-            label=label,
-        )
-    if kind == "assumption":
-        if not isinstance(payload_data, Mapping):
-            raise ValueError("Assumption atom snapshot requires mapping payload")
-        return AssumptionAtom(
-            atom_id=atom_id,
-            assumption=_assumption_ref_from_json_payload(payload_data),
-            label=label,
-        )
-    raise ValueError(f"Unsupported belief atom snapshot kind: {kind}")
 
 
 def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
@@ -201,37 +118,6 @@ def belief_atom_from_canonical_dict(data: Mapping[str, Any]) -> BeliefAtom:
 
 def belief_atom_to_canonical_dict(atom: BeliefAtom) -> dict[str, Any]:
     return _belief_atom_to_dict(atom)
-
-
-def _belief_base_from_json_payload(data: Mapping[str, Any]) -> BeliefBase:
-    support_sets_payload = _optional_mapping(data.get("support_sets"), "support_sets")
-    essential_support_payload = _optional_mapping(
-        data.get("essential_support"), "essential_support"
-    )
-    return BeliefBase(
-        scope=_scope_from_json_payload(_required_mapping(data.get("scope"), "scope")),
-        atoms=tuple(
-            _belief_atom_from_json_payload(item)
-            for item in (data.get("atoms") or ())
-            if isinstance(item, Mapping)
-        ),
-        assumptions=tuple(
-            _assumption_ref_from_json_payload(item)
-            for item in (data.get("assumptions") or ())
-            if isinstance(item, Mapping)
-        ),
-        support_sets={
-            str(atom_id): tuple(
-                tuple(AssumptionId(value) for value in support_set)
-                for support_set in support_sets
-            )
-            for atom_id, support_sets in support_sets_payload.items()
-        },
-        essential_support={
-            str(atom_id): tuple(AssumptionId(value) for value in support)
-            for atom_id, support in essential_support_payload.items()
-        },
-    )
 
 
 def _belief_base_to_dict(base: BeliefBase) -> dict[str, Any]:
@@ -320,42 +206,6 @@ class RevisionEpisodeSnapshot:
             event=self.event,
         )
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> RevisionEpisodeSnapshot:
-        explanation_payload = _optional_mapping(data.get("explanation"), "explanation")
-        explanation: dict[str, RevisionAtomDetail] = {}
-        for atom_id, detail in explanation_payload.items():
-            if not isinstance(detail, Mapping):
-                raise ValueError(
-                    f"Support revision snapshot requires mapping 'explanation.{atom_id}'"
-                )
-            explanation[str(atom_id)] = RevisionAtomDetail.from_json_payload(detail)
-        event_payload = data.get("event")
-        if event_payload is not None and not isinstance(event_payload, Mapping):
-            raise ValueError("Support revision snapshot requires mapping 'event'")
-        return cls(
-            operator=str(data.get("operator") or ""),
-            input_atom_id=None
-            if data.get("input_atom_id") is None
-            else str(data.get("input_atom_id")),
-            target_atom_ids=tuple(
-                str(atom_id) for atom_id in (data.get("target_atom_ids") or ())
-            ),
-            accepted_atom_ids=tuple(
-                str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())
-            ),
-            rejected_atom_ids=tuple(
-                str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())
-            ),
-            incision_set=tuple(
-                str(atom_id) for atom_id in (data.get("incision_set") or ())
-            ),
-            explanation=explanation,
-            event=None
-            if event_payload is None
-            else RevisionEvent.from_json_payload(event_payload),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "operator": self.operator,
@@ -426,46 +276,6 @@ class EpistemicStateSnapshot:
             ),
         )
         return cls.from_json_payload(snapshot.to_dict())
-
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> EpistemicStateSnapshot:
-        ranking_payload = _optional_mapping(data.get("ranking"), "ranking")
-        entrenchment_payload = _optional_mapping(
-            data.get("entrenchment_reasons"),
-            "entrenchment_reasons",
-        )
-        entrenchment_reasons: dict[str, EntrenchmentReason] = {}
-        for atom_id, reason in entrenchment_payload.items():
-            if not isinstance(reason, Mapping):
-                raise ValueError(
-                    f"Support revision snapshot requires mapping 'entrenchment_reasons.{atom_id}'"
-                )
-            entrenchment_reasons[str(atom_id)] = EntrenchmentReason.from_json_payload(
-                reason
-            )
-        return cls(
-            scope=_scope_from_json_payload(
-                _required_mapping(data.get("scope"), "scope")
-            ),
-            base=_belief_base_from_json_payload(
-                _required_mapping(data.get("base"), "base")
-            ),
-            accepted_atom_ids=tuple(
-                str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())
-            ),
-            ranked_atom_ids=tuple(
-                str(atom_id) for atom_id in (data.get("ranked_atom_ids") or ())
-            ),
-            ranking={
-                str(atom_id): int(rank) for atom_id, rank in ranking_payload.items()
-            },
-            entrenchment_reasons=entrenchment_reasons,
-            history=tuple(
-                RevisionEpisodeSnapshot.from_json_payload(item)
-                for item in (data.get("history") or ())
-                if isinstance(item, Mapping)
-            ),
-        )
 
     def to_state(self) -> EpistemicState:
         return EpistemicState(

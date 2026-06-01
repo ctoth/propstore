@@ -181,46 +181,6 @@ def parse_body_literal(raw: str) -> BodyLiteralDocument:
     return BodyLiteralDocument(kind="positive", atom=parse_atom(token))
 
 
-def _term_payload(term: TermDocument) -> dict[str, object]:
-    payload: dict[str, object] = {"kind": term.kind}
-    if term.name is not None:
-        payload["name"] = term.name
-    if term.value is not None:
-        payload["value"] = term.value
-    return payload
-
-
-def _atom_payload(atom: AtomDocument) -> dict[str, object]:
-    payload: dict[str, object] = {"predicate": atom.predicate}
-    if atom.terms:
-        payload["terms"] = [_term_payload(term) for term in atom.terms]
-    if atom.negated:
-        payload["negated"] = True
-    return payload
-
-
-def _body_literal_payload(literal: BodyLiteralDocument) -> dict[str, object]:
-    return {
-        "kind": literal.kind,
-        "atom": _atom_payload(literal.atom),
-    }
-
-
-def _rule_document_payload(request: RuleAddRequest) -> dict[str, object]:
-    head_atom = parse_atom(request.head)
-    body_literals = tuple(parse_body_literal(entry) for entry in request.body)
-    data: dict[str, object] = {
-        "id": request.rule_id,
-        "kind": request.kind,
-        "head": _atom_payload(head_atom),
-        "body": [_body_literal_payload(literal) for literal in body_literals],
-        "source": {"paper": request.paper},
-    }
-    if request.file:
-        data["authoring_group"] = request.file
-    return data
-
-
 def _predicate_registry_at_head(
     repo: Repository, commit: str | None
 ) -> PredicateRegistry:

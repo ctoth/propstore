@@ -90,22 +90,6 @@ class PredicateShowReport:
     rendered: str
 
 
-def _predicate_document_payload(request: PredicateAddRequest) -> dict[str, object]:
-    data: dict[str, object] = {
-        "id": request.predicate_id,
-        "arity": request.arity,
-    }
-    if request.arg_types:
-        data["arg_types"] = list(request.arg_types)
-    if request.derived_from is not None:
-        data["derived_from"] = request.derived_from
-    if request.description is not None:
-        data["description"] = request.description
-    if request.file:
-        data["authoring_group"] = request.file
-    return data
-
-
 def reject_predicate_document_conflicts(
     repo: Repository,
     *,

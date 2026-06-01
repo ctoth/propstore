@@ -28,26 +28,6 @@ def test_propstore_storage_does_not_export_gitstore_shim():
     assert not hasattr(storage, "GitStore")
 
 
-def _concept_payload(
-    local_id: str,
-    canonical_name: str,
-    *,
-    domain: str,
-    form: str,
-    **extra: object,
-) -> dict:
-    payload = {
-        "id": local_id,
-        "canonical_name": canonical_name,
-        "status": "proposed",
-        "definition": f"{canonical_name} definition",
-        "domain": domain,
-        "form": form,
-    }
-    payload.update(extra)
-    return normalize_concept_payloads([payload])[0]
-
-
 def _packaged_form_files() -> dict[str, bytes]:
     package_forms = (
         Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"

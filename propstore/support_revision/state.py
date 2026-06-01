@@ -166,35 +166,6 @@ class FormalRevisionDecisionReport:
         )
         object.__setattr__(self, "trace", dict(self.trace))
 
-    @classmethod
-    def from_json_payload(
-        cls, payload: Mapping[str, Any]
-    ) -> FormalRevisionDecisionReport:
-        return cls(
-            operation=str(payload.get("operation") or ""),
-            policy=str(payload.get("policy") or ""),
-            input_formula_ids=tuple(
-                str(item) for item in (payload.get("input_formula_ids") or ())
-            ),
-            accepted_formula_ids=tuple(
-                str(item) for item in (payload.get("accepted_formula_ids") or ())
-            ),
-            rejected_formula_ids=tuple(
-                str(item) for item in (payload.get("rejected_formula_ids") or ())
-            ),
-            epistemic_state_hash=(
-                None
-                if payload.get("epistemic_state_hash") is None
-                else str(payload.get("epistemic_state_hash"))
-            ),
-            budget_failure=(
-                None
-                if payload.get("budget_failure") is None
-                else str(payload.get("budget_failure"))
-            ),
-            trace=dict(payload.get("trace") or {}),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "operation": self.operation,
@@ -250,39 +221,6 @@ class SupportRevisionRealization:
             },
         )
         object.__setattr__(self, "journal_metadata", dict(self.journal_metadata))
-
-    @classmethod
-    def from_json_payload(
-        cls, payload: Mapping[str, Any]
-    ) -> SupportRevisionRealization:
-        reasons_payload = payload.get("reasons") or {}
-        if not isinstance(reasons_payload, Mapping):
-            raise ValueError("support revision realization requires mapping 'reasons'")
-        return cls(
-            accepted_atom_ids=tuple(
-                str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())
-            ),
-            rejected_atom_ids=tuple(
-                str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())
-            ),
-            incision_set=tuple(
-                str(atom_id) for atom_id in (payload.get("incision_set") or ())
-            ),
-            source_claim_ids=tuple(
-                str(claim_id) for claim_id in (payload.get("source_claim_ids") or ())
-            ),
-            reasons={
-                str(atom_id): coerce_revision_atom_detail(detail)
-                for atom_id, detail in reasons_payload.items()
-            },
-            snapshot_hash=None
-            if payload.get("snapshot_hash") is None
-            else str(payload.get("snapshot_hash")),
-            journal_metadata=dict(payload.get("journal_metadata") or {}),
-            replay_status=None
-            if payload.get("replay_status") is None
-            else str(payload.get("replay_status")),
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -373,55 +311,6 @@ class RevisionEvent:
             {str(key): str(value) for key, value in self.policy_snapshot.items()},
         )
 
-    @classmethod
-    def from_json_payload(cls, payload: Mapping[str, Any]) -> RevisionEvent:
-        decision_payload = payload.get("decision")
-        realization_payload = payload.get("realization")
-        if decision_payload is not None and not isinstance(decision_payload, Mapping):
-            raise ValueError("revision event requires mapping 'decision'")
-        if realization_payload is not None and not isinstance(
-            realization_payload, Mapping
-        ):
-            raise ValueError("revision event requires mapping 'realization'")
-        policy_payload = payload.get("policy_snapshot") or {}
-        if not isinstance(policy_payload, Mapping):
-            raise ValueError("revision event requires mapping 'policy_snapshot'")
-        event = cls(
-            operation=str(payload.get("operation") or ""),
-            pre_state_hash=str(payload.get("pre_state_hash") or ""),
-            input_atom_id=None
-            if payload.get("input_atom_id") is None
-            else str(payload.get("input_atom_id")),
-            target_atom_ids=tuple(
-                str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())
-            ),
-            decision=(
-                None
-                if decision_payload is None
-                else FormalRevisionDecisionReport.from_json_payload(decision_payload)
-            ),
-            realization=(
-                None
-                if realization_payload is None
-                else SupportRevisionRealization.from_json_payload(realization_payload)
-            ),
-            policy_snapshot={
-                str(key): str(value) for key, value in policy_payload.items()
-            },
-            replay_status=None
-            if payload.get("replay_status") is None
-            else str(payload.get("replay_status")),
-            realization_failure=(
-                None
-                if payload.get("realization_failure") is None
-                else str(payload.get("realization_failure"))
-            ),
-        )
-        recorded_hash = payload.get("content_hash")
-        if recorded_hash is not None and str(recorded_hash) != event.content_hash:
-            raise ValueError("revision event content_hash does not match payload")
-        return event
-
     @property
     def content_hash(self) -> str:
         return hashlib.sha256(canonical_json_bytes(self._content_payload())).hexdigest()
@@ -429,25 +318,6 @@ class RevisionEvent:
     def to_dict(self) -> dict[str, Any]:
         data = self._content_payload()
         data["content_hash"] = self.content_hash
-        return data
-
-    def _content_payload(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "operation": self.operation,
-            "pre_state_hash": self.pre_state_hash,
-            "target_atom_ids": list(self.target_atom_ids),
-            "policy_snapshot": dict(self.policy_snapshot),
-        }
-        if self.input_atom_id is not None:
-            data["input_atom_id"] = self.input_atom_id
-        if self.decision is not None:
-            data["decision"] = self.decision.to_dict()
-        if self.realization is not None:
-            data["realization"] = self.realization.to_dict()
-        if self.replay_status is not None:
-            data["replay_status"] = self.replay_status
-        if self.realization_failure is not None:
-            data["realization_failure"] = self.realization_failure
         return data
 
 

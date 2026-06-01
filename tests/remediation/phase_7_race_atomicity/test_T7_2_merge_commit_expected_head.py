@@ -10,22 +10,6 @@ from quire.git_store import GitStore, HeadMismatchError
 from tests.ws_l_merge_helpers import claim_payloads
 
 
-def _claim_payloads(kr: GitStore, claim_id: str, statement: str) -> dict[str, bytes]:
-    return claim_payloads(
-        kr,
-        [
-            {
-                "id": claim_id,
-                "type": "observation",
-                "statement": statement,
-                "concepts": [f"concept_{claim_id}"],
-                "provenance": {"paper": "race-test", "page": 1},
-            }
-        ],
-        paper="race-test",
-    )
-
-
 def _snapshot(kr: GitStore) -> RepositorySnapshot:
     if kr.root is None:
         raise ValueError("test snapshot requires a filesystem-backed git store")

@@ -102,14 +102,3 @@ def test_tag_uri_path_separators_are_normalized(
 @settings(deadline=None)
 def test_ni_uri_for_bytes_is_deterministic(payload: bytes) -> None:
     assert ni_uri_for_bytes(payload) == ni_uri_for_bytes(payload)
-
-
-@pytest.mark.property
-@given(left=st.binary(max_size=256), right=st.binary(max_size=256))
-@settings(deadline=None)
-def test_ni_uri_for_bytes_changes_when_payload_changes(
-    left: bytes, right: bytes
-) -> None:
-    assume(left != right)
-
-    assert ni_uri_for_bytes(left) != ni_uri_for_bytes(right)

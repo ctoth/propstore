@@ -279,15 +279,6 @@ def _validate_promoted_claims_before_commit(
         )
 
 
-def _source_trust_payload(result: SourceTrustResult) -> dict[str, Any]:
-    trust = SourceTrustDocument(
-        status=result.status,
-        prior_base_rate=result.prior_base_rate,
-        derived_from=tuple(firing.rule_id for firing in result.derived_from),
-    )
-    return cast(dict[str, Any], document_to_payload(trust))
-
-
 def _commit_promote_time_trust_calibration(
     repo: Repository,
     source_name: str,

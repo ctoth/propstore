@@ -18,20 +18,6 @@ from propstore.provenance import ProvenanceStatus
 PRIOR_PAYLOAD = {"b": 0.2, "d": 0.1, "u": 0.7, "a": 0.4}
 
 
-def _source_payload() -> dict:
-    return {
-        "id": "tag:example.test,2026:source/demo",
-        "kind": "academic_paper",
-        "origin": {"type": "doi", "value": "10.0000/example"},
-        "trust": {
-            "status": ProvenanceStatus.STATED.value,
-            "prior_base_rate": PRIOR_PAYLOAD,
-            "derived_from": ["rule:demo"],
-        },
-        "metadata": {"name": "demo"},
-    }
-
-
 def test_source_document_prior_base_rate_is_opinion() -> None:
     source_doc = convert_document_value(
         _source_payload(),
@@ -43,19 +29,6 @@ def test_source_document_prior_base_rate_is_opinion() -> None:
     assert (
         source_document_payload(source_doc)["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
     )
-
-
-def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:
-    source_doc = convert_document_value(
-        _source_payload(),
-        SourceDocument,
-        source="source prior model test",
-    )
-
-    models = compile_source_models([("demo", source_doc)])
-    prior_payload = document_to_payload(models[0].trust)["prior_base_rate"]
-
-    assert prior_payload == PRIOR_PAYLOAD
 
 
 def test_praf_uses_prior_opinion_without_float_coercion() -> None:

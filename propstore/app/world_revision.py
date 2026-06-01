@@ -104,44 +104,11 @@ def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
     raise TypeError(f"unsupported revision atom: {type(atom).__name__}")
 
 
-def revision_event_inspection_payload(event: RevisionEvent) -> dict[str, object]:
-    decision_payload = None if event.decision is None else event.decision.to_dict()
-    realization_payload = (
-        None if event.realization is None else event.realization.to_dict()
-    )
-    diagnostics = {
-        "operation": event.operation,
-        "replay_status": event.replay_status,
-        "realization_failure": event.realization_failure,
-    }
-    if event.decision is not None:
-        diagnostics["merge_operator"] = event.decision.trace.get("merge_operator")
-        diagnostics["selected_worlds_hash"] = event.decision.trace.get(
-            "selected_worlds_hash"
-        )
-        diagnostics["scored_worlds_hash"] = event.decision.trace.get(
-            "scored_worlds_hash"
-        )
-    return {
-        "decision": decision_payload,
-        "realization": realization_payload,
-        "policy": dict(event.policy_snapshot),
-        "diagnostics": diagnostics,
-        "content_hash": event.content_hash,
-    }
-
-
 def world_revision_base(repo: Repository, request: AppRevisionWorldRequest):
     from propstore.support_revision.workflows import revision_base
 
     with open_app_world_model(repo) as world:
         return revision_base(world, _lower_request(request))
-
-
-def world_revision_base_payload(
-    repo: Repository, request: AppRevisionWorldRequest
-) -> dict[str, object]:
-    return belief_base_to_canonical_dict(world_revision_base(repo, request))
 
 
 def world_revision_entrenchment(repo: Repository, request: AppRevisionWorldRequest):

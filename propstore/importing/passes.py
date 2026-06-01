@@ -106,13 +106,6 @@ def _planned_claim_document_write(
     )
 
 
-def _document_payload(
-    store: DocumentFamilyStore["Repository"],
-    write: PlannedSemanticWrite,
-) -> object:
-    return store.payload(write.document, cast(Any, write.family))
-
-
 def _claim_source_from_import_path(path: str) -> dict[str, str]:
     return {"paper": Path(path).stem}
 
@@ -127,68 +120,6 @@ def _rewrite_indexed_reference(value: Any, index) -> Any:
     if not isinstance(value, str):
         return value
     return index.resolve_id(value) or value
-
-
-def _rewrite_concept_payload_refs(
-    data: dict[str, Any],
-    *,
-    concept_ref_map: Mapping[str, str],
-) -> dict[str, Any]:
-    rewritten = dict(data)
-    if "replaced_by" in rewritten:
-        rewritten["replaced_by"] = _rewrite_reference(
-            rewritten.get("replaced_by"), concept_ref_map
-        )
-
-    relationships = rewritten.get("relationships")
-    if isinstance(relationships, list):
-        rewritten["relationships"] = [
-            (
-                {
-                    **relationship,
-                    "target": _rewrite_reference(
-                        relationship.get("target"), concept_ref_map
-                    ),
-                }
-                if isinstance(relationship, dict)
-                else relationship
-            )
-            for relationship in relationships
-        ]
-
-    parameterizations = rewritten.get("parameterization_relationships")
-    if isinstance(parameterizations, list):
-        updated_parameterizations = []
-        for parameterization in parameterizations:
-            if not isinstance(parameterization, dict):
-                updated_parameterizations.append(parameterization)
-                continue
-            copied = dict(parameterization)
-            inputs = copied.get("inputs")
-            if isinstance(inputs, list):
-                copied["inputs"] = [
-                    _rewrite_reference(input_id, concept_ref_map) for input_id in inputs
-                ]
-            updated_parameterizations.append(copied)
-        rewritten["parameterization_relationships"] = updated_parameterizations
-
-    return normalize_canonical_concept_payload(rewritten)
-
-
-def _normalize_concept_payload(
-    data: dict[str, Any],
-    *,
-    default_domain: str,
-) -> tuple[dict[str, Any], set[str]]:
-    raw_id = data.get("id")
-    normalized = normalize_canonical_concept_payload(
-        dict(data),
-        default_domain=str(default_domain or "propstore"),
-    )
-    return normalized, concept_reference_keys(
-        normalized,
-        raw_id=raw_id if isinstance(raw_id, str) else None,
-    )
 
 
 def _normalize_concept_batch(

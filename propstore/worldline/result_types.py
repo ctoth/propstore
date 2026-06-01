@@ -72,19 +72,6 @@ class WorldlineVariableRef:
     concept_id: str | None = None
     value: str | None = None
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineVariableRef:
-        return cls(
-            name=None if data.get("name") is None else str(data.get("name")),
-            symbol=None if data.get("symbol") is None else str(data.get("symbol")),
-            concept_id=(
-                None
-                if data.get("concept_id") is None and data.get("concept") is None
-                else str(data.get("concept_id") or data.get("concept"))
-            ),
-            value=None if data.get("value") is None else str(data.get("value")),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         if self.name is not None:
@@ -110,28 +97,6 @@ class WorldlineInputSource:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "inputs_used", dict(self.inputs_used))
-
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineInputSource:
-        return cls(
-            source=str(data.get("source") or "unknown"),
-            value=_worldline_scalar_value(data.get("value"), field="value"),
-            claim_id=None
-            if data.get("claim_id") is None
-            else str(data.get("claim_id")),
-            formula=None if data.get("formula") is None else str(data.get("formula")),
-            reason=None if data.get("reason") is None else str(data.get("reason")),
-            strategy=None
-            if data.get("strategy") is None
-            else str(data.get("strategy")),
-            inputs_used={
-                name: WorldlineInputSource.from_json_payload(value)
-                for name, value in _nested_mapping_items(
-                    data.get("inputs_used"),
-                    field="inputs_used",
-                ).items()
-            },
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"source": self.source}
@@ -175,63 +140,6 @@ class WorldlineTargetValue:
     def __post_init__(self) -> None:
         object.__setattr__(self, "variables", tuple(self.variables))
         object.__setattr__(self, "inputs_used", dict(self.inputs_used))
-
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineTargetValue:
-        variables: list[WorldlineVariableRef] = []
-        raw_variables = data.get("variables")
-        if isinstance(raw_variables, Sequence) and not isinstance(
-            raw_variables, (str, bytes)
-        ):
-            for index, item in enumerate(raw_variables):
-                if not isinstance(item, Mapping):
-                    raise ValueError(f"worldline variables[{index}] must be a mapping")
-                variables.append(WorldlineVariableRef.from_json_payload(item))
-        elif isinstance(raw_variables, Mapping):
-            raise ValueError("worldline variables must be a list of variable bindings")
-        inputs_used = {
-            name: WorldlineInputSource.from_json_payload(value)
-            for name, value in _nested_mapping_items(
-                data.get("inputs_used"),
-                field="inputs_used",
-            ).items()
-        }
-        return cls(
-            status=str(data.get("status") or "underspecified"),
-            value=_worldline_scalar_value(data.get("value"), field="value"),
-            source=None if data.get("source") is None else str(data.get("source")),
-            reason=None if data.get("reason") is None else str(data.get("reason")),
-            claim_id=None
-            if data.get("claim_id") is None
-            else str(data.get("claim_id")),
-            winning_claim_id=(
-                None
-                if data.get("winning_claim_id") is None
-                else str(data.get("winning_claim_id"))
-            ),
-            claim_type=None
-            if data.get("claim_type") is None
-            else str(data.get("claim_type")),
-            statement=None
-            if data.get("statement") is None
-            else str(data.get("statement")),
-            expression=None
-            if data.get("expression") is None
-            else str(data.get("expression")),
-            body=None if data.get("body") is None else str(data.get("body")),
-            name=None if data.get("name") is None else str(data.get("name")),
-            canonical_ast=(
-                None
-                if data.get("canonical_ast") is None
-                else str(data.get("canonical_ast"))
-            ),
-            variables=tuple(variables),
-            formula=None if data.get("formula") is None else str(data.get("formula")),
-            strategy=None
-            if data.get("strategy") is None
-            else str(data.get("strategy")),
-            inputs_used=inputs_used,
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"status": self.status}
@@ -281,22 +189,6 @@ class WorldlineStep:
     reason: str | None = None
     formula: str | None = None
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineStep:
-        return cls(
-            concept=str(data.get("concept") or ""),
-            source=str(data.get("source") or "unknown"),
-            value=_worldline_scalar_value(data.get("value"), field="value"),
-            claim_id=None
-            if data.get("claim_id") is None
-            else str(data.get("claim_id")),
-            strategy=None
-            if data.get("strategy") is None
-            else str(data.get("strategy")),
-            reason=None if data.get("reason") is None else str(data.get("reason")),
-            formula=None if data.get("formula") is None else str(data.get("formula")),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "concept": self.concept,
@@ -323,21 +215,6 @@ class WorldlineDependencies:
     lifting_rules: tuple[str, ...] = ()
     blocked_exceptions: tuple[str, ...] = ()
 
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any] | None) -> WorldlineDependencies:
-        payload = {} if data is None else dict(data)
-        return cls(
-            claims=tuple(str(item) for item in payload.get("claims") or ()),
-            stances=tuple(str(item) for item in payload.get("stances") or ()),
-            contexts=tuple(str(item) for item in payload.get("contexts") or ()),
-            lifting_rules=tuple(
-                str(item) for item in payload.get("lifting_rules") or ()
-            ),
-            blocked_exceptions=tuple(
-                str(item) for item in payload.get("blocked_exceptions") or ()
-            ),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         data = {
             "claims": list(self.claims),
@@ -356,20 +233,6 @@ class WorldlineSensitivityEntry:
     input_name: str
     elasticity: float | None = None
     partial_derivative: float | None = None
-
-    @classmethod
-    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineSensitivityEntry:
-        raw_elasticity = data.get("elasticity")
-        raw_partial_derivative = data.get("partial_derivative")
-        return cls(
-            input_name=str(data.get("input") or ""),
-            elasticity=None if raw_elasticity is None else float(raw_elasticity),
-            partial_derivative=(
-                None
-                if raw_partial_derivative is None
-                else float(raw_partial_derivative)
-            ),
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"input": self.input_name}
@@ -424,19 +287,6 @@ class WorldlineSensitivityReport:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "targets", dict(self.targets))
-
-    @classmethod
-    def from_json_payload(
-        cls, data: Mapping[str, Any] | None
-    ) -> WorldlineSensitivityReport | None:
-        if not data:
-            return None
-        return cls(
-            targets={
-                str(target_name): WorldlineSensitivityOutcome.from_value(value)
-                for target_name, value in data.items()
-            }
-        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -521,120 +371,6 @@ class WorldlineArgumentationState:
             },
         )
         object.__setattr__(self, "why_out", dict(self.why_out))
-
-    @classmethod
-    def from_json_payload(cls, data: object) -> WorldlineArgumentationState | None:
-        if data is None:
-            return None
-        if not isinstance(data, Mapping):
-            raise ValueError("worldline argumentation must be a mapping")
-        if not data:
-            return None
-        raw_nogoods = data.get("nogoods") or ()
-        acceptance_probs = _optional_mapping(
-            data.get("acceptance_probs"),
-            field="acceptance_probs",
-        )
-        node_statuses = _optional_mapping(
-            data.get("node_statuses"), field="node_statuses"
-        )
-        support_quality = _optional_mapping(
-            data.get("support_quality"),
-            field="support_quality",
-        )
-        essential_support = _optional_mapping(
-            data.get("essential_support"),
-            field="essential_support",
-        )
-        status_reasons = _optional_mapping(
-            data.get("status_reasons"), field="status_reasons"
-        )
-        future_statuses = _optional_mapping(
-            data.get("future_statuses"),
-            field="future_statuses",
-        )
-        stability = _optional_mapping(data.get("stability"), field="stability")
-        relevance = _optional_mapping(data.get("relevance"), field="relevance")
-        witness_futures = _optional_mapping(
-            data.get("witness_futures"),
-            field="witness_futures",
-        )
-        why_out = _optional_mapping(data.get("why_out"), field="why_out")
-        raw_samples = data.get("samples")
-        raw_confidence_interval_half = data.get("confidence_interval_half")
-        return cls(
-            backend=None if data.get("backend") is None else str(data.get("backend")),
-            status=None if data.get("status") is None else str(data.get("status")),
-            error=(
-                None
-                if data.get("error") is None
-                else WorldlineCaptureError(str(data["error"]))
-            ),
-            justified=tuple(str(item) for item in data.get("justified") or ()),
-            defeated=tuple(str(item) for item in data.get("defeated") or ()),
-            extensions=tuple(
-                tuple(str(item) for item in extension)
-                for extension in data.get("extensions") or ()
-                if isinstance(extension, Sequence)
-                and not isinstance(extension, (str, bytes))
-            ),
-            inference_mode=(
-                None
-                if data.get("inference_mode") is None
-                else str(data.get("inference_mode"))
-            ),
-            acceptance_probs={
-                str(claim_id): float(value)
-                for claim_id, value in acceptance_probs.items()
-            },
-            strategy_used=(
-                None
-                if data.get("strategy_used") is None
-                else str(data.get("strategy_used"))
-            ),
-            samples=None if raw_samples is None else int(raw_samples),
-            confidence_interval_half=(
-                None
-                if raw_confidence_interval_half is None
-                else float(raw_confidence_interval_half)
-            ),
-            semantics=None
-            if data.get("semantics") is None
-            else str(data.get("semantics")),
-            supported=tuple(str(item) for item in data.get("supported") or ()),
-            nogoods=tuple(
-                tuple(str(item) for item in entry)
-                for entry in raw_nogoods
-                if isinstance(entry, Sequence) and not isinstance(entry, (str, bytes))
-            ),
-            node_statuses={
-                str(node_id): str(status) for node_id, status in node_statuses.items()
-            },
-            support_quality={
-                str(claim_id): str(status)
-                for claim_id, status in support_quality.items()
-            },
-            essential_support={
-                str(claim_id): tuple(str(item) for item in support)
-                for claim_id, support in essential_support.items()
-            },
-            status_reasons={
-                str(claim_id): None if reason is None else str(reason)
-                for claim_id, reason in status_reasons.items()
-            },
-            nogood_details=tuple(data.get("nogood_details") or ()),
-            declared_queryables=tuple(
-                str(item) for item in data.get("declared_queryables") or ()
-            ),
-            future_statuses=dict(future_statuses),
-            stability=dict(stability),
-            relevance=dict(relevance),
-            witness_futures={
-                str(claim_id): tuple(entries)
-                for claim_id, entries in witness_futures.items()
-            },
-            why_out=dict(why_out),
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {}

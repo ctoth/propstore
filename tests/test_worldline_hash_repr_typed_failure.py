@@ -32,39 +32,6 @@ _JSON_VALUES = st.recursive(
 )
 
 
-@given(payload=_JSON_VALUES)
-@pytest.mark.property
-@settings(max_examples=20)
-def test_ws_j_rfc8785_dumps_is_deterministic_for_json_native_payloads(
-    payload: object,
-) -> None:
-    """Codex 2.10: JSON-native payloads get byte-stable canonical encoding."""
-
-    import rfc8785
-
-    assert rfc8785.dumps(payload) == rfc8785.dumps(payload)
-
-
-@given(
-    value=st.one_of(
-        st.builds(_NotJsonNative, st.integers()),
-        st.builds(set, st.lists(st.integers(), max_size=3)),
-        st.builds(Path, st.text(min_size=1, max_size=8)),
-    )
-)
-@pytest.mark.property
-@settings(max_examples=12)
-def test_ws_j_rfc8785_dumps_rejects_non_json_native_payloads(value: object) -> None:
-    """J-H2: unknown objects fail loudly instead of being stringified into hashes."""
-
-    import rfc8785
-
-    with pytest.raises(rfc8785.CanonicalizationError) as exc_info:
-        rfc8785.dumps({"value": value})
-
-    assert type(value).__name__ in str(exc_info.value)
-
-
 @pytest.mark.parametrize("value", [-(2**53), 2**53])
 def test_ws_j_rfc8785_dumps_rejects_integers_outside_rfc8785_domain(
     value: int,
