@@ -160,6 +160,10 @@ def _delete_ranges(source: str, removals: list[FunctionRemoval]) -> str:
     return "".join(lines)
 
 
+def _normalize_newlines(source: str) -> str:
+    return source.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def _planned_changes(
     project: Project,
     root: Path,
@@ -171,15 +175,25 @@ def _planned_changes(
     for path in files:
         relative = path.relative_to(root).as_posix()
         resource = project.get_file(relative)
-        source = resource.read()
+        original = resource.read()
+        source = _normalize_newlines(original)
         removals = _matching_ranges(source, relative, patterns)
         if not removals:
             continue
         updated = _delete_ranges(source, removals)
         ast.parse(updated, filename=relative, type_comments=True)
-        changes.add_change(ChangeContents(resource, updated, old_contents=source))
+        changes.add_change(ChangeContents(resource, updated, old_contents=original))
         all_removals.extend(removals)
     return changes, all_removals
+
+
+def _normalize_changed_files(root: Path, removals: list[FunctionRemoval]) -> None:
+    for relative in sorted({removal.path for removal in removals}):
+        path = root / relative
+        data = path.read_bytes()
+        normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        if normalized != data:
+            path.write_bytes(normalized)
 
 
 def main() -> int:
@@ -199,6 +213,7 @@ def main() -> int:
         print(f"matched {len(removals)} function(s)")
         if removals and not args.dry_run:
             project.do(changes)
+            _normalize_changed_files(root, removals)
     finally:
         project.close()
     return 0
