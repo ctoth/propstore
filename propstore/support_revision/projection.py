@@ -177,16 +177,67 @@ def _claim_subject(claim: Claim) -> str:
 
 
 def _claim_content(claim: Claim) -> str:
-    payload = claim.to_source_claim_payload()
-    for key in (
-        "id",
-        "context",
-        "source_paper",
-        "provenance",
-        "conditions",
-    ):
-        payload.pop(key, None)
-    return _stable_value(payload)
+    content: dict[str, object] = {
+        "type": None if claim.type is None else claim.type.value,
+        "target_concept": claim.target_concept,
+    }
+    if claim.output_concept_id is not None:
+        content["output_concept"] = claim.output_concept_id
+    numeric = claim.numeric_payload
+    if numeric is not None:
+        content.update(
+            value=numeric.value,
+            lower_bound=numeric.lower_bound,
+            upper_bound=numeric.upper_bound,
+            uncertainty=numeric.uncertainty,
+            uncertainty_type=numeric.uncertainty_type,
+            sample_size=numeric.sample_size,
+            unit=numeric.unit,
+        )
+    text = claim.text_payload
+    if text is not None:
+        content.update(
+            statement=text.statement,
+            expression=text.expression,
+            sympy=text.sympy_generated,
+            name=text.name,
+            measure=text.measure,
+            listener_population=text.listener_population,
+            methodology=text.methodology,
+            notes=text.notes,
+        )
+    algorithm = claim.algorithm_payload
+    if algorithm is not None:
+        content.update(
+            body=algorithm.body,
+            stage=None
+            if algorithm.algorithm_stage is None
+            else algorithm.algorithm_stage.value,
+        )
+    variables = []
+    for variable in claim.variables:
+        variable_content = {
+            "concept": variable.concept_id,
+            "symbol": variable.symbol,
+            "role": variable.role,
+            "name": variable.name,
+        }
+        variables.append(
+            {
+                key: value
+                for key, value in variable_content.items()
+                if value is not None
+            }
+        )
+    if variables:
+        content["variables"] = variables
+    return _stable_value(
+        {
+            key: value
+            for key, value in content.items()
+            if value is not None and value != []
+        }
+    )
 
 
 def _context_ref(
@@ -212,13 +263,13 @@ def _condition_ref(claim: Claim) -> ConditionRef:
 
 
 def _provenance_ref(claim: Claim) -> ProvenanceGraphRef:
-    payload: JsonValue = [
+    provenance_key: JsonValue = [
         str(claim.id),
         claim.source_slug,
         claim.provenance_json,
     ]
     return ProvenanceGraphRef(
-        ProvenanceGraphId(f"urn:propstore:claim-provenance:{_digest(payload)}")
+        ProvenanceGraphId(f"urn:propstore:claim-provenance:{_digest(provenance_key)}")
     )
 
 

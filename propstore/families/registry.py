@@ -51,7 +51,6 @@ from propstore.families.claims.declaration import (
     SOURCE_JUSTIFICATION_BATCH_SPEC,
     SourceClaimDocument,
     SourceJustificationDocument,
-    claim_document_to_payload,
 )
 from propstore.families.concepts.declaration import (
     AUTHORED_CONCEPT_CHARTER,
@@ -379,7 +378,6 @@ CLAIM_FAMILY = ArtifactFamily["Repository", ClaimRef, ClaimDocument](
     ARTIFACT_FAMILY_CONTRACT_VERSION,
     ClaimDocument,
     CLAIM_PLACEMENT,
-    document_payload=claim_document_to_payload,
 )
 
 CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocument](

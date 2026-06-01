@@ -14,9 +14,8 @@ import json
 import sqlite3
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import Enum
 from importlib import import_module
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Protocol, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Protocol
 
 import msgspec
 from quire.charter_class import CharterDoc, charter, charter_field, column
@@ -311,12 +310,6 @@ def iter_claim_type_contracts() -> tuple[ClaimTypeContract, ...]:
     )
 
 
-def _claim_struct_to_payload(self: msgspec.Struct) -> dict[str, Any]:
-    """Bound ``to_payload`` for the embedded Pop-B charter documents."""
-
-    return _claim_struct_payload(self)
-
-
 class ClaimLogicalIdDocument(CharterDoc, kw_only=True):
     namespace: str
     value: str
@@ -327,18 +320,12 @@ class ClaimLogicalIdDocument(CharterDoc, kw_only=True):
     def formatted(self) -> str:
         return claim_logical_id_formatted(self)
 
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
 
 class ClaimSourceDocument(CharterDoc, kw_only=True):
     paper: str
     extraction_date: str | None = None
     extraction_model: str | None = None
     extraction_prompt_hash: str | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
 
 
 class ProvenanceDocument(CharterDoc, kw_only=True):
@@ -351,18 +338,12 @@ class ProvenanceDocument(CharterDoc, kw_only=True):
     section: str | None = None
     table: str | None = None
 
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
 
 class FitStatisticsDocument(CharterDoc, kw_only=True):
     r: float | int | None = None
     r_sd: float | int | None = None
     slope: float | int | None = None
     slope_sd: float | int | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
 
 
 class VariableBindingDocument(CharterDoc, kw_only=True):
@@ -375,17 +356,11 @@ class VariableBindingDocument(CharterDoc, kw_only=True):
     def binding_name(self) -> str | None:
         return variable_binding_name(self)
 
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
 
 class ParameterBindingDocument(CharterDoc, kw_only=True):
     name: str
     concept: str
     note: str | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
 
 
 class ResolutionDocument(CharterDoc, kw_only=True):
@@ -396,9 +371,6 @@ class ResolutionDocument(CharterDoc, kw_only=True):
     pass_number: int | None = None
     confidence: float | int | None = None
 
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
 
 class StanceDocument(CharterDoc, kw_only=True):
     type: StanceType
@@ -408,9 +380,6 @@ class StanceDocument(CharterDoc, kw_only=True):
     resolution: ResolutionDocument | None = None
     strength: str | None = None
     target_justification_id: str | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
 
 
 class AtomicPropositionDocument(CharterDoc, tag="atomic", tag_field="kind", kw_only=True):
@@ -442,16 +411,10 @@ class AtomicPropositionDocument(CharterDoc, tag="atomic", tag_field="kind", kw_o
     value: float | int | None = None
     variables: tuple[VariableBindingDocument, ...] = ()
 
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
 
 class IstPropositionDocument(CharterDoc, tag="ist", tag_field="kind", kw_only=True):
     context: ContextReferenceDocument
     proposition: "AtomicPropositionDocument | IstPropositionDocument"
-
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
 
 
 def claim_logical_id_formatted(logical_id: ClaimLogicalIdDocument) -> str:
@@ -462,39 +425,6 @@ def variable_binding_name(variable: VariableBindingDocument) -> str | None:
     if variable.name is not None:
         return variable.name
     return variable.symbol
-
-
-def _claim_payload_value(value: object) -> object:
-    if isinstance(value, Enum):
-        return value.value
-    if isinstance(value, Mapping):
-        payload: dict[str, object] = {}
-        for key, item in value.items():
-            encoded = _claim_payload_value(item)
-            if encoded is None or encoded == []:
-                continue
-            payload[str(key)] = encoded
-        return payload
-    if isinstance(value, tuple | list):
-        return [
-            _claim_payload_value(item)
-            for item in value
-        ]
-    to_payload = getattr(value, "to_payload", None)
-    if callable(to_payload) and not isinstance(value, msgspec.Struct):
-        return _claim_payload_value(to_payload())
-    return value
-
-
-def _claim_struct_payload(document: msgspec.Struct) -> dict[str, Any]:
-    payload = _claim_payload_value(msgspec.to_builtins(document))
-    if not isinstance(payload, dict):
-        raise TypeError("claim document payload must be a mapping")
-    return cast(dict[str, Any], payload)
-
-
-def claim_document_to_payload(document: ClaimDocument) -> dict[str, Any]:
-    return _claim_struct_payload(document)
 
 
 def _validate_claim_type_contract(document: msgspec.Struct) -> None:
@@ -693,9 +623,6 @@ class ClaimDocument(CharterDoc, kw_only=True):
             return None
         return claim_logical_id_formatted(self.logical_ids[0])
 
-    def to_payload(self) -> dict[str, Any]:
-        return claim_document_to_payload(self)
-
 
 AUTHORED_CLAIM_CHARTER: FamilyCharter = ClaimDocument.__charter__
 
@@ -791,71 +718,6 @@ class ClaimBehavior(FamilyModel):
             for variable in self.variables
             if variable.concept_id is not None
         )
-
-    def variable_payload(self) -> list[dict[str, Any]] | None:
-        from propstore.families.claims.stages import claim_algorithm_variable_payload
-
-        if not self.variables:
-            return None
-        return [claim_algorithm_variable_payload(variable) for variable in self.variables]
-
-    def to_source_claim_payload(self) -> dict[str, Any]:
-        numeric_payload = self.numeric_payload
-        text_payload = self.text_payload
-        algorithm_payload = self.algorithm_payload
-        source: dict[str, Any] = {
-            "id": self.id,
-            "type": self.type.value,
-            "target_concept": self.target_concept,
-            "context": {"id": self.context_id},
-            "source_paper": self.source_paper,
-            "provenance": json.loads(self.provenance_json)
-            if self.provenance_json
-            else None,
-        }
-        if self.type is ClaimType.PARAMETER and self.output_concept_id is not None:
-            source["output_concept"] = self.output_concept_id
-        if (
-            self.type is ClaimType.MEASUREMENT
-            and self.output_concept_id is not None
-            and self.target_concept is None
-        ):
-            source["target_concept"] = self.output_concept_id
-        if self.type is ClaimType.ALGORITHM and self.output_concept_id is not None:
-            source["output_concept"] = self.output_concept_id
-        if numeric_payload is not None:
-            source.update(
-                value=numeric_payload.value,
-                lower_bound=numeric_payload.lower_bound,
-                upper_bound=numeric_payload.upper_bound,
-                uncertainty=numeric_payload.uncertainty,
-                uncertainty_type=numeric_payload.uncertainty_type,
-                sample_size=numeric_payload.sample_size,
-                unit=numeric_payload.unit,
-            )
-        if text_payload is not None:
-            source.update(
-                conditions=json.loads(text_payload.conditions_cel)
-                if text_payload.conditions_cel
-                else [],
-                statement=text_payload.statement,
-                expression=text_payload.expression,
-                sympy=text_payload.sympy_generated,
-                name=text_payload.name,
-                measure=text_payload.measure,
-                listener_population=text_payload.listener_population,
-                methodology=text_payload.methodology,
-                notes=text_payload.notes,
-            )
-        if algorithm_payload is not None:
-            source.update(
-                body=algorithm_payload.body,
-                stage=algorithm_payload.algorithm_stage,
-            )
-            variable_payload = self.variable_payload()
-            if variable_payload is not None:
-                source["variables"] = variable_payload
-        return {key: value for key, value in source.items() if value is not None}
 
 
 if TYPE_CHECKING:
@@ -1294,29 +1156,11 @@ class JustificationProvenanceDocument(CharterDoc, kw_only=True):
     section: str | None = None
     table: str | None = None
 
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
 
 class JustificationAttackTargetDocument(CharterDoc, kw_only=True):
     target_claim: str | None = None
     target_justification_id: str | None = None
     target_premise_index: int | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
-
-def justification_document_to_payload(document: JustificationDocument) -> dict[str, Any]:
-    payload = _claim_struct_payload(document)
-    for key in ("provenance", "attack_target"):
-        value = payload.get(key)
-        if isinstance(value, str):
-            loaded = json.loads(value)
-            if not isinstance(loaded, dict):
-                raise TypeError(f"justification {key} payload must decode to a mapping")
-            payload[key] = loaded
-    return payload
 
 
 @charter(
@@ -1384,9 +1228,6 @@ class JustificationDocument(CharterDoc):
         charter_field(json=True, nullable=True),
     ] = None
     artifact_code: Annotated[str | None, charter_field(artifact=True, nullable=True)] = None
-
-    def to_payload(self) -> dict[str, Any]:
-        return justification_document_to_payload(self)
 
 
 JUSTIFICATION_CHARTER: FamilyCharter = JustificationDocument.__charter__
@@ -1507,9 +1348,6 @@ class SourceClaimDocument(CharterDoc, kw_only=True):
     source_local_id: Annotated[str | None, charter_field(nullable=True)] = None
     artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
 
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
-
 
 SOURCE_CLAIM_DOCUMENT_CHARTER: FamilyCharter = SourceClaimDocument.__charter__
 
@@ -1535,9 +1373,6 @@ class SourceJustificationDocument(CharterDoc, kw_only=True):
     provenance: Annotated[SourceProvenanceDocument | None, charter_field(nullable=True)] = None
     attack_target: Annotated[SourceAttackTargetDocument | None, charter_field(nullable=True)] = None
     artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
-
-    def to_payload(self) -> dict[str, Any]:
-        return _claim_struct_to_payload(self)
 
 
 SOURCE_JUSTIFICATION_DOCUMENT_CHARTER: FamilyCharter = SourceJustificationDocument.__charter__
@@ -2024,9 +1859,6 @@ def compile_authored_justification_models_with_diagnostics(
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, justification in justification_entries:
-        justification_payload = justification_document_to_payload(justification)
-        if not isinstance(justification_payload, dict):
-            raise TypeError("justification document payload must be a mapping")
         justification_id = justification.id
         conclusion = claim_index.resolve_id(justification.conclusion)
         if not isinstance(justification_id, str) or not justification_id:
@@ -2080,8 +1912,16 @@ def compile_authored_justification_models_with_diagnostics(
             )
             continue
 
-        provenance = justification_payload.get("provenance")
-        attack_target = justification_payload.get("attack_target")
+        provenance = (
+            None
+            if justification.provenance is None
+            else document_to_payload(justification.provenance)
+        )
+        attack_target = (
+            None
+            if justification.attack_target is None
+            else document_to_payload(justification.attack_target)
+        )
 
         models.append(
             Justification(
