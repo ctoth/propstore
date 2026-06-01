@@ -52,7 +52,7 @@ from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom, Scalar
 from propstore.claims import LoadedClaimsFile, claim_file_claims
-from propstore.families.claims.declaration import ClaimDocument, claim_primary_logical_id
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.concepts.stages import LoadedConcept
 from propstore.grounding.predicates import (
     PredicateAtom,
@@ -272,7 +272,7 @@ def _iter_claims(claim_files: Sequence[LoadedClaimsFile]) -> tuple[ClaimDocument
 
 
 def _claim_fact_id(claim: ClaimDocument) -> str | None:
-    return claim.id or claim.artifact_id or claim_primary_logical_id(claim)
+    return claim.id or claim.artifact_id or claim.primary_logical_id
 
 
 def _claim_role_bindings(claim: ClaimDocument, role: str) -> tuple[str, ...]:

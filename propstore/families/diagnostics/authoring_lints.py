@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 
 from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_filename
-from propstore.families.claims.declaration import claim_primary_logical_id
 from propstore.families.claims.stages import ClaimStage
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.registry import PropstoreFamily
@@ -99,7 +98,7 @@ def _lint_claim_files(
     for claim_file in claim_files:
         filename = claim_file_filename(claim_file)
         for claim in claim_file_claims(claim_file):
-            claim_id = claim.artifact_id or claim_primary_logical_id(claim) or claim.id or filename
+            claim_id = claim.artifact_id or claim.primary_logical_id or claim.id or filename
             provenance = claim.provenance
             if (
                 provenance is not None

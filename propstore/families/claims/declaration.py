@@ -458,13 +458,6 @@ def claim_logical_id_formatted(logical_id: ClaimLogicalIdDocument) -> str:
     return f"{logical_id.namespace}:{logical_id.value}"
 
 
-def claim_primary_logical_id(claim: object) -> str | None:
-    logical_ids = getattr(claim, "logical_ids", ())
-    if not logical_ids:
-        return None
-    return claim_logical_id_formatted(logical_ids[0])
-
-
 def variable_binding_name(variable: VariableBindingDocument) -> str | None:
     if variable.name is not None:
         return variable.name
@@ -696,7 +689,9 @@ class ClaimDocument(CharterDoc, kw_only=True):
 
     @property
     def primary_logical_id(self) -> str | None:
-        return claim_primary_logical_id(self)
+        if not self.logical_ids:
+            return None
+        return claim_logical_id_formatted(self.logical_ids[0])
 
     def to_payload(self) -> dict[str, Any]:
         return claim_document_to_payload(self)
@@ -1762,7 +1757,7 @@ def compile_claim_models(
             )
             claim_values: dict[str, object] = {
                 "id": semantic_claim.artifact_id or claim_doc.artifact_id,
-                "primary_logical_id": claim_primary_logical_id(claim_doc) or "",
+                "primary_logical_id": claim_doc.primary_logical_id or "",
                 "logical_ids_json": json.dumps(logical_ids_payload),
                 "version_id": claim_doc.version_id or "",
                 "seq": claim_seq,
