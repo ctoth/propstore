@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ast
 import fnmatch
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -160,10 +161,6 @@ def _delete_ranges(source: str, removals: list[FunctionRemoval]) -> str:
     return "".join(lines)
 
 
-def _normalize_newlines(source: str) -> str:
-    return source.replace("\r\n", "\n").replace("\r", "\n")
-
-
 def _planned_changes(
     project: Project,
     root: Path,
@@ -175,32 +172,27 @@ def _planned_changes(
     for path in files:
         relative = path.relative_to(root).as_posix()
         resource = project.get_file(relative)
-        original = resource.read()
-        source = _normalize_newlines(original)
+        source = resource.read()
         removals = _matching_ranges(source, relative, patterns)
         if not removals:
             continue
         updated = _delete_ranges(source, removals)
         ast.parse(updated, filename=relative, type_comments=True)
-        changes.add_change(ChangeContents(resource, updated, old_contents=original))
+        changes.add_change(ChangeContents(resource, updated, old_contents=source))
         all_removals.extend(removals)
     return changes, all_removals
 
 
-def _normalized_file_bytes(data: bytes) -> bytes:
-    normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-    if not normalized:
-        return normalized
-    return normalized.rstrip(b"\n") + b"\n"
-
-
-def _normalize_changed_files(root: Path, removals: list[FunctionRemoval]) -> None:
-    for relative in sorted({removal.path for removal in removals}):
-        path = root / relative
-        data = path.read_bytes()
-        normalized = _normalized_file_bytes(data)
-        if normalized != data:
-            path.write_bytes(normalized)
+def _format_changed_files(root: Path, removals: list[FunctionRemoval]) -> None:
+    paths = [removal.path for removal in removals]
+    unique_paths = sorted(dict.fromkeys(paths))
+    if not unique_paths:
+        return
+    subprocess.run(
+        ["uv", "run", "ruff", "format", *unique_paths],
+        cwd=root,
+        check=True,
+    )
 
 
 def main() -> int:
@@ -220,7 +212,7 @@ def main() -> int:
         print(f"matched {len(removals)} function(s)")
         if removals and not args.dry_run:
             project.do(changes)
-            _normalize_changed_files(root, removals)
+            _format_changed_files(root, removals)
     finally:
         project.close()
     return 0
