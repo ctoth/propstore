@@ -335,8 +335,6 @@ def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:
             "encode_document": _callback_id(family.encode_document),
             "render_document": _callback_id(family.render_document),
             "document_payload": _callback_id(family.document_payload),
-            "normalize_for_write": _callback_id(family.normalize_for_write),
-            "validate_for_write": _callback_id(family.validate_for_write),
             "scan_type": (
                 None
                 if family.scan_type is None

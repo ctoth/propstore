@@ -24,7 +24,7 @@ from propstore.families.concepts.declaration import (
 )
 from propstore.families.concepts.types import ConceptStatus
 from propstore.families.concepts.types import ConceptRelationshipType
-from quire.documents import convert_document_value, load_document_dir, to_document_builtins
+from quire.documents import load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
     ClaimId,
@@ -470,31 +470,6 @@ def encode_concept_document(document: ConceptDocument) -> bytes:
 
 def render_concept_document(document: ConceptDocument) -> str:
     return encode_concept_document(document).decode("utf-8").rstrip()
-
-
-def normalize_concept_document_for_write(
-    context: Any,
-    document: ConceptDocument,
-    store: Any,
-) -> ConceptDocument:
-    del store
-    source = f"{context.branch}:{context.require_path()}"
-    normalized_payload = normalize_canonical_concept_payload(
-        concept_document_to_payload(document)
-    )
-    normalized_document = convert_document_value(
-        normalized_payload,
-        ConceptDocument,
-        source=source,
-    )
-    document_payload = concept_document_to_payload(normalized_document)
-    validation_payload = normalize_canonical_concept_payload(document_payload)
-    document_payload["version_id"] = compute_concept_version_id(validation_payload)
-    return convert_document_value(
-        document_payload,
-        ConceptDocument,
-        source=source,
-    )
 
 
 def concept_document_to_record_payload(data: ConceptDocument) -> dict[str, Any]:

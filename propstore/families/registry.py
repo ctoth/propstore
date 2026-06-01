@@ -122,7 +122,6 @@ from propstore.families.identity.concepts import (
 from propstore.families.concepts.stages import (
     concept_document_to_payload,
     encode_concept_document,
-    normalize_concept_document_for_write,
     render_concept_document,
 )
 
@@ -391,7 +390,6 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
     encode_document=encode_concept_document,
     render_document=render_concept_document,
     document_payload=concept_document_to_payload,
-    normalize_for_write=normalize_concept_document_for_write,
 )
 
 CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, SourceDocument](
@@ -450,8 +448,6 @@ def _family_definition(
     encode_document: Callable[..., Any] | None = None,
     render_document: Callable[..., Any] | None = None,
     document_payload: Callable[..., Any] | None = None,
-    normalize_for_write: Callable[..., Any] | None = None,
-    validate_for_write: Callable[..., Any] | None = None,
     scan_type: type[Any] | None = None,
     foreign_keys: tuple[ForeignKeySpec, ...] = (),
     identity_policy: FamilyIdentityPolicy | None = None,
@@ -473,8 +469,6 @@ def _family_definition(
             encode_document=encode_document,
             render_document=render_document,
             document_payload=document_payload,
-            normalize_for_write=normalize_for_write,
-            validate_for_write=validate_for_write,
             scan_type=scan_type,
         ),
         accessor=accessor,
