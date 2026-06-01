@@ -16,30 +16,6 @@ class ConflictClaimVariable:
     role: str | None = None
     name: str | None = None
 
-    @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> ConflictClaimVariable | None:
-        concept_id = payload.get("concept")
-        if not isinstance(concept_id, str) or not concept_id:
-            return None
-        return cls(
-            concept_id=concept_id,
-            symbol=None
-            if payload.get("symbol") is None
-            else str(payload.get("symbol")),
-            role=None if payload.get("role") is None else str(payload.get("role")),
-            name=None if payload.get("name") is None else str(payload.get("name")),
-        )
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {"concept": self.concept_id}
-        if self.symbol is not None:
-            payload["symbol"] = self.symbol
-        if self.role is not None:
-            payload["role"] = self.role
-        if self.name is not None:
-            payload["name"] = self.name
-        return payload
-
 
 @dataclass(frozen=True)
 class ConflictClaim:
@@ -61,81 +37,6 @@ class ConflictClaim:
     context_id: str | None = None
     conditions: tuple[CelExpr, ...] = field(default_factory=tuple)
     variables: tuple[ConflictClaimVariable, ...] = field(default_factory=tuple)
-
-    @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> ConflictClaim | None:
-        claim_id = payload.get("id") or payload.get("artifact_id")
-        if not isinstance(claim_id, str) or not claim_id:
-            return None
-        raw_variables: object = payload.get("variables")
-        variables = ()
-        if isinstance(raw_variables, list):
-            parsed_variables: list[ConflictClaimVariable] = []
-            for raw_entry in cast(list[object], raw_variables):
-                if not isinstance(raw_entry, dict):
-                    continue
-                variable = ConflictClaimVariable.from_payload(
-                    cast(dict[str, Any], raw_entry)
-                )
-                if variable is not None:
-                    parsed_variables.append(variable)
-            variables = tuple(parsed_variables)
-        raw_conditions: object = payload.get("conditions") or ()
-        conditions: tuple[CelExpr, ...] = ()
-        if isinstance(raw_conditions, list | tuple):
-            conditions = to_cel_exprs(
-                str(item)
-                for item in cast(list[object] | tuple[object, ...], raw_conditions)
-            )
-        raw_context_id: object = payload.get("context_id")
-        if raw_context_id is None:
-            raw_context_id = payload.get("context")
-        if isinstance(raw_context_id, dict):
-            context_id: object = cast(dict[str, object], raw_context_id).get("id")
-        else:
-            context_id = raw_context_id
-        return cls(
-            claim_id=claim_id,
-            claim_type=None
-            if payload.get("type") is None
-            else str(payload.get("type")),
-            artifact_id=None
-            if payload.get("artifact_id") is None
-            else str(payload.get("artifact_id")),
-            output_concept_id=(
-                None
-                if payload.get("output_concept") is None
-                else str(payload.get("output_concept"))
-            ),
-            target_concept_id=(
-                None
-                if payload.get("target_concept") is None
-                else str(payload.get("target_concept"))
-            ),
-            measure=None
-            if payload.get("measure") is None
-            else str(payload.get("measure")),
-            value=payload.get("value"),
-            lower_bound=payload.get("lower_bound"),
-            upper_bound=payload.get("upper_bound"),
-            unit=None if payload.get("unit") is None else str(payload.get("unit")),
-            expression=None
-            if payload.get("expression") is None
-            else str(payload.get("expression")),
-            sympy=None if payload.get("sympy") is None else str(payload.get("sympy")),
-            body=None if payload.get("body") is None else str(payload.get("body")),
-            listener_population=(
-                None
-                if payload.get("listener_population") is None
-                else str(payload.get("listener_population"))
-            ),
-            source_paper=None
-            if payload.get("source_paper") is None
-            else str(payload.get("source_paper")),
-            context_id=None if context_id is None else str(context_id),
-            conditions=conditions,
-            variables=variables,
-        )
 
     def with_source_condition(self) -> ConflictClaim:
         if not self.source_paper:

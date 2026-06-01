@@ -30,15 +30,3 @@ class ProvenanceWitness:
                 else None
             ),
         )
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {"source_artifact_id": self.source_artifact_id}
-        if self.source_paper is not None:
-            payload["source_paper"] = self.source_paper
-        if self.source_page is not None:
-            payload["source_page"] = self.source_page
-        if self.branch_origin is not None:
-            payload["branch_origin"] = self.branch_origin
-        if self.rule_chain:
-            payload["rule_chain"] = list(self.rule_chain)
-        return payload

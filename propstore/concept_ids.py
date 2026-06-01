@@ -114,16 +114,6 @@ def reserve_concept_id_candidate(
     )
 
 
-def _next_concept_id_from_documents(repo: Repository) -> int:
-    max_id = 0
-    for handle in repo.families.concepts.iter_handles():
-        document = handle.document
-        numeric_id = _numeric_concept_id(document)
-        if numeric_id is not None:
-            max_id = max(max_id, numeric_id)
-    return max_id + 1
-
-
 def record_concept_id_for_repo(repo: Repository, numeric_id: int) -> None:
     if repo.git is None:
         return

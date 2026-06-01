@@ -24,9 +24,3 @@ class LogicalId:
     @property
     def formatted(self) -> str:
         return f"{self.namespace}:{self.value}"
-
-    def to_payload(self) -> dict[str, str]:
-        return {
-            "namespace": self.namespace,
-            "value": self.value,
-        }

@@ -343,10 +343,6 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
     )
 
 
-def encode_concept_document(document: ConceptDocument) -> bytes:
-    return msgspec.yaml.encode(document_to_payload(document))
-
-
 def render_concept_document(document: ConceptDocument) -> str:
     return encode_concept_document(document).decode("utf-8").rstrip()
 

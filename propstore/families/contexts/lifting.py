@@ -124,24 +124,6 @@ class LiftingDecisionProvenance:
             tuple(str(item) for item in self.clashing_set),
         )
 
-    def to_payload(self) -> dict[str, object]:
-        payload: dict[str, object] = {
-            "rule_id": self.rule_id,
-            "source_context_id": str(self.source_context_id),
-            "target_context_id": str(self.target_context_id),
-            "source_proposition_id": self.source_proposition_id,
-            "status": self.status.value,
-        }
-        if self.exception_id is not None:
-            payload["exception_id"] = self.exception_id
-        if self.justification is not None:
-            payload["justification"] = self.justification
-        if self.clashing_set:
-            payload["clashing_set"] = list(self.clashing_set)
-        if self.diagnostic is not None:
-            payload["diagnostic"] = self.diagnostic
-        return payload
-
 
 @dataclass(frozen=True)
 class LiftingDecision:

@@ -18,18 +18,6 @@ SOURCE_CLAIM_REFERENCE_KEYS = (
 )
 
 
-def source_claim_index_from_document(
-    document: tuple[SourceClaimDocument, ...] | None,
-) -> FamilyReferenceIndex[SourceClaimDocument]:
-    records = () if document is None else document
-    return FamilyReferenceIndex.from_records(
-        records,
-        family="source_claims",
-        artifact_id=lambda claim: claim.artifact_id,
-        keys=SOURCE_CLAIM_REFERENCE_KEYS,
-    )
-
-
 def source_claim_index(
     repo: Repository, source_name: str
 ) -> FamilyReferenceIndex[SourceClaimDocument]:

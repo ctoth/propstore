@@ -70,9 +70,6 @@ if TYPE_CHECKING:
 class ContextReferenceDocument(CharterDoc):
     id: str
 
-    def to_payload(self) -> dict[str, object]:
-        return {"id": self.id}
-
 
 @charter(
     key="context_lifting_rule",

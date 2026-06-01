@@ -23,19 +23,6 @@ if TYPE_CHECKING:
     from propstore.families.claims.declaration import Claim
 
 
-def conflict_claim_from_payload(
-    payload: Mapping[str, Any],
-    *,
-    source_paper: str | None = None,
-) -> ConflictClaim | None:
-    claim = ConflictClaim.from_payload(dict(payload))
-    if claim is None:
-        return None
-    if claim.source_paper is None and source_paper:
-        claim = replace(claim, source_paper=source_paper)
-    return claim.with_source_condition()
-
-
 def conflict_claim_from_claim(claim: Claim) -> ConflictClaim | None:
     numeric_payload = claim.numeric_payload
     text_payload = claim.text_payload

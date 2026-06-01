@@ -224,9 +224,6 @@ class ExternalSourceIdentity:
             self, "label", _require_non_empty(self.label, "source label")
         )
 
-    def to_payload(self) -> dict[str, str]:
-        return {"source_id": self.source_id, "label": self.label}
-
 
 @dataclass(frozen=True, order=True)
 class MappingPolicy:
@@ -241,9 +238,6 @@ class MappingPolicy:
 
     def identity_payload(self) -> tuple[str, str]:
         return ("mapping_policy", self.policy_id)
-
-    def to_payload(self) -> dict[str, str]:
-        return {"policy_id": self.policy_id, "label": self.label}
 
 
 @dataclass(frozen=True, order=True)
@@ -280,16 +274,6 @@ class ContextMicrotheoryMapping:
             self.mapping_policy_id,
             self.lifting_rule_id,
         )
-
-    def to_payload(self) -> dict[str, str]:
-        result = {
-            "context_id": str(self.context.id),
-            "microtheory_id": self.microtheory_id,
-            "mapping_policy_id": self.mapping_policy_id,
-        }
-        if self.lifting_rule_id is not None:
-            result["lifting_rule_id"] = self.lifting_rule_id
-        return result
 
 
 @dataclass(frozen=True)
@@ -335,36 +319,11 @@ class ImportMetadata:
             self.context_mapping.identity_payload(),
         )
 
-    def to_payload(self) -> dict[str, Any]:
-        result: dict[str, Any] = {
-            "source_identity": self.source_identity.to_payload(),
-            "source": self.source.to_payload(),
-            "license": self.license.to_payload(),
-            "import_run": self.import_run.to_payload(),
-            "external_statement": self.external_statement.to_payload(),
-            "mapping_policy": self.mapping_policy.to_payload(),
-            "context_mapping": self.context_mapping.to_payload(),
-        }
-        if self.external_inference is not None:
-            result["external_inference"] = self.external_inference.to_payload()
-        return result
-
 
 @dataclass(frozen=True)
 class CompiledImportAssertion:
     assertion: SituatedAssertion
     import_metadata: ImportMetadata
-
-    def to_payload(self) -> dict[str, Any]:
-        return {
-            "assertion_id": str(self.assertion.assertion_id),
-            "relation_id": str(self.assertion.relation.concept_id),
-            "role_bindings": dict(self.assertion.role_bindings.identity_payload()),
-            "context_id": str(self.assertion.context.id),
-            "condition_id": str(self.assertion.condition.id),
-            "provenance_graph": str(self.assertion.provenance_ref.graph_name),
-            "import_metadata": self.import_metadata.to_payload(),
-        }
 
 
 class ImportAuthoredFormLens:

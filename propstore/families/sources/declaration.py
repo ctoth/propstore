@@ -230,10 +230,6 @@ def source_document_payload(source_doc: SourceDocument) -> dict[str, object]:
     return payload
 
 
-def encode_source_document(source_doc: SourceDocument) -> bytes:
-    return msgspec.yaml.encode(source_document_payload(source_doc))
-
-
 def render_source_document(source_doc: SourceDocument) -> str:
     return encode_source_document(source_doc).decode("utf-8").rstrip()
 

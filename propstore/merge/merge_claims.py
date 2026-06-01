@@ -26,18 +26,6 @@ class MergeClaim:
     document: ClaimDocument
     branch_origin: str | None = None
 
-    @classmethod
-    def from_document(
-        cls,
-        document: ClaimDocument,
-        *,
-        branch_origin: str | None = None,
-    ) -> MergeClaim | None:
-        artifact_id = document.artifact_id
-        if not isinstance(artifact_id, str) or not artifact_id:
-            return None
-        return cls(document=document, branch_origin=branch_origin)
-
     @property
     def artifact_id(self) -> str:
         assert self.document.artifact_id is not None
@@ -128,28 +116,6 @@ class MergeClaim:
         if self.branch_origin is not None:
             provenance["branch_origin"] = self.branch_origin
         return provenance
-
-    def to_payload(
-        self,
-        *,
-        include_branch_origin: bool = True,
-        include_id_alias: bool = False,
-    ) -> dict[str, Any]:
-        payload = cast(dict[str, Any], document_to_payload(self.document))
-        if (
-            include_id_alias
-            and "id" not in payload
-            and self.document.artifact_id is not None
-        ):
-            payload["id"] = self.document.artifact_id
-        if include_branch_origin:
-            payload["provenance"] = self.provenance_payload()
-        elif self.document.provenance is not None:
-            payload["provenance"] = cast(
-                dict[str, Any],
-                document_to_payload(self.document.provenance),
-            )
-        return payload
 
 
 def _semantic_payload(document: ClaimDocument) -> dict[str, Any]:

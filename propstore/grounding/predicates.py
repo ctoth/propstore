@@ -336,42 +336,6 @@ class PredicateRegistry:
             doc.id: doc for doc in self._predicates
         }
 
-    @classmethod
-    def from_documents(
-        cls,
-        predicates: Sequence[PredicateDocument],
-    ) -> PredicateRegistry:
-        """Build a registry from predicate documents.
-
-        Iterates declarations in file-then-authored order and rejects
-        any predicate id seen more than once with
-        ``DuplicatePredicateError``. Diller, Borg, Bex 2025 §3: the
-        predicate id is the unique key into the Datalog schema; two
-        declarations for the same id leave the grounder unable to
-        decide which signature to use.
-
-        Args:
-            predicates: Predicate artifacts for the registry's
-                id->declaration map.
-
-        Returns:
-            A populated ``PredicateRegistry``.
-
-        Raises:
-            DuplicatePredicateError: when two declarations share an id.
-        """
-
-        seen: dict[str, PredicateDocument] = {}
-        ordered: list[PredicateDocument] = []
-        for doc in predicates:
-            if doc.id in seen:
-                raise DuplicatePredicateError(
-                    f"duplicate predicate id {doc.id!r} declared in multiple predicate artifacts"
-                )
-            seen[doc.id] = doc
-            ordered.append(doc)
-        return cls(ordered)
-
     def lookup(self, predicate_id: str) -> PredicateDocument:
         """Return the declaration registered under ``predicate_id``.
 

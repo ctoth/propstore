@@ -36,23 +36,6 @@ def _build_registry(predicates):
     return PredicateRegistry.from_documents(tuple(predicates))
 
 
-def _claim_file_from_payload(payload: dict):
-    from propstore.claims import loaded_claim_file_from_payload
-    from tests.conftest import normalize_claims_payload
-
-    normalized = normalize_claims_payload(payload)
-    source = normalized.get("source", {})
-    return tuple(
-        loaded_claim_file_from_payload(
-            filename=f"claims.yaml#{index}",
-            source_path=None,
-            knowledge_root=None,
-            data={"source": source, "claims": [claim]},
-        )
-        for index, claim in enumerate(normalized.get("claims", []), start=1)
-    )
-
-
 def _ws7_claim_file():
     return _claim_file_from_payload(
         {

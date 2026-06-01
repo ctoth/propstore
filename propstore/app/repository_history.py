@@ -56,15 +56,6 @@ class MergeLogSummary:
     materialized_argument_count: int
     semantic_candidate_count: int
 
-    def to_payload(self) -> dict[str, object]:
-        return {
-            "branch_a": self.branch_a,
-            "branch_b": self.branch_b,
-            "argument_count": self.argument_count,
-            "materialized_argument_count": self.materialized_argument_count,
-            "semantic_candidate_count": self.semantic_candidate_count,
-        }
-
 
 @dataclass(frozen=True)
 class LogRecord:
@@ -79,36 +70,11 @@ class LogRecord:
     modified: tuple[str, ...] = ()
     deleted: tuple[str, ...] = ()
 
-    def to_payload(self, *, show_files: bool) -> dict[str, object]:
-        payload: dict[str, object] = {
-            "sha": self.sha,
-            "time": self.time,
-            "branch": self.branch,
-            "operation": self.operation,
-            "message": self.message,
-            "parents": list(self.parents),
-        }
-        if self.merge is not None:
-            payload["merge"] = self.merge.to_payload()
-        if show_files:
-            payload["added"] = list(self.added)
-            payload["modified"] = list(self.modified)
-            payload["deleted"] = list(self.deleted)
-        return payload
-
 
 @dataclass(frozen=True)
 class LogReport:
     branch: str
     entries: tuple[LogRecord, ...]
-
-    def to_payload(self, *, show_files: bool) -> dict[str, object]:
-        return {
-            "branch": self.branch,
-            "entries": [
-                entry.to_payload(show_files=show_files) for entry in self.entries
-            ],
-        }
 
 
 _LOG_OPERATION_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (

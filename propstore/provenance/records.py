@@ -85,19 +85,6 @@ class SourceVersionProvenanceRecord:
     def identity_payload(self) -> tuple[str, str, str, str]:
         return ("source_version", self.source_id, self.version_id, self.content_hash)
 
-    def to_payload(self) -> dict[str, Any]:
-        result: dict[str, Any] = {
-            "kind": "source_version",
-            "source_id": self.source_id,
-            "version_id": self.version_id,
-            "content_hash": self.content_hash,
-        }
-        if self.retrieved_at is not None:
-            result["retrieved_at"] = self.retrieved_at
-        if self.retrieval_uri is not None:
-            result["retrieval_uri"] = self.retrieval_uri
-        return result
-
 
 @dataclass(frozen=True)
 class LicenseProvenanceRecord:
@@ -117,16 +104,6 @@ class LicenseProvenanceRecord:
 
     def identity_payload(self) -> tuple[str, str]:
         return ("license", self.license_id)
-
-    def to_payload(self) -> dict[str, Any]:
-        result: dict[str, Any] = {
-            "kind": "license",
-            "license_id": self.license_id,
-            "label": self.label,
-        }
-        if self.uri is not None:
-            result["uri"] = self.uri
-        return result
 
 
 @dataclass(frozen=True)
@@ -154,16 +131,6 @@ class ImportRunProvenanceRecord:
 
     def identity_payload(self) -> tuple[str, str, tuple[str, str, str, str]]:
         return ("import_run", self.run_id, self.source.identity_payload())
-
-    def to_payload(self) -> dict[str, Any]:
-        return {
-            "kind": "import_run",
-            "run_id": self.run_id,
-            "importer_id": self.importer_id,
-            "imported_at": self.imported_at,
-            "source": self.source.to_payload(),
-            "license": self.license.to_payload(),
-        }
 
 
 @dataclass(frozen=True)
@@ -194,15 +161,6 @@ class ProjectionFrameProvenanceRecord:
             self.backend,
             self.source_assertion_ids,
         )
-
-    def to_payload(self) -> dict[str, Any]:
-        return {
-            "kind": "projection_frame",
-            "frame_id": self.frame_id,
-            "backend": self.backend,
-            "projected_at": self.projected_at,
-            "source_assertion_ids": list(self.source_assertion_ids),
-        }
 
 
 @dataclass(frozen=True)
@@ -241,18 +199,6 @@ class ExternalStatementProvenanceRecord:
             self.attitude.value,
         )
 
-    def to_payload(self) -> dict[str, Any]:
-        result: dict[str, Any] = {
-            "kind": "external_statement",
-            "statement_id": self.statement_id,
-            "source": self.source.to_payload(),
-            "locator": self.locator,
-            "attitude": self.attitude.value,
-        }
-        if self.authority_id is not None:
-            result["authority_id"] = self.authority_id
-        return result
-
 
 @dataclass(frozen=True)
 class ExternalInferenceProvenanceRecord:
@@ -290,13 +236,3 @@ class ExternalInferenceProvenanceRecord:
             self.premise_statement_ids,
             self.conclusion_statement_id,
         )
-
-    def to_payload(self) -> dict[str, Any]:
-        return {
-            "kind": "external_inference",
-            "inference_id": self.inference_id,
-            "engine": self.engine,
-            "inferred_at": self.inferred_at,
-            "premise_statement_ids": list(self.premise_statement_ids),
-            "conclusion_statement_id": self.conclusion_statement_id,
-        }

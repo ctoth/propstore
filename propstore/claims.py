@@ -59,36 +59,6 @@ def load_claim_file(
     )
 
 
-def loaded_claim_file_from_payload(
-    *,
-    filename: str,
-    source_path: KnowledgePath | Path | None,
-    data: dict[str, Any],
-    knowledge_root: KnowledgePath | Path | None = None,
-) -> LoadedClaimsFile:
-    label = filename if source_path is None else str(source_path)
-    claim_payload = data
-    raw_claims = data.get("claims")
-    if isinstance(raw_claims, list):
-        claims = raw_claims
-        if len(claims) != 1:
-            raise ValueError("claim artifact payload must contain exactly one claim")
-        claim_payload = dict(claims[0])
-        source_payload = data.get("source")
-        if isinstance(source_payload, dict) and "source" not in claim_payload:
-            claim_payload["source"] = source_payload
-    return LoadedClaimsFile(
-        filename=filename,
-        artifact_path=source_path,
-        store_root=knowledge_root,
-        document=convert_document_value(
-            claim_payload,
-            ClaimDocument,
-            source=label,
-        ),
-    )
-
-
 def load_claim_batch_file(
     path: KnowledgePath | Path,
     *,
@@ -105,36 +75,6 @@ def load_claim_batch_file(
         data=data,
         knowledge_root=root_path,
     )
-
-
-def claim_batch_files_from_payload(
-    *,
-    filename: str,
-    source_path: KnowledgePath | Path | None,
-    data: dict[str, Any],
-    knowledge_root: KnowledgePath | Path | None = None,
-) -> tuple[LoadedClaimsFile, ...]:
-    label = filename if source_path is None else str(source_path)
-    stage = data.get("stage")
-    batch_payload = dict(data)
-    batch_payload.pop("stage", None)
-    documents = decode_document_batch_bytes(
-        encode_yaml_value(batch_payload),
-        CLAIM_BATCH_SPEC,
-        source=label,
-    )
-
-    loaded: list[LoadedClaimsFile] = []
-    for index, document in enumerate(documents, start=1):
-        claim_file = LoadedClaimsFile(
-            filename=f"{filename}#{index}",
-            artifact_path=source_path,
-            store_root=knowledge_root,
-            document=document,
-            stage=stage if isinstance(stage, str) else None,
-        )
-        loaded.append(claim_file)
-    return tuple(loaded)
 
 
 def claim_file_filename(claim_file: LoadedClaimsFile) -> str:

@@ -49,20 +49,6 @@ class AssertionCanonicalRecord:
             provenance_ref=assertion.provenance_ref,
         )
 
-    @classmethod
-    def from_payload(cls, payload: Mapping[str, object]) -> AssertionCanonicalRecord:
-        if _has_old_claim_shape(payload):
-            raise ValueError("canonical situated assertion payload is required")
-
-        return cls(
-            assertion_id=_text(_required(payload, "assertion_id"), "assertion id"),
-            relation=_relation_ref(_required(payload, "relation")),
-            role_bindings=_role_binding_set(_required(payload, "role_bindings")),
-            context=_context_ref(_required(payload, "context")),
-            condition=_condition_ref(_required(payload, "condition_ref")),
-            provenance_ref=_graph_ref(_required(payload, "provenance_ref")),
-        )
-
     def to_assertion(self) -> SituatedAssertion:
         return SituatedAssertion(
             relation=self.relation,
@@ -71,24 +57,6 @@ class AssertionCanonicalRecord:
             condition=self.condition,
             provenance_ref=self.provenance_ref,
         )
-
-    def to_payload(self) -> dict[str, object]:
-        return {
-            "assertion_id": str(self.assertion_id),
-            "relation": {"concept_id": str(self.relation.concept_id)},
-            "role_bindings": [
-                {"role": binding.role, "value": str(binding.value)}
-                for binding in self.role_bindings.bindings
-            ],
-            "context": {"id": str(self.context.id)},
-            "condition_ref": {
-                "id": str(self.condition.id),
-                "registry_fingerprint": self.condition.registry_fingerprint,
-            },
-            "provenance_ref": {
-                "graph_name": str(self.provenance_ref.graph_name),
-            },
-        }
 
 
 def _required(payload: Mapping[str, object], key: str) -> object:

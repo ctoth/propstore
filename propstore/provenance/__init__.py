@@ -77,14 +77,6 @@ class ProvenanceWitness(DocumentStruct):
     source_artifact_code: str
     method: str
 
-    def to_payload(self) -> dict[str, str]:
-        return {
-            "asserter": self.asserter,
-            "timestamp": self.timestamp,
-            "source_artifact_code": self.source_artifact_code,
-            "method": self.method,
-        }
-
 
 class Provenance(DocumentStruct):
     """A named-graph provenance record."""
@@ -94,19 +86,6 @@ class Provenance(DocumentStruct):
     graph_name: str | None = None
     derived_from: tuple[str, ...] = ()
     operations: tuple[str, ...] = ()
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "status": self.status.value,
-            "witnesses": [witness.to_payload() for witness in self.witnesses],
-        }
-        if self.graph_name is not None:
-            payload["graph_name"] = self.graph_name
-        if self.derived_from:
-            payload["derived_from"] = list(self.derived_from)
-        if self.operations:
-            payload["operations"] = list(self.operations)
-        return payload
 
 
 class _NamedGraph(DocumentStruct):

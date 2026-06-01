@@ -44,23 +44,6 @@ def _test_provenance(operation: str) -> Provenance:
     )
 
 
-def _opinion_from_payload(payload: object, operation: str) -> Opinion:
-    if isinstance(payload, Opinion):
-        return payload
-    if not isinstance(payload, dict):
-        raise ValueError(f"{operation} must be an opinion mapping")
-    required = {"b", "d", "u", "a"}
-    if not required.issubset(payload):
-        raise ValueError(f"{operation} must contain b, d, u, and a")
-    return Opinion(
-        float(payload["b"]),
-        float(payload["d"]),
-        float(payload["u"]),
-        float(payload["a"]),
-        _test_provenance(operation),
-    )
-
-
 def _claim_with_metadata(**metadata: object) -> ClaimNode:
     typed_keys = {
         "source_prior_base_rate",

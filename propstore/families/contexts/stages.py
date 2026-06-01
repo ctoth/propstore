@@ -43,38 +43,6 @@ class ContextRecord:
     perspective: str | None = None
     lifting_rules: tuple[LiftingRule, ...] = ()
 
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {}
-        if self.context_id is not None:
-            payload["id"] = str(self.context_id)
-        if self.name is not None:
-            payload["name"] = self.name
-        if self.description is not None:
-            payload["description"] = self.description
-        if self.assumptions:
-            payload["assumptions"] = list(self.assumptions)
-        if self.parameters:
-            payload["parameters"] = dict(self.parameters)
-        if self.perspective is not None:
-            payload["perspective"] = self.perspective
-        if self.lifting_rules:
-            payload["lifting_rules"] = [
-                {
-                    "id": rule.id,
-                    "source": str(rule.source.id),
-                    "target": str(rule.target.id),
-                    "conditions": list(rule.conditions),
-                    "mode": rule.mode.value,
-                    **(
-                        {}
-                        if rule.justification is None
-                        else {"justification": rule.justification}
-                    ),
-                }
-                for rule in self.lifting_rules
-            ]
-        return payload
-
 
 @dataclass(frozen=True)
 class LoadedContext:
@@ -103,22 +71,6 @@ class LoadedContext:
                 else coerce_knowledge_path(knowledge_root)
             ),
             record=record,
-        )
-
-    @classmethod
-    def from_payload(
-        cls,
-        *,
-        filename: str,
-        source_path: KnowledgePath | Path | None,
-        data: Mapping[str, Any] | None,
-        knowledge_root: KnowledgePath | Path | None = None,
-    ) -> LoadedContext:
-        return cls.from_record(
-            filename=filename,
-            record=parse_context_record(data),
-            source_path=source_path,
-            knowledge_root=knowledge_root,
         )
 
     @classmethod

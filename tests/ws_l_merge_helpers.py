@@ -151,25 +151,6 @@ def param_claim(
     return claim
 
 
-def merge_claim_from_payload(claim: dict, *, paper: str = "test_paper") -> MergeClaim:
-    payload = normalize_claims_payload(
-        {
-            "source": {"paper": paper, "extraction_model": "test"},
-            "claims": [claim],
-        }
-    )
-    loaded = loaded_claim_file_from_payload(
-        filename="claims/test.yaml",
-        source_path=None,
-        data=payload,
-    )
-    document = claim_file_claims(loaded)[0]
-    merge_claim = MergeClaim.from_document(document)
-    if merge_claim is None:
-        raise AssertionError("claim did not normalize to a merge claim")
-    return merge_claim
-
-
 def merge_claim_without_paper(
     *,
     artifact_id: str,

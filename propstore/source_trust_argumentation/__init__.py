@@ -81,40 +81,6 @@ def _load_rules_from_repo(repo: Repository) -> tuple[Mapping[str, Any], ...]:
     return tuple(rules)
 
 
-def _source_trust_rule_from_document(
-    paper: str,
-    rule: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    conditions: dict[str, object] = {}
-    body = rule.get("body", ())
-    if isinstance(body, Sequence) and not isinstance(body, str):
-        for literal in body:
-            if not isinstance(literal, Mapping) or literal.get("kind") != "positive":
-                continue
-            atom = literal.get("atom")
-            if not isinstance(atom, Mapping):
-                continue
-            terms = atom.get("terms", ())
-            if (
-                not isinstance(terms, Sequence)
-                or isinstance(terms, str)
-                or len(terms) < 2
-            ):
-                continue
-            value_term = terms[1]
-            if isinstance(value_term, Mapping) and value_term.get("kind") == "const":
-                conditions[str(atom["predicate"])] = value_term.get("value")
-    head = rule.get("head", {})
-    head_predicate = str(head.get("predicate", "")) if isinstance(head, Mapping) else ""
-    return {
-        "id": f"{paper}:{rule['id']}",
-        "effect": "support" if head_predicate == "high_trust" else "attack",
-        "weight": 0.25,
-        "base_rate": 0.5,
-        "conditions": conditions,
-    }
-
-
 def _rule_matches(
     rule: Mapping[str, Any], metadata_payload: Mapping[str, object]
 ) -> bool:

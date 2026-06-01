@@ -76,26 +76,6 @@ def _loads_payload(raw: str | dict[str, Any]) -> dict[str, Any]:
     return loaded
 
 
-def _declarations_from_payload(
-    payload: dict[str, Any],
-) -> tuple[PredicateDeclaration, ...]:
-    raw_declarations = payload.get("declarations")
-    if not isinstance(raw_declarations, list):
-        raise ValueError("predicate extraction output requires declarations list")
-    declarations: list[PredicateDeclaration] = []
-    for index, item in enumerate(raw_declarations, start=1):
-        if not isinstance(item, dict):
-            raise ValueError(f"predicate declaration {index} must be an object")
-        declarations.append(
-            convert_document_value(
-                item,
-                PredicateDeclaration,
-                source=f"predicate extraction declaration {index}",
-            )
-        )
-    return tuple(declarations)
-
-
 def _proposal_document(
     *,
     source_paper: str,
