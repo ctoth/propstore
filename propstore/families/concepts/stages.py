@@ -15,16 +15,12 @@ from propstore.families.concepts.declaration import (
     ConceptFormParametersDocument,
     ConceptIdScan,
     ConceptLogicalIdDocument,
-    LexicalEntryDocument,
-    LexicalFormDocument,
-    LexicalSenseDocument,
-    OntologyReferenceDocument,
     ConceptRelationshipDocument,
     ParameterizationRelationshipDocument,
 )
 from propstore.families.concepts.types import ConceptStatus
 from propstore.families.concepts.types import ConceptRelationshipType
-from quire.documents import load_document_dir, to_document_builtins
+from quire.documents import document_to_payload, load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
     ClaimId,
@@ -73,80 +69,6 @@ def _prune_none_values(value: object) -> object:
     if isinstance(value, tuple):
         return [_prune_none_values(item) for item in value]
     return value
-
-
-_SEMANTIC_EMPTY_SEQUENCE_FIELDS = {
-    "formal",
-    "constitutive",
-    "telic",
-    "agentive",
-    "proto_agent_entailments",
-    "proto_patient_entailments",
-}
-
-
-def _prune_semantic_defaults(value: object) -> object:
-    if isinstance(value, Mapping):
-        payload: dict[object, object] = {}
-        for key, item in value.items():
-            if item is None:
-                continue
-            pruned = _prune_semantic_defaults(item)
-            if key in _SEMANTIC_EMPTY_SEQUENCE_FIELDS and pruned == []:
-                continue
-            payload[key] = pruned
-        return payload
-    if isinstance(value, list):
-        return [_prune_semantic_defaults(item) for item in value]
-    if isinstance(value, tuple):
-        return [_prune_semantic_defaults(item) for item in value]
-    return value
-
-
-def _ontology_reference_payload(data: OntologyReferenceDocument) -> dict[str, Any]:
-    payload: dict[str, Any] = {"uri": data.uri}
-    if data.label is not None:
-        payload["label"] = data.label
-    return payload
-
-
-def _lexical_form_payload(data: LexicalFormDocument) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "written_rep": data.written_rep,
-        "language": data.language,
-    }
-    if data.phonetic_rep is not None:
-        payload["phonetic_rep"] = data.phonetic_rep
-    return payload
-
-
-def _lexical_sense_payload(data: LexicalSenseDocument) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "reference": _ontology_reference_payload(data.reference),
-    }
-    if data.usage is not None:
-        payload["usage"] = data.usage
-    for key in ("provenance", "qualia", "description_kind", "role_bundles"):
-        value = getattr(data, key)
-        if value is not None:
-            payload[key] = _prune_semantic_defaults(to_document_builtins(value))
-    return payload
-
-
-def _lexical_entry_payload(data: LexicalEntryDocument) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "identifier": data.identifier,
-        "canonical_form": _lexical_form_payload(data.canonical_form),
-        "senses": [_lexical_sense_payload(sense) for sense in data.senses],
-    }
-    if data.other_forms:
-        payload["other_forms"] = [
-            _lexical_form_payload(form)
-            for form in data.other_forms
-        ]
-    if data.physical_dimension_form is not None:
-        payload["physical_dimension_form"] = data.physical_dimension_form
-    return payload
 
 
 @dataclass(frozen=True)
@@ -381,91 +303,8 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
     )
 
 
-def concept_document_to_payload(data: ConceptDocument) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "status": data.status.value,
-        "ontology_reference": _ontology_reference_payload(data.ontology_reference),
-        "lexical_entry": _lexical_entry_payload(data.lexical_entry),
-    }
-    if data.artifact_id is not None:
-        payload["artifact_id"] = data.artifact_id
-    if data.logical_ids:
-        payload["logical_ids"] = [
-            {"namespace": entry.namespace, "value": entry.value}
-            for entry in data.logical_ids
-        ]
-    if data.version_id is not None:
-        payload["version_id"] = data.version_id
-    if data.aliases:
-        payload["aliases"] = [
-            {
-                key: value
-                for key, value in {
-                    "name": alias.name,
-                    "source": alias.source,
-                    "note": alias.note,
-                }.items()
-                if value is not None
-            }
-            for alias in data.aliases
-        ]
-    if data.created_date is not None:
-        payload["created_date"] = data.created_date
-    if data.definition_source is not None:
-        payload["definition_source"] = data.definition_source
-    if data.domain is not None:
-        payload["domain"] = data.domain
-    form_parameters = _mapping_to_builtin_dict(data.form_parameters)
-    if form_parameters is not None:
-        payload["form_parameters"] = form_parameters
-    if data.last_modified is not None:
-        payload["last_modified"] = data.last_modified
-    if data.notes is not None:
-        payload["notes"] = data.notes
-    if data.parameterization_relationships:
-        payload["parameterization_relationships"] = [
-            {
-                key: value
-                for key, value in {
-                    "inputs": list(parameterization.inputs),
-                    "formula": parameterization.formula,
-                    "exactness": parameterization.exactness,
-                    "source": parameterization.source,
-                    "bidirectional": parameterization.bidirectional,
-                    "sympy": parameterization.sympy,
-                    "conditions": list(parameterization.conditions),
-                    "note": parameterization.note,
-                    "canonical_claim": parameterization.canonical_claim,
-                    "fit_statistics": parameterization.fit_statistics,
-                }.items()
-                if value not in (None, [])
-            }
-            for parameterization in data.parameterization_relationships
-        ]
-    if data.range is not None:
-        payload["range"] = [data.range[0], data.range[1]]
-    if data.relationships:
-        payload["relationships"] = [
-            {
-                key: value
-                for key, value in {
-                    "type": relationship.type,
-                    "target": relationship.target,
-                    "source": relationship.source,
-                    "conditions": list(relationship.conditions),
-                    "note": relationship.note,
-                }.items()
-                if value not in (None, [])
-            }
-            for relationship in data.relationships
-        ]
-    if data.replaced_by is not None:
-        payload["replaced_by"] = data.replaced_by
-    return payload
-
-
 def encode_concept_document(document: ConceptDocument) -> bytes:
-    return msgspec.yaml.encode(concept_document_to_payload(document))
+    return msgspec.yaml.encode(document_to_payload(document))
 
 
 def render_concept_document(document: ConceptDocument) -> str:
@@ -473,7 +312,7 @@ def render_concept_document(document: ConceptDocument) -> str:
 
 
 def concept_document_to_record_payload(data: ConceptDocument) -> dict[str, Any]:
-    payload = concept_document_to_payload(data)
+    payload = document_to_payload(data)
     reference_uri = data.ontology_reference.uri
     primary_sense = next(
         (

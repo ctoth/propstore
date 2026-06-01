@@ -7,7 +7,9 @@ from quire.documents import DocumentSchemaError, convert_document
 from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.models import FORM_CHARTER
 from propstore.families.registry import ConceptFileRef, FormRef
-from propstore.families.concepts.stages import concept_document_to_payload, parse_concept_record_document
+from quire.documents import document_to_payload
+
+from propstore.families.concepts.stages import parse_concept_record_document
 from propstore.repository import Repository
 
 FormDocument = FORM_CHARTER.generated_document()
@@ -123,7 +125,7 @@ def test_concept_document_round_trips_phase3_sense_semantics(tmp_path) -> None:
     assert loaded_sense.role_bundles is not None
     assert loaded_sense.role_bundles["instrument"].proto_agent_entailments[0].value == 0.75
 
-    rendered = concept_document_to_payload(document)
+    rendered = document_to_payload(document)
     rendered_sense = rendered["lexical_entry"]["senses"][0]
     assert rendered_sense["qualia"]["telic"][0]["provenance"]["status"] == "stated"
     assert rendered_sense["description_kind"]["slots"][0]["proto_role_bundle"][

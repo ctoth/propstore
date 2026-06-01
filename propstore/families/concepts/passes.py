@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Mapping
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, DimensionalError
 
-from quire.documents import load_document_dir
+from quire.documents import document_to_payload, load_document_dir
 from quire.references import FamilyReferenceIndex
 from propstore.claims import load_claim_batch_file
 from propstore.core.conditions import check_condition_ir
@@ -52,7 +52,6 @@ from propstore.families.concepts.stages import (
     ConceptNormalizedSet,
     ConceptStage,
     LoadedConcept,
-    concept_document_to_payload,
     load_concepts,
     normalize_loaded_concepts,
     concept_payload_registry,
@@ -423,13 +422,13 @@ def _check_concepts(
                 f"{c.filename}: concept '{cid}' version_id must match sha256:<64 hex chars>"
             )
         else:
-            version_payload = (
-                concept_document_to_payload(c.document)
+            version_document = (
+                document_to_payload(c.document)
                 if c.document is not None
                 else data
             )
             expected_version_id = compute_concept_version_id(
-                normalize_canonical_concept_payload(version_payload)
+                normalize_canonical_concept_payload(version_document)
             )
             if version_id != expected_version_id:
                 result.errors.append(

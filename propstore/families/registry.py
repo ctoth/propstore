@@ -119,7 +119,6 @@ from propstore.families.identity.concepts import (
     normalize_canonical_concept_payload,
 )
 from propstore.families.concepts.stages import (
-    concept_document_to_payload,
     encode_concept_document,
     render_concept_document,
 )
@@ -387,7 +386,6 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
     CONCEPT_PLACEMENT,
     encode_document=encode_concept_document,
     render_document=render_concept_document,
-    document_payload=concept_document_to_payload,
 )
 
 CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, SourceDocument](
