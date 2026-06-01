@@ -58,7 +58,6 @@ from propstore.families.concepts.stages import (
     ConceptCheckedRegistry,
     ConceptStage,
     LoadedConcept,
-    parse_concept_record_document,
 )
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, FormStage, LoadedForm
@@ -415,7 +414,6 @@ def _write_repository_world_store_file(
                 filename=handle.ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
-                record=parse_concept_record_document(handle.document),
                 document=handle.document,
             )
             for handle in repo.families.concepts.iter_handles(commit=commit_hash)
@@ -844,7 +842,6 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
                     filename=handle.ref.name,
                     source_path=tree / handle.address.require_path(),
                     knowledge_root=tree,
-                    record=parse_concept_record_document(handle.document),
                     document=handle.document,
                 )
             )
@@ -1021,7 +1018,6 @@ def build_repository(
                 filename=ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
-                record=parse_concept_record_document(handle.document),
                 document=handle.document,
             )
         )

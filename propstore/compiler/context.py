@@ -2,33 +2,32 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
+from propstore.cel_registry import build_canonical_cel_registry
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.conflict_detector.models import (
     ConflictConcept,
     ConflictConceptRegistry,
     ConflictParameterization,
 )
-from propstore.cel_registry import build_canonical_cel_registry
 from propstore.claims import LoadedClaimsFile
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
 )
 from propstore.families.claims.declaration import claim_logical_id_formatted
-from propstore.families.concepts.stages import (
-    ConceptRecord,
-    LoadedConcept,
-    concept_reference_keys,
-    parse_concept_record_document,
+from propstore.families.concepts.declaration import (
+    AUTHORED_CONCEPT_CHARTER,
+    ConceptDocument,
 )
+from propstore.families.concepts.stages import LoadedConcept
 from propstore.families.forms.stages import (
     FormDefinition,
     load_all_forms_path,
@@ -45,8 +44,8 @@ class CompilationContext:
 
     form_registry: Mapping[str, FormDefinition]
     context_ids: frozenset[str]
-    concepts_by_id: Mapping[str, ConceptRecord]
-    concept_index: FamilyReferenceIndex[ConceptRecord]
+    concepts_by_id: Mapping[str, ConceptDocument]
+    concept_index: FamilyReferenceIndex[ConceptDocument]
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord]
     cel_registry: Mapping[str, ConceptInfo]
 
@@ -68,30 +67,30 @@ def concept_form_definition(
     concept_id = context.concept_index.resolve_id(concept_ref)
     if concept_id is None:
         return None
-    record = context.concepts_by_id.get(concept_id)
-    if record is None:
+    document = context.concepts_by_id.get(concept_id)
+    if document is None:
         return None
-    form_definition = context.form_registry.get(record.form)
+    form_definition = context.form_registry.get(document.lexical_entry.physical_dimension_form)
     return form_definition if isinstance(form_definition, FormDefinition) else None
 
 
 def compiler_concept_match_kind(
     raw_text: str,
     resolved_id: str,
-    record: ConceptRecord | None,
+    document: ConceptDocument | None,
 ) -> tuple[str | None, str | None]:
     if raw_text == resolved_id:
         return "artifact_id", raw_text
-    if record is None:
+    if document is None:
         return None, None
-    if record.canonical_name == raw_text:
+    if document.lexical_entry.canonical_form.written_rep == raw_text:
         return "canonical_name", raw_text
-    for logical_id in record.logical_ids:
-        if logical_id.formatted == raw_text:
+    for logical_id in document.logical_ids:
+        if f"{logical_id.namespace}:{logical_id.value}" == raw_text:
             return "logical_id", raw_text
         if logical_id.value == raw_text:
             return "logical_value", raw_text
-    for alias in record.aliases:
+    for alias in document.aliases:
         if alias.name == raw_text:
             return "alias", raw_text
     return None, None
@@ -115,13 +114,13 @@ def compiler_claim_match_kind(
 
 
 def _concept_reference_index(
-    records: Iterable[ConceptRecord],
-) -> FamilyReferenceIndex[ConceptRecord]:
+    documents: Iterable[ConceptDocument],
+) -> FamilyReferenceIndex[ConceptDocument]:
     return FamilyReferenceIndex.from_records(
-        records,
+        documents,
         family="concept",
-        artifact_id=lambda record: str(record.artifact_id),
-        keys=(concept_reference_keys,),
+        artifact_id=lambda document: document.artifact_id,
+        keys=AUTHORED_CONCEPT_CHARTER.family.reference_keys,
     )
 
 
@@ -132,12 +131,12 @@ def _build_context_from_concepts(
     claim_files: Sequence[LoadedClaimsFile] | None,
     context_ids: set[str] | None,
 ) -> CompilationContext:
-    concepts_by_id: dict[str, ConceptRecord] = {}
+    concepts_by_id: dict[str, ConceptDocument] = {}
 
     for concept in concepts:
-        record = concept.record
-        artifact_id = str(record.artifact_id)
-        concepts_by_id[artifact_id] = record
+        document = concept.document
+        artifact_id = str(document.artifact_id)
+        concepts_by_id[artifact_id] = document
 
     concept_index = _concept_reference_index(concepts_by_id.values())
     return CompilationContext(
@@ -152,7 +151,9 @@ def _build_context_from_concepts(
         ),
         cel_registry=_freeze_mapping(
             with_standard_synthetic_bindings(
-                build_canonical_cel_registry(concept.record for concept in concepts)
+                build_canonical_cel_registry(
+                    concept.document for concept in concepts
+                )
             )
         ),
     )
@@ -205,7 +206,6 @@ def build_compilation_context_from_repo(
                 filename=handle.ref.name,
                 source_path=tree / handle.address.require_path(),
                 knowledge_root=tree,
-                record=parse_concept_record_document(handle.document),
                 document=handle.document,
             )
         )
@@ -235,13 +235,14 @@ def concept_registry_for_context(
             continue
         unique_reference_keys.setdefault(candidates[0], []).append(key)
     entries: list[ConflictConcept] = []
-    for artifact_id, record in context.concepts_by_id.items():
-        form_definition = context.form_registry.get(record.form)
+    for artifact_id, document in context.concepts_by_id.items():
+        form_name = document.lexical_entry.physical_dimension_form
+        form_definition = context.form_registry.get(form_name)
         entries.append(
             ConflictConcept(
                 concept_id=artifact_id,
-                canonical_name=record.canonical_name,
-                form_name=record.form,
+                canonical_name=document.lexical_entry.canonical_form.written_rep,
+                form_name=form_name,
                 reference_keys=tuple(unique_reference_keys.get(artifact_id, (artifact_id,))),
                 form_definition=form_definition,
                 parameterizations=tuple(
@@ -255,7 +256,7 @@ def concept_registry_for_context(
                         ),
                         conditions=parameterization.conditions,
                     )
-                    for parameterization in record.parameterizations
+                    for parameterization in document.parameterization_relationships
                 ),
             )
         )

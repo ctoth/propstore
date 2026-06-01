@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from propstore.core.conditions.registry import ConceptInfo, KindType
-from propstore.families.concepts.stages import ConceptRecord
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.stages import kind_type_from_form_name
 
 
@@ -58,23 +58,31 @@ def _kind_type_from_optional_fields(
     return inferred
 
 
-def concept_info_from_concept_record(record: ConceptRecord) -> ConceptInfo:
-    concept_id = str(record.artifact_id)
-    if not concept_id:
-        raise ValueError("concept record must define a non-empty artifact_id")
-    if not isinstance(record.canonical_name, str) or not record.canonical_name:
-        raise ValueError("concept record must define a non-empty canonical_name")
-    kind = _kind_type_from_optional_fields(kind_type=None, form=record.form)
-    if record.form_parameters is None:
-        form_parameters: Mapping[str, Any] = {}
-    elif isinstance(record.form_parameters, Mapping):
-        form_parameters = record.form_parameters
-    else:
-        raise ValueError("concept record form_parameters must be a mapping")
-    category_values, category_extensible = _category_metadata(form_parameters)
+def concept_info_from_concept_document(document: ConceptDocument) -> ConceptInfo:
+    if document.artifact_id is None or not document.artifact_id:
+        raise ValueError("concept document must define a non-empty artifact_id")
+    concept_id = str(document.artifact_id)
+    canonical_name = document.lexical_entry.canonical_form.written_rep
+    if not canonical_name:
+        raise ValueError("concept document must define a non-empty canonical_name")
+    kind = _kind_type_from_optional_fields(
+        kind_type=None,
+        form=document.lexical_entry.physical_dimension_form,
+    )
+    form_parameters = document.form_parameters
+    category_values = (
+        list(form_parameters.values)
+        if form_parameters is not None and form_parameters.values is not None
+        else []
+    )
+    category_extensible = (
+        True
+        if form_parameters is None or form_parameters.extensible is None
+        else form_parameters.extensible
+    )
     return ConceptInfo(
         id=concept_id,
-        canonical_name=record.canonical_name,
+        canonical_name=canonical_name,
         kind=kind,
         category_values=category_values,
         category_extensible=category_extensible,
@@ -143,18 +151,18 @@ def _build_registry(
 
 
 def build_canonical_cel_registry(
-    records: Iterable[ConceptRecord],
+    documents: Iterable[ConceptDocument],
 ) -> dict[str, ConceptInfo]:
-    typed_records: list[ConceptRecord] = []
-    for record in records:
-        if not isinstance(record, ConceptRecord):
+    typed_documents: list[ConceptDocument] = []
+    for document in documents:
+        if not isinstance(document, ConceptDocument):
             raise TypeError(
-                "build_canonical_cel_registry expects Iterable[ConceptRecord]"
+                "build_canonical_cel_registry expects Iterable[ConceptDocument]"
             )
-        typed_records.append(record)
+        typed_documents.append(document)
     return _build_registry(
-        concept_info_from_concept_record(record)
-        for record in typed_records
+        concept_info_from_concept_document(document)
+        for document in typed_documents
     )
 
 

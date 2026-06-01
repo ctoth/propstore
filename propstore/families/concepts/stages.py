@@ -154,8 +154,7 @@ class LoadedConcept:
     filename: str
     source_path: KnowledgePath | None
     knowledge_root: KnowledgePath | None
-    record: ConceptRecord
-    document: ConceptDocument | None = None
+    document: ConceptDocument
     source_local_id: str | None = None
 
 
