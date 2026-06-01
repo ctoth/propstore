@@ -187,11 +187,18 @@ def _planned_changes(
     return changes, all_removals
 
 
+def _normalized_file_bytes(data: bytes) -> bytes:
+    normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    if not normalized:
+        return normalized
+    return normalized.rstrip(b"\n") + b"\n"
+
+
 def _normalize_changed_files(root: Path, removals: list[FunctionRemoval]) -> None:
     for relative in sorted({removal.path for removal in removals}):
         path = root / relative
         data = path.read_bytes()
-        normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        normalized = _normalized_file_bytes(data)
         if normalized != data:
             path.write_bytes(normalized)
 
