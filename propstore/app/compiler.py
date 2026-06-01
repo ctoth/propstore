@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
-from propstore.families.concepts.stages import parse_concept_record_document
 from propstore.repository import Repository
 
 
@@ -50,11 +49,16 @@ def build_repository(
 def export_aliases(repo: Repository) -> Mapping[str, AliasExportEntry]:
     aliases: dict[str, AliasExportEntry] = {}
     for handle in repo.families.concepts.iter_handles():
-        record = parse_concept_record_document(handle.document)
-        logical_id = record.primary_logical_id or record.canonical_name
-        for alias in record.aliases:
+        document = handle.document
+        canonical_name = document.lexical_entry.canonical_form.written_rep
+        primary_logical_id = None
+        if document.logical_ids:
+            primary = document.logical_ids[0]
+            primary_logical_id = f"{primary.namespace}:{primary.value}"
+        logical_id = primary_logical_id or canonical_name
+        for alias in document.aliases:
             aliases[alias.name] = AliasExportEntry(
                 logical_id=str(logical_id),
-                name=record.canonical_name,
+                name=canonical_name,
             )
     return aliases
