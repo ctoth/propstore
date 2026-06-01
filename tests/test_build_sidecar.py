@@ -150,59 +150,6 @@ def test_authoring_lints_cover_sources_claims_and_stances() -> None:
     assert "authoring.undercut_missing_target_justification" in codes
 
 
-def _normalize_claim_concept_refs(payload: dict) -> dict:
-    normalized = normalize_claims_payload(payload)
-    claims = normalized.get("claims")
-    if not isinstance(claims, list):
-        return normalized
-
-    for claim in claims:
-        if not isinstance(claim, dict):
-            continue
-        claim_type = claim.get("type")
-        concept = claim.get("concept")
-        if isinstance(concept, str) and concept.startswith("concept"):
-            concept = _concept_artifact(concept)
-            if claim_type in {"parameter", "algorithm"}:
-                claim["output_concept"] = concept
-                claim.pop("concept", None)
-            else:
-                claim["concept"] = concept
-        target_concept = claim.get("target_concept")
-        if isinstance(target_concept, str) and target_concept.startswith("concept"):
-            claim["target_concept"] = _concept_artifact(target_concept)
-
-        concepts = claim.get("concepts")
-        if isinstance(concepts, list):
-            claim["concepts"] = [
-                _concept_artifact(value)
-                if isinstance(value, str) and value.startswith("concept")
-                else value
-                for value in concepts
-            ]
-
-        variables = claim.get("variables")
-        if isinstance(variables, list):
-            for variable in variables:
-                if not isinstance(variable, dict):
-                    continue
-                value = variable.get("concept")
-                if isinstance(value, str) and value.startswith("concept"):
-                    variable["concept"] = _concept_artifact(value)
-
-        parameters = claim.get("parameters")
-        if isinstance(parameters, list):
-            for parameter in parameters:
-                if not isinstance(parameter, dict):
-                    continue
-                value = parameter.get("concept")
-                if isinstance(value, str) and value.startswith("concept"):
-                    parameter["concept"] = _concept_artifact(value)
-        claim["version_id"] = compute_claim_version_id(claim)
-
-    return normalized
-
-
 @pytest.fixture
 def concept_dir(tmp_path):
     """Create a concepts directory with a few test concepts."""

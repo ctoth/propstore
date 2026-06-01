@@ -45,16 +45,6 @@ def test_assignment_selection_old_solver_module_is_deleted() -> None:
         importlib.import_module("propstore.world." + "assignment_selection_merge")
 
 
-def _claim(
-    claim_id: str,
-    *,
-    concept_id: str = "concept1",
-    value: float = 1.0,
-    branch: str | None = None,
-) -> Claim:
-    return make_claim(claim_id, concept_id=concept_id, value=value, branch=branch)
-
-
 def _claim_value_concept_id(claim: Claim) -> str | None:
     concept_id = claim.value_concept_id
     return None if concept_id is None else str(concept_id)

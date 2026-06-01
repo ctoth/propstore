@@ -214,34 +214,11 @@ def dispatch(
     raise ValueError(f"unsupported journal operator: {op.value}")
 
 
-def _formula_atom(payload: Mapping[str, Any]) -> BeliefAtom:
-    formula = payload.get("formula")
-    if not isinstance(formula, Mapping):
-        raise ValueError(
-            "journal operator_input.formula must be a normalized belief atom"
-        )
-    return belief_atom_from_canonical_dict(formula)
-
-
 def _entrenchment_from_state(state: EpistemicState) -> EntrenchmentReport:
     return EntrenchmentReport(
         ranked_atom_ids=tuple(state.ranked_atom_ids),
         reasons=dict(state.entrenchment_reasons),
     )
-
-
-def _max_candidates(payload: Mapping[str, Any]) -> int:
-    value = payload.get("max_candidates")
-    if value is None:
-        raise ValueError("journal operator_input.max_candidates is required")
-    return int(value)
-
-
-def _max_alphabet_size(payload: Mapping[str, Any]) -> int:
-    value = payload.get("max_alphabet_size")
-    if value is None:
-        raise ValueError("journal operator_input.max_alphabet_size is required")
-    return int(value)
 
 
 def _required_mapping(value: object, field_name: str) -> Mapping[str, Any]:

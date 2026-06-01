@@ -50,17 +50,6 @@ def _mock_bidirectional_response(forward: dict, reverse: dict) -> MagicMock:
     return resp
 
 
-def _mock_llm_response(payload: dict) -> MagicMock:
-    """Build a mock litellm response returning the given JSON payload."""
-    resp = MagicMock()
-    msg = MagicMock()
-    msg.content = json.dumps(payload)
-    choice = MagicMock()
-    choice.message = msg
-    resp.choices = [choice]
-    return resp
-
-
 def _run(coro):
     return asyncio.run(coro)
 

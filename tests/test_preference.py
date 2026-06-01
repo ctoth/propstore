@@ -16,10 +16,6 @@ from tests.typed_family_fixtures import claim_from_payload
 _PROP_SETTINGS = settings(deadline=None)
 
 
-def _claim(**metadata: object) -> Claim:
-    return claim_from_payload({"id": "claim:preference", **metadata})
-
-
 class TestClaimStrengthConcrete:
     def test_metadata_strength_vector_is_honest_name_for_heuristic(self) -> None:
         claim = _claim(sample_size=25, uncertainty=0.2, confidence=0.8)

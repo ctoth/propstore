@@ -54,26 +54,6 @@ def _concept(local_id: str, *, form: str) -> tuple[str, dict]:
     return data["artifact_id"], data
 
 
-def _claim(payload: dict) -> ConflictClaim:
-    claim = ConflictClaim.from_payload(payload)
-    assert claim is not None
-    return claim
-
-
-def _claim_file(payloads: list[dict], filename: str = "test") -> list[ConflictClaim]:
-    claims = []
-    for payload in payloads:
-        normalized = dict(payload)
-        if "type" not in normalized and "concept" in normalized:
-            normalized["type"] = "parameter"
-        if "output_concept" not in normalized and "concept" in normalized:
-            normalized["output_concept"] = normalized.pop("concept")
-        claim = conflict_claim_from_payload(normalized, source_paper=filename)
-        assert claim is not None
-        claims.append(claim)
-    return claims
-
-
 def _context(filename: str, data: dict) -> LoadedContext:
     return LoadedContext.from_payload(filename=filename, source_path=None, data=data)
 

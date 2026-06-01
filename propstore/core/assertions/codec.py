@@ -59,17 +59,6 @@ class AssertionCanonicalRecord:
         )
 
 
-def _required(payload: Mapping[str, object], key: str) -> object:
-    if key not in payload:
-        raise ValueError(f"missing canonical assertion field: {key}")
-    return payload[key]
-
-
-def _has_old_claim_shape(payload: Mapping[str, object]) -> bool:
-    old_keys = {"claim_id", "predicate_id", "arguments", "statement"}
-    return bool(old_keys.intersection(payload.keys()))
-
-
 def _relation_ref(value: object) -> RelationConceptRef:
     if not isinstance(value, Mapping):
         raise TypeError("relation must be a mapping")

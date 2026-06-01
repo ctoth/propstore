@@ -95,10 +95,3 @@ def test_tag_uri_path_separators_are_normalized(
         kind,
         f"{left}_{right}",
     )
-
-
-@pytest.mark.property
-@given(payload=st.binary(max_size=256))
-@settings(deadline=None)
-def test_ni_uri_for_bytes_is_deterministic(payload: bytes) -> None:
-    assert ni_uri_for_bytes(payload) == ni_uri_for_bytes(payload)

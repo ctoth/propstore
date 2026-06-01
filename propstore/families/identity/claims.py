@@ -68,11 +68,6 @@ def compute_claim_version_id(claim: dict[str, Any]) -> str:
     return canonical_json_sha256(canonicalize_claim_for_version(claim))
 
 
-def _drop_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> None:
-    for field in fields:
-        payload.pop(field, None)
-
-
 def _claim_file_namespace(data: dict[str, Any], default_namespace: str | None) -> str:
     source = data.get("source")
     raw_namespace = (

@@ -46,14 +46,6 @@ def _to_plain_data(value: Any) -> Any:
     return value
 
 
-def _stable_hash(payload: Mapping[str, Any]) -> str:
-    return hashlib.sha256(canonical_json_bytes(_to_plain_data(payload))).hexdigest()
-
-
-def _canonical_text(payload: Mapping[str, Any]) -> str:
-    return canonical_json_bytes(_to_plain_data(payload)).decode("ascii")
-
-
 def _journal_operator(value: JournalOperator | str) -> JournalOperator:
     if isinstance(value, JournalOperator):
         return value
@@ -528,44 +520,6 @@ def _mapping_deltas(
     return tuple(deltas)
 
 
-def _accepted_assertions(state_payload: Mapping[str, Any]) -> dict[str, bool]:
-    return {
-        str(atom_id): True
-        for atom_id in (state_payload.get("accepted_atom_ids") or ())
-        if str(atom_id).startswith("ps:assertion:")
-    }
-
-
-def _assertion_provenance(state_payload: Mapping[str, Any]) -> dict[str, Any]:
-    provenance: dict[str, Any] = {}
-    for atom in (state_payload.get("base") or {}).get("atoms") or ():
-        if not isinstance(atom, Mapping):
-            continue
-        if atom.get("kind") != "assertion":
-            continue
-        payload = atom.get("payload")
-        if not isinstance(payload, Mapping):
-            continue
-        provenance[str(atom.get("atom_id"))] = _to_plain_data(
-            payload.get("source_claim_ids") or ()
-        )
-    return provenance
-
-
-def _dependencies(state_payload: Mapping[str, Any]) -> dict[str, Any]:
-    base = state_payload.get("base") or {}
-    if not isinstance(base, Mapping):
-        return {}
-    dependencies: dict[str, Any] = {}
-    for field_name in ("support_sets", "essential_support"):
-        field = base.get(field_name) or {}
-        if not isinstance(field, Mapping):
-            continue
-        for atom_id, value in field.items():
-            dependencies[f"{atom_id}.{field_name}"] = _to_plain_data(value)
-    return dependencies
-
-
 def _assert_current_value(
     state_payload: Mapping[str, Any], delta: SemanticFieldDelta
 ) -> None:
@@ -611,18 +565,6 @@ def _set_mapping_value(
     else:
         field[key] = value
     state_payload[field_name] = field
-
-
-def _refresh_ranked_atom_ids(state_payload: dict[str, Any]) -> None:
-    ranking = state_payload.get("ranking") or {}
-    if not isinstance(ranking, Mapping):
-        return
-    state_payload["ranked_atom_ids"] = [
-        atom_id
-        for atom_id, _ in sorted(
-            ranking.items(), key=lambda item: (int(item[1]), str(item[0]))
-        )
-    ]
 
 
 def _set_atom_provenance(

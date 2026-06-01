@@ -336,26 +336,6 @@ def selected_world_atom_ids(decision: FormalDecision) -> tuple[tuple[str, ...], 
     )
 
 
-def _integrity_constraint_formula(payload: Mapping[str, Any]) -> Formula:
-    kind = str(payload.get("kind") or "")
-    if kind == "top":
-        return TOP
-    atom_id = payload.get("atom_id")
-    if kind == "atom" and atom_id is not None:
-        return Atom(str(atom_id))
-    if kind == "literals":
-        required = _literal_ids(payload.get("required") or ())
-        forbidden = _literal_ids(payload.get("forbidden") or ())
-        return conjunction(
-            *(Atom(atom_id) for atom_id in required),
-            *(negate(Atom(atom_id)) for atom_id in forbidden),
-        )
-    raise ValueError(
-        "IC merge integrity_constraint must be {'kind': 'top'}, "
-        "{'kind': 'atom', 'atom_id': ...}, or {'kind': 'literals', ...}"
-    )
-
-
 def _literal_ids(value: object) -> tuple[str, ...]:
     if isinstance(value, str):
         raise ValueError("IC merge literal lists must be sequences")
@@ -509,11 +489,6 @@ def _scored_worlds_hash(
             for world, scores in scored_worlds
         ]
     )
-
-
-def _plain_hash(payload: Any) -> str:
-    body = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
 def _json_rank(rank: int | float) -> int | float | str:

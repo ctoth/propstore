@@ -56,30 +56,5 @@ def claim_tag_uri(
     return f"tag:{parsed_authority}:claim/{source_token}:{handle_token}"
 
 
-def compute_ni_uri(payload: bytes, *, algorithm: str = "sha-256") -> str:
-    """Return an RFC 6920 ni URI for exact bytes.
-
-    Kuhn & Dumontier 2014 discusses ni-URIs as related work and gives
-    sha-256 examples (p. 4). The paper later maps trusty URIs to ni-URIs
-    but notes that the trusty-URI module identifier is lost in that form
-    (p. 7). This helper is therefore only the ni-URI byte primitive, not
-    a full Kuhn RA/FA artifact-code implementation.
-    """
-    if algorithm != "sha-256":
-        raise ValueError("propstore only emits sha-256 ni URIs")
-    digest = hashlib.sha256(payload).digest()
-    encoded = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
-    return f"{NI_SHA256_PREFIX}{encoded}"
-
-
-def verify_ni_uri(uri: str, payload: bytes) -> bool:
-    """Verify that ``uri`` names exactly ``payload`` under ``compute_ni_uri``."""
-    return hmac.compare_digest(uri, compute_ni_uri(payload))
-
-
-def ni_uri_for_bytes(payload: bytes) -> str:
-    return compute_ni_uri(payload)
-
-
 def ni_uri_for_file(path: Path) -> str:
     return ni_uri_for_bytes(path.read_bytes())

@@ -75,11 +75,6 @@ def concept_reference_keys(
     return reference_keys
 
 
-def _drop_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> None:
-    for field in fields:
-        payload.pop(field, None)
-
-
 def _canonical_logical_ids(value: object) -> list[dict[str, str]]:
     if not isinstance(value, list):
         return []

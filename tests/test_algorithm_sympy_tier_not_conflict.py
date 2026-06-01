@@ -11,16 +11,6 @@ from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
 from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
 
 
-def _claim(claim_id: str, body: str) -> ConflictClaim:
-    return ConflictClaim(
-        claim_id=claim_id,
-        claim_type="algorithm",
-        output_concept_id="out",
-        body=body,
-        variables=(ConflictClaimVariable(concept_id="in", symbol="x"),),
-    )
-
-
 def _registry() -> dict[str, ConceptInfo]:
     return {"x": ConceptInfo("in", "x", KindType.QUANTITY)}
 

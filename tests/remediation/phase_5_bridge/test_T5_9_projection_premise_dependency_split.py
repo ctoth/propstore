@@ -5,16 +5,6 @@ from propstore.grounding.bundle import GroundedRulesBundle
 from tests.typed_family_fixtures import claim_from_payload
 
 
-def _claim(claim_id: str) -> Claim:
-    return claim_from_payload(
-        {
-            "id": claim_id,
-            "concept_id": f"concept_{claim_id}",
-            "premise_kind": "ordinary",
-        }
-    )
-
-
 def _justification(
     justification_id: str,
     conclusion_claim_id: str,

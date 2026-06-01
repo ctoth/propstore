@@ -4,10 +4,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from propstore.heuristic.classify import classify_stance_async
 
 
-def _claim(claim_id: str) -> dict:
-    return {"id": claim_id, "text": f"{claim_id} text", "source_paper": "test"}
-
-
 def _malformed_response() -> MagicMock:
     response = MagicMock()
     message = MagicMock()

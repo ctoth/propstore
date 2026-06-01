@@ -83,62 +83,6 @@ def condition_ir_to_json(condition: ConditionIR) -> dict[str, Any]:
     raise TypeError(f"unsupported ConditionIR node: {type(condition).__name__}")
 
 
-def condition_ir_from_json(payload: Mapping[str, Any]) -> ConditionIR:
-    version = payload.get("version")
-    if version != CONDITION_IR_JSON_VERSION:
-        raise ValueError(f"unsupported ConditionIR encoding version: {version!r}")
-    node = payload.get("node")
-    if node == "literal":
-        return ConditionLiteral(
-            value=_literal_value(payload.get("value")),
-            value_kind=_value_kind(payload.get("value_kind")),
-            span=_span_from_json(payload.get("span")),
-        )
-    if node == "reference":
-        return ConditionReference(
-            concept_id=_required_str(payload, "concept_id"),
-            source_name=_required_str(payload, "source_name"),
-            value_kind=_value_kind(payload.get("value_kind")),
-            span=_span_from_json(payload.get("span")),
-            category_values=tuple(_string_sequence(payload.get("category_values", ()))),
-            category_extensible=(
-                None
-                if "category_extensible" not in payload
-                else bool(payload["category_extensible"])
-            ),
-        )
-    if node == "unary":
-        return ConditionUnary(
-            op=_unary_op(payload.get("op")),
-            operand=condition_ir_from_json(_mapping(payload.get("operand"))),
-            span=_span_from_json(payload.get("span")),
-        )
-    if node == "binary":
-        return ConditionBinary(
-            op=_binary_op(payload.get("op")),
-            left=condition_ir_from_json(_mapping(payload.get("left"))),
-            right=condition_ir_from_json(_mapping(payload.get("right"))),
-            span=_span_from_json(payload.get("span")),
-        )
-    if node == "membership":
-        return ConditionMembership(
-            element=condition_ir_from_json(_mapping(payload.get("element"))),
-            options=tuple(
-                condition_ir_from_json(_mapping(option))
-                for option in _sequence(payload.get("options"))
-            ),
-            span=_span_from_json(payload.get("span")),
-        )
-    if node == "choice":
-        return ConditionChoice(
-            condition=condition_ir_from_json(_mapping(payload.get("condition"))),
-            when_true=condition_ir_from_json(_mapping(payload.get("when_true"))),
-            when_false=condition_ir_from_json(_mapping(payload.get("when_false"))),
-            span=_span_from_json(payload.get("span")),
-        )
-    raise ValueError(f"unsupported ConditionIR node tag: {node!r}")
-
-
 def _span_to_json(span: ConditionSourceSpan) -> list[int]:
     return [span.start, span.end]
 
@@ -171,13 +115,6 @@ def _string_sequence(value: object) -> tuple[str, ...]:
             raise ValueError("ConditionIR string sequence entry must be a string")
         result.append(item)
     return tuple(result)
-
-
-def _required_str(payload: Mapping[str, Any], key: str) -> str:
-    value = payload.get(key)
-    if not isinstance(value, str):
-        raise ValueError(f"ConditionIR field {key!r} must be a string")
-    return value
 
 
 def _literal_value(value: object) -> bool | int | float | str:

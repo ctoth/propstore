@@ -121,10 +121,6 @@ def _propose_claims_identical(
     assert result.exit_code == 0, result.output
 
 
-def _write_yaml(path: Path, payload: object) -> None:
-    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
-
-
 def _add_claims(
     repo: Repository,
     runner: CliRunner,

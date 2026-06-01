@@ -138,41 +138,6 @@ def _claim_link(
     )
 
 
-def _claim(
-    claim_id: str,
-    *,
-    claim_type: ClaimType = ClaimType.PARAMETER,
-    concept_links: tuple[ClaimConceptLink, ...] | None = None,
-    value: float | None = 100.0,
-    unit: str | None = "Hz",
-    uncertainty: float | None = 2.0,
-    sample_size: int | None = 12,
-    conditions_cel: str | None = None,
-    statement: str | None = None,
-) -> Claim:
-    if concept_links is None:
-        concept_links = (
-            _claim_link(
-                claim_id=claim_id,
-                concept_id="concept1",
-                role=ClaimConceptLinkRole.OUTPUT,
-            ),
-        )
-    return make_claim(
-        claim_id,
-        claim_type=claim_type,
-        concept_links=concept_links,
-        value=value,
-        unit=unit,
-        uncertainty=uncertainty,
-        sample_size=sample_size,
-        conditions_cel=conditions_cel,
-        statement=statement,
-        source_paper="paper1",
-        provenance_page=3,
-    )
-
-
 def _concept_entry() -> LoadedConcept:
     record = parse_concept_record(
         {

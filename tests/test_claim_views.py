@@ -101,62 +101,6 @@ def _claim_link(
     )
 
 
-def _claim(
-    claim_id: str = "claim1",
-    *,
-    claim_type: ClaimType = ClaimType.PARAMETER,
-    concept_links: tuple[ClaimConceptLink, ...] | None = None,
-    value: float | None = 12.5,
-    lower_bound: float | None = None,
-    upper_bound: float | None = None,
-    unit: str | None = "Hz",
-    value_si: float | None = 12.5,
-    uncertainty: float | None = 0.2,
-    sample_size: int | None = 30,
-    conditions_cel: str | None = None,
-    source_slug: str | None = "paper1",
-    source_paper: str = "paper1",
-    provenance_page: int = 4,
-    provenance_json: dict[str, object] | None = None,
-    statement: str | None = None,
-    expression: str | None = None,
-    variables_json: str | None = None,
-    build_status: str = "ingested",
-    stage: str | None = None,
-) -> Claim:
-    if concept_links is None:
-        concept_links = (
-            _claim_link(
-                claim_id=claim_id,
-                concept_id="concept1",
-                role=ClaimConceptLinkRole.OUTPUT,
-                ordinal=0,
-            ),
-        )
-    return make_claim(
-        claim_id,
-        claim_type=claim_type,
-        concept_links=concept_links,
-        value=value,
-        lower_bound=lower_bound,
-        upper_bound=upper_bound,
-        unit=unit,
-        value_si=value_si,
-        uncertainty=uncertainty,
-        sample_size=sample_size,
-        conditions_cel=conditions_cel,
-        source_slug=source_slug,
-        source_paper=source_paper,
-        provenance_page=provenance_page,
-        provenance_json=provenance_json,
-        statement=statement,
-        expression=expression,
-        variables_json=variables_json,
-        stage=stage,
-        build_status=build_status,
-    )
-
-
 def _concept() -> Concept:
     return Concept(
         id="concept1",

@@ -13,14 +13,6 @@ from propstore.families.claims.lifecycle import (
 )
 
 
-def _source_claim(payload: dict[str, Any]) -> SourceClaimDocument:
-    return convert_document_value(
-        payload,
-        SourceClaimDocument,
-        source="test:source-claim",
-    )
-
-
 @pytest.mark.parametrize(
     ("claim_type", "expected_field"),
     (

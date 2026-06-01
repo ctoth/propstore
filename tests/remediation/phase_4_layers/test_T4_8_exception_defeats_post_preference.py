@@ -20,17 +20,6 @@ from propstore.provenance import (
 from tests.typed_family_fixtures import claim_from_payload
 
 
-def _claim(claim_id: str) -> Claim:
-    return claim_from_payload(
-        {
-            "id": claim_id,
-            "concept_id": f"concept:{claim_id}",
-            "statement": claim_id,
-            "premise_kind": "ordinary",
-        }
-    )
-
-
 def _reported(claim_id: str) -> CanonicalJustification:
     return CanonicalJustification.from_components(
         justification_id=f"reported:{claim_id}",

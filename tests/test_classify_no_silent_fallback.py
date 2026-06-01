@@ -7,20 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from propstore.provenance import ProvenanceStatus
 
 
-def _claim(id_: str) -> dict[str, str]:
-    return {"id": id_, "text": f"{id_} text", "source_paper": "paper"}
-
-
-def _response(payload: dict[str, object]) -> MagicMock:
-    response = MagicMock()
-    message = MagicMock()
-    message.content = json.dumps(payload)
-    choice = MagicMock()
-    choice.message = message
-    response.choices = [choice]
-    return response
-
-
 def test_classify_rejects_bidirectional_shape_without_silent_forward_fallback() -> None:
     from propstore.heuristic.classify import classify_stance_async
 

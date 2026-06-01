@@ -19,22 +19,6 @@ from propstore.families.registry import world_schema
 from quire.sqlalchemy_store import readonly_session, writable_session
 
 
-def _micropub(shared_id: str) -> MicropublicationDocument:
-    return convert_document_value(
-        {
-            "artifact_id": shared_id,
-            "version_id": "shared-version",
-            "context": {"id": "ctx:default"},
-            "claims": ["claim-alpha"],
-            "source": "paper-alpha",
-            "evidence": [{"kind": "paper_page", "reference": "paper-alpha:1"}],
-            "provenance": {"paper": "paper-alpha", "page": 1},
-        },
-        MicropublicationDocument,
-        source="tests:micropub.yaml",
-    )
-
-
 def _seed_claim_and_context(sidecar_path) -> None:
     schema = world_schema()
     with writable_session(sidecar_path, schema) as derived:

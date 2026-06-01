@@ -20,21 +20,6 @@ from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
-def _claim(claim_id: str, concept_id: str, value: float) -> Claim:
-    return claim_from_payload(
-        {
-            "id": claim_id,
-            "concept_id": concept_id,
-            "type": "parameter",
-            "value": value,
-            "opinion_belief": 1.0,
-            "opinion_disbelief": 0.0,
-            "opinion_uncertainty": 0.0,
-            "opinion_base_rate": 0.5,
-        }
-    )
-
-
 def _stance(
     claim_id: str,
     target_claim_id: str,

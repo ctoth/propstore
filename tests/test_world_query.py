@@ -200,69 +200,6 @@ def _typed_claim_fixture(claim: Mapping[str, object]) -> Claim:
     )
 
 
-def _normalize_claim_concept_refs(payload: dict) -> dict:
-    normalized = normalize_claims_payload(payload)
-    source = normalized.get("source")
-    paper = "test"
-    if isinstance(source, dict):
-        source_paper = source.get("paper")
-        if isinstance(source_paper, str):
-            paper = source_paper
-    claims = normalized.get("claims")
-    if not isinstance(claims, list):
-        return normalized
-    normalized_claims = []
-    for claim in claims:
-        if not isinstance(claim, dict):
-            normalized_claims.append(claim)
-            continue
-        target_concept = claim.get("target_concept")
-        if isinstance(target_concept, str):
-            claim = {
-                **claim,
-                "target_concept": _normalize_local_concept_ref(target_concept),
-            }
-        concepts = claim.get("concepts")
-        if isinstance(concepts, list):
-            claim = {
-                **claim,
-                "concepts": [_normalize_local_concept_ref(value) for value in concepts],
-            }
-        variables = claim.get("variables")
-        if isinstance(variables, list):
-            for variable in variables:
-                if not isinstance(variable, dict):
-                    continue
-                value = variable.get("concept")
-                if isinstance(value, str):
-                    variable["concept"] = _normalize_local_concept_ref(value)
-        parameters = claim.get("parameters")
-        if isinstance(parameters, list):
-            for parameter in parameters:
-                if not isinstance(parameter, dict):
-                    continue
-                value = parameter.get("concept")
-                if isinstance(value, str):
-                    parameter["concept"] = _normalize_local_concept_ref(value)
-        stances = claim.get("stances")
-        if isinstance(stances, list):
-            for stance in stances:
-                if not isinstance(stance, dict):
-                    continue
-                target = stance.get("target")
-                if (
-                    isinstance(target, str)
-                    and target.startswith("claim")
-                    and ":" not in target
-                ):
-                    stance["target"] = make_claim_identity(target, namespace=paper)[
-                        "artifact_id"
-                    ]
-        normalized_claims.append(_claim_payload_from_typed_fixture(claim))
-    normalized["claims"] = normalized_claims
-    return normalized
-
-
 # ── Fixtures ─────────────────────────────────────────────────────────
 
 

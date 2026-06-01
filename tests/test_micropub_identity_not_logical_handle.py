@@ -11,14 +11,6 @@ from quire.documents import (
 )
 
 
-def _micropub(payload: dict[str, object]) -> MicropublicationDocument:
-    return convert_document_value(
-        payload,
-        MicropublicationDocument,
-        source="tests:micropub.yaml",
-    )
-
-
 def test_old_source_claim_handle_identity_surface_is_deleted() -> None:
     assert not hasattr(finalize, "_stable_micropub_artifact_id")
     assert not hasattr(finalize, "_stamp_micropub_identity")

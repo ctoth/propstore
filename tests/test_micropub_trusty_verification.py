@@ -12,22 +12,6 @@ from propstore.uri import verify_ni_uri
 from quire.documents import convert_document_value
 
 
-def _micropub(*, claim_id: str, context_id: str, page: int) -> MicropublicationDocument:
-    return convert_document_value(
-        {
-            "artifact_id": "ps:micropub:old",
-            "version_id": "old-version",
-            "context": {"id": context_id},
-            "claims": [claim_id],
-            "source": "tag:local@propstore,2026:source/demo",
-            "evidence": [{"kind": "paper_page", "reference": f"demo:{page}"}],
-            "provenance": {"paper": "demo", "page": page},
-        },
-        MicropublicationDocument,
-        source="tests:micropub.yaml",
-    )
-
-
 def test_micropub_trusty_uri_verifies_exact_canonical_bytes() -> None:
     document = _micropub(
         claim_id="ps:claim:alpha",

@@ -94,17 +94,6 @@ def _repo() -> Repository:
     return cast(Repository, object())
 
 
-def _claim(claim_id: str, *, concept_id: str = "concept1") -> Claim:
-    return make_claim(
-        claim_id,
-        claim_type=ClaimType.PARAMETER,
-        concept_id=concept_id,
-        value=1.0,
-        source_paper="paper1",
-        provenance_page=1,
-    )
-
-
 def _stance(source: str, stance_type: str, target: str) -> Stance:
     return Stance(
         source_kind="claim",

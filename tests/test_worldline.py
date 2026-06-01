@@ -66,17 +66,6 @@ def _commit_fixture_repository(repo: Repository, message: str) -> None:
     )
 
 
-def _write_claim_artifacts(repo: Repository, payload: dict) -> None:
-    for relative_path, content in claim_artifact_commit_payloads(
-        repo,
-        normalize_claims_payload(payload),
-        source="claims/fixture.yaml",
-    ).items():
-        path = repo.root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(content)
-
-
 # ── Test fixtures ───────────────────────────────────────────────────
 
 

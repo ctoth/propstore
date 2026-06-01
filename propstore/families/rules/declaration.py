@@ -445,39 +445,6 @@ def _encode_bundle_input(kind: str, value: object) -> bytes:
     return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
-def _decode_bundle_input(kind: str, payload: bytes) -> object:
-    decoded = json.loads(payload.decode("utf-8"))
-    if not isinstance(decoded, dict) or decoded.get("kind") != kind:
-        raise ValueError(f"grounded bundle input payload has wrong kind for {kind!r}")
-    tag = decoded.get("tag")
-    value = decoded.get("value")
-    if tag == "json":
-        return value
-    if tag == "aspic_ground_atom":
-        if not isinstance(value, dict):
-            raise ValueError("aspic ground atom payload must be an object")
-        return AspicGroundAtom(
-            predicate=str(value["predicate"]),
-            arguments=tuple(value["arguments"]),
-        )
-    if tag == "gunray_argument":
-        if not isinstance(value, dict):
-            raise ValueError("gunray argument payload must be an object")
-        return gunray.Argument(
-            rules=frozenset(_decode_gunray_rule(rule) for rule in value["rules"]),
-            conclusion=_decode_gunray_atom(value["conclusion"]),
-        )
-    if tag == "rule_document":
-        if not isinstance(value, dict):
-            raise ValueError("rule document payload must be an object")
-        return msgspec.convert(value, type=RuleDocument)
-    if tag == "rule_superiority_document":
-        if not isinstance(value, dict):
-            raise ValueError("rule superiority document payload must be an object")
-        return msgspec.convert(value, type=RuleSuperiorityDocument)
-    raise ValueError(f"unsupported grounded bundle input tag {tag!r}")
-
-
 def _is_json_value(value: object) -> bool:
     if value is None or isinstance(value, str | int | float | bool):
         return True
@@ -494,15 +461,6 @@ def _encode_gunray_atom(atom: gunray.GroundAtom) -> dict[str, object]:
     return {"predicate": atom.predicate, "arguments": list(atom.arguments)}
 
 
-def _decode_gunray_atom(payload: object) -> gunray.GroundAtom:
-    if not isinstance(payload, dict):
-        raise ValueError("gunray atom payload must be an object")
-    return gunray.GroundAtom(
-        predicate=str(payload["predicate"]),
-        arguments=tuple(payload["arguments"]),
-    )
-
-
 def _encode_gunray_rule(rule: gunray.GroundDefeasibleRule) -> dict[str, object]:
     return {
         "rule_id": rule.rule_id,
@@ -513,20 +471,6 @@ def _encode_gunray_rule(rule: gunray.GroundDefeasibleRule) -> dict[str, object]:
             _encode_gunray_atom(atom) for atom in rule.default_negated_body
         ],
     }
-
-
-def _decode_gunray_rule(payload: object) -> gunray.GroundDefeasibleRule:
-    if not isinstance(payload, dict):
-        raise ValueError("gunray rule payload must be an object")
-    return gunray.GroundDefeasibleRule(
-        rule_id=str(payload["rule_id"]),
-        kind=str(payload["kind"]),
-        head=_decode_gunray_atom(payload["head"]),
-        body=tuple(_decode_gunray_atom(atom) for atom in payload["body"]),
-        default_negated_body=tuple(
-            _decode_gunray_atom(atom) for atom in payload["default_negated_body"]
-        ),
-    )
 
 
 def _rule_key(rule: gunray.GroundDefeasibleRule) -> tuple[str, str, str]:

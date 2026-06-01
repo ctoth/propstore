@@ -48,10 +48,6 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def _hash(payload: Mapping[str, Any]) -> str:
-    return hashlib.sha256(canonical_json_bytes(_plain(payload))).hexdigest()
-
-
 def _mapping(value: object, field_name: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ValueError(f"epistemic process field '{field_name}' must be a mapping")

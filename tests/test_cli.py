@@ -101,63 +101,6 @@ def _concept_artifact(local_id: str) -> str:
     return derive_concept_artifact_id("propstore", local_id)
 
 
-def _normalize_claim_concept_refs(data: dict) -> dict:
-    normalized = normalize_claims_payload(data)
-    for claim in normalized.get("claims", []):
-        if not isinstance(claim, dict):
-            continue
-        concept = claim.get("concept")
-        if (
-            isinstance(concept, str)
-            and concept.startswith("concept")
-            and ":" not in concept
-        ):
-            claim["concept"] = _concept_artifact(concept)
-        target_concept = claim.get("target_concept")
-        if (
-            isinstance(target_concept, str)
-            and target_concept.startswith("concept")
-            and ":" not in target_concept
-        ):
-            claim["target_concept"] = _concept_artifact(target_concept)
-        concepts = claim.get("concepts")
-        if isinstance(concepts, list):
-            claim["concepts"] = [
-                _concept_artifact(value)
-                if isinstance(value, str)
-                and value.startswith("concept")
-                and ":" not in value
-                else value
-                for value in concepts
-            ]
-        variables = claim.get("variables")
-        if isinstance(variables, list):
-            for variable in variables:
-                if not isinstance(variable, dict):
-                    continue
-                value = variable.get("concept")
-                if (
-                    isinstance(value, str)
-                    and value.startswith("concept")
-                    and ":" not in value
-                ):
-                    variable["concept"] = _concept_artifact(value)
-        parameters = claim.get("parameters")
-        if isinstance(parameters, list):
-            for parameter in parameters:
-                if not isinstance(parameter, dict):
-                    continue
-                value = parameter.get("concept")
-                if (
-                    isinstance(value, str)
-                    and value.startswith("concept")
-                    and ":" not in value
-                ):
-                    parameter["concept"] = _concept_artifact(value)
-        claim["version_id"] = compute_claim_version_id(claim)
-    return normalized
-
-
 def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:
     """Write a concept YAML file and return its path."""
     concepts_dir.mkdir(parents=True, exist_ok=True)

@@ -47,10 +47,6 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def _hash(value: Any) -> str:
-    return hashlib.sha256(canonical_json_bytes(_plain(value))).hexdigest()
-
-
 @dataclass(frozen=True, order=True)
 class RevisionPolicy:
     operator: str = DEFAULT_ITERATED_OPERATOR

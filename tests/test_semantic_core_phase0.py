@@ -60,31 +60,6 @@ class _Store:
         }
         self._solver = ConditionSolver(self._condition_registry)
 
-    @staticmethod
-    def _claim(
-        claim_id: str,
-        concept_id: str,
-        *,
-        value: float,
-        sample_size: int | None = None,
-    ) -> dict:
-        return {
-            "id": claim_id,
-            "concept_id": concept_id,
-            "concept_links": [
-                {
-                    "claim_id": claim_id,
-                    "concept_id": concept_id,
-                    "role": "output",
-                    "ordinal": 0,
-                }
-            ],
-            "type": "parameter",
-            "value": value,
-            "sample_size": sample_size,
-            "conditions_cel": json.dumps(["x == 1", "y == 2"]),
-        }
-
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)

@@ -9,20 +9,6 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 
-def _claim(id_: str, text: str) -> dict[str, str]:
-    return {"id": id_, "text": text, "source_paper": f"paper-{id_}"}
-
-
-def _response(payload: dict[str, object]) -> MagicMock:
-    response = MagicMock()
-    message = MagicMock()
-    message.content = json.dumps(payload)
-    choice = MagicMock()
-    choice.message = message
-    response.choices = [choice]
-    return response
-
-
 def test_classify_forward_reverse_independent_llm_calls() -> None:
     from propstore.heuristic.classify import classify_stance_async
 

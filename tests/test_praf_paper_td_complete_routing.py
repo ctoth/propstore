@@ -9,16 +9,6 @@ class _World:
         return name == "relation_edge"
 
 
-def _claim(claim_id: str) -> _ResolutionClaimView:
-    return _ResolutionClaimView(
-        id=claim_id,
-        value=None,
-        provenance=None,
-        sample_size=None,
-        confidence=None,
-    )
-
-
 def test_praf_paper_td_complete_routes_resolution_to_extension_probability(monkeypatch):
     """Codex #14: paper-TD complete is extension probability, not argument acceptance."""
     calls: list[dict[str, object]] = []

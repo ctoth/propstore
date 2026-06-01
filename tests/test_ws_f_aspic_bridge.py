@@ -59,32 +59,6 @@ from propstore.world.types import ReasoningBackend
 from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
-def _claim(
-    claim_id: str,
-    *,
-    sample_size: int | None = None,
-    uncertainty: float | None = None,
-    confidence: float | None = None,
-    context_id: str | None = None,
-    concept_id: str | None = None,
-) -> object:
-    payload: dict[str, object] = {
-        "id": claim_id,
-        "concept_id": concept_id or f"concept_{claim_id}",
-        "statement": f"Claim {claim_id}",
-        "premise_kind": "ordinary",
-    }
-    if context_id is not None:
-        payload["context_id"] = context_id
-    if sample_size is not None:
-        payload["sample_size"] = sample_size
-    if uncertainty is not None:
-        payload["uncertainty"] = uncertainty
-    if confidence is not None:
-        payload["confidence"] = confidence
-    return claim_from_payload(payload)
-
-
 def _reported(claim_id: str) -> CanonicalJustification:
     return CanonicalJustification.from_components(
         justification_id=f"reported:{claim_id}",

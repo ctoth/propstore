@@ -9,11 +9,3 @@ from propstore.families.identity.micropubs import (
     micropub_artifact_id,
 )
 from quire.documents import convert_document_value
-
-
-def _micropub(payload: dict[str, object]) -> MicropublicationDocument:
-    return convert_document_value(
-        payload,
-        MicropublicationDocument,
-        source="tests:micropub.yaml",
-    )

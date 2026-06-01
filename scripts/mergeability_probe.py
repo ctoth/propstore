@@ -25,11 +25,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PAPERS_ROOT = REPO_ROOT / "papers"
 
 
-def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
-
-
 def _init_repo(root: Path) -> Repository:
     return Repository.init(root / "knowledge")
 

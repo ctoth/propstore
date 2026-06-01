@@ -12,23 +12,6 @@ from propstore.conflict_detector.models import (
 )
 
 
-def _claim(claim_id: str, expression: str) -> ConflictClaim:
-    return ConflictClaim(
-        claim_id=claim_id,
-        claim_type="equation",
-        expression=expression,
-        variables=(
-            ConflictClaimVariable(concept_id="output", symbol="y", role="dependent"),
-            ConflictClaimVariable(
-                concept_id="factor_a", symbol="x", role="independent"
-            ),
-            ConflictClaimVariable(
-                concept_id="factor_b", symbol="z", role="independent"
-            ),
-        ),
-    )
-
-
 def test_equation_conflict_detector_skips_equivalent_orientations() -> None:
     records = detect_equation_conflicts(
         [

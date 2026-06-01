@@ -217,28 +217,6 @@ def encode_named_graph(provenance: Provenance) -> bytes:
     return msgspec.json.encode(document)
 
 
-def decode_named_graph(payload: bytes) -> Provenance:
-    """Decode a JSON-LD named graph payload into a provenance record."""
-
-    document = msgspec.json.decode(payload, type=_NamedGraph, strict=True)
-    if document.type != "NamedGraph":
-        raise ValueError(f"Unsupported provenance graph type: {document.type!r}")
-    provenance = document.provenance
-    graph_id = _require_graph_name(document.id)
-    if provenance.graph_name is not None and provenance.graph_name != graph_id:
-        raise ValueError("provenance graph_name must match named graph id")
-    return _canonical_provenance(
-        Provenance(
-            status=provenance.status,
-            witnesses=provenance.witnesses,
-            graph_name=graph_id,
-            derived_from=provenance.derived_from,
-            operations=provenance.operations,
-        ),
-        require_graph_name=True,
-    )
-
-
 def write_provenance_note(
     repo: BaseRepo,
     object_sha: bytes | str,
