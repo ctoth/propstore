@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from sqlite3 import Connection
 
 from sqlalchemy import create_engine, insert, text

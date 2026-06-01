@@ -13,13 +13,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
 from itertools import product
-from typing import Any
 
 from propstore.merge.merge_claims import MergeClaim
 from propstore.merge.witness import ProvenanceWitness
 from argumentation.partial_af import PartialArgumentationFramework
 from propstore.storage.snapshot import RepositorySnapshot
-from propstore.core.conditions.solver import Z3TranslationError
 from propstore.claims import claim_file_claims
 
 
@@ -141,20 +139,8 @@ def _indexed_claim(claim: MergeClaim) -> _IndexedClaim | None:
     )
 
 
-def _claim_semantic_key(claim: MergeClaim) -> dict[str, Any]:
-    skip = {"artifact_id", "version_id", "provenance", "source"}
-    payload = claim.to_payload(include_branch_origin=False)
-    return {key: value for key, value in payload.items() if key not in skip}
-
-
 def _claims_equal(a: MergeClaim, b: MergeClaim) -> bool:
     return _claim_semantic_key(a) == _claim_semantic_key(b)
-
-
-def _claim_candidate_key(claim: MergeClaim) -> dict[str, Any]:
-    skip = {"id", "artifact_id", "version_id", "provenance", "logical_ids", "source"}
-    payload = claim.to_payload(include_branch_origin=False)
-    return {key: value for key, value in payload.items() if key not in skip}
 
 
 def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
@@ -198,66 +184,6 @@ def _canonical_claim_groups(
             continue
         groups[artifact_id] = artifact_id
     return groups
-
-
-def _classify_pair(
-    left_claim: MergeClaim,
-    right_claim: MergeClaim,
-) -> _DiffKind:
-    """Classify disagreement between two concrete claim alternatives."""
-    from propstore.conflict_detector import (
-        ConflictClass,
-        ConflictConceptRegistry,
-        detect_conflicts,
-    )
-    from propstore.conflict_detector.collectors import conflict_claim_from_payload
-
-    comparison_source = left_claim.provenance_payload().get("paper")
-    if not isinstance(comparison_source, str) or not comparison_source:
-        comparison_source = right_claim.provenance_payload().get("paper")
-    if not isinstance(comparison_source, str) or not comparison_source:
-        raise MergeComparisonProvenanceError(
-            "cannot classify merge pair without source-paper provenance"
-        )
-
-    left_conflict_claim = conflict_claim_from_payload(
-        left_claim.to_payload(include_branch_origin=False),
-        source_paper=comparison_source,
-    )
-    right_conflict_claim = conflict_claim_from_payload(
-        right_claim.to_payload(include_branch_origin=False),
-        source_paper=comparison_source,
-    )
-    if left_conflict_claim is None or right_conflict_claim is None:
-        return _DiffKind.COMPATIBLE
-
-    try:
-        records = detect_conflicts(
-            [left_conflict_claim, right_conflict_claim],
-            concept_registry=ConflictConceptRegistry(()),
-            cel_registry={},
-        )
-    except (ValueError, Z3TranslationError):
-        return _DiffKind.UNTRANSLATABLE
-
-    left_conditions = sorted(left_claim.document.conditions)
-    right_conditions = sorted(right_claim.document.conditions)
-    if left_conditions != right_conditions:
-        return _DiffKind.PHI_NODE
-
-    for record in records:
-        if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.CONFLICT:
-            return _DiffKind.CONFLICT
-
-    for record in records:
-        if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.PHI_NODE:
-            return _DiffKind.PHI_NODE
-
-    for record in records:
-        if _DiffKind.from_conflict_class(record.warning_class) == _DiffKind.UNKNOWN:
-            return _DiffKind.UNKNOWN
-
-    return _DiffKind.UNKNOWN
 
 
 def _emit_argument(

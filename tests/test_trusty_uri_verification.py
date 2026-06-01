@@ -4,8 +4,6 @@ import importlib
 from pathlib import Path
 
 import pytest
-from hypothesis import given
-from hypothesis import strategies as st
 
 
 def test_trusty_uri_rejects_sha1_emission() -> None:

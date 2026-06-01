@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from pathlib import Path
 
 from quire.tree_path import (
@@ -9,36 +8,12 @@ from quire.tree_path import (
     TreePath,
     coerce_tree_path,
 )
-from quire.documents import (
-    convert_document_value,
-    decode_yaml_mapping,
-)
 from quire.git_store import GitStore
 
 from propstore.claims import (
     LoadedClaimsFile,
-    claim_batch_files_from_payload,
-    claim_file_source_paper,
-    load_claim_file,
-)
-from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.sources.declaration import (
-    SourceDocument,
-    SourceOriginDocument,
-    SourceTrustDocument,
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.families.claims.declaration import JustificationDocument
-from propstore.families.stances.declaration import StanceDocument
-from propstore.families.identity.claims import normalize_claim_file_payload
-from propstore.families.identity.justifications import derive_justification_artifact_id
-from propstore.families.identity.stances import (
-    derive_stance_artifact_id,
-    stamp_stance_artifact_id,
-)
-from propstore.families.registry import CanonicalSourceRef, ClaimRef
-from propstore.families.registry import JustificationRef, StanceRef
-from propstore.provenance import ProvenanceStatus
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
 from propstore.compiler.workflows import (
@@ -145,75 +120,6 @@ def world_query_from_sqlite_path(sqlite_path: Path):
             path=sqlite_path,
         )
     )
-
-
-def _load_claim_fixture(
-    entry: TreePath,
-    *,
-    knowledge_root: TreePath,
-) -> tuple[LoadedClaimsFile, ...]:
-    data = decode_yaml_mapping(entry.read_bytes(), source=entry.as_posix())
-    if isinstance(data.get("claims"), list):
-        normalized, _ = normalize_claim_file_payload(data)
-        return claim_batch_files_from_payload(
-            filename=entry.name,
-            source_path=entry,
-            data=normalized,
-            knowledge_root=knowledge_root,
-        )
-    return (load_claim_file(entry, knowledge_root=knowledge_root),)
-
-
-def _materialize_claim_fixture_batches(repo: Repository) -> None:
-    claims_dir = repo.root / "claims"
-    if not claims_dir.is_dir():
-        return
-    source_names: set[str] = set()
-    for path in sorted(claims_dir.glob("*.yaml")):
-        data = decode_yaml_mapping(path.read_bytes(), source=path.as_posix())
-        if not isinstance(data.get("claims"), list):
-            continue
-        normalized, _ = normalize_claim_file_payload(data)
-        for loaded in claim_batch_files_from_payload(
-            filename=path.name,
-            source_path=path,
-            data=normalized,
-            knowledge_root=repo.root,
-        ):
-            claim = loaded.document
-            source_names.add(claim_file_source_paper(loaded))
-            artifact_id = claim.artifact_id
-            if artifact_id is None:
-                raise ValueError(
-                    f"{path.as_posix()}: normalized claim is missing artifact_id"
-                )
-            ref = ClaimRef(artifact_id)
-            artifact_path = repo.root / repo.families.claims.address(ref).require_path()
-            artifact_path.parent.mkdir(parents=True, exist_ok=True)
-            artifact_path.write_text(
-                repo.families.claims.render(claim) + "\n",
-                encoding="utf-8",
-            )
-        path.unlink()
-    for source_name in sorted(source_names):
-        ref = CanonicalSourceRef(source_name)
-        source_path = repo.root / repo.families.sources.address(ref).require_path()
-        if source_path.exists():
-            continue
-        source_path.parent.mkdir(parents=True, exist_ok=True)
-        source_doc = SourceDocument(
-            id=source_name,
-            kind=SourceKind.ACADEMIC_PAPER,
-            origin=SourceOriginDocument(
-                type=SourceOriginType.MANUAL,
-                value="fixture",
-            ),
-            trust=SourceTrustDocument(status=ProvenanceStatus.STATED),
-        )
-        source_path.write_text(
-            repo.families.sources.render(source_doc) + "\n",
-            encoding="utf-8",
-        )
 
 
 def _init_git_without_sync(root: Path) -> None:

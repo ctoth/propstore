@@ -15,7 +15,6 @@ from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.reporting import JsonReportMixin
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import (
-    Concept,
     ConceptSearchQuerySyntaxError,
 )
 from propstore.world.types import BeliefSpace, RenderPolicy

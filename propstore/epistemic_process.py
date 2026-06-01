@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
-from quire import canonical_json_bytes
 
 from propstore.fragility import FragilityReport, FragilityRequest, query_fragility
 from propstore.policies import PolicyProfile

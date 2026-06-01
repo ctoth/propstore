@@ -7,10 +7,8 @@ from dataclasses import dataclass
 
 from propstore.app.world import open_app_world_model
 from propstore.repository import Repository
-from propstore.support_revision.snapshot_types import belief_base_to_canonical_dict
 from propstore.support_revision.state import (
     BeliefAtom,
-    RevisionEvent,
     is_assumption_atom,
     is_assertion_atom,
 )

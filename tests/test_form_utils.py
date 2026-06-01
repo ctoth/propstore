@@ -8,14 +8,12 @@ Tests the structured form representation:
 - UnitConversion infrastructure and normalize_to_si / from_si
 """
 
-import math
 from pathlib import Path
 
 import pytest
 import yaml
 
 from propstore.families.forms.stages import (
-    FormDefinition,
     clear_form_cache,
     load_form,
     load_form_path,
@@ -23,7 +21,6 @@ from propstore.families.forms.stages import (
 )
 from propstore.dimensions import (
     _PINT_ALIASES,
-    UnitConversion,
     from_si,
     normalize_to_si,
 )

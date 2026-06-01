@@ -7,7 +7,6 @@ import sqlite3
 from sqlite3 import Connection
 from pathlib import Path
 
-import pytest
 
 from tests.sidecar_schema_helpers import build_world_projection_schema
 from tests.family_helpers import world_query_from_sqlite_path

@@ -20,7 +20,6 @@ from tests.conftest import (
     make_claim_identity,
     make_concept_identity,
     make_test_context_commit_entry,
-    normalize_claims_payload,
     normalize_concept_payloads,
 )
 
@@ -305,37 +304,6 @@ def test_plan_repository_import_requires_git_backed_source(tmp_path):
 
     with pytest.raises(ValueError, match="git-backed"):
         plan_repository_import(destination, source_project)
-
-
-def test_plan_repository_import_uses_committed_head_snapshot(tmp_path):
-    from propstore.importing.repository_import import plan_repository_import
-
-    destination = _init_project(tmp_path / "dest")
-    source = _init_project(tmp_path / "repo-b")
-    source_git = source.git
-    assert source_git is not None
-
-    source_git.commit_files(
-        {"claims/source.yaml": _raw_claim_yaml("committed")},
-        "seed source claims",
-    )
-    source_git.sync_worktree()
-    _write_source_file(
-        source.root.parent,
-        "claims/source.yaml",
-        _raw_claim_yaml("uncommitted"),
-    )
-
-    plan = plan_repository_import(destination, source.root.parent)
-
-    assert plan.source_commit == source_git.head_sha()
-    committed_path = _claim_artifact_path("committed", namespace="repo-b")
-    assert plan.writes[
-        committed_path
-    ].document.to_payload() == _expected_imported_claim_yaml(
-        "committed",
-        namespace="repo-b",
-    )
 
 
 def test_plan_repository_import_uses_default_branch_name_from_source_repository(

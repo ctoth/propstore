@@ -30,7 +30,6 @@ from propstore.world.types import (
     WorldStore,
 )
 from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
-from tests.claim_model_helpers import make_claim
 
 
 def test_assignment_selection_policy_adapter_surface_exists() -> None:

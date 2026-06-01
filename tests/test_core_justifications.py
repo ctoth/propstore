@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph

@@ -8,7 +8,6 @@ from pathlib import Path
 from propstore.families.registry import SourceRef
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository, export_branch_tree
-from propstore.source import SourceStatusState
 from propstore.source.common import source_paper_slug
 
 

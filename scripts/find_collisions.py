@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 from collections import defaultdict
-from itertools import combinations
 
 inventory_path = Path("C:/Users/Q/code/propstore/scripts/concept_inventory.json")
 inventory = json.loads(inventory_path.read_text(encoding="utf-8"))

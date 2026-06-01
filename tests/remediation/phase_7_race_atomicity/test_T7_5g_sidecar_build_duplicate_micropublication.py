@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
-from quire.documents import convert_document_value
 from quire.sqlalchemy_store import create_sqlalchemy_store
 
 from propstore.families.claims.references import (
@@ -12,7 +11,6 @@ from propstore.families.claims.references import (
     imported_claim_reference_index,
 )
 from propstore.families.micropublications.declaration import (
-    MicropublicationDocument,
     compile_micropublication_models_with_diagnostics,
 )
 from propstore.families.registry import world_schema

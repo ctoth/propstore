@@ -6,24 +6,17 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias
 
-from quire import canonical_json_sha256
-from quire.charters import FamilyCharter
-from quire.documents import convert_document_value, document_to_payload
-from quire.projections import artifact_digest, artifact_payload
+from quire.projections import artifact_digest
 
 from propstore.families.claims.declaration import (
-    AUTHORED_CLAIM_CHARTER,
-    JUSTIFICATION_CHARTER,
     ClaimDocument,
     SourceClaimDocument,
     SourceJustificationDocument,
 )
-from propstore.families.identity.claims import canonicalize_claim_for_version
 from propstore.families.sources.declaration import SOURCE_CHARTER, SourceDocument
 from propstore.families.stances.declaration import (
-    STANCE_CHARTER,
     SourceStanceEntryDocument,
     StanceDocument,
 )
@@ -75,79 +68,6 @@ def _justification_document_type() -> type[Any]:
 
 def source_artifact_code(source_doc: SourceDocument) -> str:
     return artifact_digest(SOURCE_CHARTER, source_doc, omit_none=True)
-
-
-def justification_artifact_code(
-    justification: JustificationDocument | SourceJustificationDocument,
-) -> str:
-    canonical = (
-        _projected_payload(JUSTIFICATION_CHARTER, justification, omit_none=True)
-        if hasattr(justification, "conclusion_claim_id")
-        else document_to_payload(justification)
-    )
-    if not isinstance(canonical, dict):
-        raise TypeError("justification artifact payload must be a mapping")
-    canonical.pop("artifact_code", None)
-    premises = canonical.get("premises")
-    if isinstance(premises, list):
-        canonical["premises"] = [str(premise) for premise in sorted(premises, key=str)]
-    return _hash_payload(canonical)
-
-
-def stance_artifact_code(stance: StanceDocument | SourceStanceEntryDocument) -> str:
-    canonical = (
-        _projected_payload(STANCE_CHARTER, stance, omit_none=True)
-        if hasattr(stance, "artifact_id")
-        else document_to_payload(stance)
-    )
-    if not isinstance(canonical, dict):
-        raise TypeError("stance artifact payload must be a mapping")
-    canonical.pop("artifact_id", None)
-    canonical.pop("artifact_code", None)
-    for field_name in tuple(canonical):
-        if canonical[field_name] is None:
-            canonical.pop(field_name)
-    return _hash_payload(canonical)
-
-
-def claim_artifact_code(
-    claim: ClaimDocument | SourceClaimDocument,
-    *,
-    source_code: str,
-    justification_codes: Sequence[str],
-    stance_codes: Sequence[str],
-) -> str:
-    projected = (
-        _projected_payload(AUTHORED_CLAIM_CHARTER, claim, omit_none=True)
-        if isinstance(claim, ClaimDocument)
-        else document_to_payload(claim)
-    )
-    if not isinstance(projected, dict):
-        raise TypeError("claim artifact payload must be a mapping")
-    canonical = canonicalize_claim_for_version(cast(dict[str, Any], projected))
-    canonical.pop("artifact_code", None)
-    return _hash_payload(
-        {
-            "source_artifact_code": source_code,
-            "claim": canonical,
-            "justification_codes": sorted(justification_codes),
-            "stance_codes": sorted(stance_codes),
-        }
-    )
-
-
-def _stamp_document(
-    document: object,
-    document_type: type[Any],
-    *,
-    artifact_code: str,
-    source: str,
-) -> Any:
-    payload = document_to_payload(document)
-    if not isinstance(payload, dict):
-        raise TypeError("artifact-stamped document payload must be a mapping")
-    payload["artifact_code"] = artifact_code
-    return convert_document_value(payload, document_type, source=source)
 
 
 def stamp_canonical_artifacts(

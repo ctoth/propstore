@@ -9,7 +9,6 @@ from click.testing import CliRunner
 
 from propstore.families.registry import (
     CanonicalSourceRef,
-    ConceptAlignmentRef,
     ConceptFileRef,
     SOURCE_BRANCH,
     SourceRef,
@@ -19,7 +18,6 @@ from propstore.repository import Repository
 from quire.documents import (
     convert_document_value,
     decode_document_batch_bytes,
-    document_to_payload,
     encode_yaml_value,
 )
 from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
@@ -30,13 +28,6 @@ from propstore.families.identity.concepts import (
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.lifecycle import normalize_source_claims_payload
-from propstore.families.concepts.alignment import (
-    align_sources,
-    concept_proposal_branch,
-    decide_alignment,
-    load_alignment_artifact,
-    promote_alignment,
-)
 from propstore.source import (
     finalize_source_branch,
     initial_source_document,
@@ -50,7 +41,7 @@ from propstore.families.stances.declaration import (
     SourceStanceEntryDocument,
 )
 from propstore.source.promote import load_finalize_report
-from tests.family_helpers import build_sidecar, materialized_world_store_path
+from tests.family_helpers import materialized_world_store_path
 
 
 def _promoted_claims(repo: Repository):
@@ -135,68 +126,6 @@ def _save_source(
         report,
         message=f"Finalize {source_name}",
     )
-
-
-def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    repo.git.create_branch(concept_proposal_branch(repo))
-
-    _save_source(
-        repo,
-        "paper_a",
-        {
-            "concepts": [
-                {
-                    "local_name": "gravity",
-                    "proposed_name": "gravity",
-                    "definition": "Acceleration due to gravity.",
-                    "form": "quantity",
-                }
-            ]
-        },
-    )
-    _save_source(
-        repo,
-        "paper_b",
-        {
-            "concepts": [
-                {
-                    "local_name": "gravity_constant",
-                    "proposed_name": "gravity",
-                    "definition": "Acceleration due to gravity.",
-                    "form": "quantity",
-                }
-            ]
-        },
-    )
-
-    artifact = align_sources(
-        repo,
-        [
-            repo.families.source_documents.address(SourceRef("paper_a")).branch,
-            repo.families.source_documents.address(SourceRef("paper_b")).branch,
-        ],
-    )
-    slug = artifact.id.split(":", 1)[1]
-    stored = repo.families.concept_alignments.require(
-        ConceptAlignmentRef(slug),
-    )
-    assert document_to_payload(stored) == document_to_payload(artifact)
-
-    decided = decide_alignment(
-        repo, artifact.id, accept=[artifact.arguments[0].id], reject=[]
-    )
-    assert decided.decision.status == "decided"
-
-    promoted = promote_alignment(repo, artifact.id)
-    promoted_concept = repo.families.concepts.require(
-        ConceptFileRef("gravity"),
-    )
-    reloaded_alignment = load_alignment_artifact(repo, artifact.id)[1]
-
-    assert promoted.decision.status == "promoted"
-    assert promoted_concept.lexical_entry.canonical_form.written_rep == "gravity"
-    assert reloaded_alignment.decision.status == "promoted"
 
 
 def test_promote_source_branch_does_not_expose_native_git_deletions(

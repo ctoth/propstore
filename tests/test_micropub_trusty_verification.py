@@ -3,13 +3,11 @@ from __future__ import annotations
 import pytest
 from hypothesis import given, strategies as st
 
-from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.identity.micropubs import (
     canonical_micropub_payload,
     micropub_artifact_id,
 )
 from propstore.uri import verify_ni_uri
-from quire.documents import convert_document_value
 
 
 def test_micropub_trusty_uri_verifies_exact_canonical_bytes() -> None:

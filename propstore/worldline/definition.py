@@ -12,7 +12,7 @@ from propstore.families.worldlines.declaration import (
     WorldlineRevisionQueryDocument,
     WorldlineResultDocument,
 )
-from quire.documents import convert_document_value, to_document_builtins
+from quire.documents import convert_document_value
 from propstore.support_revision.history import TransitionJournal
 from propstore.world.types import Environment, RenderPolicy
 from propstore.worldline.result_types import (

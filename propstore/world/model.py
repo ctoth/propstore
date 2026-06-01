@@ -22,7 +22,6 @@ from propstore.core.conditions.registry import (
 from propstore.cel_registry import build_store_cel_registry
 from propstore.families.contexts.declaration import load_lifting_system
 from propstore.core.id_types import (
-    ClaimId,
     ConceptId,
     ContextId,
 )
@@ -69,7 +68,6 @@ if TYPE_CHECKING:
     from propstore.families.contexts.lifting import LiftingSystem
     from propstore.core.graph_types import WorldActivationGraph
     from propstore.world.scm import Value
-from propstore.world.resolution import resolve
 from propstore.world.types import (
     WorldStore,
     ClaimView,

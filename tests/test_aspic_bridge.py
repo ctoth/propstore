@@ -18,36 +18,18 @@ from hypothesis import strategies as st
 from argumentation.aspic import (
     Literal,
     GroundAtom,
-    ContrarinessFn,
-    Rule,
-    KnowledgeBase,
-    ArgumentationSystem,
-    PreferenceConfig,
     CSAF,
-    PremiseArg,
-    StrictArg,
-    DefeasibleArg,
-    build_arguments,
-    compute_attacks,
-    compute_defeats,
     conc,
-    prem,
     sub,
-    top_rule,
-    def_rules,
     is_firm,
     is_strict,
     is_c_consistent,
-    strict_closure,
-    transposition_closure,
 )
 from propstore.core.justifications import CanonicalJustification
 from argumentation.dung import (
     ArgumentationFramework,
     complete_extensions,
     grounded_extension,
-    preferred_extensions,
-    stable_extensions,
     conflict_free,
 )
 

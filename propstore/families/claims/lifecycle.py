@@ -1,29 +1,21 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
-from quire.documents import convert_document_value, document_to_payload
+from quire.documents import convert_document_value
 from quire.references import FamilyReferenceIndex
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
 from propstore.families.claims.declaration import (
     ClaimDocument,
-    ClaimLogicalIdDocument,
     SourceClaimDocument,
-    SourceJustificationDocument,
 )
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.identity.claims import (
-    compute_claim_version_id,
-    derive_claim_artifact_id,
-    normalize_canonical_claim_payload,
     normalize_claim_file_payload,
 )
-from propstore.families.identity.logical_ids import normalize_logical_value
 
 
 @dataclass(frozen=True)
@@ -41,23 +33,6 @@ def source_concept_ref_requires_mapping(value: str) -> bool:
     return not (value.startswith("ps:concept:") or value.startswith("tag:"))
 
 
-def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:
-    canonical = cast(dict[str, Any], document_to_payload(claim))
-    canonical.pop("id", None)
-    canonical.pop("artifact_id", None)
-    canonical.pop("version_id", None)
-    canonical.pop("logical_ids", None)
-    canonical.pop("source_local_id", None)
-    payload = json.dumps(
-        {"source_uri": source_uri, "claim": canonical},
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-    return f"claim_{digest}"
-
-
 def rewrite_imported_claim_concept_refs(
     payload: Mapping[str, Any],
     concept_map: Mapping[str, str],
@@ -66,22 +41,6 @@ def rewrite_imported_claim_concept_refs(
 ) -> dict[str, Any]:
     return _rewrite_claim_concept_payload(
         dict(payload),
-        concept_map,
-        unresolved=unresolved,
-    )
-
-
-def rewrite_source_claim_concept_refs(
-    claim: SourceClaimDocument,
-    concept_map: Mapping[str, str],
-    *,
-    unresolved: set[str],
-) -> dict[str, Any]:
-    payload = document_to_payload(claim)
-    if not isinstance(payload, dict):
-        raise TypeError("source claim payload must be a mapping")
-    return _rewrite_claim_concept_payload(
-        cast(dict[str, Any], payload),
         concept_map,
         unresolved=unresolved,
     )
@@ -132,51 +91,6 @@ def normalize_imported_claim_artifact(
             source=source,
         ),
         local_handle_map=local_map,
-    )
-
-
-def normalize_promoted_source_claim_artifact(
-    claim: SourceClaimDocument,
-    *,
-    source_paper: str,
-    concept_map: Mapping[str, str],
-    unresolved: set[str],
-    source: str,
-) -> NormalizedPromotedClaimArtifact:
-    rewritten_payload = rewrite_source_claim_concept_refs(
-        claim,
-        concept_map,
-        unresolved=unresolved,
-    )
-    provenance = rewritten_payload.get("provenance")
-    if isinstance(provenance, dict) and not isinstance(provenance.get("paper"), str):
-        rewritten_payload["provenance"] = {
-            **provenance,
-            "paper": source_paper,
-        }
-    context = rewritten_payload.get("context")
-    if isinstance(context, str):
-        rewritten_payload["context"] = {"id": context}
-    rewritten_payload.setdefault("source", {"paper": source_paper})
-    normalized_payload = normalize_canonical_claim_payload(
-        rewritten_payload,
-        strip_source_local=True,
-    )
-    normalized_document = convert_document_value(
-        normalized_payload,
-        ClaimDocument,
-        source=source,
-    )
-    document_payload = document_to_payload(normalized_document)
-    if not isinstance(document_payload, dict):
-        raise TypeError("promoted claim document payload must be a mapping")
-    document_payload["version_id"] = compute_claim_version_id(document_payload)
-    return NormalizedPromotedClaimArtifact(
-        document=convert_document_value(
-            document_payload,
-            ClaimDocument,
-            source=source,
-        ),
     )
 
 

@@ -7,94 +7,11 @@ from quire.documents import DocumentSchemaError, convert_document
 from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.models import FORM_CHARTER
 from propstore.families.registry import ConceptFileRef, FormRef
-from quire.documents import document_to_payload
 
 from propstore.families.concepts.stages import parse_concept_record_document
 from propstore.repository import Repository
 
 FormDocument = FORM_CHARTER.generated_document()
-
-
-def test_concept_document_round_trips_phase3_sense_semantics(tmp_path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    payload = _lemon_concept_payload()
-    sense = payload["lexical_entry"]["senses"][0]
-    sense["provenance"] = _provenance_payload()
-    sense["qualia"] = {
-        "telic": [
-            {
-                "reference": {"uri": "ps:concept:measurement", "label": "Measurement"},
-                "type_constraint": {
-                    "reference": {
-                        "uri": "ps:concept:description_kind",
-                        "label": "Description Kind",
-                    }
-                },
-                "provenance": _provenance_payload(),
-            }
-        ]
-    }
-    sense["description_kind"] = {
-        "name": "Measurement",
-        "reference": {"uri": "ps:concept:measurement", "label": "Measurement"},
-        "slots": [
-            {
-                "name": "instrument",
-                "type_constraint": {
-                    "uri": "ps:concept:measurement_instrument",
-                    "label": "Measurement Instrument",
-                },
-                "proto_role_bundle": {
-                    "proto_agent_entailments": [
-                        {
-                            "property": "causation",
-                            "value": 0.75,
-                            "provenance": _provenance_payload(),
-                        }
-                    ]
-                },
-            }
-        ],
-    }
-    sense["role_bundles"] = {
-        "instrument": {
-            "proto_agent_entailments": [
-                {
-                    "property": "causation",
-                    "value": 0.75,
-                    "provenance": _provenance_payload(),
-                }
-            ],
-            "proto_patient_entailments": [],
-        }
-    }
-
-    document = convert_document(
-        payload,
-        ConceptDocument,
-        source="concepts/measurement.yaml",
-    )
-
-    loaded_sense = document.lexical_entry.senses[0]
-    assert loaded_sense.provenance is not None
-    assert loaded_sense.qualia is not None
-    assert loaded_sense.qualia.telic[0].reference.uri == "ps:concept:measurement"
-    assert loaded_sense.description_kind is not None
-    assert loaded_sense.description_kind.slots[0].name == "instrument"
-    assert loaded_sense.role_bundles is not None
-    assert (
-        loaded_sense.role_bundles["instrument"].proto_agent_entailments[0].value == 0.75
-    )
-
-    rendered = document_to_payload(document)
-    rendered_sense = rendered["lexical_entry"]["senses"][0]
-    assert rendered_sense["qualia"]["telic"][0]["provenance"]["status"] == "stated"
-    assert (
-        rendered_sense["description_kind"]["slots"][0]["proto_role_bundle"][
-            "proto_agent_entailments"
-        ][0]["property"]
-        == "causation"
-    )
 
 
 def test_phase3_qualia_reference_requires_provenance(tmp_path) -> None:

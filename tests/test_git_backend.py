@@ -14,7 +14,6 @@ from quire.tree_path import (
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_counter
 from propstore.compiler.workflows import _world_store_content_hash
 from propstore.repository import Repository
-from quire.git_store import GitStore
 from tests.git_store_helpers import init_store, is_store, open_store
 from tests.conftest import (
     make_concept_identity,

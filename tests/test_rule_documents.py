@@ -113,10 +113,8 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
     the subset of variables actually used in the body.
     """
     from propstore.families.rules.declaration import (  # noqa: E402
-        AtomDocument,
         BodyLiteralDocument,
         RuleDocument,
-        TermDocument,
     )
 
     @st.composite

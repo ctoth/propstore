@@ -7,7 +7,6 @@ from quire.tree_path import (
     FilesystemTreePath as FilesystemKnowledgePath,
     GitTreePath as GitKnowledgePath,
 )
-from quire.git_store import GitStore
 from tests.git_store_helpers import init_store
 
 

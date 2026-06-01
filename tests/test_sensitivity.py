@@ -6,8 +6,6 @@ import yaml
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from tests.family_helpers import materialized_world_store_path
 from propstore.sensitivity import (
-    SensitivityEntry,
-    SensitivityResult,
     analyze_sensitivity,
 )
 from propstore.world import WorldQuery

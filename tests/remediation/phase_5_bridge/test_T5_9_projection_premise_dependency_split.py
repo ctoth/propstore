@@ -1,8 +1,6 @@
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.core.justifications import CanonicalJustification
-from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
-from tests.typed_family_fixtures import claim_from_payload
 
 
 def _justification(

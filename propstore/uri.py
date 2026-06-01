@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 from pathlib import Path
 
 from propstore.uri_authority import TaggingAuthority, parse_tagging_authority

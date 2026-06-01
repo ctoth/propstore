@@ -8,8 +8,6 @@ invariant by constructing scenarios that would violate it if the
 implementation were wrong.
 """
 
-import sqlite3
-
 import pytest
 import yaml
 from hypothesis import given, settings

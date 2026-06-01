@@ -9,7 +9,6 @@ from tests.family_helpers import (
     materialized_world_store_path,
     world_query_from_sqlite_path,
 )
-from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph
 from propstore.world.graph_projection import project_knowledge_graph
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from tests.sidecar_schema_helpers import build_world_projection_schema

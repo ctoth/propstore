@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 from assignment_selection import MergeOperator
-from quire import canonical_json_bytes
 
 from propstore.core.assertions.refs import (
     ConditionRef,

@@ -19,15 +19,12 @@ from cel_parser import (
     StringLit,
     parse,
 )
-from propstore.core.conditions.cel_frontend import check_cel_expression
-from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts as _detect_conflicts,
 )
-from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClaim
-from tests.conftest import make_cel_registry, make_concept_registry
+from tests.conftest import make_cel_registry
 
 
 # ── CEL tokenizer property tests ─────────────────────────────────────
@@ -148,15 +145,6 @@ def _make_parameter_claim(claim_id, concept_id, value, unit="Hz", conditions=Non
     else:
         claim["value"] = value
     return claim
-
-
-def _make_claim_file(claims, filename="test_paper"):
-    records = []
-    for claim_payload in claims:
-        claim = conflict_claim_from_payload(claim_payload, source_paper=filename)
-        assert claim is not None
-        records.append(claim)
-    return records
 
 
 def _make_registry():

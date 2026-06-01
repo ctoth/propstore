@@ -1,15 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.cel_types import to_cel_expr
-from propstore.core.assertions.codec import AssertionCanonicalRecord
-from propstore.core.id_types import (
-    AssumptionId,
-    ContextId,
-)
 from propstore.core.labels import AssumptionRef, EnvironmentKey, Label
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
@@ -21,8 +15,6 @@ from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
     EpistemicState,
-    AssumptionAtom,
-    AssertionAtom,
     RevisionEvent,
     RevisionEpisode,
     RevisionScope,
@@ -81,39 +73,6 @@ def _scope_to_dict(scope: RevisionScope) -> dict[str, Any]:
     if scope.merge_parent_commits:
         data["merge_parent_commits"] = list(scope.merge_parent_commits)
     return data
-
-
-def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
-    if isinstance(atom, AssertionAtom):
-        payload = {
-            "assertion": AssertionCanonicalRecord.from_assertion(
-                atom.assertion
-            ).to_payload(),
-            "source_claim_ids": list(atom.source_claim_ids),
-        }
-        kind = "assertion"
-    else:
-        assert isinstance(atom, AssumptionAtom)
-        payload = {
-            "assumption_id": atom.assumption.assumption_id,
-            "cel": atom.assumption.cel,
-            "kind": atom.assumption.kind,
-            "source": atom.assumption.source,
-        }
-        kind = "assumption"
-    data: dict[str, Any] = {
-        "atom_id": atom.atom_id,
-        "kind": kind,
-        "payload": payload,
-    }
-    label = _label_to_dict(atom.label)
-    if label is not None:
-        data["label"] = label
-    return data
-
-
-def belief_atom_from_canonical_dict(data: Mapping[str, Any]) -> BeliefAtom:
-    return _belief_atom_from_json_payload(data)
 
 
 def belief_atom_to_canonical_dict(atom: BeliefAtom) -> dict[str, Any]:
@@ -260,22 +219,6 @@ class EpistemicStateSnapshot:
             },
         )
         object.__setattr__(self, "history", tuple(self.history))
-
-    @classmethod
-    def from_state(cls, state: EpistemicState) -> EpistemicStateSnapshot:
-        snapshot = cls(
-            scope=state.scope,
-            base=state.base,
-            accepted_atom_ids=state.accepted_atom_ids,
-            ranked_atom_ids=state.ranked_atom_ids,
-            ranking=state.ranking,
-            entrenchment_reasons=state.entrenchment_reasons,
-            history=tuple(
-                RevisionEpisodeSnapshot.from_episode(episode)
-                for episode in state.history
-            ),
-        )
-        return cls.from_json_payload(snapshot.to_dict())
 
     def to_state(self) -> EpistemicState:
         return EpistemicState(

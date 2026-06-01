@@ -7,7 +7,6 @@ from propstore.app.world_revision import (
 )
 from propstore.repository import Repository
 from tests.test_revision_cli import _projected_assertion_id
-from tests.test_revision_phase1_cli import revision_cli_workspace
 
 
 def test_world_revision_app_returns_typed_split_report(revision_cli_workspace) -> None:

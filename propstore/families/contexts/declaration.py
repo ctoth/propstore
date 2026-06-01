@@ -15,8 +15,6 @@ from quire.versions import VersionId
 
 from .lifting import (
     IstProposition,
-    LiftedAssertion,
-    LiftingDecision,
     LiftingMode,
     LiftingRule,
     LiftingSystem,
@@ -297,40 +295,6 @@ def compile_context_models(
         tuple(lifting_rule_models),
         tuple(materialization_models),
     )
-
-
-def compile_context_lifting_materializations(
-    materializations: Sequence[LiftedAssertion | LiftingDecision],
-) -> tuple[ContextLiftingMaterialization, ...]:
-    models: list[ContextLiftingMaterialization] = []
-    for materialization in materializations:
-        if isinstance(materialization, LiftingDecision):
-            provenance = materialization.provenance.to_payload()
-            exception_id = materialization.provenance.exception_id
-            models.append(
-                ContextLiftingMaterialization(
-                    rule_id=materialization.rule_id,
-                    source_context_id=str(materialization.source_context.id),
-                    target_context_id=str(materialization.target_context.id),
-                    proposition_id=materialization.proposition_id,
-                    status=materialization.status.value,
-                    exception_id=exception_id,
-                    provenance_json=json.dumps(provenance, sort_keys=True),
-                )
-            )
-            continue
-        models.append(
-            ContextLiftingMaterialization(
-                rule_id=materialization.rule_id,
-                source_context_id=str(materialization.source_context.id),
-                target_context_id=str(materialization.target_context.id),
-                proposition_id=materialization.proposition_id,
-                status=materialization.status.value,
-                exception_id=materialization.exception_id,
-                provenance_json=json.dumps(materialization.provenance, sort_keys=True),
-            )
-        )
-    return tuple(models)
 
 
 def load_lifting_system(derived_store: DerivedStoreHandle) -> LiftingSystem | None:

@@ -2,21 +2,14 @@
 
 from __future__ import annotations
 
-import time
-from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
-from quire.documents import document_to_payload
 
-from propstore.families.identity.claims import compute_claim_version_id
-from propstore.families.registry import ClaimRef, MergeManifestRef
 from propstore.merge.merge_classifier import MergeArgument
-from propstore.merge.merge_classifier import build_merge_framework
-from propstore.merge.merge_report import semantic_candidate_details
 
 if TYPE_CHECKING:
-    from propstore.storage.snapshot import RepositorySnapshot
+    pass
 
 
 @dataclass(frozen=True)
@@ -47,138 +40,3 @@ def _source_paper(argument: MergeArgument) -> str | None:
 
 def _family_for_path(path: str) -> str:
     return path.replace("\\", "/").split("/", 1)[0]
-
-
-def create_merge_commit(
-    snapshot: RepositorySnapshot,
-    branch_a: str,
-    branch_b: str,
-    message: str = "",
-    *,
-    target_branch: str | None = None,
-) -> str:
-    """Create a two-parent merge commit from the formal merge object."""
-    kr = snapshot.git
-    families = snapshot.repo.families
-    if target_branch is None:
-        target_branch = kr.primary_branch_name()
-    target_expected_head = kr.branch_sha(target_branch)
-    merge = build_merge_framework(snapshot, branch_a, branch_b)
-
-    left_sha = kr.branch_sha(branch_a)
-    right_sha = kr.branch_sha(branch_b)
-    if left_sha is None:
-        raise ValueError(f"Branch {branch_a!r} does not exist")
-    if right_sha is None:
-        raise ValueError(f"Branch {branch_b!r} does not exist")
-
-    left_entries = kr.flat_tree_entries(left_sha)
-    right_entries = kr.flat_tree_entries(right_sha)
-
-    merged_entries: dict[str, str] = {}
-    for path in sorted(set(left_entries) | set(right_entries)):
-        if path.startswith("claims/"):
-            continue
-        left_sha_for_path = left_entries.get(path)
-        right_sha_for_path = right_entries.get(path)
-        if left_sha_for_path is not None and right_sha_for_path is not None:
-            if left_sha_for_path != right_sha_for_path:
-                raise NonClaimMergeConflict(
-                    path=path,
-                    family=_family_for_path(path),
-                    left_sha=left_sha_for_path,
-                    right_sha=right_sha_for_path,
-                )
-            merged_entries[path] = left_sha_for_path
-            continue
-        if left_sha_for_path is not None:
-            merged_entries[path] = left_sha_for_path
-            continue
-        if right_sha_for_path is not None:
-            merged_entries[path] = right_sha_for_path
-
-    sorted_arguments = sorted(
-        merge.arguments, key=lambda argument: argument.assertion_id
-    )
-    artifact_counts = Counter(argument.artifact_id for argument in sorted_arguments)
-    claim_payloads_by_ref: dict[ClaimRef, dict] = {}
-    for argument in sorted_arguments:
-        has_rivals = artifact_counts[argument.artifact_id] > 1
-        claim_payload = _materialized_claim_payload(argument, has_rivals=has_rivals)
-        claims_ref = ClaimRef(str(claim_payload["artifact_id"]))
-        source_paper = _source_paper(argument) or "unknown"
-        claim_payload.setdefault(
-            "source",
-            {
-                "paper": source_paper,
-                "extraction_model": "merge",
-                "extraction_date": time.strftime("%Y-%m-%d"),
-            },
-        )
-        claim_payloads_by_ref[claims_ref] = claim_payload
-    claim_paths = [path for path in merged_entries if path.startswith("claims/")]
-    for path in claim_paths:
-        del merged_entries[path]
-
-    manifest_payload = {
-        "merge": {
-            "branch_a": branch_a,
-            "branch_b": branch_b,
-            "arguments": [
-                {
-                    "assertion_id": argument.assertion_id,
-                    "canonical_claim_id": argument.canonical_claim_id,
-                    "artifact_id": argument.artifact_id,
-                    "logical_id": argument.logical_id,
-                    "branch_origins": list(argument.branch_origins),
-                    "witness_basis": [
-                        witness.to_payload() for witness in argument.witness_basis
-                    ],
-                    "materialized": True,
-                }
-                for argument in sorted_arguments
-            ],
-            "semantic_candidates": [list(group) for group in merge.semantic_candidates],
-            "semantic_candidate_details": semantic_candidate_details(merge),
-        }
-    }
-    manifest_ref = MergeManifestRef()
-    manifest_document = families.merge_manifests.coerce(
-        manifest_payload,
-        source=families.merge_manifests.address(manifest_ref).require_path(),
-    )
-
-    prepared_claims = []
-    for claims_ref, claim_payload in sorted(
-        claim_payloads_by_ref.items(),
-        key=lambda item: item[0].artifact_id,
-    ):
-        claims_document = families.claims.coerce(
-            claim_payload,
-            source=families.claims.address(claims_ref).require_path(),
-        )
-        prepared_claims.append(
-            families.claims.prepare(
-                claims_ref,
-                claims_document,
-                branch=target_branch,
-            )
-        )
-    prepared_manifest = families.merge_manifests.prepare(
-        manifest_ref,
-        manifest_document,
-        branch=target_branch,
-    )
-
-    for prepared in (*prepared_claims, prepared_manifest):
-        merged_entries[prepared.address.require_path()] = kr.store_blob(
-            prepared.content
-        )
-
-    return kr.commit_flat_tree(
-        merged_entries,
-        message or f"Merge {branch_a} and {branch_b}",
-        parents=[left_sha, right_sha],
-        branch=target_branch,
-        expected_head=target_expected_head,
-    )

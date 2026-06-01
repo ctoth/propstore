@@ -28,24 +28,13 @@ from propstore.core.id_types import (
     QueryableId,
 )
 from propstore.core.labels import (
-    AssumptionRef,
     EnvironmentKey,
     Label,
     SupportQuality,
-    SupportMetadata,
 )
 from propstore.core.reasoning import (
     ArgumentationSemantics,
     ReasoningBackend,
-    cli_argumentation_semantics_values,
-    supported_argumentation_semantics,
-    validate_backend_semantics,
-)
-from propstore.core.store_results import (
-    WorldStoreStats,
-    ClaimSimilarityHit,
-    ConceptSearchHit,
-    ConceptSimilarityHit,
 )
 from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import ConflictWitness, Stance

@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from argumentation.aspic import GroundAtom
-from propstore.aspic_bridge import claims_to_literals
 from propstore.core.literal_keys import (
     ClaimLiteralKey,
     GroundLiteralKey,
     IstLiteralKey,
-    REPOSITORY_ROOT_CONTEXT_ID,
     claim_key,
     ground_key,
 )
-from tests.typed_family_fixtures import claim_from_payload
 
 
 def test_claim_and_ground_literal_keys_are_disjoint_even_when_surface_matches() -> None:
@@ -62,26 +59,4 @@ def test_ground_literal_key_preserves_atom_shape() -> None:
     assert key == ground_key(
         GroundAtom("reachable", ("src", 2, True)),
         negated=False,
-    )
-
-
-def test_claims_to_literals_uses_typed_claim_keys() -> None:
-    literals = claims_to_literals(
-        [
-            claim_from_payload(
-                {
-                    "id": "claim-typed",
-                    "concept_id": "concept-typed",
-                    "statement": "Typed claim",
-                    "premise_kind": "ordinary",
-                }
-            )
-        ]
-    )
-
-    assert set(literals) == {claim_key("claim-typed")}
-    literal = literals[claim_key("claim-typed")]
-    assert literal.atom == GroundAtom(
-        "ist",
-        (str(REPOSITORY_ROOT_CONTEXT_ID), "claim-typed"),
     )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.core.results import AnalyzerResult, ClaimProjection
-from propstore.world.resolution import _ResolutionClaimView, _resolve_praf
+from propstore.world.resolution import _resolve_praf
 
 
 class _World:

@@ -24,7 +24,6 @@ from tests.conftest import (
     attach_claim_version_id,
     make_claim_identity,
     make_parameter_claim,
-    make_concept_registry,
     make_compilation_context,
     normalize_claims_payload,
     normalize_concept_payloads,

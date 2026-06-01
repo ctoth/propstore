@@ -17,7 +17,6 @@ References:
 
 from __future__ import annotations
 
-import pytest
 
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import (

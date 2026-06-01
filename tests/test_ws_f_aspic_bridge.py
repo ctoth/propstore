@@ -22,7 +22,6 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     justifications_to_rules,
     project_grounded_rules,
-    query_claim,
     stances_to_contrariness,
 )
 from propstore.app.world_reasoning import (
@@ -56,7 +55,6 @@ from propstore.structured_projection import (
     compute_structured_justified_arguments,
 )
 from propstore.world.types import ReasoningBackend
-from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
 def _reported(claim_id: str) -> CanonicalJustification:
@@ -82,16 +80,6 @@ def _support(
         premise_claim_ids=premises,
         rule_kind="supports",
         rule_strength=strength,
-    )
-
-
-def _stance(source: str, target: str, stance_type: str) -> object:
-    return stance_from_payload(
-        {
-            "claim_id": source,
-            "target_claim_id": target,
-            "stance_type": stance_type,
-        }
     )
 
 
@@ -430,43 +418,6 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         and projection.origins[rule].role == "undercut"
         for rule in defeasible
     )
-
-
-def test_arguments_against_includes_undermine_and_undercut_attackers() -> None:
-    claims = [
-        _claim("premise"),
-        _claim("goal"),
-        _claim("anti_premise"),
-        _claim("rule_attack"),
-    ]
-    justifications = [
-        _reported("premise"),
-        _reported("anti_premise"),
-        _reported("rule_attack"),
-        _support("support:premise-to-goal", "goal", ("premise",)),
-    ]
-    result = query_claim(
-        "goal",
-        claims,
-        justifications,
-        [
-            _stance("anti_premise", "premise", "undermines"),
-            stance_from_payload(
-                {
-                    "claim_id": "rule_attack",
-                    "target_claim_id": "goal",
-                    "stance_type": "undercuts",
-                    "target_justification_id": "support:premise-to-goal",
-                }
-            ),
-        ],
-        bundle=GroundedRulesBundle.empty(),
-    )
-
-    literals = claims_to_literals(claims)
-    attacker_conclusions = {conc(argument) for argument in result.arguments_against}
-    assert literals[claim_key("anti_premise")] in attacker_conclusions
-    assert literals[claim_key("rule_attack")] in attacker_conclusions
 
 
 def test_claim_canonical_name_collision_does_not_collapse_aspic_literals() -> None:

@@ -8,65 +8,8 @@ from pathlib import Path
 import yaml
 
 from propstore.cli.repository import Repository
-from propstore.core.concepts import (
-    ConceptDocument,
-    normalize_loaded_concepts,
-)
-from propstore.document_schema import load_document
-from propstore.families.identity.concepts import compute_concept_version_id
 from propstore.sidecar.build import build_sidecar
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
-
-
-def debug_context_fixture() -> None:
-    with tempfile.TemporaryDirectory() as tmpdir:
-        root = Path(tmpdir)
-        knowledge = root / "knowledge"
-        concepts = knowledge / "concepts"
-        forms = knowledge / "forms"
-        counters = concepts / ".counters"
-        counters.mkdir(parents=True)
-        forms.mkdir(parents=True)
-        (counters / "global.next").write_text("2\n", encoding="utf-8")
-        (forms / "structural.yaml").write_text(
-            yaml.dump(
-                {"name": "structural", "dimensionless": True}, default_flow_style=False
-            ),
-            encoding="utf-8",
-        )
-
-        concept_payload = normalize_concept_payloads(
-            [
-                {
-                    "id": "concept1",
-                    "canonical_name": "test_concept",
-                    "status": "accepted",
-                    "definition": "A test concept",
-                    "domain": "test",
-                    "form": "structural",
-                    "created_date": "2026-03-22",
-                }
-            ],
-            default_domain="test",
-        )[0]
-        concept_path = concepts / "test_concept.yaml"
-        concept_path.write_text(
-            yaml.dump(concept_payload, default_flow_style=False), encoding="utf-8"
-        )
-
-        loaded = load_document(concept_path, ConceptDocument, knowledge_root=knowledge)
-        normalized = normalize_loaded_concepts([loaded])[0]
-        loaded_payload = normalized.record.to_payload()
-
-        print("== context fixture concept ==")
-        print("file payload")
-        print(json.dumps(concept_payload, indent=2, sort_keys=True))
-        print("loaded payload")
-        print(json.dumps(loaded_payload, indent=2, sort_keys=True))
-        print("file version", concept_payload["version_id"])
-        print("loaded version", loaded_payload["version_id"])
-        print("recomputed file version", compute_concept_version_id(concept_payload))
-        print("recomputed loaded version", compute_concept_version_id(loaded_payload))
+from tests.conftest import normalize_claims_payload
 
 
 def debug_physics_parameterizations() -> None:

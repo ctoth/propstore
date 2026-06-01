@@ -6,8 +6,6 @@ from hypothesis import strategies as st
 
 from propstore.conflict_detector.equations import detect_equation_conflicts
 from propstore.conflict_detector.models import (
-    ConflictClaim,
-    ConflictClaimVariable,
     ConflictClass,
 )
 

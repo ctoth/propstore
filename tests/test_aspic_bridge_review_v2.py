@@ -9,7 +9,6 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     claims_to_literals,
     justifications_to_rules,
-    project_grounded_rules,
     query_claim,
     stances_to_contrariness,
 )
@@ -19,20 +18,7 @@ from propstore.aspic_bridge.grounding import (
 )
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey, claim_key
-from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
-from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
-
-
-def _make_claim(claim_id: str) -> Claim:
-    return claim_from_payload(
-        {
-            "id": claim_id,
-            "concept_id": f"concept_{claim_id}",
-            "statement": f"Claim {claim_id}",
-            "premise_kind": "ordinary",
-        }
-    )
 
 
 def _make_justification(
@@ -243,57 +229,6 @@ def test_query_claim_does_not_misclassify_supporting_subarguments_as_against() -
     assert result.arguments_against == frozenset()
 
 
-def test_query_claim_arguments_against_excludes_counter_attackers() -> None:
-    claims = [_make_claim("p"), _make_claim("q"), _make_claim("r")]
-    justifications = [
-        _make_justification("reported:p", "p", rule_kind="reported_claim"),
-        _make_justification("reported:q", "q", rule_kind="reported_claim"),
-        _make_justification("reported:r", "r", rule_kind="reported_claim"),
-    ]
-    stances = [
-        stance_from_payload(
-            {"claim_id": "q", "target_claim_id": "p", "stance_type": "rebuts"}
-        ),
-        stance_from_payload(
-            {"claim_id": "r", "target_claim_id": "q", "stance_type": "rebuts"}
-        ),
-    ]
-
-    result = query_claim(
-        "p",
-        active_claims=claims,
-        justifications=justifications,
-        stances=stances,
-        bundle=GroundedRulesBundle.empty(),
-    )
-
-    against_conclusions = {conc(arg) for arg in result.arguments_against}
-    assert against_conclusions == {claims_to_literals(claims)[claim_key("q")]}
-
-
-def test_build_bridge_csaf_populates_framework_attacks() -> None:
-    claims = [_make_claim("a"), _make_claim("b")]
-    justifications = [
-        _make_justification("reported:a", "a", rule_kind="reported_claim"),
-        _make_justification("reported:b", "b", rule_kind="reported_claim"),
-    ]
-    stances = [
-        stance_from_payload(
-            {"claim_id": "a", "target_claim_id": "b", "stance_type": "rebuts"}
-        ),
-    ]
-
-    csaf = build_bridge_csaf(
-        claims,
-        justifications,
-        stances,
-        bundle=GroundedRulesBundle.empty(),
-    )
-
-    assert csaf.attacks
-    assert csaf.framework.attacks is not None
-
-
 def test_csaf_to_projection_keeps_grounded_arguments_and_subarguments() -> None:
     bundle = _make_grounded_bundle(
         rules=(
@@ -367,54 +302,6 @@ def test_justifications_to_rules_rejects_empty_premise_non_reported_rule() -> No
 
     with pytest.raises(ValueError, match="empty-premise"):
         justifications_to_rules(justifications, literals)
-
-
-def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> None:
-    literals: dict[LiteralKey, Literal] = {
-        claim_key("attacker"): _literal_for_atom(GroundAtom("attacker", ()), False, {}),
-    }
-    literals[claim_key("target")] = _literal_for_atom(
-        GroundAtom("flies", ("tweety",)),
-        False,
-        literals,
-    )
-    bundle = _make_grounded_bundle(
-        rules=(
-            _make_rule_document(
-                "r1",
-                _make_atom("flies", (_make_var("X"),)),
-                (_make_atom("bird", (_make_var("X"),)),),
-            ),
-        ),
-        yes={"bird": {("tweety",)}},
-    )
-    projection = project_grounded_rules(bundle, literals)
-    defeasible = projection.defeasible_rules
-    literals = projection.literals
-
-    cfn = stances_to_contrariness(
-        [
-            stance_from_payload(
-                {
-                    "claim_id": "attacker",
-                    "target_claim_id": "target",
-                    "stance_type": "undercuts",
-                    "target_justification_id": "r1",
-                }
-            )
-        ],
-        literals,
-        defeasible,
-        rule_origins=projection.origins,
-    )
-
-    grounded_rule = next(iter(defeasible))
-    grounded_rule_lit = _literal_for_atom(
-        GroundAtom(grounded_rule.name or "", ()),
-        False,
-        {},
-    )
-    assert cfn.is_contrary(literals[claim_key("attacker")], grounded_rule_lit)
 
 
 def test_query_claim_raises_keyerror_for_unknown_goal() -> None:

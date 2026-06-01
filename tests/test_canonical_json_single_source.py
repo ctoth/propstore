@@ -3,12 +3,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from hypothesis import given
-from hypothesis import strategies as st
-import pytest
-
-from quire import canonical_json_bytes
-
 
 def test_propstore_defines_no_local_canonical_json_helpers() -> None:
     offenders: list[str] = []

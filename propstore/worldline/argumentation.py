@@ -16,7 +16,6 @@ from propstore.core.environment import StanceStore
 from propstore.world.types import (
     ClaimSupportView,
     GroundingBundleStore,
-    HasATMSEngine,
     RenderPolicy,
 )
 from propstore.worldline.definition import WorldlineDefinition
@@ -206,20 +205,6 @@ def _capture_aspic(
         backend="aspic",
         justified=tuple(sorted(str(claim_id) for claim_id in justified_claim_ids)),
         defeated=tuple(sorted(str(claim_id) for claim_id in defeated)),
-    )
-
-
-def _capture_atms(
-    bound: WorldlineBoundView,
-    policy: RenderPolicy,
-) -> WorldlineArgumentationState | None:
-    if not isinstance(bound, HasATMSEngine):
-        return None
-    return WorldlineArgumentationState.from_json_payload(
-        bound.atms_engine().argumentation_state(
-            queryables=policy.future_queryables,
-            future_limit=policy.future_limit or 8,
-        )
     )
 
 

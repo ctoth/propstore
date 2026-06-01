@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 
 from quire.sqlalchemy_store import (
     create_sqlalchemy_store,
@@ -20,9 +19,7 @@ from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts.declaration import (
     CONTEXT_LIFTING_MATERIALIZATION_CHARTER,
     compile_context_lifting_materializations,
-    compile_context_models,
 )
-from propstore.families.contexts.stages import LoadedContext
 from propstore.families.registry import world_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
@@ -276,53 +273,3 @@ def test_sidecar_stores_lifting_materialization_provenance(tmp_path) -> None:
     assert row.proposition_id == "claim_alpha"
     assert row.status == "lifted"
     assert row.provenance["source_proposition_id"] == "claim_alpha"
-
-
-def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None:
-    models = compile_context_models(
-        (
-            LoadedContext.from_payload(
-                filename="source.yaml",
-                source_path=None,
-                data={"id": "ctx_source", "name": "Source"},
-            ),
-            LoadedContext.from_payload(
-                filename="target.yaml",
-                source_path=None,
-                data={
-                    "id": "ctx_target",
-                    "name": "Target",
-                    "lifting_rules": [
-                        {
-                            "id": "lift-source-target",
-                            "source": "ctx_source",
-                            "target": "ctx_target",
-                        },
-                    ],
-                },
-            ),
-        ),
-        authored_ist_assertions=(
-            IstProposition(
-                context=ContextReference("ctx_source"),
-                proposition_id="claim_alpha",
-            ),
-        ),
-    )
-
-    _, _, _, materialization_rows = models
-    assert len(materialization_rows) == 1
-    row = materialization_rows[0]
-    assert (
-        row.rule_id,
-        row.source_context_id,
-        row.target_context_id,
-        row.proposition_id,
-        row.status,
-    ) == (
-        "lift-source-target",
-        "ctx_source",
-        "ctx_target",
-        "claim_alpha",
-        "lifted",
-    )

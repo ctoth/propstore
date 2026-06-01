@@ -5,9 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
-from quire.documents import document_to_payload
 
 from propstore.core.assertions.refs import (
     ConditionRef,
@@ -18,7 +17,6 @@ from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import AssertionId, ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.families.claims.declaration import ClaimDocument
-from propstore.families.identity.logical_ids import format_logical_id
 
 
 @dataclass(frozen=True)
@@ -51,19 +49,6 @@ class MergeClaim:
             if isinstance(concept_id, str) and concept_id:
                 return concept_id
         return ""
-
-    @property
-    def logical_ids(self) -> tuple[str, ...]:
-        return tuple(
-            formatted
-            for logical_id in self.document.logical_ids
-            if (
-                formatted := format_logical_id(
-                    cast(dict[str, Any], document_to_payload(logical_id))
-                )
-            )
-            is not None
-        )
 
     @property
     def primary_logical_id(self) -> str | None:
@@ -100,12 +85,6 @@ class MergeClaim:
     @property
     def assertion_id(self) -> AssertionId:
         return self.assertion.assertion_id
-
-    def get(self, key: str, default: object = None) -> object:
-        return self.to_payload(include_id_alias=True).get(key, default)
-
-    def __getitem__(self, key: str) -> object:
-        return self.to_payload(include_id_alias=True)[key]
 
 
 def _provenance_ref(claim: MergeClaim) -> ProvenanceGraphRef:

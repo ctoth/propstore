@@ -8,7 +8,6 @@ Tests are written BEFORE implementation. They import from propstore.worldline
 which does not exist yet — all tests should fail with ImportError initially.
 """
 
-import sqlite3
 from functools import cached_property
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,29 +15,23 @@ from types import SimpleNamespace
 import click
 import pytest
 import yaml
-from hypothesis import given, settings
-from hypothesis import strategies as st
 
 from quire.documents import decode_document_path
 from propstore.families.concepts.declaration import Concept
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
-from propstore.families.claims.types import ClaimType
 from tests.claim_model_helpers import make_claim
 from tests.family_helpers import (
-    claim_artifact_commit_payloads,
     materialized_world_store_path,
 )
 from propstore.cli.worldline import _parse_kv_args
 from quire.tree_path import GitTreePath as GitKnowledgePath
-from quire.git_store import GitStore
 from tests.git_store_helpers import init_store
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 from propstore.world import WorldQuery
 from tests.conftest import (
-    normalize_claims_payload,
     normalize_concept_payloads,
     write_test_context,
 )
@@ -776,7 +769,6 @@ class TestWorldlineRunner:
         """Derived values match SymPy evaluation of formula + inputs (P9)."""
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
-        from sympy.parsing.sympy_parser import parse_expr
 
         wl = WorldlineDefinition.from_dict(
             {
@@ -1789,7 +1781,7 @@ class TestSilentExceptionLogging:
     def test_sensitivity_failure_logs_warning(self, caplog):
         """When sensitivity analysis raises, a warning must be logged."""
         import logging
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 
@@ -1852,7 +1844,6 @@ class TestSilentExceptionLogging:
     def test_argumentation_failure_logs_warning(self, caplog):
         """When argumentation capture raises, a warning must be logged."""
         import logging
-        from unittest.mock import patch
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline import run_worldline
 

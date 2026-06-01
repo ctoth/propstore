@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-from quire.documents import convert_document_value, document_to_payload
+from quire.documents import convert_document_value
 
 from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.families.sources.declaration import (
     SourceDocument,
-    compile_source_models,
     source_document_payload,
 )
 from propstore.opinion import Opinion
 from propstore.praf.engine import p_arg_from_claim
-from propstore.provenance import ProvenanceStatus
 
 
 PRIOR_PAYLOAD = {"b": 0.2, "d": 0.1, "u": 0.7, "a": 0.4}

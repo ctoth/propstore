@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeAlias, cast
+from typing import TypeAlias, cast
 
 import pytest
-import yaml
 
 from gunray.adapter import GunrayEvaluator
 from gunray.conformance_adapter import GunrayConformanceEvaluator
@@ -15,7 +14,6 @@ from gunray.schema import DefeasibleTheory as SuiteTheory
 from gunray.schema import ClosurePolicy, MarkingPolicy
 from gunray.schema import Rule as SuiteRule
 from gunray.types import Constant, GroundAtom as GunrayGroundAtom, Variable
-from propstore.resources import load_resource_text
 
 
 Scalar: TypeAlias = str | int | float | bool
@@ -76,35 +74,6 @@ _PROPSTORE_TRANSLATION_TRANCHE_IDS = (
 def _case_id(resource_path: str, case: SuiteCase) -> str:
     relative = Path(resource_path).with_suffix("")
     return f"{relative.as_posix()}::{case.name}"
-
-
-def _load_resource_cases(resource_path: str) -> list[SuiteCase]:
-    raw = yaml.safe_load(
-        load_resource_text(f"{_DEFEASIBLE_RESOURCE_ROOT}/{resource_path}")
-    )
-    if not isinstance(raw, dict):
-        raise AssertionError(f"Conformance resource {resource_path} must be a mapping")
-    if "tests" in raw:
-        raw_source = raw.get("source")
-        if raw_source is not None and not isinstance(raw_source, str):
-            raise AssertionError("source must be an optional string")
-        base_source = raw_source or resource_path
-        base_tags = _string_list(raw.get("tags", []))
-        entries = raw.get("tests")
-        if not isinstance(entries, list):
-            raise AssertionError(f"{resource_path}: tests must be a list")
-        return [
-            _case_from_json_payload(
-                entry,
-                source=base_source,
-                tags=base_tags,
-                path=f"{resource_path}.tests[{index}]",
-            )
-            for index, entry in enumerate(entries)
-        ]
-    return [
-        _case_from_json_payload(raw, source=resource_path, tags=[], path=resource_path)
-    ]
 
 
 def _rules(raw: object, path: str) -> list[SuiteRule]:

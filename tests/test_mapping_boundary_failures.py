@@ -2,11 +2,6 @@ import pytest
 
 from propstore.core.environment import Environment
 from propstore.core.graph_types import WorldActivationGraph
-from propstore.support_revision.explanation_types import RevisionExplanation
-from propstore.support_revision.snapshot_types import (
-    EpistemicStateSnapshot,
-    RevisionEpisodeSnapshot,
-)
 from propstore.world.types import (
     IntegrityConstraintKind,
     RenderPolicy,
@@ -14,10 +9,6 @@ from propstore.world.types import (
 )
 from propstore.world.resolution import ClaimProvenance
 from propstore.worldline.definition import WorldlineInputs, WorldlineResult
-from propstore.worldline.revision_types import (
-    RevisionConflictSelection,
-    WorldlineRevisionState,
-)
 
 
 def test_environment_rejects_wrong_top_level_type():
@@ -73,75 +64,3 @@ def test_worldline_result_rejects_malformed_values():
 
     with pytest.raises(ValueError, match=r"\$\.values"):
         WorldlineResult.from_dict({"values": {"target": []}})
-
-
-def test_revision_conflicts_reject_wrong_top_level_type():
-    with pytest.raises(ValueError, match="conflicts"):
-        RevisionConflictSelection.from_json_payload([])
-
-
-def test_worldline_revision_state_rejects_malformed_nested_blocks():
-    with pytest.raises(ValueError, match="result"):
-        WorldlineRevisionState.from_json_payload({"operation": "revise", "result": []})
-
-    with pytest.raises(ValueError, match="state"):
-        WorldlineRevisionState.from_json_payload({"operation": "revise", "state": []})
-
-
-def test_revision_explanation_rejects_malformed_atoms():
-    with pytest.raises(ValueError, match="atoms"):
-        RevisionExplanation.from_json_payload(
-            {"accepted_atom_ids": [], "rejected_atom_ids": [], "atoms": []}
-        )
-
-    with pytest.raises(ValueError, match="atoms.claim:1"):
-        RevisionExplanation.from_json_payload(
-            {
-                "accepted_atom_ids": [],
-                "rejected_atom_ids": [],
-                "atoms": {"claim:1": []},
-            }
-        )
-
-
-def test_support_revision_snapshots_reject_malformed_maps():
-    with pytest.raises(ValueError, match="explanation"):
-        RevisionEpisodeSnapshot.from_json_payload(
-            {
-                "operator": "revise",
-                "explanation": [],
-            }
-        )
-
-    with pytest.raises(ValueError, match="support_sets"):
-        EpistemicStateSnapshot.from_json_payload(
-            {
-                "scope": {"bindings": {}},
-                "base": {
-                    "scope": {"bindings": {}},
-                    "atoms": [],
-                    "assumptions": [],
-                    "support_sets": [],
-                    "essential_support": {},
-                },
-                "accepted_atom_ids": [],
-                "ranked_atom_ids": [],
-            }
-        )
-
-    with pytest.raises(ValueError, match="ranking"):
-        EpistemicStateSnapshot.from_json_payload(
-            {
-                "scope": {"bindings": {}},
-                "base": {
-                    "scope": {"bindings": {}},
-                    "atoms": [],
-                    "assumptions": [],
-                    "support_sets": {},
-                    "essential_support": {},
-                },
-                "accepted_atom_ids": [],
-                "ranked_atom_ids": [],
-                "ranking": [],
-            }
-        )

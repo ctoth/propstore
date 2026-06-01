@@ -17,13 +17,11 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
-from propstore.families.claims.types import ClaimType
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
-from tests.claim_model_helpers import make_claim
 
 
 class _World:

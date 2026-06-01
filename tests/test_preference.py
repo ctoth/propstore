@@ -7,10 +7,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 import propstore.preference as preference
-from propstore.families.claims.declaration import Claim
 from propstore.preference import claim_strength
 from propstore.provenance import ProvenanceStatus
-from tests.typed_family_fixtures import claim_from_payload
 
 
 _PROP_SETTINGS = settings(deadline=None)

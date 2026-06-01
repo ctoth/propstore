@@ -5,9 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClass, ConflictClaim
-from propstore.families.contexts.stages import LoadedContext
 from propstore.dimensions import UnitConversion
 from propstore.families.forms.stages import FormDefinition
 from propstore.conflict_detector import (
@@ -52,10 +50,6 @@ def _concept(local_id: str, *, form: str) -> tuple[str, dict]:
         "form": form,
     }
     return data["artifact_id"], data
-
-
-def _context(filename: str, data: dict) -> LoadedContext:
-    return LoadedContext.from_payload(filename=filename, source_path=None, data=data)
 
 
 def _flatten_claims(claims_or_files):

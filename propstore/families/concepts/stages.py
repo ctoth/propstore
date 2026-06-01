@@ -1,40 +1,23 @@
 """Canonical concept dataclasses and boundary conversions."""
 
 from __future__ import annotations
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-import msgspec
 
-from propstore.cel_types import CelExpr, to_cel_exprs
+from propstore.cel_types import to_cel_exprs
 from propstore.families.concepts.declaration import (
-    ConceptAliasDocument,
     ConceptDocument,
-    ConceptFormParametersDocument,
-    ConceptIdScan,
-    ConceptLogicalIdDocument,
-    ConceptRelationshipDocument,
-    ParameterizationRelationshipDocument,
 )
 from propstore.families.concepts.types import ConceptStatus
 from propstore.families.concepts.types import ConceptRelationshipType
-from quire.documents import document_to_payload, load_document_dir, to_document_builtins
-from propstore.core.exactness_types import Exactness, coerce_exactness
+from quire.documents import load_document_dir, to_document_builtins
 from propstore.core.id_types import (
     ClaimId,
     ConceptId,
     LogicalId,
-)
-from propstore.families.identity.concepts import (
-    compute_concept_version_id,
-    derive_concept_artifact_id,
-    normalize_canonical_concept_payload,
-)
-from propstore.families.identity.logical_ids import (
-    format_logical_id,
-    normalize_logical_value,
 )
 from quire.tree_path import TreePath as KnowledgePath
 from quire.documents import LoadedDocument
@@ -363,10 +346,6 @@ def normalize_loaded_concepts(
 
 def primary_logical_id(record: ConceptRecord) -> str | None:
     return record.primary_logical_id
-
-
-def format_loaded_concept_logical_ids(record: ConceptRecord) -> list[dict[str, str]]:
-    return [logical_id.to_payload() for logical_id in record.logical_ids]
 
 
 def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedConcept]:

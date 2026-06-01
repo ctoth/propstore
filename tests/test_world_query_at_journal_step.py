@@ -18,7 +18,6 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.state import AssertionAtom
 from propstore.world.journal_projection import at_journal_step
 from tests.fixtures.journal import (

@@ -277,7 +277,6 @@ def _claim_lines(
     world: "WorldQuery",
     active: Sequence[Claim],
 ) -> tuple[WorldExtensionsClaimLine, ...]:
-    from propstore.families.concepts.declaration import Concept
 
     lines: list[WorldExtensionsClaimLine] = []
     for claim in active:

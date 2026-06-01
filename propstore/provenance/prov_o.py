@@ -42,23 +42,6 @@ def to_prov_o(record: object) -> dict[str, Any]:
     raise TypeError(f"unsupported PROV-O record type: {type(record).__name__}")
 
 
-def provenance_to_prov_o(provenance: object) -> dict[str, Any]:
-    payload = provenance.to_payload()  # type: ignore[attr-defined]
-    graph_name = payload.get("graph_name") or "urn:propstore:provenance:anonymous"
-    node: dict[str, Any] = {
-        "@id": graph_name,
-        "@type": "prov:Entity",
-        "ps:status": payload.get("status"),
-    }
-    if payload.get("derived_from"):
-        node["prov:wasDerivedFrom"] = [
-            {"@id": value} for value in payload["derived_from"]
-        ]
-    if payload.get("operations"):
-        node["ps:operation"] = list(payload["operations"])
-    return _document([node])
-
-
 def _document(graph: list[dict[str, Any]]) -> dict[str, Any]:
     return {"@context": dict(_CONTEXT), "@graph": graph}
 

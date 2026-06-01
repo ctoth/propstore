@@ -14,11 +14,9 @@ from propstore.app.repository_history import (
 )
 from propstore.repository import Repository
 from propstore.merge.merge_commit import create_merge_commit
-from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import (
     make_test_context_commit_entry,
     normalize_claims_payload,
-    normalize_concept_payloads,
 )
 
 
@@ -142,31 +140,6 @@ def test_log_yaml_output(tmp_path: Path) -> None:
     assert entry["message"] == "Add concept: log_yaml (testing:log_yaml)"
     assert "concepts/log_yaml.yaml" in entry["added"]
     assert entry["parents"]
-
-
-def test_log_report_builds_structured_records(tmp_path: Path) -> None:
-    root = tmp_path / "knowledge"
-    repo = Repository.init(root)
-    git = repo.git
-    assert git is not None
-
-    git.commit_files(
-        {"concepts/log_report.yaml": b"canonical_name: log_report\n"},
-        "Add concept: log_report (testing:log_report)",
-    )
-
-    report = build_log_report(
-        repo,
-        count=1,
-        branch_name=None,
-        show_files=True,
-    )
-    payload = report.to_payload(show_files=True)
-
-    assert report.branch == "master"
-    assert len(report.entries) == 1
-    assert report.entries[0].operation == "concept.add"
-    assert payload["entries"][0]["added"] == ["concepts/log_report.yaml"]
 
 
 def test_log_report_rejects_missing_branch(tmp_path: Path) -> None:

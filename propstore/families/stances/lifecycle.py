@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, TYPE_CHECKING, cast
 
-from quire.documents import convert_document_value, document_to_payload
+from quire.documents import convert_document_value
 from quire.lifecycle import (
     FamilyRecordWrite,
     LifecycleCallbacks,
@@ -14,10 +14,7 @@ from quire.lifecycle import (
     TransitionPlan,
     run_transition_batch,
 )
-from quire.references import FamilyReferenceIndex
 
-from propstore.families.claims.declaration import SourceClaimDocument
-from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY,
@@ -27,7 +24,6 @@ from propstore.families.registry import (
 )
 from propstore.families.stances.declaration import (
     STANCE_CHARTER,
-    SourceStanceEntryDocument,
     StanceDocument,
 )
 from propstore.proposal_lifecycle import (

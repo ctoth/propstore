@@ -255,26 +255,6 @@ class WorldlineSensitivityOutcome:
                 "WorldlineSensitivityOutcome.error must be a WorldlineCaptureError"
             )
 
-    @classmethod
-    def from_value(cls, data: Any) -> WorldlineSensitivityOutcome:
-        if isinstance(data, Sequence) and not isinstance(data, (str, bytes)):
-            return cls(
-                entries=tuple(
-                    WorldlineSensitivityEntry.from_json_payload(item)
-                    for item in data
-                    if isinstance(item, Mapping)
-                )
-            )
-        if isinstance(data, Mapping):
-            return cls(
-                error=(
-                    None
-                    if data.get("error") is None
-                    else WorldlineCaptureError(str(data["error"]))
-                )
-            )
-        return cls()
-
     def to_dict(self) -> list[dict[str, Any]] | dict[str, Any]:
         if self.error is not None:
             return {"error": self.error.value}

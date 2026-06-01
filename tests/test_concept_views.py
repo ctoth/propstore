@@ -24,7 +24,7 @@ from propstore.families.concepts.declaration import Concept
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
-from tests.claim_model_helpers import claim_concept_link, make_claim
+from tests.claim_model_helpers import claim_concept_link
 
 
 class _World:

@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
-from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
 
 
 def _registry() -> dict[str, ConceptInfo]:

@@ -27,7 +27,6 @@ from propstore.families.relations.declaration import (
     Stance,
 )
 from propstore.families.concepts.declaration import (
-    Concept,
     Parameterization,
 )
 from propstore.core.labels import (

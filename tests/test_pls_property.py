@@ -32,14 +32,11 @@ from hypothesis import strategies as st
 from propstore.support_revision.history import (
     EpistemicSemanticDiff,
     EpistemicSnapshot,
-    SemanticFieldDelta,
     apply_epistemic_diff,
     diff_epistemic_snapshots,
 )
 from tests.fixtures.journal import (
     make_assertion_atom,
-    make_snapshot,
-    make_state,
 )
 
 
@@ -59,70 +56,6 @@ def st_atom(draw):
         value=val,
         source_claim_local_ids=locals_,
     )
-
-
-@st.composite
-def st_pls_pair(draw):
-    """Build (s, t) where t = apply(s, generated diff).
-
-    s is a snapshot built from a generated atom carrier with no acceptance
-    state. The diff toggles a subset of atom ids' acceptance. Because t is
-    constructed by applying that diff, it is by definition reachable from s
-    on a PLS-valid branch — and the round-trip is the property.
-    """
-    n_atoms = draw(st.integers(min_value=0, max_value=4))
-    raw = [draw(st_atom()) for _ in range(n_atoms)]
-    seen: dict[str, object] = {}
-    for atom in raw:
-        seen.setdefault(atom.atom_id, atom)
-    atoms = tuple(seen.values())
-    s = make_snapshot(make_state(atoms=atoms, accepted_atom_ids=()))
-    # Build a diff whose deltas accept some subset of atom ids.
-    if not atoms:
-        empty_diff = EpistemicSemanticDiff(
-            source_hash=s.content_hash,
-            target_hash=s.content_hash,
-            deltas=(),
-        )
-        return s, s, empty_diff
-    chosen_indices = draw(st.lists(st.sampled_from(range(len(atoms))), unique=True))
-    deltas = tuple(
-        SemanticFieldDelta(
-            surface="assertion_acceptance",
-            key=atoms[i].atom_id,
-            old_value=None,
-            new_value=True,
-        )
-        # Apply in sorted key order — same order propstore uses internally.
-        for i in sorted(chosen_indices, key=lambda j: atoms[j].atom_id)
-    )
-    # Construct an EpistemicSemanticDiff. We need a target_hash; cheat by
-    # applying the deltas through propstore's own machinery to derive it.
-    proto_diff = EpistemicSemanticDiff(
-        source_hash=s.content_hash,
-        target_hash="",
-        deltas=deltas,
-    )
-    # Compute the actual t by patching s's payload with the deltas, then
-    # rehashing — using the same machinery apply_epistemic_diff uses.
-    payload = s.state.to_dict()
-    accepted_list = list(payload["accepted_atom_ids"])
-    for delta in deltas:
-        if delta.key not in accepted_list:
-            accepted_list.append(delta.key)
-    payload["accepted_atom_ids"] = accepted_list
-    t = EpistemicSnapshot.from_json_payload(
-        {
-            "schema_version": s.schema_version,
-            "state": payload,
-        }
-    )
-    diff = EpistemicSemanticDiff(
-        source_hash=s.content_hash,
-        target_hash=t.content_hash,
-        deltas=deltas,
-    )
-    return s, t, diff
 
 
 @pytest.mark.property

@@ -4,8 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import msgspec.yaml
-import pytest
-from quire.documents import convert_document_value, document_to_payload
+from quire.documents import convert_document_value
 
 from propstore.families.claims.declaration import ClaimDocument, SourceClaimDocument
 
@@ -54,30 +53,6 @@ def _load_fixture(filename: str, document_type: type[Any]) -> Any:
         document_type,
         source=path.relative_to(FIXTURE_ROOT.parent.parent).as_posix(),
     )
-
-
-@pytest.mark.parametrize(("filename", "document_type", "_shape_tags"), FIXTURES)
-def test_claim_yaml_fixture_round_trips(
-    filename: str,
-    document_type: type[Any],
-    _shape_tags: frozenset[str],
-) -> None:
-    document = _load_fixture(filename, document_type)
-
-    reparsed_payload = convert_document_value(
-        document_to_payload(document),
-        document_type,
-        source=f"{filename}:payload-roundtrip",
-    )
-    assert reparsed_payload == document
-
-    encoded = msgspec.yaml.encode(document_to_payload(document))
-    reparsed_yaml = convert_document_value(
-        msgspec.yaml.decode(encoded),
-        document_type,
-        source=f"{filename}:yaml-roundtrip",
-    )
-    assert reparsed_yaml == document
 
 
 def test_claim_yaml_fixture_set_covers_phase_4_precondition_shapes() -> None:

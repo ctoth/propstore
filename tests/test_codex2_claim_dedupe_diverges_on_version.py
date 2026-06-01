@@ -1,54 +1,13 @@
 from __future__ import annotations
 
-from quire.documents import LoadedDocument, document_to_payload
+from quire.documents import LoadedDocument
 
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
-    SemanticClaim,
     SemanticClaimFile,
 )
 from propstore.families.claims.declaration import compile_claim_models
 from propstore.families.claims.declaration import ClaimDocument
-from propstore.claims import loaded_claim_file_from_payload
-
-
-def _claim_entry(
-    artifact_id: str,
-    *,
-    version_id: str,
-    concepts: tuple[str, ...] = ("ps:concept:velocity",),
-    statement: str = "observation",
-) -> LoadedDocument[ClaimDocument]:
-    return loaded_claim_file_from_payload(
-        filename=f"{artifact_id.removeprefix('ps:claim:')}.yaml",
-        source_path=None,
-        data={
-            "artifact_id": artifact_id,
-            "version_id": version_id,
-            "type": "observation",
-            "context": {"id": "ctx:test"},
-            "source": {"paper": "demo"},
-            "provenance": {"page": 0, "paper": "demo"},
-            "concepts": list(concepts),
-            "statement": statement,
-        },
-    )
-
-
-def _semantic_claim(entry: LoadedDocument[ClaimDocument]) -> SemanticClaim:
-    payload = dict(document_to_payload(entry.document))
-    artifact_id = payload["artifact_id"]
-    claim_type = payload["type"]
-    if not isinstance(artifact_id, str) or not isinstance(claim_type, str):
-        raise TypeError("test claim payload must carry typed identity fields")
-    return SemanticClaim(
-        filename=entry.filename,
-        source_paper="demo",
-        artifact_id=artifact_id,
-        claim_type=claim_type,
-        authored_claim=payload,
-        resolved_claim=entry.document,
-    )
 
 
 def _bundle(*entries: LoadedDocument[ClaimDocument]) -> ClaimCompilationBundle:

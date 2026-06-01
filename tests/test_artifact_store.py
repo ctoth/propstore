@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from quire.documents import document_to_payload
 from quire.family_store import DocumentFamilyStore
 from propstore.families.registry import (
     SourceRef,
@@ -15,10 +14,6 @@ from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFami
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document
-from propstore.families.sources.declaration import (
-    SourceFinalizeCalibrationDocument,
-    SourceFinalizeReportDocument,
-)
 from propstore.families.sources.declaration import source_document_payload
 from propstore.worldline import WorldlineDefinition
 
@@ -70,50 +65,6 @@ def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
     assert source_document_payload(loaded) == source_document_payload(source_doc)
     assert loaded.kind is SourceKind.ACADEMIC_PAPER
     assert loaded.origin.type is SourceOriginType.MANUAL
-
-
-def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    branch = repo.families.source_documents.address(SourceRef("demo")).branch
-    repo.git.create_branch(branch)
-
-    source_doc = initial_source_document(
-        repo,
-        "demo",
-        kind=SourceKind.ACADEMIC_PAPER,
-        origin_type=SourceOriginType.MANUAL,
-        origin_value="demo",
-    )
-    report = SourceFinalizeReportDocument(
-        kind="source_finalize_report",
-        source=str(source_doc.id),
-        status="ready",
-        claim_reference_errors=(),
-        justification_reference_errors=(),
-        stance_reference_errors=(),
-        concept_alignment_candidates=(),
-        parameterization_group_merges=(),
-        artifact_code_status="incomplete",
-        calibration=SourceFinalizeCalibrationDocument(
-            prior_base_rate_status="fallback",
-            source_quality_status="vacuous",
-            fallback_to_default_base_rate=True,
-        ),
-    )
-
-    with repo.families.transact(
-        message="Write source artifacts",
-        branch=branch,
-    ) as transaction:
-        transaction.source_documents.save(SourceRef("demo"), source_doc)
-        transaction.source_finalize_reports.save(SourceRef("demo"), report)
-
-    commit_sha = transaction.commit_sha
-    assert commit_sha
-    loaded_source = repo.families.source_documents.require(SourceRef("demo"))
-    loaded_report = repo.families.source_finalize_reports.require(SourceRef("demo"))
-    assert source_document_payload(loaded_source) == source_document_payload(source_doc)
-    assert document_to_payload(loaded_report) == document_to_payload(report)
 
 
 def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:

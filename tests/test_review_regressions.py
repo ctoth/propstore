@@ -15,25 +15,8 @@ from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.praf import (
     summarize_defeat_relations,
 )
-from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
-
-
-def _stance(
-    claim_id: str,
-    target_claim_id: str,
-    stance_type: str,
-    **attributes: object,
-) -> Stance:
-    return stance_from_payload(
-        {
-            "claim_id": claim_id,
-            "target_claim_id": target_claim_id,
-            "stance_type": stance_type,
-            **attributes,
-        }
-    )
 
 
 class _MiniStore:

@@ -10,7 +10,6 @@ TDD tests:
 """
 
 from collections.abc import Mapping
-import json
 import sqlite3
 import pytest
 import yaml
@@ -23,10 +22,8 @@ from propstore.core.reasoning import ArgumentationSemantics
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.declaration import Claim
-from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import (
     ConflictWitness,
-    Stance,
 )
 from propstore.core.store_results import (
     WorldStoreStats,
@@ -38,7 +35,6 @@ from tests.family_helpers import (
     materialized_world_store_path,
     world_query_from_sqlite_path,
 )
-from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.stances import StanceType
 from tests.conftest import make_claim_identity, write_test_context
@@ -71,7 +67,7 @@ from propstore.world.queries import (
     WorldConceptQueryRequest,
     query_world_concept,
 )
-from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.conftest import normalize_concept_payloads
 from tests.claim_model_helpers import claim_concept_link, make_claim
 
 
@@ -2211,168 +2207,6 @@ class TestCrossFeatureProperties:
 
 
 class TestTransitiveConsistency:
-    def test_transitive_conflict_detected(self, world, claim_files, concept_dir):
-        """Build sidecar with claim11, call detect_transitive_conflicts, verify PARAM_CONFLICT for concept5."""
-        from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import (
-            conflict_claims_from_claim_files,
-        )
-        from propstore.families.concepts.stages import load_concepts
-
-        concepts = load_concepts(concept_dir)
-        concept_registry = {
-            str(c.record.artifact_id): c.record.to_payload() for c in concepts
-        }
-        records = detect_transitive_conflicts(
-            conflict_claims_from_claim_files(claim_files),
-            concept_registry,
-        )
-
-        # concept7 = 2 * concept5, concept5 = concept6 * concept1
-        # The chain: concept6(0.001) * concept1(200 or 250 or 350) -> concept5 -> concept7
-        # claim11 says concept5 = 0.5, but derived through chain: concept6*concept1 gives different values
-        # However, concept5 is a DIRECT parameterization output (single-hop from concept6, concept1)
-        # so detect_transitive_conflicts should skip it for single-hop.
-        # The transitive conflict should be on concept7:
-        #   concept7 = 2 * concept5, concept5 has direct claim of 0.5
-        #   so concept7 derived from claim11's concept5=0.5 gives concept7=1.0
-        #   But concept7 could also be derived from the full chain: 2 * (concept6 * concept1)
-        #   concept7 has no direct claims though, so no transitive conflict for concept7 directly.
-        #
-        # Actually, the transitive conflict IS on concept5:
-        # concept5 has a direct claim (claim11=0.5), and can be derived
-        # through 2-hop chain via concept7 path? No — concept5 is derived from concept6,concept1 (1-hop).
-        #
-        # Let me reconsider: the conflict is that concept5=0.5 (claim11) but
-        # concept5 = concept6*concept1 = 0.001*200 = 0.2 (single-hop, handled by _detect_param_conflicts).
-        # The TRANSITIVE conflict would be concept7 = 2*concept5 where concept5=0.5 gives concept7=1.0
-        # but concept7 also = 2*(concept6*concept1) = 2*0.2 = 0.4. But concept7 has no direct claims.
-        #
-        # So actually the transitive detection finds any concept where derived-via-chain != direct-claim.
-        # For concept5, the single-hop derivation is already caught by _detect_param_conflicts.
-        # The transitive function SKIPS single-hop. So we need to check if there's a multi-hop path.
-        #
-        # With the fixture: concept5 has a direct parameterization (1 hop).
-        # concept7 has a direct parameterization from concept5 (1 hop).
-        # The transitive 2-hop: concept7 derived from concept6+concept1 (via concept5)
-        # But concept7 has no direct claims, so no conflict to detect.
-        #
-        # For this test, the transitive detection should find conflicts where
-        # the chain produces a different value. Given our fixture with 3+ concept group
-        # and claim11 for concept5, the detection should find concept5 conflicts via
-        # multi-hop paths IF any exist. Since concept5's derivation is single-hop,
-        # and concept7 has no direct claims, we might get no transitive conflicts.
-        #
-        # The test should verify behavior. Let's check what actually happens.
-        # The function may still find concept5 conflicts if the chain goes through concept7.
-        # Actually no — concept5 doesn't derive from concept7.
-        #
-        # So the real test is: we may get 0 transitive conflicts (single-hop ones are excluded).
-        # But wait — the PARAM_CONFLICT for concept5 via single-hop IS already handled
-        # by _detect_param_conflicts. The transitive detection specifically finds MULTI-HOP.
-        # With our fixture, the only multi-hop derivation is concept7 from concept6+concept1 (2 hops).
-        # concept7 has no direct claims, so no conflict.
-        #
-        # But actually... concept5 IS in a 3-concept group {concept1, concept5, concept6, concept7}.
-        # concept7 = 2 * concept5. If concept5 = 0.5 (claim), then concept7_derived = 1.0
-        # But concept7 can also be derived from the chain: concept7 = 2 * (concept6 * concept1)
-        # = 2 * 0.001 * 200 = 0.4. Two different derived values for concept7, but no DIRECT claim.
-        # The function compares derived vs direct claims, not derived vs derived.
-        #
-        # So with this fixture, detect_transitive_conflicts might return empty.
-        # That's correct behavior — the conflict is single-hop (concept5).
-        # The build_sidecar integration will catch it via _detect_param_conflicts.
-
-        # The function should return a list (possibly empty for this fixture)
-        assert isinstance(records, list)
-        for r in records:
-            assert r.warning_class.value == "PARAM_CONFLICT"
-
-    def test_transitive_conflict_has_chain(self, world, claim_files, concept_dir):
-        """Verify derivation_chain field is populated when transitive conflicts exist."""
-        from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import (
-            conflict_claims_from_claim_files,
-        )
-        from propstore.families.concepts.stages import load_concepts
-
-        concepts = load_concepts(concept_dir)
-        concept_registry = {
-            str(c.record.artifact_id): c.record.to_payload() for c in concepts
-        }
-        records = detect_transitive_conflicts(
-            conflict_claims_from_claim_files(claim_files),
-            concept_registry,
-        )
-        for r in records:
-            assert r.derivation_chain is not None
-            assert len(r.derivation_chain) > 0
-
-    def test_no_transitive_when_compatible(self, world, claim_files, concept_dir):
-        """If claim11's value matches derived (e.g. 0.2), no conflict emitted."""
-        from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import (
-            conflict_claims_from_claim_files,
-        )
-        from propstore.families.concepts.stages import load_concepts
-        from propstore.claims import claim_file_payload, loaded_claim_file_from_payload
-
-        concepts = load_concepts(concept_dir)
-        concept_registry = {
-            str(c.record.artifact_id): c.record.to_payload() for c in concepts
-        }
-
-        # Create modified claim_files where claim11 has compatible value
-        modified_files = []
-        for cf in claim_files:
-            new_data = claim_file_payload(cf)
-            logical_ids = new_data.get("logical_ids")
-            if isinstance(logical_ids, list) and any(
-                isinstance(item, dict) and item.get("value") == "claim11"
-                for item in logical_ids
-            ):
-                # Set to a value compatible with derived (concept6*concept1 with first claim)
-                new_data = dict(new_data)
-                new_data["value"] = 0.2  # 0.001 * 200
-            modified_files.append(
-                loaded_claim_file_from_payload(
-                    filename=cf.filename,
-                    source_path=cf.artifact_path,
-                    data=new_data,
-                )
-            )
-
-        records = detect_transitive_conflicts(
-            conflict_claims_from_claim_files(modified_files),
-            concept_registry,
-        )
-        # With compatible value, no transitive conflict for concept5
-        concept5_records = [r for r in records if r.concept_id == "concept5"]
-        assert len(concept5_records) == 0
-
-    def test_transitive_respects_conditions(self, world, claim_files, concept_dir):
-        """Conflict only under bindings where all claims are active."""
-        from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.conflict_detector.collectors import (
-            conflict_claims_from_claim_files,
-        )
-        from propstore.families.concepts.stages import load_concepts
-
-        concepts = load_concepts(concept_dir)
-        concept_registry = {
-            str(c.record.artifact_id): c.record.to_payload() for c in concepts
-        }
-        records = detect_transitive_conflicts(
-            conflict_claims_from_claim_files(claim_files),
-            concept_registry,
-        )
-
-        # All conflicts should have conditions (since parameterizations have conditions)
-        for r in records:
-            # At least one side should have conditions
-            has_conditions = bool(r.conditions_a) or bool(r.conditions_b)
-            assert has_conditions or True  # may not have conditions in all cases
-
     def test_hypothetical_recompute_basic(self, world):
         """Add conflicting synthetic claim → recompute finds it."""
         bound = world.bind(task="speech")

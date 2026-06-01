@@ -21,8 +21,6 @@ from propstore.provenance import (
     SupportEvidence,
     SupportQuality,
 )
-from propstore.families.claims.declaration import Claim
-from tests.typed_family_fixtures import claim_from_payload
 
 
 def _reported(claim_id: str) -> CanonicalJustification:

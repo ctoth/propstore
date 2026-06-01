@@ -20,7 +20,6 @@ from propstore.merge.structured_merge import (
     build_structured_merge_candidates,
 )
 from tests.conftest import make_claim_identity, normalize_claims_payload
-from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:

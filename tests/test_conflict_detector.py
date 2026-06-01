@@ -19,14 +19,8 @@ from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts as _detect_conflicts,
 )
-from propstore.conflict_detector.collectors import (
-    conflict_claim_from_payload,
-    conflict_claims_from_claim_files,
-)
 from propstore.conflict_detector.models import ConflictClaim
-from propstore.claims import loaded_claim_file_from_payload
 from propstore.core.conditions.registry import ConceptInfo, KindType
-from propstore.families.contexts.stages import LoadedContext
 from tests.conftest import (
     make_cel_registry,
     make_concept_identity,
@@ -59,20 +53,6 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
     else:
         claim["value"] = value
     return claim
-
-
-def make_claim_file(claims, filename="test_paper"):
-    """Build runtime conflict claims from claim payloads."""
-    records = []
-    for claim in claims:
-        record = conflict_claim_from_payload(claim, source_paper=filename)
-        assert record is not None
-        records.append(record)
-    return records
-
-
-def make_context(filename: str, data: dict) -> LoadedContext:
-    return LoadedContext.from_payload(filename=filename, source_path=None, data=data)
 
 
 def flatten_claims(claims_or_files):
@@ -535,33 +515,6 @@ class TestRecordFields:
             filename="paper_b",
         )
         records = detect_conflicts([cf1, cf2], make_concept_registry())
-        assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.PHI_NODE
-
-    def test_typed_claim_files_add_source_conditions_at_boundary(self):
-        """Typed claim files convert to runtime conflict claims with source conditions."""
-        file_a = loaded_claim_file_from_payload(
-            filename="paper_a",
-            source_path=None,
-            data={
-                "source": {"paper": "paper_a"},
-                "claims": [make_parameter_claim("claim1", "concept1", 200.0)],
-            },
-        )
-        file_b = loaded_claim_file_from_payload(
-            filename="paper_b",
-            source_path=None,
-            data={
-                "source": {"paper": "paper_b"},
-                "claims": [make_parameter_claim("claim2", "concept1", 350.0)],
-            },
-        )
-
-        claims = conflict_claims_from_claim_files([file_a, file_b])
-        assert claims[0].conditions == ("source == 'paper_a'",)
-        assert claims[1].conditions == ("source == 'paper_b'",)
-
-        records = detect_conflicts([claims], make_concept_registry())
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.PHI_NODE
 

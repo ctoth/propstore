@@ -10,7 +10,7 @@ import sqlite3
 from sqlite3 import Connection
 
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.claim_graph import (
@@ -20,8 +20,6 @@ from propstore.claim_graph import (
 from propstore.argumentation import shared_analyzer_input_from_store
 from propstore.opinion import Opinion
 from argumentation.dung import conflict_free, grounded_extension
-from propstore.praf import build_praf
-from propstore.preference import claim_strength
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 from tests.conftest import (
     create_argumentation_schema,

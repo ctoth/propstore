@@ -5,10 +5,9 @@ from __future__ import annotations
 import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from uuid import uuid4
 
 import yaml
-from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.families.identity.claims import compute_claim_version_id
@@ -19,7 +18,6 @@ from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
-from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:

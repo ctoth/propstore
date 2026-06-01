@@ -14,7 +14,7 @@ from propstore.core.conditions import (
     checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo
-from propstore.core.graph_types import ClaimNode, ProvenanceRecord
+from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import (
     ClaimId,
     ConceptId,
@@ -72,25 +72,6 @@ def claim_node_from_claim(
         ),
         attributes=_claim_graph_attributes(claim),
     )
-
-
-def _claim_provenance(claim: Claim, *, source_id: str) -> ProvenanceRecord | None:
-    provenance_json = claim.provenance_json
-    extras: dict[str, Any] = {}
-    if provenance_json:
-        try:
-            loaded = json.loads(provenance_json)
-            if isinstance(loaded, dict):
-                extras.update(loaded)
-        except json.JSONDecodeError:
-            extras["provenance_json"] = provenance_json
-    if claim.source_paper is not None:
-        extras.setdefault("paper", claim.source_paper)
-    if claim.provenance_page is not None:
-        extras.setdefault("page", claim.provenance_page)
-    extras["source_table"] = "claim"
-    extras["source_id"] = source_id
-    return ProvenanceRecord.from_json_payload(extras)
 
 
 def _claim_graph_attributes(claim: Claim) -> tuple[tuple[str, Any], ...]:

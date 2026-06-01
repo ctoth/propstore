@@ -12,10 +12,8 @@ from hypothesis import strategies as st
 
 from propstore.fragility import (
     AssumptionTarget,
-    BridgeUndercutTarget,
     FragilityReport,
     GroundFactTarget,
-    GroundedRuleTarget,
     InteractionType,
     InterventionFamily,
     InterventionKind,

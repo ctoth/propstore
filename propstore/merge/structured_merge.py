@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
-from quire.documents import document_to_payload
 
 from propstore.core.id_types import (
     ClaimId,
@@ -16,7 +14,6 @@ from propstore.core.id_types import (
 )
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
-    SemanticClaim,
     SemanticClaimFile,
 )
 from propstore.families.claims.declaration import Claim, compile_claim_models
@@ -237,47 +234,6 @@ def _summary_claim_provenance(
     return provenance
 
 
-def _summary_content_signature(
-    active_claims: list[MergeClaim],
-    stance_rows: list[Stance],
-) -> str:
-    claims_payload = []
-    for claim in active_claims:
-        claims_payload.append(_normalize_for_signature(claim.to_payload()))
-    claims_payload.sort(key=lambda payload: str(payload.get("artifact_id", "")))
-
-    stances_payload = [
-        {
-            "claim_id": str(row.claim_id),
-            "target_claim_id": str(row.target_claim_id),
-            "stance_type": row.stance_type,
-            "target_justification_id": (
-                None
-                if row.target_justification_id is None
-                else str(row.target_justification_id)
-            ),
-            "attributes": _normalize_for_signature(row.attribute_mapping()),
-        }
-        for row in stance_rows
-    ]
-    stances_payload.sort(
-        key=lambda payload: (
-            payload["claim_id"],
-            payload["target_claim_id"],
-            payload["stance_type"],
-            payload["target_justification_id"] or "",
-            json.dumps(payload["attributes"], sort_keys=True),
-        )
-    )
-
-    payload = {
-        "claims": claims_payload,
-        "stances": stances_payload,
-    }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-
 def _summary_relation_surface() -> dict[str, str]:
     return {
         "attack": "preserved_via_projection",
@@ -344,17 +300,6 @@ def _claim_entry(claim: MergeClaim) -> LoadedClaimsFile:
     )
 
 
-def _semantic_claim(claim: MergeClaim, entry: LoadedClaimsFile) -> SemanticClaim:
-    return SemanticClaim(
-        filename=entry.filename,
-        source_paper=claim.provenance_payload().get("paper", claim.artifact_id),
-        artifact_id=claim.artifact_id,
-        claim_type=claim.claim_type,
-        authored_claim=claim.to_payload(include_id_alias=True),
-        resolved_claim=claim.document,
-    )
-
-
 def _compiled_branch_claims(active_claims: list[MergeClaim]) -> tuple[Claim, ...]:
     entries = tuple(_claim_entry(claim) for claim in active_claims)
     semantic_files = tuple(
@@ -371,38 +316,6 @@ def _compiled_branch_claims(active_claims: list[MergeClaim]) -> tuple[Claim, ...
         semantic_files=semantic_files,
     )
     return compile_claim_models(bundle, concept_context=None).claims
-
-
-def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[Stance]:
-    rows: list[Stance] = []
-    for claim in active_claims:
-        for stance in claim.document.stances:
-            row = _stance_row_from_mapping(
-                ClaimId(claim.artifact_id),
-                cast(dict[str, Any], document_to_payload(stance)),
-            )
-            if row is not None:
-                rows.append(row)
-    return rows
-
-
-def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[Stance]:
-    rows: list[Stance] = []
-    for handle in snapshot.repo.families.stances.iter_handles(commit=commit):
-        data = handle.document
-        source_claim = (
-            data.source_claim
-            if isinstance(data.source_claim, str) and data.source_claim
-            else None
-        )
-        if source_claim is None:
-            continue
-        row = _stance_row_from_mapping(
-            ClaimId(source_claim), cast(dict[str, Any], document_to_payload(data))
-        )
-        if row is not None:
-            rows.append(row)
-    return rows
 
 
 def build_branch_structured_summary(

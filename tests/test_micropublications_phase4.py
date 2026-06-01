@@ -2,13 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 import yaml
 from click.testing import CliRunner
 
-from propstore.families.micropublications.declaration import MicropublicationDocument
-from quire.documents import convert_document_value
-from quire.documents import document_to_payload
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.family_helpers import materialized_world_store_path
@@ -32,40 +28,6 @@ def _seed_source_promotion_dependencies(repo: Repository) -> None:
         message="Seed source promotion dependencies",
         branch="master",
     )
-
-
-def test_micropublication_document_requires_claim_bundle() -> None:
-    with pytest.raises(ValueError, match="claims"):
-        convert_document_value(
-            {
-                "artifact_id": "ps:micropub:empty",
-                "context": {"id": "ctx_test"},
-                "claims": [],
-                "provenance": {"paper": "demo", "page": 1},
-            },
-            MicropublicationDocument,
-            source="micropubs/empty.yaml",
-        )
-
-    micropub = convert_document_value(
-        {
-            "artifact_id": "ps:micropub:claim1",
-            "context": {"id": "ctx_test"},
-            "claims": ["ps:claim:claim1"],
-            "evidence": [{"kind": "paper_page", "reference": "demo:1"}],
-            "assumptions": ["domain == 'argumentation'"],
-            "stance": "supports",
-            "provenance": {"paper": "demo", "page": 1},
-        },
-        MicropublicationDocument,
-        source="micropubs/claim1.yaml",
-    )
-
-    assert micropub.context.id == "ctx_test"
-    assert micropub.claims == ("ps:claim:claim1",)
-    payload = document_to_payload(micropub)
-    assert isinstance(payload, dict)
-    assert payload["evidence"][0]["reference"] == "demo:1"
 
 
 def _init_source_with_claim(tmp_path: Path) -> Repository:

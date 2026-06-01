@@ -8,7 +8,6 @@ from itertools import product
 from typing import Any, cast
 
 from propstore.families.registry import (
-    CONCEPT_FILE_FAMILY,
     PROPSTORE_FAMILY_REGISTRY,
     PropstoreFamily,
     ConceptAlignmentRef,

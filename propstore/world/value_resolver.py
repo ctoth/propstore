@@ -199,7 +199,6 @@ class ClaimValueResolver:
         override_values: Mapping[str, float | str | None] | None = None,
         _derivation_stack: set[ConceptId] | None = None,
     ) -> DerivedResult:
-        from propstore.propagation import evaluate_parameterization
 
         typed_concept_id = ConceptId(concept_id)
         if _derivation_stack is None:

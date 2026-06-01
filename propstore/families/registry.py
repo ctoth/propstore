@@ -49,15 +49,12 @@ from propstore.families.claims.declaration import (
     JUSTIFICATION_CHARTER,
     SOURCE_CLAIM_BATCH_SPEC,
     SOURCE_JUSTIFICATION_BATCH_SPEC,
-    SourceClaimDocument,
-    SourceJustificationDocument,
 )
 from propstore.families.concepts.declaration import (
     AUTHORED_CONCEPT_CHARTER,
     AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
     ConceptDocument,
     SOURCE_CONCEPT_BATCH_SPEC,
-    SourceConceptEntryDocument,
 )
 from propstore.families.contexts.declaration import CONTEXT_CHARTER
 from propstore.families.forms.models import FORM_CHARTER
@@ -90,7 +87,6 @@ from propstore.families.sources.declaration import SourceFinalizeReportDocument
 from propstore.families.stances.declaration import (
     SOURCE_STANCE_BATCH_SPEC,
     STANCE_CHARTER,
-    SourceStanceEntryDocument,
     StanceDocument,
 )
 from propstore.families.worldlines.declaration import (

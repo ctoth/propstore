@@ -7,7 +7,6 @@ from propstore.repository import Repository
 from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot
 from quire.git_store import GitStore, HeadMismatchError
-from tests.ws_l_merge_helpers import claim_payloads
 
 
 def _snapshot(kr: GitStore) -> RepositorySnapshot:

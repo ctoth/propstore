@@ -15,9 +15,7 @@ from propstore.core.environment import Environment
 from propstore.core.id_types import ContextId
 from propstore.repository import Repository
 from propstore.world.types import (
-    ATMSConceptRelevanceReport,
     ATMSFutureStatusReport,
-    ATMSNodeRelevanceReport,
     ReasoningBackend,
     RenderPolicy,
 )

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -22,29 +22,6 @@ class Justification(FamilyModel):
         if not isinstance(raw, Sequence) or isinstance(raw, str):
             raise ValueError("justification premise_claim_ids must decode to a list")
         return tuple(str(item) for item in raw)
-
-    def provenance_record(self) -> ProvenanceRecord | None:
-        raw = self.provenance_json
-        if raw is None or raw == "":
-            return None
-        if isinstance(raw, str):
-            loaded = json.loads(raw)
-            if isinstance(loaded, str):
-                loaded = json.loads(loaded)
-        elif isinstance(raw, Mapping):
-            loaded = raw
-        else:
-            to_payload = getattr(raw, "to_payload", None)
-            if not callable(to_payload):
-                raise ValueError(
-                    "justification provenance_json must decode to a mapping"
-                )
-            loaded = to_payload()
-        if not isinstance(loaded, Mapping):
-            raise ValueError("justification provenance_json must decode to a mapping")
-        from propstore.core.graph_types import ProvenanceRecord
-
-        return ProvenanceRecord.from_json_payload(loaded)
 
     def to_canonical(self) -> CanonicalJustification:
         attributes = tuple(
@@ -116,33 +93,6 @@ class CanonicalJustification:
         if self.attributes:
             data["attributes"] = dict(self.attributes)
         return data
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> CanonicalJustification:
-        from propstore.core.graph_types import ProvenanceRecord
-
-        provenance_data = data.get("provenance")
-        raw_attributes = data.get("attributes")
-        attributes = (
-            tuple(sorted((str(key), item) for key, item in raw_attributes.items()))
-            if isinstance(raw_attributes, Mapping)
-            else ()
-        )
-        return cls.from_components(
-            justification_id=str(data["justification_id"]),
-            conclusion_claim_id=str(data["conclusion_claim_id"]),
-            premise_claim_ids=tuple(
-                str(item) for item in data.get("premise_claim_ids") or ()
-            ),
-            rule_kind=str(data.get("rule_kind") or "reported_claim"),
-            rule_strength=str(data.get("rule_strength") or "defeasible"),
-            provenance=(
-                None
-                if provenance_data is None
-                else ProvenanceRecord.from_json_payload(provenance_data)
-            ),
-            attributes=attributes,
-        )
 
 
 def claim_justifications_from_active_graph(

@@ -25,7 +25,6 @@ from typing import (
     Protocol,
     TypeGuard,
     TypeVar,
-    cast,
     runtime_checkable,
 )
 
@@ -49,7 +48,6 @@ from propstore.core.id_types import (
 )
 from propstore.core.graph_types import (
     WorldActivationGraph,
-    ClaimNode,
     ConflictWitness as GraphConflictWitness,
     ParameterizationEdge,
 )
@@ -115,7 +113,6 @@ from propstore.world.types import (
 
 if TYPE_CHECKING:
     from propstore.families.contexts.lifting import LiftingSystem
-    from propstore.world.bound import BoundWorld
 
 
 @runtime_checkable

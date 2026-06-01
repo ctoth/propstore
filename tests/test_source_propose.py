@@ -32,15 +32,6 @@ def _init_source(runner: CliRunner, repo: Repository, name: str = "demo"):
     )
 
 
-def _promoted_claims(repo: Repository, source_name: str) -> list[dict]:
-    claims: list[dict] = []
-    for handle in repo.families.claims.iter_handles():
-        source = handle.document.source
-        if source is not None and source.paper == source_name:
-            claims.append(handle.document.to_payload())
-    return claims
-
-
 def _seed_forms(repo: Repository, form_names: list[str]) -> None:
     """Commit minimal form YAML files to master so form validation passes."""
     adds = {}

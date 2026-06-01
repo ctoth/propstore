@@ -3,22 +3,8 @@ from unittest.mock import patch
 import pytest
 
 from propstore.core.conditions.registry import ConceptInfo, KindType
-from propstore.conflict_detector.collectors import conflict_claim_from_payload
-from propstore.conflict_detector.models import ConflictClaim
 from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
-
-
-def _make_claims(claims: list[dict]) -> list[ConflictClaim]:
-    records = []
-    for payload in claims:
-        normalized = dict(payload)
-        if "output_concept" not in normalized and "concept" in normalized:
-            normalized["output_concept"] = normalized.pop("concept")
-        claim = conflict_claim_from_payload(normalized, source_paper="test_paper")
-        assert claim is not None
-        records.append(claim)
-    return records
 
 
 def test_z3_partition_failure_raises() -> None:

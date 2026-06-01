@@ -19,22 +19,6 @@ from tests.support_revision.revision_assertion_helpers import make_assertion_ato
 from tests.test_revision_iterated import _history_sensitive_base
 
 
-def test_epistemic_snapshot_roundtrips_with_stable_hash() -> None:
-    from propstore.support_revision.history import EpistemicSnapshot
-
-    base, entrenchment, _, _ = _history_sensitive_base()
-    state = make_epistemic_state(base, entrenchment)
-
-    snapshot = EpistemicSnapshot.from_state(state)
-    payload = snapshot.to_dict()
-    restored = EpistemicSnapshot.from_json_payload(payload)
-
-    assert payload["content_hash"] == snapshot.content_hash
-    assert restored == snapshot
-    assert restored.to_canonical_json() == snapshot.to_canonical_json()
-    assert restored.content_hash == snapshot.content_hash
-
-
 def test_transition_journal_records_state_policy_operator_and_replay_hashes() -> None:
     from propstore.support_revision.history import (
         JournalOperator,

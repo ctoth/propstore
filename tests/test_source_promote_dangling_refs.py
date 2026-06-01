@@ -90,15 +90,6 @@ def _init_source(repo: Repository, runner: CliRunner, name: str) -> None:
     assert result.exit_code == 0, result.output
 
 
-def _promoted_claims(repo: Repository, source_name: str) -> list[dict]:
-    claims: list[dict] = []
-    for handle in repo.families.claims.iter_handles():
-        source = handle.document.source
-        if source is not None and source.paper == source_name:
-            claims.append(handle.document.to_payload())
-    return claims
-
-
 def _propose_claims_identical(
     repo: Repository, runner: CliRunner, source_name: str
 ) -> None:

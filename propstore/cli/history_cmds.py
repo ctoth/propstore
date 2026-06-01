@@ -5,16 +5,14 @@ from __future__ import annotations
 import click
 
 from propstore.cli.helpers import fail
-from propstore.cli.output import emit, emit_yaml
+from propstore.cli.output import emit
 
 from propstore.app.repository_history import (
-    BranchNotFoundError,
     CommitHasNoConceptsError,
     CommitNotFoundError,
     LogRecord,
     build_commit_show_report,
     build_diff_report,
-    build_log_report,
     checkout_commit,
 )
 
@@ -49,53 +47,6 @@ def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> Non
             emit(f"    M {path}")
         for path in record.deleted:
             emit(f"    D {path}")
-
-
-@click.command("log")
-@click.option(
-    "-n", "--count", default=20, show_default=True, help="Number of entries to show"
-)
-@click.option(
-    "--branch",
-    "branch_name",
-    default=None,
-    help="Branch history to inspect. Defaults to the current HEAD branch.",
-)
-@click.option("--show-files", is_flag=True, help="Show per-commit file changes.")
-@click.option(
-    "--format",
-    "output_format",
-    type=click.Choice(["text", "yaml"]),
-    default="text",
-    show_default=True,
-    help="Render as human-readable text or structured YAML.",
-)
-@click.pass_context
-def log_cmd(
-    ctx: click.Context,
-    count: int,
-    branch_name: str | None,
-    show_files: bool,
-    output_format: str,
-) -> None:
-    """Show knowledge repository history."""
-    repo = ctx.obj["repo"]
-    try:
-        report = build_log_report(
-            repo,
-            count=count,
-            branch_name=branch_name,
-            show_files=show_files,
-        )
-    except BranchNotFoundError as exc:
-        raise click.ClickException(str(exc)) from exc
-    if not report.entries:
-        emit("No history yet.")
-        return
-    if output_format == "yaml":
-        emit_yaml(report.to_payload(show_files=show_files))
-        return
-    _render_text_log(report.entries, show_files=show_files)
 
 
 @click.command("diff")

@@ -20,17 +20,13 @@ from propstore.reporting import JsonReportMixin
 from propstore.claims import (
     LoadedClaimsFile,
     claim_file_filename,
-    claim_file_payload,
-    loaded_claim_file_from_payload,
 )
 from propstore.canonical_namespaces import (
     assert_alias_does_not_target_reserved_namespace,
 )
 from propstore.compiler.context import (
     build_compiler_claim_index,
-    build_compilation_context_from_loaded,
 )
-from propstore.families.claims.passes import validate_claims
 from propstore.concept_ids import (
     candidate_concept_id_for_repo,
     reserve_concept_id_candidate,
@@ -60,7 +56,6 @@ from propstore.core.lemon.qualia import (
     TypeConstraint,
 )
 from propstore.core.lemon.references import OntologyReference
-from propstore.families.identity.claims import normalize_canonical_claim_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.registry import ClaimRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
@@ -1049,190 +1044,6 @@ def add_concept_alias(
         lines=(
             f"Added alias '{request.name}' to "
             f"{_concept_display_handle(updated_document)} ({filepath.stem})",
-        ),
-        warnings=tuple(warnings),
-    )
-
-
-@_serialized_concept_mutation
-def rename_concept(
-    repo: Repository, request: ConceptRenameRequest
-) -> ConceptMutationReport:
-    snapshot = _require_snapshot(repo)
-    concept_entry = _require_concept_entry(repo, request.concept_id)
-    old_ref = _concept_ref(concept_entry)
-    new_ref = ConceptFileRef(request.name)
-
-    filepath = repo.root / Path(repo.families.concepts.address(old_ref).require_path())
-    old_name = concept_entry.document.lexical_entry.canonical_form.written_rep
-    new_path = repo.root / Path(repo.families.concepts.address(new_ref).require_path())
-    new_semantic_path = (
-        repo.tree() / repo.families.concepts.address(new_ref).require_path()
-    )
-    if old_name == request.name:
-        return ConceptMutationReport(
-            lines=(f"No change: concept already named '{request.name}'",)
-        )
-    if new_semantic_path.exists():
-        raise ConceptMutationError(f"Concept file '{new_path}' already exists")
-
-    if request.dry_run:
-        return ConceptMutationReport(
-            lines=(
-                f"Would rename: {old_name} -> {request.name}",
-                f"  {filepath} -> {new_path}",
-            )
-        )
-
-    loaded_concepts = _loaded_concepts(repo)
-    updated_concepts: list[
-        tuple[ConceptFileRef, ConceptFileRef, LoadedDocument[ConceptDocument]]
-    ] = []
-    changed_concept_refs: set[ConceptFileRef] = set()
-    for loaded_document in loaded_concepts:
-        concept_ref = _concept_ref(loaded_document)
-        concept_document = loaded_document.document
-        updated_ref = concept_ref
-        if concept_ref == old_ref:
-            lexical_entry = concept_document.lexical_entry
-            canonical_form = replace_document(
-                lexical_entry.canonical_form,
-                written_rep=request.name,
-            )
-            concept_document = replace_document(
-                concept_document,
-                lexical_entry=replace_document(
-                    lexical_entry,
-                    canonical_form=canonical_form,
-                ),
-                last_modified=str(date.today()),
-            )
-            updated_ref = new_ref
-            changed_concept_refs.add(concept_ref)
-        concept_document, conditions_changed = _rewrite_concept_conditions(
-            concept_document,
-            old_name,
-            request.name,
-        )
-        if conditions_changed:
-            changed_concept_refs.add(concept_ref)
-        updated_concepts.append(
-            (
-                concept_ref,
-                updated_ref,
-                LoadedDocument(
-                    filename=(
-                        request.name
-                        if updated_ref == new_ref
-                        else loaded_document.filename
-                    ),
-                    artifact_path=repo.tree()
-                    / repo.families.concepts.address(updated_ref).require_path(),
-                    store_root=loaded_document.store_root,
-                    document=concept_document,
-                ),
-            )
-        )
-
-    claim_tree = repo.tree()
-    claim_files = [
-        LoadedClaimsFile(
-            filename=handle.ref.artifact_id,
-            artifact_path=claim_tree / handle.address.require_path(),
-            store_root=claim_tree,
-            document=handle.document,
-        )
-        for handle in repo.families.claims.iter_handles()
-    ]
-    concept_validation = _run_concept_validation(
-        repo,
-        [entry for _, _, entry in updated_concepts],
-    )
-    _raise_validation_failure(
-        concept_validation,
-        message="Rename validation failed. No changes written.",
-    )
-    warnings = [_render_diagnostic(warning) for warning in concept_validation.warnings]
-
-    updated_claim_files: list[tuple[ClaimRef, LoadedClaimsFile]] = []
-    changed_claim_refs: set[ClaimRef] = set()
-    if claim_files:
-        for claim_file in claim_files:
-            claim_ref = _claims_ref(claim_file)
-            claim_data = deepcopy(claim_file_payload(claim_file))
-            if _rewrite_claim_conditions(claim_data, str(old_name), request.name):
-                changed_claim_refs.add(claim_ref)
-                claim_data = normalize_canonical_claim_payload(claim_data)
-            updated_claim_files.append(
-                (
-                    claim_ref,
-                    loaded_claim_file_from_payload(
-                        filename=claim_file_filename(claim_file),
-                        source_path=repo.tree()
-                        / repo.families.claims.address(claim_ref).require_path(),
-                        knowledge_root=repo.tree(),
-                        data=claim_data,
-                    ),
-                )
-            )
-        compilation_context = build_compilation_context_from_loaded(
-            normalize_loaded_concepts([entry for _, _, entry in updated_concepts]),
-            form_registry=_form_registry(repo),
-            claim_files=[entry for _, entry in updated_claim_files],
-        )
-        claim_validation = validate_claims(
-            [entry for _, entry in updated_claim_files],
-            compilation_context,
-        )
-        _raise_validation_failure(
-            claim_validation,
-            message="Rename validation failed. No changes written.",
-        )
-        warnings.extend(str(warning) for warning in claim_validation.warnings)
-
-    with repo.families.transact(
-        message=f"Rename concept: {old_name} -> {request.name}"
-    ) as transaction:
-        for original_ref, updated_ref, updated_concept in updated_concepts:
-            if original_ref == old_ref:
-                transaction.concepts.move(
-                    old_ref,
-                    new_ref,
-                    updated_concept.document,
-                )
-                continue
-            if original_ref in changed_concept_refs:
-                transaction.concepts.save(
-                    updated_ref,
-                    updated_concept.document,
-                )
-
-        for claim_ref, updated_claim_file in updated_claim_files:
-            if claim_ref not in changed_claim_refs:
-                continue
-            transaction.claims.save(
-                claim_ref,
-                _claims_document(
-                    repo,
-                    claim_ref,
-                    claim_file_payload(updated_claim_file),
-                ),
-            )
-
-    renamed_entry = next(
-        (entry for _, updated_ref, entry in updated_concepts if updated_ref == new_ref),
-        None,
-    )
-    logical_id = (
-        _concept_display_handle(renamed_entry.document)
-        if renamed_entry is not None
-        else request.name
-    )
-    return ConceptMutationReport(
-        lines=(
-            f"{old_name} -> {request.name}",
-            f"  {filepath} -> {new_path}",
-            f"  Logical ID: {logical_id}",
         ),
         warnings=tuple(warnings),
     )

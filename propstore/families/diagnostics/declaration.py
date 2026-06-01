@@ -12,7 +12,6 @@ from quire.families import FamilyDefinition
 from sqlalchemy import delete, select
 
 from quire.sqlalchemy_store import DerivedSession
-from propstore.core.diagnostics import QuarantineDiagnostic
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 
 if TYPE_CHECKING:

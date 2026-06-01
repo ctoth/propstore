@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Sequence
-from dataclasses import replace
 from itertools import combinations
 from typing import TYPE_CHECKING
 

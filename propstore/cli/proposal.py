@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import click
-from pathlib import Path
 
 from propstore.app.proposals import (
     ProposalPromotionRequest,

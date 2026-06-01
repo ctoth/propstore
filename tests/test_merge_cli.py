@@ -9,13 +9,11 @@ import pytest
 from click.testing import CliRunner
 
 from propstore.cli import cli
-from propstore.families.identity.claims import compute_claim_version_id
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import normalize_claims_payload
-from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:

@@ -2,34 +2,8 @@ from __future__ import annotations
 
 from argumentation.aspic import GroundAtom
 
-from propstore.aspic_bridge.translate import claims_to_literals
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import ProjectionAtom
-from tests.typed_family_fixtures import claim_from_payload
-
-
-def test_aspic_backend_atom_identity_includes_contextual_ist_frame() -> None:
-    """Modgil and Prakken 2018 pngs/page-013 define attack conflict-free
-    extensions over ASPIC arguments/literals; McCarthy 1993 pngs/page-000 and
-    Guha 1991 pngs/page-007 require the literal consumed there to be
-    `ist(context, proposition)`, not a propstore claim id.
-    """
-
-    literals = claims_to_literals(
-        [
-            claim_from_payload(
-                {
-                    "id": "claim_x",
-                    "context_id": "ctx_a",
-                    "source_assertion_ids": ["assertion_x"],
-                }
-            )
-        ]
-    )
-
-    assert {literal.atom for literal in literals.values()} == {
-        GroundAtom("ist", ("ctx_a", "claim_x"))
-    }
 
 
 def test_projection_atom_keeps_backend_atom_separate_from_source_identity() -> None:

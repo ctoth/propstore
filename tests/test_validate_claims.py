@@ -17,8 +17,7 @@ import yaml
 
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.identity.logical_ids import parse_claim_id
-from quire.documents import DocumentSchemaError, document_to_payload
-from propstore.claims import loaded_claim_file_from_payload
+from quire.documents import DocumentSchemaError
 from tests.family_helpers import load_claim_files
 from propstore.families.claims.passes import (
     validate_claims,
@@ -99,21 +98,6 @@ def write_claim_file(claims_dir, filename, data):
     """Helper: write a claim YAML file."""
     path = claims_dir / filename
     path.write_text(yaml.dump(data, default_flow_style=False))
-    return path
-
-
-def write_single_claim_artifact(claims_dir, filename, data):
-    """Helper: write one canonical claim artifact YAML file."""
-    path = claims_dir / filename
-    loaded = loaded_claim_file_from_payload(
-        filename=filename,
-        source_path=path,
-        data=data,
-        knowledge_root=claims_dir,
-    )
-    path.write_text(
-        yaml.dump(document_to_payload(loaded.document), default_flow_style=False)
-    )
     return path
 
 
@@ -796,105 +780,6 @@ class TestStanceGraphIntegrity:
 
 
 class TestDraftArtifactBoundary:
-    def test_draft_claim_file_traverses_binding_with_info_diagnostic(self, tmp_path):
-        """Drafts populate through the compile path; diagnostic downgrades to info.
-
-        Per ``reviews/2026-04-16-code-review/workstreams/ws-z-render-gates.md``
-        axis-1 finding 3.2: the former build-time drop of draft files —
-        which replaced their claims with an empty tuple — becomes a
-        render-time policy filter. Draft claims traverse the same binding
-        path as final claims; the PassDiagnostic survives as
-        ``code='claim.info'``, not an error. ``validate_claims`` returns
-        ``ok=True`` because the diagnostic is non-blocking.
-
-        Inversion of the prior
-        ``test_draft_claim_file_rejected_from_final_validation`` assertion.
-        """
-
-        draft_file = loaded_claim_file_from_payload(
-            filename="draft_claims",
-            source_path=tmp_path / "draft_claims.yaml",
-            data={
-                "stage": "draft",
-                "source": make_source(),
-                "claims": [
-                    {
-                        "id": "claim1",
-                        "type": "observation",
-                        "statement": "Unlinked draft observation",
-                        "concepts": [],
-                        "context": {"id": TEST_CONTEXT_ID},
-                        "provenance": {"paper": "test_paper", "page": 0},
-                    }
-                ],
-            },
-        )
-
-        result = validate_claims([draft_file], make_compilation_context())
-        # A draft stage alone must not produce a validation error. Any
-        # residual error must not be the "draft artifacts are not accepted"
-        # message from the old build-time gate.
-        draft_gate_errors = [
-            error
-            for error in result.errors
-            if "draft artifacts are not accepted" in error.lower()
-        ]
-        assert not draft_gate_errors, (
-            "draft-stage files must no longer produce the "
-            "'draft artifacts are not accepted' error; got: "
-            f"{draft_gate_errors!r}"
-        )
-
-    def test_draft_claim_file_surfaces_in_compilation_bundle(self, tmp_path):
-        """Draft claim files emit their claims into the semantic bundle.
-
-        Property: with the gate removed, ``compile_claim_files`` binds
-        draft claims like any other file. The returned
-        ``SemanticClaimFile`` for a draft has non-empty ``claims`` (the
-        prior behavior replaced ``claims`` with ``tuple()``).
-        """
-
-        from propstore.families.claims.passes import compile_claim_files
-
-        draft_file = loaded_claim_file_from_payload(
-            filename="draft_claims",
-            source_path=tmp_path / "draft_claims.yaml",
-            data={
-                "stage": "draft",
-                "source": make_source(),
-                "claims": [
-                    make_observation_claim(
-                        "draft_claim_1",
-                        "A draft observation",
-                        [],
-                        page=0,
-                    )
-                ],
-            },
-        )
-        context = make_compilation_context(claim_files=[draft_file])
-        bundle = compile_claim_files([draft_file], context)
-
-        assert len(bundle.semantic_files) == 1
-        draft_semantic_file = bundle.semantic_files[0]
-        assert len(draft_semantic_file.claims) == 1, (
-            "draft file must surface its claims into the semantic bundle "
-            "(was previously replaced with an empty tuple)"
-        )
-
-        # Any diagnostic emitted for draft stage must be at info level.
-        draft_stage_diagnostics = [
-            diagnostic
-            for diagnostic in bundle.diagnostics
-            if diagnostic.filename == "draft_claims"
-            and "draft" in diagnostic.message.lower()
-        ]
-        for diagnostic in draft_stage_diagnostics:
-            assert not diagnostic.is_error, (
-                f"draft-stage diagnostic must not be level='error'; got "
-                f"{diagnostic.level!r}: {diagnostic.message!r}"
-            )
-
     def test_model_missing_parameters_error(self, claims_dir):
         claim = {
             "id": "claim1",

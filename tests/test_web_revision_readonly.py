@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from propstore.web.app import create_app
-from tests.test_revision_phase1_cli import revision_cli_workspace
 
 
 def test_web_revision_base_route_is_read_only_app_backed(

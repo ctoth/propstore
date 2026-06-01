@@ -20,8 +20,7 @@ from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindin
 class AssertionCanonicalRecord:
     """Canonical serialized form of one situated assertion.
 
-    The record is the closed object used inside the core. The mapping returned
-    by ``to_payload`` is only for serialization and external IO boundaries.
+    The record is the closed object used inside the core.
     """
 
     assertion_id: AssertionId | str

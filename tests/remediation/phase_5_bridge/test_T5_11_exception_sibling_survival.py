@@ -11,14 +11,12 @@ from propstore.defeasibility import (
     evaluate_contextual_claim,
 )
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.families.claims.declaration import Claim
 from propstore.provenance import (
     ProvenancePolynomial,
     SourceVariableId,
     SupportEvidence,
     SupportQuality,
 )
-from tests.typed_family_fixtures import claim_from_payload
 
 
 def _reported(claim_id: str) -> CanonicalJustification:

@@ -12,7 +12,7 @@ from click.testing import CliRunner
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from tests.family_helpers import build_sidecar, materialized_world_store_path
+from tests.family_helpers import materialized_world_store_path
 from propstore.cli import cli
 from propstore.families.concepts.lifecycle import parameterization_group_merge_preview
 from propstore.repository import Repository
@@ -69,15 +69,6 @@ def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-
-
-def _promoted_claims(repo: Repository, source_name: str) -> list[dict]:
-    claims: list[dict] = []
-    for handle in repo.families.claims.iter_handles():
-        source = handle.document.source
-        if source is not None and source.paper == source_name:
-            claims.append(handle.document.to_payload())
-    return claims
 
 
 def _seed_master_concept(

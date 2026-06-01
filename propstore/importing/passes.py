@@ -23,10 +23,6 @@ from propstore.families.registry import (
     PropstoreFamily,
     semantic_import_families,
 )
-from propstore.families.identity.concepts import (
-    concept_reference_keys,
-    normalize_canonical_concept_payload,
-)
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassResult, PipelineResult

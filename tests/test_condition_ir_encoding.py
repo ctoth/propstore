@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 
 from propstore.core.conditions import (
     ConditionBinary,

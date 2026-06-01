@@ -180,13 +180,6 @@ class LiftedAssertion:
     def proposition_id(self) -> str:
         return self.assertion.proposition_id
 
-    @property
-    def provenance(self) -> dict[str, object]:
-        payload = self.decision.provenance.to_payload()
-        if self.decision.exception is not None:
-            payload["defeated_use"] = self.decision.exception.defeated_use
-        return payload
-
 
 @dataclass(frozen=True)
 class LiftingSystem:

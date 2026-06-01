@@ -18,12 +18,9 @@ from cel_parser import (
     OP_NEG,
     OP_NOT,
     Call,
-    Ident,
-    IntLit,
-    StringLit,
     parse as parse_cel,
 )
-from propstore.core.conditions.cel_frontend import CelError, check_cel_expression
+from propstore.core.conditions.cel_frontend import check_cel_expression
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES
 from propstore.cel_registry import (

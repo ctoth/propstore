@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import click
-from quire.documents import document_to_payload
 
-from propstore.cli.output import emit, emit_table, emit_yaml
+from propstore.cli.output import emit, emit_table
 
 from propstore.app.micropubs import (
     MicropubNotFoundError,
-    find_micropub,
     inspect_micropub_lift,
     list_micropubs,
 )
@@ -35,19 +33,6 @@ def list_cmd(obj: dict) -> None:
         ("ARTIFACT ID", "CONTEXT", "SOURCE"),
         [(item.artifact_id, item.context_id, item.source or "") for item in items],
     )
-
-
-@micropub.command("show")
-@click.argument("artifact_id")
-@click.pass_obj
-def show(obj: dict, artifact_id: str) -> None:
-    """Render one micropublication by artifact id."""
-    repo: Repository = obj["repo"]
-    try:
-        entry = find_micropub(repo, artifact_id)
-    except MicropubNotFoundError as exc:
-        fail(exc)
-    emit_yaml(document_to_payload(entry.document))
 
 
 @micropub.command("lift")

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from .mutation import (
     ConceptEmbedReport,
-    ConceptEmbedModelReport,
     ConceptEmbedRequest,
     ConceptEmbeddingModelError,
     ConceptSidecarMissingError,
@@ -13,7 +12,6 @@ from .mutation import (
     ConceptSimilarReport,
     ConceptSimilarRequest,
     ConceptWorkflowError,
-    UnknownConceptError,
     _concept_embed_model_report,
 )
 from propstore.compiler.workflows import build_repository_world_store

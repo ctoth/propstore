@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import pytest
-from hypothesis import given
-from hypothesis import strategies as st
 
-from propstore.families.claims.declaration import ClaimDocument, IstPropositionDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.contexts.declaration import ContextDocument
 from quire.documents import (
     DocumentSchemaError,
     convert_document_value,
-    document_to_payload,
 )
 
 
@@ -92,87 +89,6 @@ def test_claim_document_requires_explicit_context_reference() -> None:
     )
 
     assert claim.context.id == "ctx_target"
-
-
-def test_claim_document_parses_nested_ist_proposition() -> None:
-    claim = convert_document_value(
-        {
-            "artifact_id": "ps:claim:nested-ist",
-            "context": {"id": "ctx_outer"},
-            "proposition": {
-                "kind": "ist",
-                "context": {"id": "ctx_middle"},
-                "proposition": {
-                    "kind": "ist",
-                    "context": {"id": "ctx_inner"},
-                    "proposition": {
-                        "kind": "atomic",
-                        "type": "observation",
-                        "statement": "nested proposition",
-                        "concepts": ["concept_a"],
-                    },
-                },
-            },
-        },
-        ClaimDocument,
-        source="claims/nested-ist.yaml",
-    )
-
-    assert isinstance(claim.proposition, IstPropositionDocument)
-    assert claim.proposition.context.id == "ctx_middle"
-    inner = claim.proposition.proposition
-    assert isinstance(inner, IstPropositionDocument)
-    assert inner.context.id == "ctx_inner"
-    payload = document_to_payload(claim)
-    assert isinstance(payload, dict)
-    assert payload["proposition"]["proposition"]["context"]["id"] == "ctx_inner"
-
-
-@pytest.mark.property
-@given(
-    st.lists(
-        st.sampled_from(["ctx_a", "ctx_b", "ctx_c", "ctx_d"]), min_size=1, max_size=4
-    )
-)
-def test_nested_ist_proposition_round_trips_context_stack(
-    context_ids: list[str],
-) -> None:
-    proposition: dict[str, object] = {
-        "kind": "atomic",
-        "type": "observation",
-        "statement": "round-trip proposition",
-        "concepts": ["concept_a"],
-    }
-    for context_id in reversed(context_ids):
-        proposition = {
-            "kind": "ist",
-            "context": {"id": context_id},
-            "proposition": proposition,
-        }
-
-    claim_payload = {
-        "artifact_id": "ps:claim:nested-ist-property",
-        "context": {"id": "ctx_outer"},
-        "proposition": proposition,
-    }
-    claim = convert_document_value(
-        claim_payload,
-        ClaimDocument,
-        source="claims/nested-ist-property.yaml",
-    )
-    reparsed = convert_document_value(
-        document_to_payload(claim),
-        ClaimDocument,
-        source="claims/nested-ist-property-roundtrip.yaml",
-    )
-
-    cursor = reparsed.proposition
-    observed_contexts: list[str] = []
-    while isinstance(cursor, IstPropositionDocument):
-        observed_contexts.append(cursor.context.id)
-        cursor = cursor.proposition
-
-    assert observed_contexts == context_ids
 
 
 def test_lifting_system_is_explicit_rule_based() -> None:

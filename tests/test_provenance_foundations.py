@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 
 import pytest
 from dulwich.objects import Blob
@@ -17,7 +15,6 @@ from propstore.families.sources.declaration import (
 from quire.documents import (
     DocumentSchemaError,
     convert_document_value,
-    document_to_payload,
 )
 from propstore.opinion import Opinion
 from propstore.provenance import (
@@ -194,40 +191,6 @@ def test_source_trust_status_is_mandatory_at_document_boundary() -> None:
         )
 
 
-def test_source_trust_status_round_trips() -> None:
-    trust = SourceTrustDocument(
-        status=ProvenanceStatus.DEFAULTED,
-        prior_base_rate=Opinion(0.0, 0.0, 1.0, 0.5),
-        quality=SourceTrustQualityDocument(
-            status=ProvenanceStatus.VACUOUS,
-            b=0.0,
-            d=0.0,
-            u=1.0,
-            a=0.5,
-        ),
-        derived_from=(),
-    )
-
-    assert document_to_payload(trust) == {
-        "status": "defaulted",
-        "prior_base_rate": {
-            "b": 0.0,
-            "d": 0.0,
-            "u": 1.0,
-            "a": 0.5,
-            "allow_dogmatic": False,
-        },
-        "quality": {
-            "status": "vacuous",
-            "b": 0.0,
-            "d": 0.0,
-            "u": 1.0,
-            "a": 0.5,
-        },
-        "derived_from": [],
-    }
-
-
 def test_resolution_rejects_scalar_opinion_fields() -> None:
     with pytest.raises(DocumentSchemaError):
         convert_document_value(
@@ -237,27 +200,6 @@ def test_resolution_rejects_scalar_opinion_fields() -> None:
                 "opinion_disbelief": 0.0,
                 "opinion_uncertainty": 0.0,
                 "opinion_base_rate": 0.5,
-            },
-            ResolutionDocument,
-            source="stances.yaml",
-        )
-
-
-def test_resolution_rejects_nested_opinion_document() -> None:
-    with pytest.raises(DocumentSchemaError):
-        convert_document_value(
-            {
-                "method": "nli",
-                "confidence": 0.5,
-                "opinion": {
-                    "b": 0.0,
-                    "d": 0.0,
-                    "u": 1.0,
-                    "a": 0.5,
-                    "provenance": _provenance(
-                        ProvenanceStatus.VACUOUS, "stance"
-                    ).to_payload(),
-                },
             },
             ResolutionDocument,
             source="stances.yaml",

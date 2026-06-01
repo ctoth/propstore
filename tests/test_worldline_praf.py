@@ -7,17 +7,10 @@ per Li et al. (2011, Def 2, Eq 2).
 
 from __future__ import annotations
 
-import pytest
 
-from propstore.core.graph_types import CompiledWorldGraph, WorldActivationGraph
 from propstore.families.concepts.declaration import Concept
 from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 from propstore.worldline import WorldlineDefinition, run_worldline
-from tests.typed_family_fixtures import (
-    claim_from_payload,
-    claim_node_from_payload,
-    stance_from_payload,
-)
 
 SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
 
@@ -58,42 +51,6 @@ class FakeWorld:
     bind, get_concept, get_claim, has_table, stances_between.
     """
 
-    def __init__(self):
-        claim_payloads = (
-            {
-                "id": "claim_a",
-                "concept_id": "concept1",
-                "value": 10.0,
-                "confidence": 1.0,
-                "sample_size": 10,
-                "claim_probability": 1.0,
-                "effective_sample_size": 10,
-                "source_prior_base_rate": SOURCE_PRIOR_05,
-            },
-            {
-                "id": "claim_b",
-                "concept_id": "concept1",
-                "value": 20.0,
-                "confidence": 1.0,
-                "sample_size": 10,
-                "claim_probability": 1.0,
-                "effective_sample_size": 10,
-                "source_prior_base_rate": SOURCE_PRIOR_05,
-            },
-        )
-        self._claims = {
-            str(payload["id"]): claim_from_payload(payload)
-            for payload in claim_payloads
-        }
-        self._active_graph = WorldActivationGraph(
-            compiled=CompiledWorldGraph(
-                claims=tuple(
-                    claim_node_from_payload(payload) for payload in claim_payloads
-                ),
-            ),
-            active_claim_ids=("claim_a", "claim_b"),
-        )
-
     def bind(self, environment=None, *, policy=None, **conditions):
         claims = [self._claims["claim_a"], self._claims["claim_b"]]
         return FakeBound(claims, self._active_graph)
@@ -111,22 +68,6 @@ class FakeWorld:
 
     def claims_by_ids(self, claim_ids):
         return {cid: self._claims[cid] for cid in claim_ids if cid in self._claims}
-
-    def stances_between(self, claim_ids):
-        if {"claim_a", "claim_b"}.issubset(claim_ids):
-            return [
-                stance_from_payload(
-                    {
-                        "claim_id": "claim_b",
-                        "target_claim_id": "claim_a",
-                        "stance_type": "rebuts",
-                        "confidence": 0.8,
-                        "opinion_base_rate": 0.5,
-                        "note": "rebuts-note",
-                    }
-                ),
-            ]
-        return []
 
     def parameterizations_for(self, concept_id):
         return []

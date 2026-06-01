@@ -16,10 +16,6 @@ from propstore.policies import (
     default_policy_profile,
     policy_assertions,
 )
-from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
-from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom
-from tests.test_revision_iterated import _history_sensitive_base
 
 
 def test_policy_profile_roundtrips_with_stable_content_identity() -> None:

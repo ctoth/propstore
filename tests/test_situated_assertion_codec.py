@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-import pytest
-from hypothesis import given
-from hypothesis import strategies as st
 
-from propstore.core.assertions.codec import AssertionCanonicalRecord
 from propstore.core.assertions.refs import (
     ConditionRef,
     ContextReference,

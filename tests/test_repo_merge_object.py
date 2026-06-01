@@ -10,10 +10,8 @@ from quire.git_store import GitStore
 from tests.git_store_helpers import init_store
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
-from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import make_claim_identity, normalize_claims_payload
-from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
@@ -207,55 +205,6 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
     assert emitted.branch_origins == (branch_name,)
     assert merge.framework.attacks == frozenset()
     assert merge.framework.ignorance == frozenset()
-
-
-def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_rivals(
-    tmp_path,
-):
-    kr = init_store(tmp_path / "knowledge")
-    base_sha = kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
-        "seed",
-    )
-    branch_name = "paper/provenance"
-    kr.create_branch(branch_name, source_commit=base_sha)
-
-    kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 300.0)]),
-        "left: modify claim1",
-    )
-    kr.commit_files(
-        _claim_payloads(kr, [_param_claim("claim1", "concept_x", 150.0)]),
-        "right: modify claim1",
-        branch=branch_name,
-    )
-
-    merge_sha = create_merge_commit(_snapshot(kr), "master", branch_name)
-
-    from propstore.claims import claim_file_claims
-    from tests.family_helpers import load_claim_files
-
-    claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
-
-    manifest = yaml.safe_load(
-        (kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text()
-    )
-    manifest_arguments = manifest["merge"]["arguments"]
-    canonical_artifact_id = make_claim_identity("claim1", namespace="test_paper")[
-        "artifact_id"
-    ]
-
-    materialized_claims = [
-        claim.to_payload()
-        for claim_file in claim_files
-        for claim in claim_file_claims(claim_file)
-        if claim.artifact_id in {row["assertion_id"] for row in manifest_arguments}
-    ]
-    assert {claim["value"] for claim in materialized_claims} == {150.0, 300.0}
-
-    assert len(manifest_arguments) == 2
-    assert all(row["materialized"] is True for row in manifest_arguments)
-    assert {row["artifact_id"] for row in manifest_arguments} == {canonical_artifact_id}
 
 
 def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:

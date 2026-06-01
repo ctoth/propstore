@@ -15,7 +15,6 @@ from propstore.app.world_revision import (
     AppRevisionExplainRequest,
     AppRevisionReviseRequest,
     AppRevisionWorldRequest,
-    RevisionAtomDisplay,
     WorldRevisionValidationError,
     revision_atom_display,
     world_revision_base as run_world_revision_base,

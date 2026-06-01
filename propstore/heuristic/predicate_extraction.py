@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any
 
-from quire.documents import convert_document_value
 
 from propstore.families.predicates.declaration import (
     PredicateDeclaration,
@@ -19,10 +16,8 @@ from propstore.families.predicates.declaration import (
 from propstore.families.registry import (
     PROPOSAL_PREDICATE_BRANCH,
     PredicateRef,
-    PredicateProposalRef,
 )
 from propstore.resources import load_package_resource_text
-from propstore.repository import Repository
 
 
 PROMPT_TEMPLATE = load_package_resource_text(
@@ -85,58 +80,4 @@ def _proposal_document(
             status="calibrated",
         ),
         extraction_date=str(date.today()),
-    )
-
-
-def propose_predicates_for_paper(
-    repo: Repository,
-    *,
-    source_paper: str,
-    model_name: str,
-    prompt_version: str = "v1",
-    dry_run: bool = False,
-    llm_response: str | None = None,
-) -> PredicateProposalResult:
-    notes = _paper_notes(source_paper)
-    raw = llm_response
-    if raw is None:
-        raw = _llm_call(
-            model_name=model_name,
-            prompt=PROMPT_TEMPLATE,
-            prompt_version=prompt_version,
-            source_paper=source_paper,
-            notes=notes,
-        )
-    declarations = _declarations_from_payload(_loads_payload(raw))
-    document = _proposal_document(
-        source_paper=source_paper,
-        model_name=model_name,
-        notes_sha=_notes_sha(notes),
-        declarations=declarations,
-    )
-    ref = PredicateProposalRef(source_paper)
-    relpath = repo.families.proposal_predicates.address(ref).require_path()
-    if dry_run:
-        return PredicateProposalResult(
-            commit_sha=None,
-            declarations=declarations,
-            relpath=relpath,
-            document=document,
-        )
-
-    commit_sha: str | None = None
-    with repo.families.transact(
-        message=f"Record predicate proposals for {source_paper}",
-        branch=predicate_proposal_branch(),
-    ) as transaction:
-        transaction.proposal_predicates.save(ref, document)
-        transaction.transaction.commit()
-        commit_sha = transaction.commit_sha
-    if commit_sha is None:
-        raise ValueError("predicate proposal transaction did not produce a commit")
-    return PredicateProposalResult(
-        commit_sha=commit_sha,
-        declarations=declarations,
-        relpath=relpath,
-        document=document,
     )

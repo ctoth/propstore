@@ -16,7 +16,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
-from hypothesis import given, assume, settings
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.heuristic.calibrate import (

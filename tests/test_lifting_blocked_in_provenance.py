@@ -12,24 +12,7 @@ from propstore.families.concepts.declaration import Concept
 from propstore.world.types import Environment
 from propstore.world.bound import BoundWorld
 from propstore.worldline import WorldlineDefinition, WorldlineInputs, run_worldline
-from propstore.worldline.result_types import WorldlineDependencies
 from tests.claim_model_helpers import make_claim
-
-
-def test_ws_j_worldline_dependencies_roundtrip_lifting_provenance() -> None:
-    dependencies = WorldlineDependencies.from_json_payload(
-        {
-            "claims": ["claim_local"],
-            "contexts": ["ctx_target"],
-            "lifting_rules": ["lift-source-target"],
-            "blocked_exceptions": ["except-alpha"],
-        }
-    )
-
-    assert dependencies.lifting_rules == ("lift-source-target",)
-    assert dependencies.blocked_exceptions == ("except-alpha",)
-    assert dependencies.to_dict()["lifting_rules"] == ["lift-source-target"]
-    assert dependencies.to_dict()["blocked_exceptions"] == ["except-alpha"]
 
 
 def test_ws_j_worldline_dependencies_include_blocked_lifting_exception() -> None:

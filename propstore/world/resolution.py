@@ -18,7 +18,6 @@ from propstore.core.id_types import (
     ConceptId,
 )
 from propstore.families.claims.declaration import Claim
-from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
 from propstore.world.assignment_selection_policy import (
     resolve_assignment_selection_merge,

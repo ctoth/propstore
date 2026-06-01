@@ -56,7 +56,6 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 import gunray
-import msgspec
 from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
 from quire.charter_class import CharterDoc, charter, charter_field

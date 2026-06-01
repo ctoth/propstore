@@ -3,14 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-import yaml
 
 from propstore.repository import Repository
 from propstore.importing.repository_import import (
     commit_repository_import,
     plan_repository_import,
 )
-from tests.conftest import TEST_CONTEXT_ID
 
 
 def test_local_handle_collision_blocks_repository_import_commit(tmp_path: Path) -> None:

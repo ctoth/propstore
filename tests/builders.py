@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from quire.documents import document_to_payload
-
-from tests.conftest import TEST_CONTEXT_ID
-
 
 @dataclass(frozen=True)
 class SourceClaimSpec:
@@ -35,38 +31,3 @@ class SourceStanceSpec:
     stance_type: str
     note: str | None = None
     strength: str | None = None
-
-
-def source_claims_document(
-    claims: list[SourceClaimSpec],
-    *,
-    paper: str = "demo",
-) -> dict[str, object]:
-    return {
-        "source": {"paper": paper},
-        "claims": [claim.to_payload() for claim in claims],
-    }
-
-
-def source_justifications_document(
-    justifications: list[SourceJustificationSpec],
-    *,
-    paper: str = "demo",
-) -> dict[str, object]:
-    return {
-        "source": {"paper": paper},
-        "justifications": [
-            justification.to_payload() for justification in justifications
-        ],
-    }
-
-
-def source_stances_document(
-    stances: list[SourceStanceSpec],
-    *,
-    paper: str = "demo",
-) -> dict[str, object]:
-    return {
-        "source": {"paper": paper},
-        "stances": [document_to_payload(stance) for stance in stances],
-    }

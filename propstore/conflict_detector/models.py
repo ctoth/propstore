@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import Any, cast
+from typing import Any
 
-from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
+from propstore.cel_types import CelExpr, to_cel_expr
 
 
 @dataclass(frozen=True)

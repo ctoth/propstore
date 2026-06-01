@@ -10,7 +10,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from quire.documents import convert_document_value
 
 from propstore.families.rules.declaration import (
     AtomDocument,

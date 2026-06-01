@@ -75,10 +75,8 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 if TYPE_CHECKING:
-    from argumentation.aspic import Literal, Rule
+    from argumentation.aspic import Literal
     from propstore.core.literal_keys import LiteralKey
-    from propstore.grounding.bundle import GroundedRulesBundle
-    from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
 
 # ---------------------------------------------------------------------------
@@ -157,8 +155,6 @@ def _bundle(rules=(), yes=None):
     id — that is the shape the bundle sections carry and the shape
     T2.5 will read to enumerate substitutions.
     """
-
-    from propstore.grounding.bundle import GroundedRulesBundle
 
     def _freeze(section: Mapping[str, frozenset[tuple]] | None):
         if section is None:

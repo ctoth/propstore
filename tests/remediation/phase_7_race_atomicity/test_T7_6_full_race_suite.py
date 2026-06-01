@@ -24,7 +24,6 @@ from propstore.compiler.workflows import write_repository_world_store as build_s
 from propstore.families.registry import world_schema
 from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot
-from tests.ws_l_merge_helpers import claim_payloads
 
 
 def _snapshot(kr: GitStore) -> RepositorySnapshot:

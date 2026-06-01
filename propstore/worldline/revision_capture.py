@@ -21,14 +21,11 @@ from propstore.support_revision.input_normalization import (
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import (
     EpistemicState,
-    RevisionEvent,
-    RevisionResult,
 )
 from propstore.worldline.definition import WorldlineRevisionQuery
 from propstore.worldline.interfaces import WorldlineBoundView
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
-    WorldlineRevisionResult,
     WorldlineRevisionState,
 )
 

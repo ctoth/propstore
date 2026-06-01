@@ -11,11 +11,8 @@ Semantics supported: grounded (unique minimal complete labelling).
 from __future__ import annotations
 
 import itertools
-import math
-from collections import defaultdict
 from typing import Any
 
-import hypothesis
 from hypothesis import given, settings
 from hypothesis import strategies as st
 

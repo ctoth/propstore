@@ -15,13 +15,7 @@ from propstore.support_revision.workflows import (
     revision_base,
     revision_entrenchment,
 )
-from propstore.support_revision.state import (
-    FormalRevisionDecisionReport,
-    RevisionEvent,
-    SupportRevisionRealization,
-)
 from propstore.world import WorldQuery
-from tests.test_revision_phase1_cli import revision_cli_workspace
 
 
 def _revision_request() -> RevisionWorldRequest:

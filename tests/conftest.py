@@ -8,22 +8,17 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import sqlite3
 
 import msgspec
 from sqlite3 import Connection
 import warnings
-from copy import deepcopy
 from types import MappingProxyType
 
 import pytest
 from hypothesis import settings
 from quire.references import FamilyReferenceIndex
 
-from quire.documents import convert_document_value as convert_document
-from propstore.families.registry import CONCEPT_FILE_FAMILY
 from propstore.core.conditions.registry import KindType
-from propstore.families.concepts.stages import concept_document_to_record_payload
 from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
@@ -31,7 +26,6 @@ from propstore.families.identity.claims import (
 from propstore.families.identity.concepts import (
     compute_concept_version_id,
     derive_concept_artifact_id,
-    normalize_canonical_concept_payload,
 )
 from propstore.families.identity.logical_ids import (
     normalize_identity_namespace,

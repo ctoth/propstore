@@ -6,6 +6,3 @@ byte-level hash carrier and emits only SHA-256 identifiers.
 """
 
 from __future__ import annotations
-
-from propstore.uri import compute_ni_uri as _compute_ni_uri
-from propstore.uri import verify_ni_uri as _verify_ni_uri

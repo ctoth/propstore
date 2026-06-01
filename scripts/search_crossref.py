@@ -1,6 +1,5 @@
 import urllib.request
 import json
-import sys
 
 query = "Karacapilidis+Papadias+computer+supported+argumentation+collaborative+decision"
 url = f"https://api.crossref.org/works?query={query}&rows=5"

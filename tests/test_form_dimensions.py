@@ -21,10 +21,9 @@ from quire.documents import DocumentSchemaError
 from propstore.families.forms import load_form_documents
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import (
-    FormDefinition,
     load_form,
 )
-from propstore.unit_dimensions import clear_symbol_table, _symbol_table
+from propstore.unit_dimensions import clear_symbol_table
 
 # ── Constants ─────────────────────────────────────────────────────────
 
@@ -541,7 +540,6 @@ class TestSymbolTableReset:
     ) -> None:
         """After clear, previously registered form units are gone."""
         from propstore.unit_dimensions import (
-            _get_symbol_table,
             register_form_units,
             resolve_unit_dimensions,
         )

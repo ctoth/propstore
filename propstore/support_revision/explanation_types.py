@@ -55,12 +55,6 @@ class RevisionAtomDetail:
 RevisionAtomDetailInput = RevisionAtomDetail | Mapping[str, Any]
 
 
-def coerce_revision_atom_detail(detail: RevisionAtomDetailInput) -> RevisionAtomDetail:
-    if isinstance(detail, RevisionAtomDetail):
-        return detail
-    return RevisionAtomDetail.from_json_payload(detail)
-
-
 @dataclass(frozen=True)
 class EntrenchmentReason:
     override_priority: int | str | None = None
@@ -95,12 +89,6 @@ class EntrenchmentReason:
 
 
 EntrenchmentReasonInput = EntrenchmentReason | Mapping[str, Any]
-
-
-def coerce_entrenchment_reason(reason: EntrenchmentReasonInput) -> EntrenchmentReason:
-    if isinstance(reason, EntrenchmentReason):
-        return reason
-    return EntrenchmentReason.from_json_payload(reason)
 
 
 def _coerce_override_priority(value: Any) -> int | str | None:

@@ -13,7 +13,6 @@ from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,
-    RuleSourceDocument,
     RuleSuperiorityDocument,
     TermDocument,
 )

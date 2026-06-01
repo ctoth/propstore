@@ -159,12 +159,6 @@ def _condition_set_from_dicts(
     )
 
 
-def _provenance_to_dict(provenance: Provenance | None) -> dict[str, Any] | None:
-    if provenance is None:
-        return None
-    return provenance.to_payload()
-
-
 def _provenance_from_dict(data: object) -> Provenance | None:
     if data is None:
         return None
@@ -419,63 +413,6 @@ class ClaimNode:
             data["attributes"] = dict(self.attributes)
         return data
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> ClaimNode:
-        provenance_data = data.get("provenance")
-        return cls(
-            claim_id=ClaimId(data["claim_id"]),
-            value_concept_id=(
-                None
-                if data.get("value_concept_id") is None
-                else ConceptId(data["value_concept_id"])
-            ),
-            claim_type=_require_claim_type(data["claim_type"]),
-            scalar_value=data.get("scalar_value"),
-            context_id=(
-                None if data.get("context_id") is None else str(data["context_id"])
-            ),
-            source_slug=(
-                None if data.get("source_slug") is None else str(data["source_slug"])
-            ),
-            source_paper=(
-                None if data.get("source_paper") is None else str(data["source_paper"])
-            ),
-            lower_bound=data.get("lower_bound"),
-            upper_bound=data.get("upper_bound"),
-            uncertainty=data.get("uncertainty"),
-            uncertainty_type=(
-                None
-                if data.get("uncertainty_type") is None
-                else str(data["uncertainty_type"])
-            ),
-            sample_size=(
-                None if data.get("sample_size") is None else int(data["sample_size"])
-            ),
-            opinion=_opinion_from_dict(data.get("opinion")),
-            confidence=data.get("confidence"),
-            claim_probability=data.get("claim_probability"),
-            effective_sample_size=data.get("effective_sample_size"),
-            source_prior_opinion=_opinion_from_dict(data.get("source_prior_opinion")),
-            source_quality_opinion=_opinion_from_dict(
-                data.get("source_quality_opinion")
-            ),
-            unit=(None if data.get("unit") is None else str(data["unit"])),
-            value_si=data.get("value_si"),
-            lower_bound_si=data.get("lower_bound_si"),
-            upper_bound_si=data.get("upper_bound_si"),
-            checked_conditions=_condition_set_from_dicts(data.get("conditions_ir")),
-            provenance=(
-                None
-                if provenance_data is None
-                else ProvenanceRecord.from_json_payload(provenance_data)
-            ),
-            label=label_from_dict(data.get("label")),
-            source_assertion_ids=tuple(
-                str(value) for value in data.get("source_assertion_ids") or ()
-            ),
-            attributes=data.get("attributes") or (),
-        )
-
 
 @dataclass(frozen=True, order=True)
 class RelationEdge:
@@ -512,23 +449,6 @@ class RelationEdge:
         if self.attributes:
             data["attributes"] = dict(self.attributes)
         return data
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> RelationEdge:
-        provenance_data = data.get("provenance")
-        return cls(
-            source_id=str(data["source_id"]),
-            target_id=str(data["target_id"]),
-            relation_type=coerce_graph_relation_type(data["relation_type"]),
-            opinion=_opinion_from_dict(data.get("opinion")),
-            provenance=(
-                None
-                if provenance_data is None
-                else ProvenanceRecord.from_json_payload(provenance_data)
-            ),
-            derived_from=tuple(tuple(edge) for edge in data.get("derived_from") or ()),
-            attributes=data.get("attributes") or (),
-        )
 
 
 @dataclass(frozen=True, order=True)
@@ -576,26 +496,6 @@ class ParameterizationEdge:
         if self.provenance is not None:
             data["provenance"] = self.provenance.to_dict()
         return data
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> ParameterizationEdge:
-        provenance_data = data.get("provenance")
-        return cls(
-            output_concept_id=ConceptId(data["output_concept_id"]),
-            input_concept_ids=tuple(
-                ConceptId(value) for value in data.get("input_concept_ids") or ()
-            ),
-            formula=(None if data.get("formula") is None else str(data["formula"])),
-            sympy=(None if data.get("sympy") is None else str(data["sympy"])),
-            exactness=coerce_exactness(data.get("exactness")),
-            conditions=to_cel_exprs(str(item) for item in data.get("conditions") or ()),
-            checked_conditions=_condition_set_from_dicts(data.get("conditions_ir")),
-            provenance=(
-                None
-                if provenance_data is None
-                else ProvenanceRecord.from_json_payload(provenance_data)
-            ),
-        )
 
 
 @dataclass(frozen=True, order=True)

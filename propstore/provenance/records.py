@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
 
 _URI_PREFIXES = ("urn:", "ni://", "http://", "https://")
 

@@ -32,54 +32,13 @@ from propstore.core.graph_types import (
     ConceptNode,
     ConflictWitness,
     ParameterizationEdge,
-    ProvenanceRecord,
     RelationEdge,
 )
-from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
 from propstore.families.claims.graph import claim_node_from_claim
-from propstore.families.relations.declaration import (
-    Stance,
-)
 from propstore.families.concepts.declaration import (
-    Concept,
     Parameterization,
 )
-
-
-def _row_provenance(
-    row: Mapping[str, Any] | Claim,
-    *,
-    source_table: str,
-    source_id: str | None = None,
-) -> ProvenanceRecord | None:
-    if source_table == "claim":
-        if not isinstance(row, Claim):
-            raise TypeError("claim provenance rows must be typed Claim objects")
-        provenance_json = row.provenance_json
-        extras: dict[str, Any] = {}
-        if provenance_json:
-            try:
-                loaded = json.loads(provenance_json)
-                if isinstance(loaded, dict):
-                    extras.update(loaded)
-            except json.JSONDecodeError:
-                extras["provenance_json"] = provenance_json
-        if row.source_paper is not None:
-            extras.setdefault("paper", row.source_paper)
-        if row.provenance_page is not None:
-            extras.setdefault("page", row.provenance_page)
-        extras["source_table"] = source_table
-        extras["source_id"] = source_id or row.id
-        return ProvenanceRecord.from_json_payload(extras)
-
-    if not isinstance(row, Mapping):
-        raise TypeError("non-claim provenance rows must be mappings")
-    extras = dict(row)
-    extras["source_table"] = source_table
-    if source_id is not None:
-        extras["source_id"] = source_id
-    return ProvenanceRecord.from_json_payload(extras)
 
 
 def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:

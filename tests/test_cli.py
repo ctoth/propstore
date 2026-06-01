@@ -19,7 +19,6 @@ from click.testing import CliRunner
 
 from propstore.app.claim_views import (
     ClaimListRequest,
-    ClaimSearchRequest,
     ClaimViewRequest,
     build_claim_view,
 )
@@ -35,7 +34,6 @@ from propstore.fragility import FragilityRequest, query_fragility
 from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 from propstore.repository import Repository
 from propstore.sensitivity import SensitivityRequest, query_sensitivity
-from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.world import RenderPolicy, ResolutionStrategy, WorldQuery
 from propstore.world.consistency import (

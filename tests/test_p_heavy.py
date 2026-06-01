@@ -21,7 +21,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import cast
 
-import pytest
 
 from propstore.core.id_types import ClaimId
 from propstore.families.relations.declaration import ConflictWitness, Stance

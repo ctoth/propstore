@@ -3,18 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
-from propstore.families.claims.declaration import CLAIM_BATCH_SPEC, ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from quire.documents import (
-    convert_document_value,
-    decode_document_batch_bytes,
-    decode_yaml_mapping,
-    document_to_payload,
-    encode_yaml_value,
     load_document,
 )
-from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path
+from quire.tree_path import TreePath as KnowledgePath
 from quire.documents import LoadedDocument
 
 
@@ -56,24 +50,6 @@ def load_claim_file(
         artifact_path=loaded.artifact_path,
         store_root=loaded.store_root,
         document=loaded.document,
-    )
-
-
-def load_claim_batch_file(
-    path: KnowledgePath | Path,
-    *,
-    knowledge_root: KnowledgePath | Path | None = None,
-) -> tuple[LoadedClaimsFile, ...]:
-    artifact_path = coerce_tree_path(path)
-    root_path = None if knowledge_root is None else coerce_tree_path(knowledge_root)
-    data = decode_yaml_mapping(
-        artifact_path.read_bytes(), source=artifact_path.as_posix()
-    )
-    return claim_batch_files_from_payload(
-        filename=artifact_path.name,
-        source_path=artifact_path,
-        data=data,
-        knowledge_root=root_path,
     )
 
 

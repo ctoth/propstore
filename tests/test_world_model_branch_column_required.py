@@ -30,7 +30,6 @@ import pytest
 from tests.family_helpers import world_query_from_sqlite_path
 
 from propstore.families.registry import world_schema
-from propstore.world.model import WorldQuery
 
 
 def test_branch_column_in_required_schema() -> None:

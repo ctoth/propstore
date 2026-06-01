@@ -17,31 +17,17 @@ must not) require caching across the base/overlay boundary.
 
 from unittest.mock import Mock
 
-import pytest
 
 import propstore.world.bound as bound_module
-from propstore.families.relations.declaration import ConflictWitness
 from propstore.world.bound import BoundWorld
-from tests.typed_family_fixtures import claim_from_payload
 from tests.test_world_query import (
     CONCEPT1_ID,
     CONCEPT2_ID,
-    claim_files,
-    concept_dir,
-    repo,
-    world,
 )
 
 
 class _NonCatalogConflictStore:
     """Minimal store with claims/conflicts but no all_concepts method."""
-
-    def __init__(self, claims: list[dict], conflicts: list[dict] | None = None) -> None:
-        self._claims = [claim_from_payload(claim) for claim in claims]
-        self._conflicts = [
-            ConflictWitness(**conflict)
-            for conflict in ([] if conflicts is None else conflicts)
-        ]
 
     def claims_for(self, concept_id: str | None):
         if concept_id is None:

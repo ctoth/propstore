@@ -3,18 +3,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from dataclasses import replace
-from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from eq_equiv import equation_signature
-from quire.documents import document_to_payload
 
-from propstore.claims import (
-    LoadedClaimsFile,
-    claim_file_claims,
-    claim_file_source_paper,
-)
 
 from .equation_inputs import bound_equation_from_conflict_claim
 from .models import ConflictClaim, ConflictClaimVariable
@@ -69,23 +62,6 @@ def conflict_claim_from_claim(claim: Claim) -> ConflictClaim | None:
         conditions=claim.conditions,
         variables=variables,
     ).with_source_condition()
-
-
-def conflict_claims_from_claim_files(
-    claim_files: Sequence[LoadedClaimsFile],
-) -> list[ConflictClaim]:
-    claims: list[ConflictClaim] = []
-    for claim_file in claim_files:
-        source_paper = claim_file_source_paper(claim_file)
-        for claim_document in claim_file_claims(claim_file):
-            claim = conflict_claim_from_payload(
-                cast(Mapping[str, Any], document_to_payload(claim_document)),
-                source_paper=source_paper,
-            )
-            if claim is None:
-                continue
-            claims.append(claim)
-    return claims
 
 
 def _collect_measurement_claims(

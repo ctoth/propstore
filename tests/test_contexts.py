@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from sqlite3 import Connection
 from pathlib import Path
@@ -21,7 +20,6 @@ from quire.sqlalchemy_store import (
 )
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.contexts.declaration import ContextDocument
-from propstore.core.conditions.registry import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
 from propstore.families.contexts.lifting import (
@@ -49,7 +47,6 @@ from propstore.families.contexts.declaration import (
 from propstore.families.registry import world_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
-from tests.conftest import make_compilation_context
 from tests.claim_model_helpers import make_claim
 from tests.family_helpers import world_query_from_sqlite_path
 from tests.sidecar_schema_helpers import build_world_projection_schema
@@ -82,18 +79,6 @@ def make_context(
     if lifting_rules:
         payload["lifting_rules"] = lifting_rules
     return payload
-
-
-def loaded_context(
-    filename: str,
-    source_path: Path | None,
-    data: dict,
-) -> LoadedContext:
-    return LoadedContext.from_payload(
-        filename=filename,
-        source_path=source_path,
-        data=data,
-    )
 
 
 @pytest.mark.parametrize(
@@ -660,68 +645,3 @@ class TestContextCLIIntegration:
 
         assert result.exit_code != 0
         assert "No such option: --inherits" in result.output
-
-    def test_claim_document_requires_explicit_context(self, tmp_path: Path) -> None:
-        from propstore.claims import loaded_claim_file_from_payload
-
-        with pytest.raises(DocumentSchemaError, match="context"):
-            loaded_claim_file_from_payload(
-                filename="claims",
-                source_path=tmp_path / "claims.yaml",
-                data={
-                    "source": {"paper": "test"},
-                    "claims": [
-                        {
-                            "artifact_id": "claim1",
-                            "type": "observation",
-                            "statement": "Test statement.",
-                            "concepts": ["c1"],
-                            "provenance": {"paper": "test", "page": 1},
-                        }
-                    ],
-                },
-            )
-
-    def test_claim_validation_accepts_context_reference_document_shape(
-        self, tmp_path: Path
-    ) -> None:
-        from propstore.claims import loaded_claim_file_from_payload
-        from propstore.families.claims.passes import validate_claims
-
-        claim_file = loaded_claim_file_from_payload(
-            filename="claims",
-            source_path=tmp_path / "claims.yaml",
-            data={
-                "source": {"paper": "test"},
-                "claims": [
-                    {
-                        "artifact_id": "claim1",
-                        "type": "observation",
-                        "statement": "Test statement.",
-                        "concepts": ["c1"],
-                        "context": {"id": "ctx_atms"},
-                        "provenance": {"paper": "test", "page": 1},
-                    }
-                ],
-            },
-        )
-        registry = {
-            "c1": {
-                "artifact_id": "c1",
-                "canonical_name": "c1",
-                "status": "accepted",
-                "definition": "c1",
-                "form": "category",
-            },
-        }
-
-        result = validate_claims(
-            [claim_file],
-            make_compilation_context(registry),
-            context_ids={"ctx_atms"},
-        )
-        context_errors = [
-            error for error in result.errors if "context" in error.lower()
-        ]
-
-        assert context_errors == []

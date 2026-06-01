@@ -26,7 +26,7 @@ from propstore.families.registry import ClaimRef
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.conftest import make_test_context_commit_entry
-from tests.test_source_relations import _init_source, _seed_master_concept
+from tests.test_source_relations import _seed_master_concept
 
 
 def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:

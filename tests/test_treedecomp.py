@@ -9,14 +9,12 @@ agree with _compute_exact_enumeration on all small AFs.
 
 from __future__ import annotations
 
-import math
 
 import pytest
 
 from argumentation.dung import ArgumentationFramework, grounded_extension
 from argumentation.probabilistic import (
     ProbabilisticAF,
-    compute_probabilistic_acceptance,
 )
 
 
@@ -745,8 +743,6 @@ class TestWitnessMechanism:
         """
         from argumentation.probabilistic_treedecomp import (
             compute_exact_dp,
-            compute_tree_decomposition,
-            to_nice_tree_decomposition,
         )
 
         # Small AF to verify table sizes

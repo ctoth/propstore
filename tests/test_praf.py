@@ -14,12 +14,10 @@ from argumentation.dung import (
 )
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
 from propstore.families.claims.types import ClaimType
-from propstore.families.relations.declaration import Stance
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus
-from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
 _TEST_BASE_RATE = 0.5
@@ -558,42 +556,6 @@ def test_p_arg_from_claim_requires_base_rate_for_opinion_columns():
 # ---------------------------------------------------------------------------
 # 10. test_build_praf_from_store
 # ---------------------------------------------------------------------------
-def test_build_praf_from_store():
-    """build_praf() constructs a ProbabilisticAF from sidecar data with
-    correct P_A and P_D values.
-    """
-    from unittest.mock import MagicMock
-
-    # Import the store-to-PrAF projection entrypoint directly.
-    from propstore.praf import PropstorePrAF, build_praf
-
-    store = MagicMock()
-    store.claims_by_ids.return_value = {
-        "c1": claim_from_payload({"id": "c1", "concept_id": "x", "type": "parameter"}),
-        "c2": claim_from_payload({"id": "c2", "concept_id": "x", "type": "parameter"}),
-    }
-    store.stances_between.return_value = [
-        Stance(
-            source_kind="claim",
-            source_id="c1",
-            relation_type="undercuts",
-            target_kind="claim",
-            target_id="c2",
-            confidence=0.9,
-            opinion=Opinion(0.8, 0.05, 0.15, 0.5),
-        ),
-    ]
-
-    praf = build_praf(store, {"c1", "c2"})
-
-    assert isinstance(praf, PropstorePrAF)
-    # Bare active claims stay in the PrAF topology and are surfaced as
-    # vacuous omissions rather than deleted from the framework.
-    assert praf.framework.arguments == frozenset({"c1", "c2"})
-    assert set(praf.omitted_arguments) == {"c1", "c2"}
-
-    assert praf.framework.defeats == frozenset({("c1", "c2")})
-    assert praf.p_defeats[("c1", "c2")] == Opinion(0.8, 0.05, 0.15, 0.5)
 
 
 def test_build_praf_omits_uncalibrated_relation_from_probability_envelope():

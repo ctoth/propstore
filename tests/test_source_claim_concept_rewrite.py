@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any
 
 import pytest
-from quire.documents import convert_document_value
 
-from propstore.families.claims.declaration import SourceClaimDocument
 from propstore.families.claims.lifecycle import (
     rewrite_imported_claim_concept_refs,
     rewrite_source_claim_concept_refs,

@@ -10,9 +10,6 @@ from hypothesis import strategies as st
 from quire.documents import convert_document_value
 from sqlalchemy import select
 
-from propstore.families.claims.types import ClaimType
-from propstore.core.graph_types import ClaimNode
-from propstore.core.id_types import ClaimId
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.registry import world_schema
@@ -37,42 +34,6 @@ def _test_provenance(operation: str) -> Provenance:
         status=ProvenanceStatus.STATED,
         witnesses=(),
         operations=(operation,),
-    )
-
-
-def _claim_with_metadata(**metadata: object) -> ClaimNode:
-    typed_keys = {
-        "source_prior_base_rate",
-        "source_quality_opinion",
-        "claim_probability",
-        "effective_sample_size",
-        "confidence",
-        "sample_size",
-    }
-    return ClaimNode(
-        claim_id=ClaimId("test_claim"),
-        claim_type=ClaimType.OBSERVATION,
-        source_prior_opinion=(
-            _opinion_from_payload(
-                metadata["source_prior_base_rate"], "source_prior_base_rate"
-            )
-            if "source_prior_base_rate" in metadata
-            else None
-        ),
-        source_quality_opinion=(
-            _opinion_from_payload(
-                metadata["source_quality_opinion"], "source_quality_opinion"
-            )
-            if "source_quality_opinion" in metadata
-            else None
-        ),
-        claim_probability=metadata.get("claim_probability"),
-        effective_sample_size=metadata.get("effective_sample_size"),
-        confidence=metadata.get("confidence"),
-        sample_size=metadata.get("sample_size"),
-        attributes=tuple(
-            (key, value) for key, value in metadata.items() if key not in typed_keys
-        ),
     )
 
 

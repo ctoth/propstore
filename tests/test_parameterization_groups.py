@@ -4,8 +4,6 @@ Verifies that concepts connected via parameterization_relationships
 are grouped into the correct connected components.
 """
 
-import pytest
-
 from propstore.parameterization_groups import build_groups
 from tests.conftest import make_concept_identity
 

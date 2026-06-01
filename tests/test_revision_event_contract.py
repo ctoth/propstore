@@ -8,7 +8,6 @@ from propstore.support_revision.iterated import (
     advance_epistemic_state,
     make_epistemic_state,
 )
-from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
 from propstore.support_revision.state import RevisionRealizationFailure
 from propstore.support_revision.dispatch import dispatch
 from tests.support_revision.formal_realization_helpers import (
@@ -63,40 +62,6 @@ def test_revision_episode_carries_typed_event_contract() -> None:
     assert event.policy_snapshot == _POLICY
     assert event.replay_status == "direct"
     assert event.realization_failure is None
-
-
-def test_revision_event_survives_epistemic_state_snapshot_roundtrip() -> None:
-    base, entrenchment, ids = _base_with_shared_support()
-    state = make_epistemic_state(base, entrenchment)
-    result = contract_via_formal_decision(
-        base,
-        (ids["legacy"],),
-        entrenchment=entrenchment,
-        max_candidates=8,
-    )
-    next_entrenchment = EntrenchmentReport(
-        ranked_atom_ids=tuple(
-            atom_id
-            for atom_id in entrenchment.ranked_atom_ids
-            if atom_id in result.accepted_atom_ids
-        ),
-        reasons=dict(entrenchment.reasons),
-    )
-    next_state = advance_epistemic_state(
-        state,
-        result,
-        next_entrenchment,
-        operator="contract",
-        target_atom_ids=(ids["legacy"],),
-        policy_snapshot=_POLICY,
-        replay_status="direct",
-    )
-
-    payload = EpistemicStateSnapshot.from_state(next_state).to_dict()
-    restored = EpistemicStateSnapshot.from_json_payload(payload).to_state()
-
-    assert payload["history"][0]["event"]["decision"]["operation"] == "contract"
-    assert restored.history[-1].event == next_state.history[-1].event
 
 
 def test_dispatch_exposes_formal_decision_when_realization_fails() -> None:

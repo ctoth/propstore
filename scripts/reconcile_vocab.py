@@ -10,7 +10,6 @@ import yaml
 import json
 from pathlib import Path
 from collections import defaultdict
-from copy import deepcopy
 
 papers_dir = Path("C:/Users/Q/code/propstore/papers")
 inventory_path = Path("C:/Users/Q/code/propstore/scripts/concept_inventory.json")

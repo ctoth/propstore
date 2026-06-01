@@ -38,7 +38,7 @@ import pytest
 
 # Real production types — READ ONLY. We build claims from the genuine field shapes,
 # we do not modify these. This is the "use the ACTUAL field shapes" requirement.
-from propstore.cel_types import CelExpr, to_cel_exprs
+from propstore.cel_types import to_cel_exprs
 from propstore.families.claims.declaration import AtomicPropositionDocument
 from propstore.families.claims.types import ClaimType
 

@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from argumentation.probabilistic import (
-    PrAFResult,
     ProbabilisticAF as ProbabilisticArgumentationFramework,
     summarize_defeat_relations as _summarize_defeat_probabilities,
 )

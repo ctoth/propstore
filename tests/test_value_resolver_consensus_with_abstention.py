@@ -16,7 +16,6 @@ from __future__ import annotations
 from propstore.families.claims.types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
 from propstore.world.value_resolver import ClaimValueResolver
-from tests.typed_family_fixtures import claim_from_payload
 
 
 def _is_algorithm_claim(claim) -> bool:
@@ -61,10 +60,6 @@ def _make_resolver(
             else (lambda claim: {"x": "input"})
         ),
     )
-
-
-def _typed_active(active: list[dict]) -> list:
-    return [claim_from_payload(payload) for payload in active]
 
 
 # ---------------------------------------------------------------------------

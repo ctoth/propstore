@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, replace
-from typing import Any, Literal
+from typing import Literal
 
 from propstore.core.assertions.refs import (
     ConditionRef,

@@ -36,40 +36,6 @@ def _build_registry(predicates):
     return PredicateRegistry.from_documents(tuple(predicates))
 
 
-def _ws7_claim_file():
-    return _claim_file_from_payload(
-        {
-            "source": {"paper": "Garcia_2004_DefeasibleLogicProgramming"},
-            "claims": [
-                {
-                    "id": "claim-tweety",
-                    "type": "parameter",
-                    "output_concept": "concept:bird",
-                    "value": 42,
-                    "sample_size": 11,
-                    "conditions": ["habitat == 'wetland'"],
-                    "context": {"id": "ctx-field"},
-                    "provenance": {
-                        "paper": "Garcia_2004_DefeasibleLogicProgramming",
-                        "page": 25,
-                    },
-                },
-                {
-                    "id": "claim-flight",
-                    "type": "observation",
-                    "concepts": ["concept:bird", "concept:flight"],
-                    "statement": "Tweety usually flies.",
-                    "context": {"id": "ctx-field"},
-                    "provenance": {
-                        "paper": "Diller_2025_GroundingRuleBasedArgumentationDatalog",
-                        "page": 8,
-                    },
-                },
-            ],
-        }
-    )
-
-
 def _bundle_with_four_statuses():
     from types import MappingProxyType
 

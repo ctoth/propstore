@@ -11,7 +11,6 @@ from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ClaimId, ContextId
 from propstore.core.graph_types import (
     WorldActivationGraph,
-    ClaimNode,
     CompiledWorldGraph,
 )
 from propstore.core.environment import Environment

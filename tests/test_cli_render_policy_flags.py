@@ -30,43 +30,10 @@ from pathlib import Path
 import pytest
 import yaml
 from click.testing import CliRunner
-from quire.documents import convert_document, document_to_payload
 
 from propstore.cli import cli
-from propstore.app.predicates import PredicateAddRequest, add_predicate
-from propstore.app.rules import RuleAddRequest, add_rule
-from propstore.families.claims.types import ClaimType
-from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.claims.declaration import (
-    ClaimDocument,
-    ClaimLogicalIdDocument,
-    ClaimSourceDocument,
-    ProvenanceDocument,
-    SourceJustificationDocument,
-)
-from propstore.families.contexts.declaration import (
-    ContextDocument,
-    ContextReferenceDocument,
-)
-from propstore.families.sources.declaration import (
-    SourceDocument,
-    SourceOriginDocument,
-    SourceTrustDocument,
-)
-from propstore.families.stances.declaration import StanceDocument
-from propstore.families.identity.justifications import stamp_justification_artifact_id
-from propstore.families.identity.stances import stamp_stance_artifact_id
-from propstore.families.registry import (
-    CanonicalSourceRef,
-    ClaimRef,
-    ContextRef,
-    JustificationRef,
-    StanceRef,
-)
-from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
 from propstore.compiler.workflows import build_repository_world_store
-from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
 from propstore.world.queries import (
     WorldConceptQueryRequest,
@@ -245,128 +212,6 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
         conn.commit()
     finally:
         conn.close()
-
-
-def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
-    source_ref = CanonicalSourceRef("fixture_paper")
-    repo.families.sources.save(
-        source_ref,
-        SourceDocument(
-            id=source_ref.name,
-            kind=SourceKind.ACADEMIC_PAPER,
-            origin=SourceOriginDocument(
-                type=SourceOriginType.MANUAL,
-                value="fixture",
-            ),
-            trust=SourceTrustDocument(status=ProvenanceStatus.STATED),
-        ),
-        message="Seed world status source",
-    )
-    context_ref = ContextRef("ctx_fixture")
-    repo.families.contexts.save(
-        context_ref,
-        ContextDocument(id=context_ref.name, name="Fixture context"),
-        message="Seed world status context",
-    )
-    for claim_id in ("claim_fixture_final", "claim_fixture_draft"):
-        repo.families.claims.save(
-            ClaimRef(claim_id),
-            ClaimDocument(
-                artifact_id=claim_id,
-                logical_ids=(
-                    ClaimLogicalIdDocument(namespace="fixture", value=claim_id),
-                ),
-                version_id=f"sha256:{claim_id.encode('utf-8').hex():0<64}"[:71],
-                type=ClaimType.PARAMETER,
-                output_concept=concept_aid,
-                value=1.0,
-                unit="Hz",
-                provenance=ProvenanceDocument(paper="fixture_paper", page=1),
-                source=ClaimSourceDocument(paper="fixture_paper"),
-                context=ContextReferenceDocument(id=context_ref.name),
-                statement=claim_id,
-            ),
-            message="Seed world status claims",
-        )
-    add_predicate(
-        repo,
-        PredicateAddRequest(
-            file="fixture",
-            predicate_id="fixture_visible_claim",
-            arity=1,
-            arg_types=("str",),
-        ),
-    )
-    add_predicate(
-        repo,
-        PredicateAddRequest(
-            file="fixture",
-            predicate_id="fixture_hidden_claim",
-            arity=1,
-            arg_types=("str",),
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="fixture",
-            paper="fixture_paper",
-            rule_id="r_visible",
-            kind="strict",
-            head="fixture_visible_claim(clean)",
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="fixture",
-            paper="fixture_paper",
-            rule_id="r_hidden",
-            kind="defeasible",
-            head="fixture_hidden_claim(draft)",
-        ),
-    )
-    justification_payload = stamp_justification_artifact_id(
-        document_to_payload(
-            SourceJustificationDocument(
-                id="j_fixture",
-                conclusion="claim_fixture_final",
-                premises=("claim_fixture_draft",),
-                rule_kind="reported_claim",
-                rule_strength="defeasible",
-            )
-        )
-    )
-    justification_ref = JustificationRef(str(justification_payload["artifact_code"]))
-    repo.families.justifications.save(
-        justification_ref,
-        convert_document(
-            justification_payload,
-            SourceJustificationDocument,
-            source=repo.families.justifications.address(
-                justification_ref
-            ).require_path(),
-        ),
-        message="Seed world status justifications",
-    )
-    stance_payload = stamp_stance_artifact_id(
-        {
-            "source_claim": "claim_fixture_final",
-            "target": "claim_fixture_draft",
-            "type": StanceType.SUPPORTS.value,
-            "strength": "low",
-        }
-    )
-    stance_ref = StanceRef(str(stance_payload["artifact_code"]))
-    repo.families.stances.save(
-        stance_ref,
-        convert_document(
-            stance_payload,
-            StanceDocument,
-            source=repo.families.stances.address(stance_ref).require_path(),
-        ),
-        message="Seed world status stances",
-    )
 
 
 @pytest.fixture()

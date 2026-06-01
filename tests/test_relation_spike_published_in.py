@@ -29,7 +29,6 @@ import pytest
 
 from quire.references import FamilyReferenceIndex
 
-from propstore.core.assertions.codec import AssertionCanonicalRecord
 from propstore.core.assertions.refs import (
     ConditionRef,
     ContextReference,
@@ -363,26 +362,6 @@ def test_step3_role_bindings_lowered_to_slot_bindings_validate(
 
 
 # === STEP 4: codec round-trip ==============================================
-
-
-def test_step4_situated_assertion_codec_round_trip_is_identity_stable(
-    tmp_path: Path,
-) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    relation_id = _author_published_in(repo)
-
-    # The assertion references the relation concept BY the FK-resolved id.
-    index = repo.families.concepts.reference_index()
-    resolved_id = index.require_id(relation_id)
-    assertion = _published_in_assertion(resolved_id)
-
-    record = AssertionCanonicalRecord.from_assertion(assertion)
-    payload = record.to_payload()
-    parsed = AssertionCanonicalRecord.from_payload(payload).to_assertion()
-
-    assert parsed == assertion
-    assert parsed.assertion_id == assertion.assertion_id
-    assert parsed.relation.concept_id == ConceptId(relation_id)
 
 
 # === property-style: FK round-trips for any of the spike's reference keys ===

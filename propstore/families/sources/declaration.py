@@ -20,10 +20,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Annotated
 
-import msgspec
 from quire.charter_class import CharterDoc, charter, charter_field, column
 from quire.charters import CharterIndex, FamilyCharter, FamilyModel
-from quire.documents import document_to_payload
 
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.opinion import Opinion

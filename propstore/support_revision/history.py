@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any
@@ -469,41 +468,6 @@ def diff_epistemic_snapshots(
         target_hash=target.content_hash,
         deltas=tuple(deltas),
     )
-
-
-def apply_epistemic_diff(
-    source: EpistemicSnapshot,
-    diff: EpistemicSemanticDiff,
-) -> EpistemicSnapshot:
-    if diff.source_hash != source.content_hash:
-        raise ValueError("semantic diff source_hash does not match source snapshot")
-    state_payload = source.state.to_dict()
-    for delta in diff.deltas:
-        _assert_current_value(state_payload, delta)
-        if delta.surface == "assertion_acceptance":
-            _apply_acceptance_delta(state_payload, delta)
-        elif delta.surface == "warrant":
-            _set_mapping_value(
-                state_payload, "entrenchment_reasons", delta.key, delta.new_value
-            )
-        elif delta.surface == "ranking":
-            _set_mapping_value(state_payload, "ranking", delta.key, delta.new_value)
-            _refresh_ranked_atom_ids(state_payload)
-        elif delta.surface == "provenance":
-            _set_atom_provenance(state_payload, delta.key, delta.new_value)
-        elif delta.surface == "dependency":
-            _apply_dependency_delta(state_payload, delta)
-        else:
-            raise ValueError(f"unsupported semantic diff surface: {delta.surface}")
-    snapshot = EpistemicSnapshot.from_json_payload(
-        {
-            "schema_version": EPistemicSnapshotVersion,
-            "state": state_payload,
-        }
-    )
-    if snapshot.content_hash != diff.target_hash:
-        raise ValueError("semantic diff did not reproduce target snapshot")
-    return snapshot
 
 
 def _mapping_deltas(
