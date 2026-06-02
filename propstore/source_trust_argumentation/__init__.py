@@ -17,12 +17,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from argumentation.dung import ArgumentationFramework, grounded_extension
+from argumentation.dung import ArgumentationFramework
 
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
-from propstore.families.registry import SourceRef
 
 
 @dataclass(frozen=True)
@@ -65,16 +64,7 @@ def _load_rules_from_repo(repo: Repository) -> tuple[Mapping[str, Any], ...]:
     rules: list[Mapping[str, Any]] = []
     for path in sorted(rules_root.rglob("*.yaml")):
         loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-        if isinstance(loaded, Mapping) and isinstance(loaded.get("rules"), Sequence):
-            paper = str(
-                loaded.get("source", {}).get("paper", path.parent.name)
-                if isinstance(loaded.get("source"), Mapping)
-                else path.parent.name
-            )
-            for rule in loaded["rules"]:
-                if isinstance(rule, Mapping):
-                    rules.append(_source_trust_rule_from_document(paper, rule))
-        elif isinstance(loaded, Mapping):
+        if isinstance(loaded, Mapping):
             rules.append(dict(loaded))
         elif isinstance(loaded, Sequence) and not isinstance(loaded, str):
             rules.extend(dict(item) for item in loaded if isinstance(item, Mapping))
