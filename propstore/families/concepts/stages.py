@@ -89,10 +89,6 @@ class ConceptCheckedRegistry:
     registry: dict[str, dict[str, Any]]
 
 
-def render_concept_document(document: ConceptDocument) -> str:
-    return encode_concept_document(document).decode("utf-8").rstrip()
-
-
 def concept_reference_keys(
     record: ConceptRecord,
     *,

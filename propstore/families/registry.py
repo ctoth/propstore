@@ -102,8 +102,6 @@ from propstore.families.identity.claims import (
 )
 from propstore.families.sources.declaration import (
     SourceDocument,
-    encode_source_document,
-    render_source_document,
 )
 from propstore.families.identity.concepts import (
     CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
@@ -111,11 +109,6 @@ from propstore.families.identity.concepts import (
     compute_concept_version_id,
     derive_concept_artifact_id,
 )
-from propstore.families.concepts.stages import (
-    encode_concept_document,
-    render_concept_document,
-)
-
 if TYPE_CHECKING:
     from propstore.repository import Repository
 
@@ -395,8 +388,6 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
     CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION,
     ConceptDocument,
     CONCEPT_PLACEMENT,
-    encode_document=encode_concept_document,
-    render_document=render_concept_document,
 )
 
 CANONICAL_SOURCE_FAMILY = ArtifactFamily[
@@ -406,8 +397,6 @@ CANONICAL_SOURCE_FAMILY = ArtifactFamily[
     SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION,
     SourceDocument,
     CANONICAL_SOURCE_PLACEMENT,
-    encode_document=encode_source_document,
-    render_document=render_source_document,
 )
 
 
@@ -660,8 +649,6 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             artifact_name="source_document",
             document_type=SourceDocument,
             placement=FixedFilePlacement("source.yaml", branch=SOURCE_BRANCH),
-            encode_document=encode_source_document,
-            render_document=render_source_document,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_NOTES,

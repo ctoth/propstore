@@ -9,10 +9,7 @@ before their containers (``SourceTrustQualityDocument`` before
 ``SourceParameterizationGroupMergeDocument`` before
 ``SourceFinalizeReportDocument``).
 
-The three ``Source``-document serialization helpers
-(``encode_source_document`` /
-``render_source_document``) and ``compile_source_models`` stay module-level
-free functions.
+``compile_source_models`` stays as the module-level source model compiler.
 """
 
 from __future__ import annotations
@@ -212,10 +209,6 @@ SOURCE_FINALIZE_CALIBRATION_CHARTER: FamilyCharter = (
 )
 SOURCE_FINALIZE_REPORT_CHARTER: FamilyCharter = SourceFinalizeReportDocument.__charter__
 SOURCE_CHARTER: FamilyCharter = SourceDocument.__charter__
-
-
-def render_source_document(source_doc: SourceDocument) -> str:
-    return encode_source_document(source_doc).decode("utf-8").rstrip()
 
 
 def compile_source_models(
