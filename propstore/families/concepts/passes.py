@@ -10,18 +10,18 @@ Reports errors (hard stop) and warnings separately.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Mapping
+from typing import Mapping
 
 from quire.documents import LoadedDocument
 
 from quire.references import FamilyReferenceIndex
-from propstore.claims import load_claim_batch_file
 from propstore.families.identity.logical_ids import (
     LOGICAL_NAMESPACE_RE,
     LOGICAL_VALUE_RE,
     format_logical_id,
 )
 from propstore.families.concepts.types import (
+    ConceptStatus,
     ConceptRelationshipType,
     VALID_CONCEPT_RELATIONSHIP_TYPES,
 )
@@ -37,16 +37,11 @@ from propstore.families.concepts.stages import (
     concept_reference_keys,
 )
 from propstore.families.concepts.declaration import ConceptDocument
-from propstore.compiler.context import build_compiler_claim_index
 from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassDiagnostic, PassResult, PipelineResult
-
-if TYPE_CHECKING:
-    from quire.tree_path import TreePath as KnowledgePath
-
 
 VALID_RELATIONSHIP_TYPES = VALID_CONCEPT_RELATIONSHIP_TYPES
 _QUALIA_ROLE_NAMES = ("formal", "constitutive", "telic", "agentive")
@@ -219,27 +214,6 @@ def _validate_lemon_document(
         )
 
 
-def _load_claim_reference_index(
-    claims_dir: KnowledgePath | None,
-) -> FamilyReferenceIndex[ClaimReferenceRecord]:
-    """Load claim artifact and logical reference keys from claim YAML files."""
-    if claims_dir is None:
-        return build_compiler_claim_index(())
-    claim_files = [
-        claim_file
-        for entry in sorted(
-            (
-                child
-                for child in claims_dir.iterdir()
-                if child.is_file() and child.suffix == ".yaml"
-            ),
-            key=lambda child: child.as_posix(),
-        )
-        for claim_file in load_claim_batch_file(entry, knowledge_root=claims_dir.parent)
-    ]
-    return build_compiler_claim_index(claim_files)
-
-
 def _validate_logical_ids(
     logical_ids: object,
     *,
@@ -249,21 +223,25 @@ def _validate_logical_ids(
     result: _ConceptCheckResult,
 ) -> set[str]:
     formatted_ids: set[str] = set()
-    if not isinstance(logical_ids, list) or not logical_ids:
+    if not isinstance(logical_ids, tuple) or not logical_ids:
         result.errors.append(
-            f"{filename}: concept '{artifact_id}' must define a non-empty logical_ids list"
+            f"{filename}: concept '{artifact_id}' must define a non-empty logical_ids tuple"
         )
         return formatted_ids
 
     for index, entry in enumerate(logical_ids, start=1):
-        if not isinstance(entry, dict):
+        if isinstance(entry, Mapping):
+            namespace = entry.get("namespace")
+            value = entry.get("value")
+        else:
+            namespace = getattr(entry, "namespace", None)
+            value = getattr(entry, "value", None)
+        if not isinstance(namespace, str) or not isinstance(value, str):
             result.errors.append(
-                f"{filename}: concept '{artifact_id}' logical_ids entry #{index} must be a mapping"
+                f"{filename}: concept '{artifact_id}' logical_ids entry #{index} "
+                "must define namespace and value"
             )
             continue
-
-        namespace = entry.get("namespace")
-        value = entry.get("value")
         if not isinstance(namespace, str) or not LOGICAL_NAMESPACE_RE.match(namespace):
             result.errors.append(
                 f"{filename}: concept '{artifact_id}' logical_ids entry #{index} "
@@ -277,7 +255,7 @@ def _validate_logical_ids(
             )
             continue
 
-        formatted = format_logical_id(entry)
+        formatted = format_logical_id({"namespace": namespace, "value": value})
         if formatted is None:
             result.errors.append(
                 f"{filename}: concept '{artifact_id}' logical_ids entry #{index} "
@@ -300,10 +278,138 @@ def _validate_logical_ids(
     return formatted_ids
 
 
+def _check_concepts(
+    concepts: list[LoadedDocument[ConceptDocument]],
+    *,
+    form_registry: Mapping[str, FormDefinition] | None = None,
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord] | None = None,
+) -> _ConceptCheckResult:
+    result = _ConceptCheckResult()
+    id_to_concept: dict[str, LoadedDocument[ConceptDocument]] = {}
+    seen_logical_ids: dict[str, str] = {}
+    reference_index = _concept_reference_index(concepts)
+
+    for concept in concepts:
+        document = concept.document
+        _validate_lemon_document(concept, result=result)
+        _validate_phase3_lemon_references(
+            concept,
+            reference_index=reference_index,
+            result=result,
+        )
+
+        artifact_id = document.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            result.errors.append(f"{concept.filename}: missing required field 'artifact_id'")
+            continue
+        id_to_concept[artifact_id] = concept
+
+        canonical_name = document.lexical_entry.canonical_form.written_rep
+        if not canonical_name:
+            result.errors.append(
+                f"{concept.filename}: missing canonical lexical written_rep"
+            )
+        if document.status is None:
+            result.errors.append(f"{concept.filename}: missing required field 'status'")
+        if not document.definition_source:
+            result.errors.append(
+                f"{concept.filename}: missing required field 'definition_source'"
+            )
+
+        _validate_logical_ids(
+            document.logical_ids,
+            filename=concept.filename,
+            artifact_id=artifact_id,
+            seen_logical_ids=seen_logical_ids,
+            result=result,
+        )
+
+        form_name = document.lexical_entry.physical_dimension_form
+        if not form_name:
+            result.errors.append(f"{concept.filename}: missing required field 'form'")
+        elif form_registry is not None and form_name not in form_registry:
+            result.errors.append(
+                f"{concept.filename}: form '{form_name}' is not registered"
+            )
+
+        if form_name == "category":
+            values = None
+            if document.form_parameters is not None:
+                values = document.form_parameters.values
+            if not values:
+                result.errors.append(
+                    f"{concept.filename}: category concept must have "
+                    "form_parameters.values"
+                )
+
+        for relationship in document.relationships:
+            if relationship.type not in VALID_RELATIONSHIP_TYPES:
+                result.errors.append(
+                    f"{concept.filename}: invalid relationship type "
+                    f"{relationship.type!r}"
+                )
+            if relationship.target not in reference_index:
+                result.errors.append(
+                    f"{concept.filename}: relationship target "
+                    f"'{relationship.target}' not found in registry"
+                )
+
+        for parameterization in document.parameterization_relationships:
+            for input_ref in parameterization.inputs:
+                if input_ref not in reference_index:
+                    result.errors.append(
+                        f"{concept.filename}: parameterization input "
+                        f"'{input_ref}' not found in registry"
+                    )
+            if (
+                parameterization.exactness == "conditional"
+                and not parameterization.conditions
+            ):
+                result.errors.append(
+                    f"{concept.filename}: parameterization with conditional exactness "
+                    "must have conditions"
+                )
+            canonical_claim = parameterization.canonical_claim
+            if canonical_claim and claim_index is not None:
+                claim_id = claim_index.resolve_id(str(canonical_claim))
+                if claim_id is None:
+                    result.errors.append(
+                        f"{concept.filename}: canonical_claim "
+                        f"'{canonical_claim}' not found in claim index"
+                    )
+            if not parameterization.sympy:
+                result.warnings.append(
+                    f"{concept.filename}: parameterization relationship missing "
+                    "sympy expression"
+                )
+
+    for concept in concepts:
+        document = concept.document
+        if document.status is not ConceptStatus.DEPRECATED:
+            continue
+        visited: set[str] = set()
+        current_id = document.artifact_id
+        while isinstance(current_id, str) and current_id:
+            if current_id in visited:
+                result.errors.append(
+                    f"{concept.filename}: circular deprecation chain detected "
+                    f"involving '{current_id}'"
+                )
+                break
+            visited.add(current_id)
+            current_concept = id_to_concept.get(current_id)
+            if current_concept is None:
+                break
+            current_document = current_concept.document
+            if current_document.status is not ConceptStatus.DEPRECATED:
+                break
+            current_id = current_document.replaced_by
+
+    return result
+
+
 @dataclass(frozen=True)
 class ConceptPipelineContext:
-    claims_dir: KnowledgePath | None = None
-    forms_dir: KnowledgePath | None = None
     form_registry: Mapping[str, FormDefinition] | None = None
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord] | None = None
 
@@ -330,6 +436,24 @@ class ConceptIdentityPass:
     input_stage = ConceptStage.NORMALIZED
     output_stage = ConceptStage.BOUND
 
+    def run(
+        self,
+        value: ConceptNormalizedSet,
+        context: object,
+    ) -> PassResult[ConceptBoundRegistry]:
+        registry = {
+            str(concept.document.artifact_id): concept.document
+            for concept in value.concepts
+            if isinstance(concept.document.artifact_id, str)
+            and concept.document.artifact_id
+        }
+        return PassResult.ok(
+            ConceptBoundRegistry(
+                concepts=value.concepts,
+                registry=registry,
+            )
+        )
+
 
 class ConceptSemanticCheckPass:
     family = PropstoreFamily.CONCEPTS
@@ -350,8 +474,6 @@ class ConceptSemanticCheckPass:
         )
         checked = _check_concepts(
             list(value.concepts),
-            claims_dir=pipeline_context.claims_dir,
-            forms_dir=pipeline_context.forms_dir,
             form_registry=pipeline_context.form_registry,
             claim_index=pipeline_context.claim_index,
         )
