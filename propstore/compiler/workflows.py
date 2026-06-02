@@ -27,7 +27,6 @@ from propstore.compiler.context import (
 )
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
-from propstore.families.claims.references import build_claim_file_reference_index
 from propstore.families.claims.stages import (
     ClaimAuthoredFiles,
     ClaimCheckedBundle,

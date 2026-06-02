@@ -23,10 +23,10 @@ from propstore.conflict_detector.models import (
     ConflictConceptRegistry,
     ConflictParameterization,
 )
-from propstore.claims import LoadedClaimsFile
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
-    build_claim_file_reference_index,
+    build_claim_reference_index,
 )
 from propstore.families.claims.declaration import claim_logical_id_formatted
 from propstore.families.concepts.declaration import (
@@ -60,9 +60,9 @@ def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def build_compiler_claim_index(
-    claim_files: Sequence[LoadedClaimsFile],
+    claims: Sequence[LoadedDocument[ClaimDocument]],
 ) -> FamilyReferenceIndex[ClaimReferenceRecord]:
-    return build_claim_file_reference_index(claim_files)
+    return build_claim_reference_index(claims)
 
 
 def concept_form_definition(
@@ -135,7 +135,7 @@ def _build_context_from_concepts(
     concepts: list[LoadedDocument[ConceptDocument]],
     form_registry: dict[str, FormDefinition],
     *,
-    claim_files: Sequence[LoadedClaimsFile] | None,
+    claim_files: Sequence[LoadedDocument[ClaimDocument]] | None,
     context_ids: set[str] | None,
 ) -> CompilationContext:
     concepts_by_id: dict[str, ConceptDocument] = {}
@@ -167,7 +167,7 @@ def build_compilation_context_from_loaded(
     *,
     forms_dir: Path | KnowledgePath | None = None,
     form_registry: dict[str, FormDefinition] | None = None,
-    claim_files: Sequence[LoadedClaimsFile] | None = None,
+    claim_files: Sequence[LoadedDocument[ClaimDocument]] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     resolved_form_registry = (
@@ -190,7 +190,7 @@ def build_compilation_context_from_loaded(
 def build_compilation_context_from_repo(
     repo: Repository | None,
     *,
-    claim_files: Sequence[LoadedClaimsFile] | None = None,
+    claim_files: Sequence[LoadedDocument[ClaimDocument]] | None = None,
     context_ids: set[str] | None = None,
     commit: str | None = None,
 ) -> CompilationContext:

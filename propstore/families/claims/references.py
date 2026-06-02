@@ -6,14 +6,9 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from quire.documents import LoadedDocument
 from quire.references import FamilyReferenceIndex
 
-from propstore.claims import (
-    LoadedClaimsFile,
-    claim_file_claims,
-    claim_file_filename,
-    claim_file_source_paper,
-)
 from propstore.families.claims.declaration import (
     ClaimDocument,
     claim_logical_id_formatted,
@@ -65,25 +60,35 @@ def claim_reference_keys(record: ClaimReferenceRecord) -> tuple[str, ...]:
 
 
 def claim_reference_records(
-    claim_files: Sequence[LoadedClaimsFile],
+    claims: Sequence[LoadedDocument[ClaimDocument]],
 ) -> tuple[ClaimReferenceRecord, ...]:
     records: list[ClaimReferenceRecord] = []
-    for claim_file in claim_files:
-        source_paper = claim_file_source_paper(claim_file) or claim_file_filename(
-            claim_file
+    for loaded in claims:
+        source = loaded.document.source
+        provenance = loaded.document.provenance
+        source_paper = (
+            source.paper
+            if source is not None
+            else (
+                provenance.paper
+                if provenance is not None and provenance.paper is not None
+                else loaded.filename
+            )
         )
-        records.extend(
-            ClaimReferenceRecord(claim=claim, source_paper=str(source_paper))
-            for claim in claim_file_claims(claim_file)
+        records.append(
+            ClaimReferenceRecord(
+                claim=loaded.document,
+                source_paper=str(source_paper),
+            )
         )
     return tuple(records)
 
 
-def build_claim_file_reference_index(
-    claim_files: Sequence[LoadedClaimsFile],
+def build_claim_reference_index(
+    claims: Sequence[LoadedDocument[ClaimDocument]],
 ) -> FamilyReferenceIndex[ClaimReferenceRecord]:
     return FamilyReferenceIndex.from_records(
-        claim_reference_records(claim_files),
+        claim_reference_records(claims),
         family="claim",
         artifact_id=lambda record: record.artifact_id,
         keys=(claim_reference_keys,),
