@@ -18,6 +18,32 @@ Propstore architecture:
   do not replace deleted helpers with aliases, shims, adapters, fallback
   readers, bridge normalizers, repeated field lists, per-field kwargs builders,
   or local type-narrowing blocks.
+- Before starting any deletion-first cleanup, helper deletion, payload/dict
+  removal, representation cutover, or ownership-boundary repair, load and use
+  the actual deletion workflow: `protocols:cleanup-refactor`. State that it is
+  the active control surface before the first repo mutation. Do not substitute
+  normal import-fixing, ruff-fixing, test-fixing, or "make it run" behavior for
+  that workflow.
+- "Classify the broken caller" has a precise meaning. Classify the symbol,
+  caller, import, test failure, or type failure exposed by deletion as exactly
+  one of: deleted old surface; wrong caller that exists only for the old
+  surface; valid capability with wrong representation; valid capability in the
+  wrong owner; already-owned capability that must use its true owner directly;
+  IO-boundary-only carrier; or dead/test/scaffold surface. This classification
+  is required before editing the caller.
+- Classification is for disposition, not description. After classification,
+  choose one action: delete the caller path; move the capability to the true
+  owner; rewrite the caller to the typed owner interface; use the already-owned
+  charter/document/family/semantic object directly; keep the dict only at the
+  Quire/input-output boundary; or delete the dead scaffold. Do not edit until
+  the disposition is named.
+- The thing being classified is the broken dependency edge, not merely the
+  missing function name. Ask what capability the caller was obtaining, what
+  representation crossed that edge, which layer owns that capability, and
+  whether the capability should still exist after the old surface is gone.
+- Classification must reject vague labels. "Helper", "owner helper", "needed
+  for import", "used by tests", "existing behavior", "missing symbol", and
+  "small restoration" are not classifications. They do not justify code.
 - In a deletion-first refactor, an import error for a deleted symbol is not a
   request to restore that symbol. Treat the import error as the next caller to
   classify. Delete the caller path, move the caller to the true owner, or change
