@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal, overload
 
-from fastapi import FastAPI, Request
+from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from propstore.app.claim_views import (
@@ -25,15 +25,14 @@ from propstore.app.concept_views import (
     ConceptViewUnknownConceptError,
     build_concept_view,
 )
-from propstore.app.concepts import (
+from propstore.app.concepts.display import ConceptSearchSyntaxError, search_concepts
+from propstore.app.concepts.mutation import (
     ConceptListReport,
     ConceptListRequest,
     ConceptSearchReport,
     ConceptSearchRequest,
-    ConceptSearchSyntaxError,
     ConceptSidecarMissingError,
     list_concepts,
-    search_concepts,
 )
 from propstore.app.neighborhoods import (
     SemanticNeighborhoodReport,
@@ -48,27 +47,15 @@ from propstore.app.repository_overview import (
 )
 from propstore.app.repository_views import RepositoryViewUnsupportedStateError
 from propstore.app.rendering import RenderPolicyValidationError
-from propstore.app.world_revision import (
-    AppRevisionWorldRequest,
-    world_revision_entrenchment,
-)
+from propstore.app.world_revision import AppRevisionWorldRequest
 from propstore.app.world import WorldSidecarMissingError
 from propstore.repository import Repository
-from propstore.web.html import (
-    render_claim_index_page,
-    render_claim_page,
-    render_concept_page,
-    render_concept_index_page,
-    render_error_page,
-    render_index_page,
-    render_neighborhood_page,
-)
+from propstore.web.html import render_error_page
 from propstore.web.requests import (
     WebQueryParseError,
     parse_render_policy_request,
     parse_repository_view_request,
 )
-from propstore.web.serialization import to_json_compatible
 
 _EXPECTED_WEB_ERRORS = (
     WebQueryParseError,

@@ -11,7 +11,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup, escape
 
 from propstore.app.claim_views import ClaimSummaryReport, ClaimViewReport
-from propstore.app.concepts import ConceptListReport, ConceptSearchReport
+from propstore.app.concepts.mutation import ConceptListReport, ConceptSearchReport
 from propstore.app.concept_views import (
     ConceptClaimGroup,
     ConceptRelatedClaimLink,

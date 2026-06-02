@@ -6,7 +6,7 @@ import click
 
 from propstore.cli.output import emit, emit_error, emit_warning
 
-from propstore.app.concepts import (
+from propstore.app.concepts.mutation import (
     ConceptAddRequest,
     ConceptAddValueRequest,
     ConceptAliasRequest,
@@ -17,7 +17,6 @@ from propstore.app.concepts import (
     ConceptMutationReport,
     ConceptProtoRoleRequest,
     ConceptQualiaAddRequest,
-    ConceptRenameRequest,
     ConceptValidationError,
     PROTO_ROLE_KINDS,
     QUALIA_ROLES,
@@ -29,7 +28,6 @@ from propstore.app.concepts import (
     add_concept_value,
     deprecate_concept,
     link_concepts,
-    rename_concept,
     set_concept_description_kind,
 )
 from propstore.app.forms import list_form_items
@@ -159,36 +157,6 @@ def alias(
                 name=name,
                 source=source,
                 note=note,
-                dry_run=dry_run,
-            ),
-        )
-    )
-
-
-# ── concept rename ───────────────────────────────────────────────────
-
-
-@concept.command()
-@click.argument("concept_id")
-@click.option("--name", required=True, help="New canonical name")
-@click.option("--dry-run", is_flag=True)
-@click.pass_obj
-def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
-    """Rename a concept, cascading the new name through dependent CEL conditions.
-
-    Updates canonical_name, filename, logical_ids, and artifact_id, then
-    rewrites CEL condition expressions in every other concept and every
-    claim file that references the old name. Re-validates concepts and
-    claims before committing; aborts with a non-zero exit code if validation
-    fails. The commit is a batch that adds the new file and deletes the old.
-    """
-    repo: Repository = obj["repo"]
-    _run_mutation(
-        lambda: rename_concept(
-            repo,
-            ConceptRenameRequest(
-                concept_id=concept_id,
-                name=name,
                 dry_run=dry_run,
             ),
         )

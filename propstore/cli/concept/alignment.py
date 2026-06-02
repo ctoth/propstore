@@ -4,15 +4,17 @@ import click
 
 from propstore.cli.output import emit
 
-from propstore.app.concepts import (
-    ConceptAlignmentBuildRequest,
-    ConceptAlignmentDecisionRequest,
-    ConceptAlignmentQueryRequest,
-    ConceptDisplayError,
+from propstore.app.concepts.alignment import (
     build_concept_alignment,
     decide_concept_alignment,
     promote_concept_alignment,
     query_concept_alignment,
+)
+from propstore.app.concepts.mutation import (
+    ConceptAlignmentBuildRequest,
+    ConceptAlignmentDecisionRequest,
+    ConceptAlignmentQueryRequest,
+    ConceptDisplayError,
 )
 from propstore.repository import Repository
 from propstore.cli.concept import (

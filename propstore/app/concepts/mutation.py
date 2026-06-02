@@ -283,13 +283,6 @@ class ConceptAliasRequest:
 
 
 @dataclass(frozen=True)
-class ConceptRenameRequest:
-    concept_id: str
-    name: str
-    dry_run: bool = False
-
-
-@dataclass(frozen=True)
 class ConceptDeprecateRequest:
     concept_id: str
     replaced_by: str

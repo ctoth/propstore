@@ -6,7 +6,8 @@ import click
 
 from propstore.cli.output import emit, emit_table
 
-from propstore.app.concepts import (
+from propstore.app.concepts.display import search_concepts
+from propstore.app.concepts.mutation import (
     ConceptDisplayError,
     ConceptListRequest,
     ConceptSearchRequest,
@@ -15,7 +16,6 @@ from propstore.app.concepts import (
     UnknownConceptError,
     list_concept_categories,
     list_concepts as run_list_concepts,
-    search_concepts,
     show_concept,
 )
 from propstore.repository import Repository

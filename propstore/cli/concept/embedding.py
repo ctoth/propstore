@@ -23,13 +23,13 @@ def embed(
     obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_size: int
 ) -> None:
     """Generate embeddings for concepts via litellm."""
-    from propstore.app.concepts import (
+    from propstore.app.concepts.embedding import embed_concept_embeddings
+    from propstore.app.concepts.mutation import (
         ConceptEmbedRequest,
         ConceptEmbeddingModelError,
         ConceptSidecarMissingError,
         ConceptWorkflowError,
         UnknownConceptError,
-        embed_concept_embeddings,
     )
 
     def progress(model_name: str, done: int, total: int) -> None:
@@ -100,13 +100,13 @@ def similar(
     disagree: bool,
 ) -> None:
     """Find similar concepts by embedding distance."""
-    from propstore.app.concepts import (
+    from propstore.app.concepts.embedding import find_similar_concepts
+    from propstore.app.concepts.mutation import (
         ConceptEmbeddingModelError,
         ConceptSidecarMissingError,
         ConceptSimilarRequest,
         ConceptWorkflowError,
         UnknownConceptError,
-        find_similar_concepts,
     )
 
     try:

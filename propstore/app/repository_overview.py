@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
 from propstore.app.claim_views import ClaimListRequest, list_claim_views
-from propstore.app.concepts import (
+from propstore.app.concepts.mutation import (
     ConceptListRequest,
     ConceptSidecarMissingError,
     list_concepts,
