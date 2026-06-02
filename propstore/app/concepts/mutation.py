@@ -16,10 +16,6 @@ if TYPE_CHECKING:
     from propstore.repository import Repository
 
 from propstore.reporting import JsonReportMixin
-from propstore.claims import (
-    LoadedClaimsFile,
-    claim_file_filename,
-)
 from propstore.canonical_namespaces import (
     assert_alias_does_not_target_reserved_namespace,
 )
@@ -35,7 +31,6 @@ from propstore.families.concepts.passes import (
 from propstore.families.concepts.stages import (
     normalize_loaded_concepts,
 )
-from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.concepts.declaration import (
     ConceptAliasDocument,
     ConceptDocument,
@@ -57,7 +52,7 @@ from propstore.core.lemon.qualia import (
     TypeConstraint,
 )
 from propstore.core.lemon.references import OntologyReference
-from propstore.families.registry import ClaimRef, ConceptFileRef
+from propstore.families.registry import ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
 from propstore.families.concepts.types import ConceptRelationshipType, ConceptStatus
 from propstore.semantic_passes.types import PipelineResult
@@ -641,45 +636,8 @@ def _rewrite_concept_conditions(
     )
 
 
-def _rewrite_claim_conditions(
-    claim_file_data: dict, old_name: str, new_name: str
-) -> bool:
-    changed = False
-    if "claims" not in claim_file_data:
-        rewritten, claim_changed = _rewrite_condition_list(
-            claim_file_data.get("conditions"), old_name, new_name
-        )
-        if claim_changed:
-            claim_file_data["conditions"] = rewritten
-        return claim_changed
-    for claim in claim_file_data.get("claims", []) or []:
-        if not isinstance(claim, dict):
-            continue
-        rewritten, claim_changed = _rewrite_condition_list(
-            claim.get("conditions"), old_name, new_name
-        )
-        if claim_changed:
-            claim["conditions"] = rewritten
-            changed = True
-    return changed
-
-
 def _concept_ref(concept_entry: LoadedDocument[ConceptDocument]) -> ConceptFileRef:
     return ConceptFileRef(concept_entry.filename)
-
-
-def _claims_ref(claim_file: LoadedClaimsFile) -> ClaimRef:
-    artifact_id = claim_file.document.artifact_id
-    if not isinstance(artifact_id, str) or not artifact_id:
-        artifact_id = claim_file_filename(claim_file)
-    return ClaimRef(artifact_id)
-
-
-def _claims_document(repo: Repository, ref: ClaimRef, data: dict) -> ClaimDocument:
-    return repo.families.claims.coerce(
-        data,
-        source=repo.families.claims.address(ref).require_path(),
-    )
 
 
 def _find_concept_entry(
@@ -799,8 +757,8 @@ def _run_concept_validation(
     concepts: list[LoadedDocument[ConceptDocument]],
 ) -> PipelineResult[object]:
     tree = repo.tree()
-    claim_files = [
-        LoadedClaimsFile(
+    claims = [
+        LoadedDocument(
             filename=handle.ref.artifact_id,
             artifact_path=tree / handle.address.require_path(),
             store_root=tree,
@@ -812,7 +770,7 @@ def _run_concept_validation(
         normalize_loaded_concepts(concepts),
         context=ConceptPipelineContext(
             form_registry=_form_registry(repo),
-            claim_index=build_compiler_claim_index(claim_files),
+            claim_index=build_compiler_claim_index(claims),
         ),
     )
 
