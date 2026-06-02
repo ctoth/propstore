@@ -17,9 +17,10 @@ from quire.charters import (
 from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex
 
-from propstore.claims import LoadedClaimsFile
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
-from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+from propstore.conflict_detector.collectors import (
+    conflict_claims_from_claim_documents,
+)
 from propstore.conflict_detector.models import ConflictConceptRegistry
 from propstore.core.conditions.registry import ConditionRegistry
 from propstore.core.id_types import (
@@ -29,7 +30,7 @@ from propstore.core.id_types import (
 from propstore.core.diagnostics import QuarantineDiagnostic
 from propstore.compiler.ir import SemanticClaim
 from propstore.families.claims.references import ClaimReferenceRecord
-from propstore.families.claims.declaration import ResolutionDocument
+from propstore.families.claims.declaration import ClaimDocument, ResolutionDocument
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 from propstore.opinion import Opinion
@@ -314,12 +315,12 @@ def compile_claim_embedded_stance_models_for_claims_with_diagnostics(
 
 
 def compile_conflict_witness_models(
-    claim_files: Sequence[LoadedClaimsFile],
+    claims: Sequence[ClaimDocument],
     concept_registry: ConflictConceptRegistry,
     cel_registry: ConditionRegistry,
     lifting_system=None,
 ) -> tuple[ConflictWitness, ...]:
-    conflict_claims = conflict_claims_from_claim_files(claim_files)
+    conflict_claims = conflict_claims_from_claim_documents(claims)
     records = detect_conflicts(
         conflict_claims,
         concept_registry,

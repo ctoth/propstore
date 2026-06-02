@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Mapping
 
 from propstore.reporting import JsonReportMixin
-from propstore.claims import LoadedClaimsFile
 from propstore.core.environment import Environment
 from propstore.world.conflict_projection import conflict_detector_inputs_for_world
 
@@ -66,20 +65,13 @@ def _check_transitive_consistency(
     world: WorldQuery,
 ) -> WorldConsistencyReport:
     from propstore.conflict_detector import detect_transitive_conflicts
-    from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+    from propstore.conflict_detector.collectors import (
+        conflict_claims_from_claim_documents,
+    )
 
-    tree = repo.tree()
-    claim_files = [
-        LoadedClaimsFile(
-            filename=handle.ref.artifact_id,
-            artifact_path=tree / handle.address.require_path(),
-            store_root=tree,
-            document=handle.document,
-        )
-        for handle in repo.families.claims.iter_handles()
-    ]
+    claims = [handle.document for handle in repo.families.claims.iter_handles()]
     records = detect_transitive_conflicts(
-        conflict_claims_from_claim_files(claim_files),
+        conflict_claims_from_claim_documents(claims),
         conflict_detector_inputs_for_world(world).concept_registry,
     )
     return WorldConsistencyReport(
