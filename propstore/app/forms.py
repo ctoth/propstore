@@ -9,16 +9,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.families.forms.declaration import FormAlternativeDocument
-from propstore.families.forms.models import FORM_DOCUMENT_TYPE, FormDocument
+from propstore.families.forms.models import FormDocument
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import (
     FormCheckedRegistry,
     FormDefinition,
-    LoadedForm,
     parse_form,
 )
 from propstore.families.registry import FormRef
-from quire.documents import convert_document_value
+from quire.documents import LoadedDocument
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -275,6 +274,7 @@ def remove_form(
 def validate_forms(
     repo: Repository, name: str | None = None
 ) -> FormValidationReport | None:
+    tree = repo.tree()
     form_handles = list(repo.families.forms.iter_handles())
     if not form_handles:
         return None
@@ -284,7 +284,12 @@ def validate_forms(
 
     form_result = run_form_pipeline(
         [
-            LoadedForm(filename=handle.ref.name, document=handle.document)
+            LoadedDocument(
+                filename=handle.ref.name,
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
+                document=handle.document,
+            )
             for handle in form_handles
         ]
     )

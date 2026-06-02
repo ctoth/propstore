@@ -70,6 +70,11 @@ record/wrapper/parser names under `propstore` and `tests`. Historical plans,
 prompts, reviews, and workstream notes may still describe the old surface; those
 files are not runtime code and should not be used as replacement guidance.
 
+The form wrapper slice deletes the Propstore-specific form loaded-document
+wrapper. Form pipeline callers now use Quire `LoadedDocument[FormDocument]`
+directly when filename/path provenance is needed, and `FormDocument` directly
+when only fields are needed.
+
 Next slices should keep the same recursion:
 - delete one remaining fake representation or helper surface;
 - follow only direct breakage from that deletion;

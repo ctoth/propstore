@@ -64,7 +64,7 @@ from propstore.families.concepts.stages import (
 )
 from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.passes import run_form_pipeline
-from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
+from propstore.families.forms.stages import FormCheckedRegistry
 from propstore.families.micropublications.declaration import (
     compile_micropublication_models_with_diagnostics,
 )
@@ -549,7 +549,12 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     messages: list[PassDiagnostic] = []
 
     form_files = [
-        LoadedForm(filename=handle.ref.name, document=handle.document)
+        LoadedDocument(
+            filename=handle.ref.name,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
+        )
         for handle in repo.families.forms.iter_handles()
     ]
     form_result = run_form_pipeline(form_files)

@@ -18,15 +18,13 @@ from propstore.families.forms.models import (
     FormDocument,
 )
 from propstore.propagation import rewrite_parameterization_symbols
-from quire.documents import decode_document_path
+from quire.documents import LoadedDocument, decode_document_path
 from quire.tree_path import (
     TreePath as KnowledgePath,
     coerce_tree_path as coerce_knowledge_path,
 )
 
 if TYPE_CHECKING:
-    from quire.documents import LoadedDocument
-
     from propstore.families.concepts.declaration import ConceptDocument
 
 
@@ -38,12 +36,6 @@ class FormStage(StrEnum):
     AUTHORED = "form.authored"
     NORMALIZED = "form.normalized"
     CHECKED = "form.checked"
-
-
-@dataclass(frozen=True)
-class LoadedForm:
-    filename: str
-    document: FormDocument
 
 
 @dataclass
@@ -66,18 +58,18 @@ class FormDefinition:
 
 @dataclass(frozen=True)
 class FormAuthoredSet:
-    forms: tuple[LoadedForm, ...]
+    forms: tuple[LoadedDocument[FormDocument], ...]
 
 
 @dataclass(frozen=True)
 class FormNormalizedRegistry:
-    forms: tuple[LoadedForm, ...]
+    forms: tuple[LoadedDocument[FormDocument], ...]
     registry: dict[str, FormDefinition]
 
 
 @dataclass(frozen=True)
 class FormCheckedRegistry:
-    forms: tuple[LoadedForm, ...]
+    forms: tuple[LoadedDocument[FormDocument], ...]
     registry: dict[str, FormDefinition]
 
 

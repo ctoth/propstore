@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from quire.documents import LoadedDocument
 from propstore.families.forms.stages import (
     FormAuthoredSet,
     FormCheckedRegistry,
     FormNormalizedRegistry,
     FormStage,
-    LoadedForm,
     parse_form,
 )
+from propstore.families.forms.models import FormDocument
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
@@ -146,7 +147,8 @@ def register_form_pipeline(registry: PipelineRegistry) -> None:
 
 
 def run_form_pipeline(
-    forms: tuple[LoadedForm, ...] | list[LoadedForm],
+    forms: tuple[LoadedDocument[FormDocument], ...]
+    | list[LoadedDocument[FormDocument]],
     *,
     target_stage: FormStage = FormStage.CHECKED,
     context: object | None = None,
@@ -166,7 +168,7 @@ def run_form_pipeline(
 def _error(
     code: str,
     message: str,
-    form: LoadedForm,
+    form: LoadedDocument[FormDocument],
     pass_name: str,
     *,
     artifact_id: str | None = None,

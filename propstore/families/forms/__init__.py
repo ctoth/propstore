@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-from quire.documents import decode_document_path
-
-from propstore.families.forms.stages import LoadedForm
+from quire.documents import LoadedDocument, decode_document_path
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path
     from quire.tree_path import TreePath as KnowledgePath
+    from propstore.families.forms.models import FormDocument
 
 
-def load_form_documents(forms_dir: Path | KnowledgePath) -> list[LoadedForm]:
+def load_form_documents(
+    forms_dir: Path | KnowledgePath,
+) -> list[LoadedDocument[FormDocument]]:
     from quire.tree_path import coerce_tree_path
     from propstore.families.forms.models import FORM_DOCUMENT_TYPE
 
@@ -21,8 +22,10 @@ def load_form_documents(forms_dir: Path | KnowledgePath) -> list[LoadedForm]:
     if not forms_root.exists():
         return []
     return [
-        LoadedForm(
+        LoadedDocument(
             filename=entry.stem,
+            artifact_path=entry,
+            store_root=forms_root,
             document=decode_document_path(entry, FORM_DOCUMENT_TYPE),
         )
         for entry in forms_root.iterdir()
@@ -31,6 +34,5 @@ def load_form_documents(forms_dir: Path | KnowledgePath) -> list[LoadedForm]:
 
 
 __all__ = [
-    "LoadedForm",
     "load_form_documents",
 ]
