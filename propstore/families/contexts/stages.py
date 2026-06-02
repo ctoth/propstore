@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from propstore.cel_types import to_cel_exprs
 from propstore.core.assertions.refs import ContextReference
@@ -19,7 +19,6 @@ from quire.tree_path import (
     TreePath as KnowledgePath,
     coerce_tree_path as coerce_knowledge_path,
 )
-from quire.documents import LoadedDocument
 from enum import StrEnum
 
 if TYPE_CHECKING:
@@ -71,18 +70,6 @@ class LoadedContext:
                 else coerce_knowledge_path(knowledge_root)
             ),
             record=record,
-        )
-
-    @classmethod
-    def from_loaded_document(
-        cls,
-        document: LoadedDocument[ContextDocument],
-    ) -> LoadedContext:
-        return cls.from_record(
-            filename=document.filename,
-            source_path=document.artifact_path,
-            knowledge_root=document.store_root,
-            record=parse_context_record_document(document.document),
         )
 
 
