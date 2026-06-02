@@ -5,15 +5,24 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
+import msgspec
+
 from propstore.core.id_types import (
+    AssumptionId,
     ConceptId,
     ContextId,
 )
+from propstore.core.labels import AssumptionRef
 from propstore.families.claims.declaration import Claim
+from propstore.families.worldlines.declaration import (
+    WorldlineDefinitionDocument,
+    WorldlineInputsDocument,
+)
 from propstore.policies import policy_profile_from_render_policy
+from propstore.world.types import Environment, RenderPolicy
 from propstore.world.value_resolver import ClaimValueResolver
 from propstore.worldline.argumentation import capture_argumentation_state
-from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
+from propstore.worldline.definition import WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.interfaces import (
     HasEnvironment,
@@ -36,7 +45,6 @@ from propstore.worldline.resolution import (
     pre_resolve_conflicts as _pre_resolve_conflicts,
     resolve_target as _resolve_target,
 )
-from propstore.worldline.revision_capture import capture_revision_state
 from propstore.worldline.revision_types import WorldlineRevisionState
 from propstore.worldline.trace import ResolutionTrace
 
@@ -44,16 +52,33 @@ logger = logging.getLogger(__name__)
 
 
 def run_worldline(
-    definition: WorldlineDefinition,
+    definition: WorldlineDefinitionDocument,
     world: WorldlineStore,
 ) -> WorldlineResult:
     from propstore.world.types import ResolutionStrategy
 
-    environment = definition.inputs.environment
+    inputs = definition.inputs or WorldlineInputsDocument()
+    environment = Environment(
+        bindings=dict(inputs.bindings),
+        context_id=None if inputs.context_id is None else ContextId(inputs.context_id),
+        effective_assumptions=inputs.effective_assumptions,
+        assumptions=tuple(
+            AssumptionRef(
+                assumption_id=AssumptionId(assumption.assumption_id),
+                kind=assumption.kind,
+                source=assumption.source,
+                cel=assumption.cel,
+            )
+            for assumption in inputs.assumptions
+        ),
+    )
     bindings = dict(environment.bindings)
     context_id = environment.context_id
-    overrides = dict(definition.inputs.overrides)
-    policy = definition.policy
+    overrides = dict(inputs.overrides)
+    policy = RenderPolicy.from_dict(
+        {} if definition.policy is None else msgspec.to_builtins(definition.policy)
+    )
+    revision_query = definition.revision
     strategy = policy.strategy
     bound = world.bind(environment, policy=policy)
 
@@ -118,12 +143,12 @@ def run_worldline(
                 capture_argumentation_state(
                     bound,
                     world,
-                    definition,
+                    policy,
                 )
             )
             if argumentation_state is not None:
                 trace.dependency_claims.update(active_ids)
-        except Exception as exc:
+        except Exception:
             logger.warning("argumentation capture failed", exc_info=True)
             argumentation_state = WorldlineArgumentationState(
                 status="error",
@@ -131,16 +156,12 @@ def run_worldline(
             )
 
     revision_state: WorldlineRevisionState | None = None
-    if definition.revision is not None:
-        try:
-            revision_state = capture_revision_state(bound, definition.revision)
-        except Exception as exc:
-            logger.warning("revision capture failed", exc_info=True)
-            revision_state = WorldlineRevisionState(
-                operation=definition.revision.operation,
-                status="error",
-                error=WorldlineCaptureError.REVISION,
-            )
+    if revision_query is not None:
+        revision_state = WorldlineRevisionState(
+            operation=revision_query.operation,
+            status="error",
+            error=WorldlineCaptureError.REVISION,
+        )
 
     lifting_rules, blocked_exceptions = _lifting_dependencies(bound, world, context_id)
     dependencies = WorldlineDependencies(
@@ -157,7 +178,7 @@ def run_worldline(
         blocked_exceptions=tuple(blocked_exceptions),
     )
     content_hash = compute_worldline_content_hash(
-        policy=policy_profile_from_render_policy(definition.policy).to_dict(),
+        policy=policy_profile_from_render_policy(policy).to_dict(),
         values=values,
         steps=trace.steps,
         dependencies=dependencies,
@@ -216,7 +237,7 @@ def _capture_sensitivity(
                         if entry.elasticity is not None
                     )
                 )
-        except Exception as exc:
+        except Exception:
             logger.warning(
                 "sensitivity analysis failed for %s", target_name, exc_info=True
             )

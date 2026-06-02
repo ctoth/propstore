@@ -18,7 +18,6 @@ from propstore.world.types import (
     GroundingBundleStore,
     RenderPolicy,
 )
-from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.interfaces import (
     HasActiveGraph,
     WorldlineBoundView,
@@ -30,15 +29,15 @@ from propstore.worldline.result_types import WorldlineArgumentationState
 def capture_argumentation_state(
     bound: WorldlineBoundView,
     world: WorldlineStore,
-    definition: WorldlineDefinition,
+    policy: RenderPolicy,
 ) -> tuple[WorldlineArgumentationState | None, list[str], set[ClaimId]]:
     active = list(bound.active_claims())
     active_ids = {ClaimId(claim.id) for claim in active}
     active_graph = bound.active_graph if isinstance(bound, HasActiveGraph) else None
-    reasoning_backend = definition.policy.reasoning_backend
+    reasoning_backend = policy.reasoning_backend
     _, normalized_semantics = validate_backend_semantics(
         reasoning_backend,
-        definition.policy.semantics,
+        policy.semantics,
     )
 
     argumentation_state: WorldlineArgumentationState | None = None
@@ -47,7 +46,7 @@ def capture_argumentation_state(
             world,
             active_ids,
             active_graph,
-            definition.policy,
+            policy,
             normalized_semantics,
         )
     elif reasoning_backend == ReasoningBackend.ASPIC:
@@ -57,17 +56,15 @@ def capture_argumentation_state(
             active,
             active_ids,
             active_graph,
-            definition.policy,
+            policy,
             normalized_semantics,
         )
-    elif reasoning_backend == ReasoningBackend.ATMS:
-        argumentation_state = _capture_atms(bound, definition.policy)
     elif reasoning_backend == ReasoningBackend.PRAF:
         argumentation_state = _capture_praf(
             world,
             active_ids,
             active_graph,
-            definition.policy,
+            policy,
             normalized_semantics,
         )
 

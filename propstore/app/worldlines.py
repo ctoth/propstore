@@ -5,18 +5,28 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
-from quire.documents import DocumentSchemaError
+import msgspec
+from quire.documents import DocumentSchemaError, convert_document_value
+
 from propstore.app.world import WorldSidecarMissingError, open_app_world_model
 from propstore.families.registry import WorldlineRef
+from propstore.families.worldlines.declaration import (
+    WorldlineDefinitionDocument,
+    WorldlineInputsDocument,
+    WorldlinePolicyDocument,
+    WorldlineResultDocument,
+    WorldlineRevisionQueryDocument,
+)
 from propstore.json_types import JsonObject, JsonValue
 from propstore.repository import Repository
 from propstore.core.reasoning import ArgumentationSemantics
+from propstore.support_revision.history import TransitionJournal
 from propstore.world.types import (
     ReasoningBackend,
     cli_argumentation_semantics_values,
     validate_backend_semantics,
 )
-from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
+from propstore.worldline.definition import WorldlineResult
 
 
 class WorldlineAppError(Exception):
@@ -162,7 +172,7 @@ class WorldlineShowRequest:
 
 @dataclass(frozen=True)
 class WorldlineShowReport:
-    definition: WorldlineDefinition
+    definition: WorldlineDefinitionDocument
     stale: bool | None = None
     staleness_unavailable: bool = False
 
@@ -212,11 +222,13 @@ class WorldlineDiffReport:
     only_right_dependencies: tuple[str, ...]
 
 
-def load_worldline_definition(repo: Repository, name: str) -> WorldlineDefinition:
+def load_worldline_definition(
+    repo: Repository, name: str
+) -> WorldlineDefinitionDocument:
     document = repo.families.worldlines.load(WorldlineRef(name))
     if document is None:
         raise WorldlineNotFoundError(name)
-    return WorldlineDefinition.from_document(document)
+    return document
 
 
 def show_worldline(
@@ -268,12 +280,14 @@ def diff_worldlines(
         raise WorldlineValidationError("Both worldlines must be materialized first")
 
     input_differences: list[WorldlineInputDifference] = []
+    left_inputs = left.inputs or WorldlineInputsDocument()
+    right_inputs = right.inputs or WorldlineInputsDocument()
     left_bindings = _coerce_json_object(
-        dict(left.inputs.environment.bindings),
+        dict(left_inputs.bindings),
         field_name="left bindings",
     )
     right_bindings = _coerce_json_object(
-        dict(right.inputs.environment.bindings),
+        dict(right_inputs.bindings),
         field_name="right bindings",
     )
     if left_bindings != right_bindings:
@@ -286,10 +300,10 @@ def diff_worldlines(
         )
 
     left_overrides = _coerce_json_object(
-        dict(left.inputs.overrides), field_name="left overrides"
+        dict(left_inputs.overrides), field_name="left overrides"
     )
     right_overrides = _coerce_json_object(
-        dict(right.inputs.overrides), field_name="right overrides"
+        dict(right_inputs.overrides), field_name="right overrides"
     )
     if left_overrides != right_overrides:
         input_differences.append(
@@ -404,32 +418,47 @@ def build_worldline_revision_dict(
 
 def _definition_from_request(
     request: WorldlineCreateRequest | WorldlineRunRequest,
-) -> WorldlineDefinition:
-    definition: dict[str, JsonValue] = {
-        "id": request.name,
-        "name": request.name,
-        "targets": list(request.targets),
-    }
+) -> WorldlineDefinitionDocument:
+    inputs = (
+        WorldlineInputsDocument(
+            bindings=dict(request.bindings),
+            context_id=request.context_id,
+            overrides=dict(request.overrides),
+        )
+        if request.bindings or request.overrides or request.context_id
+        else None
+    )
 
-    inputs: dict[str, JsonValue] = {}
-    if request.bindings:
-        inputs["bindings"] = dict(request.bindings)
-    if request.overrides:
-        inputs["overrides"] = dict(request.overrides)
-    if request.context_id:
-        inputs["context_id"] = request.context_id
-    if inputs:
-        definition["inputs"] = inputs
+    policy_data = build_worldline_policy_dict(request.policy)
+    policy = (
+        convert_document_value(
+            policy_data,
+            WorldlinePolicyDocument,
+            source="worldline:policy",
+        )
+        if policy_data is not None
+        else None
+    )
 
-    policy = build_worldline_policy_dict(request.policy)
-    if policy:
-        definition["policy"] = policy
+    revision_data = build_worldline_revision_dict(request.revision)
+    revision = (
+        convert_document_value(
+            revision_data,
+            WorldlineRevisionQueryDocument,
+            source="worldline:revision",
+        )
+        if revision_data is not None
+        else None
+    )
 
-    revision = build_worldline_revision_dict(request.revision)
-    if revision:
-        definition["revision"] = revision
-
-    return WorldlineDefinition.from_dict(definition)
+    return WorldlineDefinitionDocument(
+        id=request.name,
+        name=request.name,
+        targets=tuple(request.targets),
+        inputs=inputs,
+        policy=policy,
+        revision=revision,
+    )
 
 
 def create_worldline(
@@ -445,7 +474,7 @@ def create_worldline(
     definition = _definition_from_request(request)
     repo.families.worldlines.save(
         ref,
-        definition.to_document(),
+        definition,
         message=f"Create worldline: {request.name}",
     )
     return WorldlineMutationReport(name=request.name, path=path)
@@ -469,11 +498,16 @@ def materialize_worldline(
 
     with open_app_world_model(repo) as world:
         result = run_worldline(definition, world)
-    definition.results = result
+    result_document = convert_document_value(
+        result.to_dict(),
+        WorldlineResultDocument,
+        source="worldline:results",
+    )
+    definition = msgspec.structs.replace(definition, results=result_document)
 
     repo.families.worldlines.save(
         ref,
-        definition.to_document(),
+        definition,
         message=f"Materialize worldline: {request.name}",
     )
     return WorldlineRunReport(name=request.name, result=result)
@@ -494,7 +528,11 @@ def worldline_at_step(
     with open_app_world_model(repo) as world:
         try:
             view = world.at_journal_step(
-                definition.journal,
+                convert_document_value(
+                    msgspec.to_builtins(definition.journal),
+                    TransitionJournal,
+                    source="worldline:journal",
+                ),
                 request.step,
                 heavy=request.heavy,
             )
@@ -508,9 +546,16 @@ def worldline_at_step(
 
 
 def worldline_is_stale(repo: Repository, name: str) -> bool:
+    from propstore.worldline.runner import run_worldline
+
     definition = load_worldline_definition(repo, name)
+    if definition.results is None:
+        return False
+    if not definition.results.content_hash:
+        return True
     with open_app_world_model(repo) as world:
-        return definition.is_stale(world)
+        current_results = run_worldline(definition, world)
+    return current_results.content_hash != definition.results.content_hash
 
 
 def delete_worldline(repo: Repository, name: str) -> WorldlineMutationReport:
