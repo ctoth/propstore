@@ -23,17 +23,6 @@ class CommitHasNoConceptsError(Exception):
 
 
 @dataclass(frozen=True)
-class FileChangeReport:
-    added: tuple[str, ...]
-    modified: tuple[str, ...]
-    deleted: tuple[str, ...]
-
-    @property
-    def has_changes(self) -> bool:
-        return bool(self.added or self.modified or self.deleted)
-
-
-@dataclass(frozen=True)
 class CommitShowReport:
     sha: str
     author: str

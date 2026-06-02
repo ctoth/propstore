@@ -44,15 +44,6 @@ class SemanticClaim:
 
 
 @dataclass(frozen=True)
-class SemanticClaimFile:
-    """Semantic view of a single authored claim file."""
-
-    loaded_entry: LoadedClaimsFile
-    normalized_entry: LoadedClaimsFile
-    claims: tuple[SemanticClaim, ...] = ()
-
-
-@dataclass(frozen=True)
 class ClaimCompilationBundle:
     """The result of compiling authored claim files into semantic IR."""
 

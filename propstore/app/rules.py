@@ -29,12 +29,6 @@ class RuleWorkflowError(Exception):
 _RULE_MUTATION_LOCK = Lock()
 
 
-class RuleFileNotFoundError(RuleWorkflowError):
-    def __init__(self, file: str) -> None:
-        super().__init__(f"Rule file '{file}' not found")
-        self.file = file
-
-
 class RuleNotFoundError(RuleWorkflowError):
     """Raised when a named rule artifact is absent."""
 

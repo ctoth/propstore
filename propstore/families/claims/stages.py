@@ -82,27 +82,6 @@ def claim_algorithm_canonical_ast(
 
 
 @dataclass(frozen=True)
-class ClaimAuthoredFiles:
-    claim_files: tuple[LoadedClaimsFile, ...]
-    context: CompilationContext
-    context_ids: frozenset[str] | None = None
-
-    @classmethod
-    def from_sequence(
-        cls,
-        claim_files: Sequence[LoadedClaimsFile],
-        context: CompilationContext,
-        *,
-        context_ids: set[str] | None = None,
-    ) -> "ClaimAuthoredFiles":
-        return cls(
-            claim_files=tuple(claim_files),
-            context=context,
-            context_ids=None if context_ids is None else frozenset(context_ids),
-        )
-
-
-@dataclass(frozen=True)
 class ClaimCheckedBundle:
     bundle: ClaimCompilationBundle
     raw_id_quarantine_records: tuple[RawIdQuarantineRecord, ...] = ()

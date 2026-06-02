@@ -124,26 +124,3 @@ def _seed_qualia(entry: dict[str, object]) -> dict[str, object] | None:
             )
         qualia[str(role)] = role_values
     return qualia or None
-
-
-def _render_seed_form_files(
-    repo: Repository,
-    form_documents: list[tuple[FormRef, FormDocument]],
-) -> dict[str | Path, bytes]:
-    """Render typed seed forms to repo-relative YAML blobs for one commit."""
-    rendered: dict[str | Path, bytes] = {}
-    for ref, document in form_documents:
-        prepared = repo.families.forms.prepare(ref, document)
-        rendered[prepared.address.require_path()] = prepared.content
-    return rendered
-
-
-def _render_seed_concept_files(
-    repo: Repository,
-    concept_documents: list[tuple[ConceptFileRef, ConceptDocument]],
-) -> dict[str | Path, bytes]:
-    rendered: dict[str | Path, bytes] = {}
-    for ref, document in concept_documents:
-        prepared = repo.families.concepts.prepare(ref, document)
-        rendered[prepared.address.require_path()] = prepared.content
-    return rendered

@@ -138,10 +138,6 @@ if TYPE_CHECKING:
         artifact_id: str
 
     @dataclass(frozen=True)
-    class ConceptFileRef:
-        name: str
-
-    @dataclass(frozen=True)
     class JustificationRef:
         artifact_id: str
 

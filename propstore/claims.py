@@ -12,29 +12,6 @@ from quire.tree_path import TreePath as KnowledgePath
 from quire.documents import LoadedDocument
 
 
-class LoadedClaimsFile(LoadedDocument[ClaimDocument]):
-    """Loaded canonical claim document plus file-level claim metadata."""
-
-    stage: str | None
-
-    def __init__(
-        self,
-        *,
-        filename: str,
-        artifact_path: KnowledgePath | Path | None = None,
-        store_root: KnowledgePath | Path | None = None,
-        document: ClaimDocument,
-        stage: str | None = None,
-    ) -> None:
-        super().__init__(
-            filename=filename,
-            artifact_path=artifact_path,
-            store_root=store_root,
-            document=document,
-        )
-        self.stage = stage
-
-
 def load_claim_file(
     path: KnowledgePath | Path,
     *,

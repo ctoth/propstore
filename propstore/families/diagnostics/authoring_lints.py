@@ -74,67 +74,6 @@ def _lint_sources(
     return tuple(diagnostics)
 
 
-def _lint_stance_files(
-    stance_entries: Iterable[tuple[str, StanceDocument]],
-) -> tuple[PassDiagnostic, ...]:
-    diagnostics: list[PassDiagnostic] = []
-    for artifact_id, stance in stance_entries:
-        diagnostics.extend(
-            _lint_stance(
-                stance_type=stance.type,
-                strength=stance.strength,
-                target_justification_id=stance.target_justification_id,
-                filename=artifact_id,
-                artifact_id=artifact_id,
-            )
-        )
-    return tuple(diagnostics)
-
-
-def _lint_claim_files(
-    claim_files: Sequence[LoadedClaimsFile],
-) -> tuple[PassDiagnostic, ...]:
-    diagnostics: list[PassDiagnostic] = []
-    for claim_file in claim_files:
-        filename = claim_file_filename(claim_file)
-        for claim in claim_file_claims(claim_file):
-            claim_id = (
-                claim.artifact_id or claim.primary_logical_id or claim.id or filename
-            )
-            provenance = claim.provenance
-            if (
-                provenance is not None
-                and provenance.page == 1
-                and provenance.quote_fragment is None
-                and provenance.section is None
-                and provenance.table is None
-                and provenance.figure is None
-            ):
-                diagnostics.append(
-                    _authoring_warning(
-                        code="authoring.claim_placeholder_page",
-                        family=PropstoreFamily.CLAIMS,
-                        filename=filename,
-                        artifact_id=claim_id,
-                        message=(
-                            f"claim {claim_id!r} has provenance page=1 with "
-                            "no quote, section, table, or figure"
-                        ),
-                    )
-                )
-            for index, stance in enumerate(claim.stances, start=1):
-                diagnostics.extend(
-                    _lint_stance(
-                        stance_type=stance.type,
-                        strength=stance.strength,
-                        target_justification_id=stance.target_justification_id,
-                        filename=filename,
-                        artifact_id=f"{claim_id}#stance{index}",
-                    )
-                )
-    return tuple(diagnostics)
-
-
 def _lint_stance(
     *,
     stance_type: StanceType | None,

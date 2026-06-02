@@ -72,12 +72,6 @@ class ClaimValidationRequest:
 
 
 @dataclass(frozen=True)
-class ClaimValidateFileRequest:
-    filepath: Path
-    concepts_path: Path | None = None
-
-
-@dataclass(frozen=True)
 class ClaimValidationReport:
     file_count: int
     warnings: tuple[str, ...]
@@ -188,82 +182,6 @@ def compare_algorithm_claims_from_repo(
         raise ClaimSidecarMissingError(
             "Sidecar not found. Run 'pks build' first."
         ) from exc
-
-
-def validate_claim_files(
-    repo: Repository,
-    request: ClaimValidationRequest,
-) -> ClaimValidationReport:
-    from quire.documents import DocumentSchemaError
-    from quire.tree_path import coerce_tree_path as coerce_knowledge_path
-
-    from propstore.compiler.context import (
-        build_compilation_context_from_loaded,
-        build_compilation_context_from_repo,
-    )
-    from propstore.families.claims.passes import validate_claims
-    from propstore.families.concepts.stages import load_concepts
-    from propstore.claims import load_claim_batch_file
-
-    claims_root = (
-        coerce_knowledge_path(request.claims_path)
-        if request.claims_path is not None
-        else None
-    )
-    concepts_root, forms_root = _concept_override_roots(request.concepts_path)
-
-    if claims_root is not None and not claims_root.exists():
-        raise ClaimPathError(
-            f"Claims directory '{claims_root.as_posix()}' does not exist"
-        )
-
-    try:
-        if claims_root is None:
-            tree = repo.tree()
-            files = [
-                LoadedClaimsFile(
-                    filename=handle.ref.artifact_id,
-                    artifact_path=tree / handle.address.require_path(),
-                    store_root=tree,
-                    document=handle.document,
-                )
-                for handle in repo.families.claims.iter_handles()
-            ]
-        else:
-            files = [
-                claim_file
-                for entry in sorted(
-                    (
-                        child
-                        for child in claims_root.iterdir()
-                        if child.is_file() and child.suffix == ".yaml"
-                    ),
-                    key=lambda child: child.as_posix(),
-                )
-                for claim_file in load_claim_batch_file(
-                    entry, knowledge_root=claims_root.parent
-                )
-            ]
-        if concepts_root is None:
-            context = build_compilation_context_from_repo(repo, claim_files=files)
-        else:
-            context = build_compilation_context_from_loaded(
-                load_concepts(concepts_root),
-                forms_dir=forms_root,
-                claim_files=files,
-            )
-    except DocumentSchemaError as exc:
-        raise ClaimValidationDocumentError(str(exc)) from exc
-
-    if not files:
-        return ClaimValidationReport(file_count=0, warnings=(), errors=())
-
-    result = validate_claims(files, context)
-    return ClaimValidationReport(
-        file_count=len(files),
-        warnings=tuple(str(warning) for warning in result.warnings),
-        errors=tuple(str(error) for error in result.errors),
-    )
 
 
 def validate_claim_file(
