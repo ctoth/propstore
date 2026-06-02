@@ -28,9 +28,6 @@ from propstore.families.concepts.passes import (
     ConceptPipelineContext,
     run_concept_pipeline,
 )
-from propstore.families.concepts.stages import (
-    normalize_loaded_concepts,
-)
 from propstore.families.concepts.declaration import (
     ConceptAliasDocument,
     ConceptDocument,
@@ -767,7 +764,7 @@ def _run_concept_validation(
         for handle in repo.families.claims.iter_handles()
     ]
     return run_concept_pipeline(
-        normalize_loaded_concepts(concepts),
+        concepts,
         context=ConceptPipelineContext(
             form_registry=_form_registry(repo),
             claim_index=build_compiler_claim_index(claims),
