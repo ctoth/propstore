@@ -55,8 +55,7 @@ def claim_render_policy_request(
 
 
 # Import split command modules after the group and shared helpers are defined.
-from propstore.cli.claim import analysis as _analysis
-from propstore.cli.claim import display as _display
-from propstore.cli.claim import embedding as _embedding
-from propstore.cli.claim import relation as _relation
-from propstore.cli.claim import validation as _validation
+from propstore.cli.claim import display as _display  # noqa: E402,F401
+from propstore.cli.claim import embedding as _embedding  # noqa: E402,F401
+from propstore.cli.claim import relation as _relation  # noqa: E402,F401
+from propstore.cli.claim import validation as _validation  # noqa: E402,F401

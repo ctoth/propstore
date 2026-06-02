@@ -10,14 +10,11 @@ from propstore.families.claims.sidecar_runtime import (
     relate_all_from_sidecar,
     relate_claim_from_sidecar,
 )
-from propstore.claims import LoadedClaimsFile
 from propstore.repository import Repository
 from quire.tree_path import TreePath as KnowledgePath
 
 if TYPE_CHECKING:
     from quire.derived_store import DerivedStoreHandle
-
-    from propstore.world.model import WorldQuery
 
 
 class ClaimWorkflowError(Exception):
@@ -28,10 +25,6 @@ class UnknownClaimError(ClaimWorkflowError):
     def __init__(self, claim_id: str) -> None:
         super().__init__(f"Claim '{claim_id}' not found.")
         self.claim_id = claim_id
-
-
-class ClaimComparisonError(ClaimWorkflowError):
-    pass
 
 
 class ClaimSidecarMissingError(ClaimWorkflowError):
@@ -48,21 +41,6 @@ class ClaimPathError(ClaimWorkflowError):
 
 class ClaimValidationDocumentError(ClaimWorkflowError):
     pass
-
-
-@dataclass(frozen=True)
-class ClaimCompareRequest:
-    claim_a_id: str
-    claim_b_id: str
-    known_values: Mapping[str, float] | None = None
-
-
-@dataclass(frozen=True)
-class ClaimCompareReport:
-    tier: object
-    equivalent: object
-    similarity: float
-    details: object
 
 
 @dataclass(frozen=True)
@@ -169,49 +147,56 @@ class ClaimRelateReport:
     no_relation: int | None = None
 
 
-def compare_algorithm_claims_from_repo(
+def validate_claims(
     repo: Repository,
-    request: ClaimCompareRequest,
-) -> ClaimCompareReport:
-    from propstore.world.model import WorldQuery
-
-    try:
-        with WorldQuery(repo) as world:
-            return compare_algorithm_claims(world, request)
-    except FileNotFoundError as exc:
-        raise ClaimSidecarMissingError(
-            "Sidecar not found. Run 'pks build' first."
-        ) from exc
-
-
-def validate_claim_file(
-    repo: Repository,
-    request: ClaimValidateFileRequest,
+    request: ClaimValidationRequest,
 ) -> ClaimValidationReport:
-    from quire.documents import DocumentSchemaError
+    from quire.documents import DocumentSchemaError, LoadedDocument, load_document
 
     from propstore.compiler.context import (
         build_compilation_context_from_loaded,
         build_compilation_context_from_repo,
     )
-    from propstore.families.claims.passes import validate_single_claim_file
+    from propstore.families.claims.passes import validate_claims as validate_claim_set
+    from propstore.families.claims.declaration import ClaimDocument
     from propstore.families.concepts.stages import load_concepts
 
     concepts_root, forms_root = _concept_override_roots(request.concepts_path)
     try:
+        tree = repo.tree()
+        claims = [
+            LoadedDocument(
+                filename=handle.ref.artifact_id,
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
+                document=handle.document,
+            )
+            for handle in repo.families.claims.iter_handles()
+        ]
+        if request.claims_path is not None:
+            claims_root = request.claims_path
+            if not claims_root.exists():
+                raise ClaimPathError(
+                    f"Claims directory '{claims_root.as_posix()}' does not exist"
+                )
+            claims = [
+                load_document(path, ClaimDocument, store_root=claims_root.parent)
+                for path in sorted(claims_root.glob("*.yaml"))
+            ]
         if concepts_root is None:
-            context = build_compilation_context_from_repo(repo)
+            context = build_compilation_context_from_repo(repo, claim_files=claims)
         else:
             context = build_compilation_context_from_loaded(
                 load_concepts(concepts_root),
                 forms_dir=forms_root,
+                claim_files=claims,
             )
-        result = validate_single_claim_file(request.filepath, context)
+        result = validate_claim_set(claims, context)
     except DocumentSchemaError as exc:
         raise ClaimValidationDocumentError(str(exc)) from exc
 
     return ClaimValidationReport(
-        file_count=1,
+        file_count=len(claims),
         warnings=tuple(str(warning) for warning in result.warnings),
         errors=tuple(str(error) for error in result.errors),
     )
@@ -226,13 +211,13 @@ def detect_claim_conflicts(
         concept_registry_for_context,
     )
     from propstore.conflict_detector import ConflictClass, detect_conflicts
-    from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+    from propstore.conflict_detector.models import ConflictClaim
     from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
     from quire.documents import LoadedDocument
 
     tree = repo.tree()
-    files = [
-        LoadedClaimsFile(
+    claims = [
+        LoadedDocument(
             filename=handle.ref.artifact_id,
             artifact_path=tree / handle.address.require_path(),
             store_root=tree,
@@ -240,10 +225,10 @@ def detect_claim_conflicts(
         )
         for handle in repo.families.claims.iter_handles()
     ]
-    if not files:
+    if not claims:
         return ClaimConflictsReport(file_count=0, conflicts=())
 
-    context = build_compilation_context_from_repo(repo, claim_files=list(files))
+    context = build_compilation_context_from_repo(repo, claim_files=list(claims))
     registry = concept_registry_for_context(context)
     tree = repo.tree()
     contexts = [
@@ -257,7 +242,12 @@ def detect_claim_conflicts(
     ]
     lifting_system = loaded_contexts_to_lifting_system(contexts) if contexts else None
     records = detect_conflicts(
-        conflict_claims_from_claim_files(files),
+        [
+            conflict_claim
+            for claim in claims
+            if (conflict_claim := ConflictClaim.from_claim_document(claim.document))
+            is not None
+        ],
         registry,
         context.cel_registry,
         lifting_system=lifting_system,
@@ -270,7 +260,7 @@ def detect_claim_conflicts(
             record for record in records if record.warning_class == requested_class
         ]
     return ClaimConflictsReport(
-        file_count=len(files),
+        file_count=len(claims),
         conflicts=tuple(
             ClaimConflictLine(
                 warning_class=record.warning_class.value,
