@@ -7,7 +7,6 @@ import click
 from propstore.families.contexts.lifting import LiftingMode
 from propstore.cli.output import emit, emit_success
 
-from quire.documents import encode_document
 from propstore.cli.helpers import fail
 from propstore.app.contexts import (
     ContextAddRequest,
@@ -75,7 +74,7 @@ def add(
 
     if not report.created:
         emit(f"Would create {report.filepath}")
-        emit(encode_document(report.document).decode("utf-8"))
+        emit(repo.families.contexts.render(report.document))
         return
 
     emit_success(f"Created {report.filepath}")
@@ -202,7 +201,17 @@ def show_lifting_rule(obj: dict, context_name: str, rule_id: str) -> None:
         fail(f"Context '{context_name}' not found")
     except ContextWorkflowError as exc:
         fail(exc)
-    emit(report.rendered)
+    rule = report.rule
+    emit(f"id: {rule.id}")
+    emit(f"source: {rule.source}")
+    emit(f"target: {rule.target}")
+    emit(f"mode: {rule.mode}")
+    if rule.conditions:
+        emit("conditions:")
+        for condition in rule.conditions:
+            emit(f"  - {condition}")
+    if rule.justification:
+        emit(f"justification: {rule.justification}")
 
 
 @lifting.command("add")

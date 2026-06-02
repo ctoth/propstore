@@ -12,8 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
 
-from quire.documents import convert_document_value, encode_document
-
 from propstore.families.predicates.declaration import PredicateDocument
 from propstore.families.registry import PredicateRef
 from propstore.repository import Repository
@@ -148,7 +146,7 @@ def show_predicate(
     filepath = repo.root / repo.families.predicates.address(ref).require_path()
     return PredicateShowReport(
         filepath=filepath,
-        rendered=encode_document(document).decode("utf-8"),
+        rendered=repo.families.predicates.render(document),
     )
 
 

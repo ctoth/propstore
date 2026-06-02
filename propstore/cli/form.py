@@ -8,7 +8,6 @@ import click
 
 from propstore.cli.output import emit, emit_error, emit_section, emit_success
 
-from quire.documents import encode_document
 from quire.documents import convert_document_value
 from propstore.cli.helpers import EXIT_ERROR, exit_with_code, fail
 from propstore.families.forms.declaration import FormAlternativeDocument
@@ -265,7 +264,7 @@ def add(
 
     if not report.created:
         emit(f"Would create {report.path}")
-        emit(encode_document(report.document).decode("utf-8"))
+        emit(repo.families.forms.render(report.document))
         return
 
     emit_success(f"Created {report.path}")

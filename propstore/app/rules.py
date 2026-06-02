@@ -7,8 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
 
-from quire.documents import convert_document_value, encode_document
-
 from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
@@ -258,7 +256,7 @@ def show_rule(repo: Repository, rule_id: str) -> RuleShowReport:
     filepath = repo.root / repo.families.rules.address(ref).require_path()
     return RuleShowReport(
         filepath=filepath,
-        rendered=encode_document(document).decode("utf-8"),
+        rendered=repo.families.rules.render(document),
     )
 
 

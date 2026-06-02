@@ -18,7 +18,6 @@ from propstore.families.contexts.stages import (
 )
 from propstore.families.registry import ContextRef, SourceRef
 from propstore.repository import Repository
-from quire.documents import convert_document_value, encode_document
 
 
 class ContextWorkflowError(Exception):
@@ -124,7 +123,7 @@ class ContextLiftingRuleUpdateRequest:
 @dataclass(frozen=True)
 class ContextLiftingRuleShowReport:
     filepath: Path
-    rendered: str
+    rule: LiftingRuleDocument
 
 
 @dataclass(frozen=True)
@@ -229,7 +228,7 @@ def show_context(repo: Repository, name: str) -> ContextShowReport:
     document = repo.families.contexts.require(ref)
     return ContextShowReport(
         filepath=filepath,
-        rendered=encode_document(document).decode("utf-8"),
+        rendered=repo.families.contexts.render(document),
     )
 
 
@@ -299,7 +298,7 @@ def show_context_lifting_rule(
     rule = _require_lifting_rule(document, context_name, rule_id)
     return ContextLiftingRuleShowReport(
         filepath=filepath,
-        rendered=encode_document(rule).decode("utf-8"),
+        rule=rule,
     )
 
 
