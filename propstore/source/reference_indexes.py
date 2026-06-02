@@ -2,27 +2,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from quire.references import FamilyReferenceIndex, ReferenceKey
+from quire.references import FamilyReferenceIndex
 
 from propstore.families.claims.declaration import SourceClaimDocument
-from propstore.families.registry import SourceRef
+from propstore.families.registry import (
+    PROPSTORE_FAMILY_REGISTRY,
+    PropstoreFamily,
+    SourceRef,
+)
 
 if TYPE_CHECKING:
     from propstore.families.claims.declaration import ClaimDocument
     from propstore.repository import Repository
 
 
-SOURCE_CLAIM_REFERENCE_KEYS = (
-    ReferenceKey.field("source_local_id"),
-    ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
-)
-
-
 def source_claim_index(
     repo: Repository, source_name: str
 ) -> FamilyReferenceIndex[SourceClaimDocument]:
     document = repo.families.source_claims.load(SourceRef(source_name))
-    return source_claim_index_from_document(document)
+    family = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.SOURCE_CLAIMS)
+    return family.reference_index_from_records(() if document is None else document)
 
 
 def primary_claim_index(repo: Repository) -> FamilyReferenceIndex[ClaimDocument]:

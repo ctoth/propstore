@@ -48,6 +48,7 @@ from propstore.families.claims.declaration import (
     ClaimDocument,
     JUSTIFICATION_CHARTER,
     SOURCE_CLAIM_BATCH_SPEC,
+    SOURCE_CLAIM_DOCUMENT_CHARTER,
     SOURCE_JUSTIFICATION_BATCH_SPEC,
 )
 from propstore.families.concepts.declaration import (
@@ -109,6 +110,7 @@ from propstore.families.identity.concepts import (
     compute_concept_version_id,
     derive_concept_artifact_id,
 )
+
 if TYPE_CHECKING:
     from propstore.repository import Repository
 
@@ -693,6 +695,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 placement=FixedFilePlacement("claims.yaml", branch=SOURCE_BRANCH),
                 batch_spec=SOURCE_CLAIM_BATCH_SPEC,
             ),
+            identity_field="artifact_id",
+            reference_keys=_charter_reference_keys(SOURCE_CLAIM_DOCUMENT_CHARTER),
         ),
         FamilyDefinition(
             key=PropstoreFamily.SOURCE_MICROPUBS,

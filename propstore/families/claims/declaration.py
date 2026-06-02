@@ -1079,6 +1079,11 @@ SOURCE_ATTACK_TARGET_CHARTER: FamilyCharter = SourceAttackTargetDocument.__chart
     semantic="propstore.source",
     artifact_family_name="propstore-source-claim-document",
     model_name="SourceClaim",
+    reference_keys=(
+        ReferenceKey.field("source_local_id"),
+        ReferenceKey.field("logical_ids[].value"),
+        ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+    ),
 )
 class SourceClaimDocument(CharterDoc, kw_only=True):
     source: Annotated[ClaimSourceDocument | None, charter_field(nullable=True)] = None
