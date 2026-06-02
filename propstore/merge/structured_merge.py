@@ -270,9 +270,7 @@ def _load_branch_claims(
 ) -> list[MergeClaim]:
     active_claims: list[MergeClaim] = []
     for claim_file in snapshot.repo.families.claims.iter_handles(commit=commit):
-        merge_claim = MergeClaim.from_document(claim_file.document)
-        if merge_claim is not None:
-            active_claims.append(merge_claim)
+        active_claims.append(MergeClaim(document=claim_file.document))
     return active_claims
 
 

@@ -147,9 +147,7 @@ def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
     index: dict[str, _IndexedClaim] = {}
     for claim_file in claim_files:
         for claim in claim_file_claims(claim_file):
-            merge_claim = MergeClaim.from_document(claim)
-            if merge_claim is None:
-                continue
+            merge_claim = MergeClaim(document=claim)
             indexed = _indexed_claim(merge_claim)
             if indexed is not None:
                 index[indexed.artifact_id] = indexed
