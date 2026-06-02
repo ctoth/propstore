@@ -41,6 +41,24 @@ Propstore architecture:
   missing function name. Ask what capability the caller was obtaining, what
   representation crossed that edge, which layer owns that capability, and
   whether the capability should still exist after the old surface is gone.
+- Before moving a deleted surface to an apparent owner, generalize the
+  capability. Ask whether the capability is actually specific to the current
+  family/module or is a generic mechanism with this family as only the first
+  caller. If the same mechanism could apply to another family, registry,
+  authoring workflow, allocation policy, identity policy, reference policy, or
+  storage path, do not put it in the current family as a concept/claim/source
+  special case.
+- Moving a deleted helper into a narrower owner is not deletion. If the new code
+  has the same lifecycle, inputs, outputs, counter/ref state, scan loop,
+  reservation protocol, naming pattern, or caller obligations as the deleted
+  code, it is a same-surface recreation and must be removed before proceeding.
+- A valid "move" disposition requires proving that the moved capability is not
+  a generic mechanism. The proof must name why no other family or owner can use
+  the same mechanism. Without that proof, the disposition is not "move"; it is
+  either "delete" or "design generic owner".
+- Generic mechanisms must be designed at their generic owner or left broken
+  until that owner is created. Do not preserve progress by embedding the generic
+  mechanism in the first concrete caller's family.
 - Classification must reject vague labels. "Helper", "owner helper", "needed
   for import", "used by tests", "existing behavior", "missing symbol", and
   "small restoration" are not classifications. They do not justify code.
