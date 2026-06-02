@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from copy import deepcopy
 from datetime import date
 from functools import wraps
 from pathlib import Path
@@ -27,10 +26,7 @@ from propstore.canonical_namespaces import (
 from propstore.compiler.context import (
     build_compiler_claim_index,
 )
-from propstore.concept_ids import (
-    candidate_concept_id_for_repo,
-    reserve_concept_id_candidate,
-)
+from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.concepts.types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
@@ -44,7 +40,12 @@ from propstore.families.concepts.declaration import (
     ConceptAliasDocument,
     ConceptDocument,
     ConceptFormParametersDocument,
+    ConceptLogicalIdDocument,
     ConceptRelationshipDocument,
+    LexicalEntryDocument,
+    LexicalFormDocument,
+    LexicalSenseDocument,
+    OntologyReferenceDocument,
     ParameterizationRelationshipDocument,
 )
 from propstore.core.lemon.description_kinds import DescriptionKind, ParticipantSlot
@@ -387,7 +388,7 @@ def list_concepts(
             continue
         entries.append(
             ConceptListEntry(
-                handle=_concept_display_handle(document),
+                handle=document.lexical_entry.canonical_form.written_rep,
                 canonical_name=document.lexical_entry.canonical_form.written_rep,
                 status=concept_status,
             )
@@ -681,15 +682,6 @@ def _claims_document(repo: Repository, ref: ClaimRef, data: dict) -> ClaimDocume
     )
 
 
-def _concept_display_handle(document: ConceptDocument) -> str:
-    logical_id = None
-    if document.logical_ids:
-        first = document.logical_ids[0]
-        logical_id = f"{first.namespace}:{first.value}"
-    lexical_name = document.lexical_entry.canonical_form.written_rep
-    return logical_id or lexical_name or document.artifact_id or "?"
-
-
 def _find_concept_entry(
     repo: Repository, id_or_name: str
 ) -> LoadedDocument[ConceptDocument] | None:
@@ -885,21 +877,20 @@ def _apply_proto_role_entailment(
 
 @_serialized_concept_mutation
 def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutationReport:
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     ref = ConceptFileRef(request.name)
     filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
     semantic_path = repo.tree() / repo.families.concepts.address(ref).require_path()
     if semantic_path.exists():
         raise ConceptMutationError(f"Concept file '{filepath}' already exists")
 
-    data: dict[str, object] = {
-        "canonical_name": request.name,
-        "status": "proposed",
-        "definition": request.definition,
-        "domain": request.domain,
-        "created_date": str(date.today()),
-        "form": request.form_name,
-    }
+    domain = request.domain or "propstore"
+    artifact_id = derive_concept_artifact_id(domain, request.name)
+    ontology_reference = OntologyReferenceDocument(
+        uri=artifact_id,
+        label=request.name,
+    )
+    form_parameters: ConceptFormParametersDocument | None = None
 
     if request.form_name == "category":
         if not request.values:
@@ -907,65 +898,74 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
         value_list = [value.strip() for value in request.values if value.strip()]
         if not value_list:
             raise ConceptMutationError("values must contain at least one value")
-        form_parameters: dict[str, object] = {"values": value_list}
-        if request.closed:
-            form_parameters["extensible"] = False
-        data["form_parameters"] = form_parameters
+        form_parameters = ConceptFormParametersDocument(
+            values=tuple(value_list),
+            extensible=False if request.closed else None,
+        )
     elif request.values:
         raise ConceptMutationError("values are only valid when form is category")
     elif request.closed:
         raise ConceptMutationError("closed categories require form category")
 
-    for _attempt in range(64):
-        candidate = candidate_concept_id_for_repo(repo)
-        document_data = _normalize_concept_data(
-            dict(data),
-            local_handle=f"concept{candidate.numeric_id}",
-        )
-        document = _concept_document(repo, ref, document_data)
-
-        if request.dry_run:
-            return ConceptMutationReport(
-                lines=(
-                    f"Would create {filepath}",
-                    repo.families.concepts.render(document),
-                )
-            )
-
-        concepts = _loaded_concepts(repo)
-        concepts.append(
-            LoadedDocument(
-                filename=request.name,
-                artifact_path=semantic_path,
-                store_root=repo.tree(),
-                document=document,
-            )
-        )
-
-        result = _run_concept_validation(repo, concepts)
-        _raise_validation_failure(result)
-        warnings = tuple(_render_diagnostic(warning) for warning in result.warnings)
-
-        if not reserve_concept_id_candidate(repo, candidate):
-            continue
-
-        repo.families.concepts.save(
-            ref,
-            document,
-            message=(
-                f"Add concept: {request.name} ({_concept_display_handle(document)})"
+    document = ConceptDocument(
+        status=ConceptStatus.PROPOSED,
+        ontology_reference=ontology_reference,
+        lexical_entry=LexicalEntryDocument(
+            identifier=request.name,
+            canonical_form=LexicalFormDocument(
+                written_rep=request.name,
+                language="en",
             ),
-        )
+            senses=(
+                LexicalSenseDocument(
+                    reference=ontology_reference,
+                    usage=request.definition,
+                ),
+            ),
+            physical_dimension_form=request.form_name,
+        ),
+        artifact_id=artifact_id,
+        logical_ids=(
+            ConceptLogicalIdDocument(namespace=domain, value=request.name),
+        ),
+        created_date=str(date.today()),
+        definition_source=request.definition,
+        domain=request.domain,
+        form_parameters=form_parameters,
+    )
+    label = document.lexical_entry.canonical_form.written_rep
+
+    if request.dry_run:
         return ConceptMutationReport(
             lines=(
-                "Created "
-                f"{filepath} with logical ID "
-                f"{_concept_display_handle(document)}",
-            ),
-            warnings=warnings,
+                f"Would create {filepath}",
+                repo.families.concepts.render(document),
+            )
         )
 
-    raise ConceptMutationError("could not reserve concept ID after concurrent updates")
+    concepts = _loaded_concepts(repo)
+    concepts.append(
+        LoadedDocument(
+            filename=request.name,
+            artifact_path=semantic_path,
+            store_root=repo.tree(),
+            document=document,
+        )
+    )
+
+    result = _run_concept_validation(repo, concepts)
+    _raise_validation_failure(result)
+    warnings = tuple(_render_diagnostic(warning) for warning in result.warnings)
+
+    repo.families.concepts.save(
+        ref,
+        document,
+        message=f"Add concept: {request.name} ({label})",
+    )
+    return ConceptMutationReport(
+        lines=(f"Created {filepath} with logical ID {label}",),
+        warnings=warnings,
+    )
 
 
 @_serialized_concept_mutation
@@ -973,7 +973,7 @@ def add_concept_alias(
     repo: Repository, request: ConceptAliasRequest
 ) -> ConceptMutationReport:
     assert_alias_does_not_target_reserved_namespace(request.name)
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
     filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
@@ -1008,16 +1008,16 @@ def add_concept_alias(
         aliases=(*document.aliases, new_alias),
         last_modified=str(date.today()),
     )
+    label = updated_document.lexical_entry.canonical_form.written_rep
     repo.families.concepts.save(
         ref,
         updated_document,
-        message=f"Add alias '{request.name}' to {_concept_display_handle(updated_document)}",
+        message=f"Add alias '{request.name}' to {label}",
     )
 
     return ConceptMutationReport(
         lines=(
-            f"Added alias '{request.name}' to "
-            f"{_concept_display_handle(updated_document)} ({filepath.stem})",
+            f"Added alias '{request.name}' to {label} ({filepath.stem})",
         ),
         warnings=tuple(warnings),
     )
@@ -1027,7 +1027,7 @@ def add_concept_alias(
 def deprecate_concept(
     repo: Repository, request: ConceptDeprecateRequest
 ) -> ConceptMutationReport:
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
     filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
@@ -1042,10 +1042,14 @@ def deprecate_concept(
         )
 
     if request.dry_run:
+        label = concept_entry.document.lexical_entry.canonical_form.written_rep
+        replacement_label = (
+            replacement_document.lexical_entry.canonical_form.written_rep
+        )
         return ConceptMutationReport(
             lines=(
-                f"Would deprecate {_concept_display_handle(concept_entry.document)} ({filepath.stem})",
-                f"  replaced_by: {_concept_display_handle(replacement_document)}",
+                f"Would deprecate {label} ({filepath.stem})",
+                f"  replaced_by: {replacement_label}",
             )
         )
 
@@ -1060,18 +1064,19 @@ def deprecate_concept(
         replaced_by=replacement_artifact_id,
         last_modified=str(date.today()),
     )
+    label = updated_document.lexical_entry.canonical_form.written_rep
+    replacement_label = replacement_document.lexical_entry.canonical_form.written_rep
     repo.families.concepts.save(
         ref,
         updated_document,
         message=(
-            f"Deprecate {_concept_display_handle(updated_document)}, replaced by "
-            f"{_concept_display_handle(replacement_document)}"
+            f"Deprecate {label}, replaced by {replacement_label}"
         ),
     )
     return ConceptMutationReport(
         lines=(
-            f"Deprecated {_concept_display_handle(updated_document)} ({filepath.stem}), "
-            f"replaced by {_concept_display_handle(replacement_document)}",
+            f"Deprecated {label} ({filepath.stem}), "
+            f"replaced by {replacement_label}",
         )
     )
 
@@ -1082,7 +1087,7 @@ def link_concepts(
 ) -> ConceptMutationReport:
     if request.rel_type not in RELATIONSHIP_TYPES:
         raise ConceptMutationError(f"invalid relationship type: {request.rel_type}")
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     concept_entry = _require_concept_entry(
         repo, request.source_id, label="Source concept"
     )
@@ -1145,14 +1150,18 @@ def link_concepts(
         ref,
         updated_document,
         message=(
-            f"Link {_concept_display_handle(updated_document)} {request.rel_type} "
-            f"{_concept_display_handle(target_document)}"
+            "Link "
+            f"{updated_document.lexical_entry.canonical_form.written_rep} "
+            f"{request.rel_type} "
+            f"{target_document.lexical_entry.canonical_form.written_rep}"
         ),
     )
     return ConceptMutationReport(
         lines=(
-            f"Added {request.rel_type} -> {_concept_display_handle(target_document)} "
-            f"on {_concept_display_handle(updated_document)} ({filepath.stem})",
+            f"Added {request.rel_type} -> "
+            f"{target_document.lexical_entry.canonical_form.written_rep} "
+            f"on {updated_document.lexical_entry.canonical_form.written_rep} "
+            f"({filepath.stem})",
         ),
         warnings=warnings,
     )
@@ -1164,7 +1173,7 @@ def add_concept_qualia(
 ) -> ConceptMutationReport:
     if request.role not in QUALIA_ROLES:
         raise ConceptMutationError(f"invalid qualia role: {request.role}")
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
     document = concept_entry.document
@@ -1225,15 +1234,14 @@ def add_concept_qualia(
         )
 
     warnings = _validate_updated_concept(repo, concept_entry, updated_document)
+    label = updated_document.lexical_entry.canonical_form.written_rep
     repo.families.concepts.save(
         ref,
         updated_document,
-        message=f"Add {request.role} qualia to {_concept_display_handle(updated_document)}",
+        message=f"Add {request.role} qualia to {label}",
     )
     return ConceptMutationReport(
-        lines=(
-            f"Added {request.role} qualia to {_concept_display_handle(updated_document)}",
-        ),
+        lines=(f"Added {request.role} qualia to {label}",),
         warnings=warnings,
     )
 
@@ -1242,7 +1250,7 @@ def add_concept_qualia(
 def set_concept_description_kind(
     repo: Repository, request: ConceptDescriptionKindRequest
 ) -> ConceptMutationReport:
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
     document = concept_entry.document
@@ -1294,13 +1302,14 @@ def set_concept_description_kind(
         )
 
     warnings = _validate_updated_concept(repo, concept_entry, updated_document)
+    label = updated_document.lexical_entry.canonical_form.written_rep
     repo.families.concepts.save(
         ref,
         updated_document,
-        message=f"Set description kind on {_concept_display_handle(updated_document)}",
+        message=f"Set description kind on {label}",
     )
     return ConceptMutationReport(
-        lines=(f"Set description kind on {_concept_display_handle(updated_document)}",),
+        lines=(f"Set description kind on {label}",),
         warnings=warnings,
     )
 
@@ -1311,7 +1320,7 @@ def add_concept_proto_role(
 ) -> ConceptMutationReport:
     if request.role_kind not in PROTO_ROLE_KINDS:
         raise ConceptMutationError(f"invalid proto-role kind: {request.role_kind}")
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
     document = concept_entry.document
@@ -1378,18 +1387,19 @@ def add_concept_proto_role(
         )
 
     warnings = _validate_updated_concept(repo, concept_entry, updated_document)
+    label = updated_document.lexical_entry.canonical_form.written_rep
     repo.families.concepts.save(
         ref,
         updated_document,
         message=(
             f"Add {request.role_kind} proto-role {request.property_name} "
-            f"to {_concept_display_handle(updated_document)}"
+            f"to {label}"
         ),
     )
     return ConceptMutationReport(
         lines=(
             f"Added {request.role_kind} proto-role {request.property_name} "
-            f"to {_concept_display_handle(updated_document)}",
+            f"to {label}",
         ),
         warnings=warnings,
     )
@@ -1399,7 +1409,7 @@ def add_concept_proto_role(
 def add_concept_value(
     repo: Repository, request: ConceptAddValueRequest
 ) -> ConceptMutationReport:
-    snapshot = _require_snapshot(repo)
+    _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_name)
     ref = _concept_ref(concept_entry)
     document = concept_entry.document
