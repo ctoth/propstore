@@ -18,10 +18,7 @@ from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex
 
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
-from propstore.conflict_detector.collectors import (
-    conflict_claims_from_claim_documents,
-)
-from propstore.conflict_detector.models import ConflictConceptRegistry
+from propstore.conflict_detector.models import ConflictClaim, ConflictConceptRegistry
 from propstore.core.conditions.registry import ConditionRegistry
 from propstore.core.id_types import (
     ClaimId,
@@ -320,7 +317,11 @@ def compile_conflict_witness_models(
     cel_registry: ConditionRegistry,
     lifting_system=None,
 ) -> tuple[ConflictWitness, ...]:
-    conflict_claims = conflict_claims_from_claim_documents(claims)
+    conflict_claims = [
+        conflict_claim
+        for claim in claims
+        if (conflict_claim := ConflictClaim.from_claim_document(claim)) is not None
+    ]
     records = detect_conflicts(
         conflict_claims,
         concept_registry,

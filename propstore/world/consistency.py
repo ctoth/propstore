@@ -65,13 +65,15 @@ def _check_transitive_consistency(
     world: WorldQuery,
 ) -> WorldConsistencyReport:
     from propstore.conflict_detector import detect_transitive_conflicts
-    from propstore.conflict_detector.collectors import (
-        conflict_claims_from_claim_documents,
-    )
+    from propstore.conflict_detector.models import ConflictClaim
 
     claims = [handle.document for handle in repo.families.claims.iter_handles()]
     records = detect_transitive_conflicts(
-        conflict_claims_from_claim_documents(claims),
+        [
+            conflict_claim
+            for claim in claims
+            if (conflict_claim := ConflictClaim.from_claim_document(claim)) is not None
+        ],
         conflict_detector_inputs_for_world(world).concept_registry,
     )
     return WorldConsistencyReport(
