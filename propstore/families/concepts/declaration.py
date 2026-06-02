@@ -26,6 +26,7 @@ from propstore.core.id_types import ConceptId
 from propstore.core.lemon.description_kinds import DescriptionKind
 from propstore.core.lemon.proto_roles import ProtoRoleBundle
 from propstore.core.lemon.qualia import QualiaStructure
+from propstore.families.conditions.declaration import CheckedConditionSetDocument
 from propstore.families.forms.stages import (
     Form,
     FormAlgebra,
@@ -644,7 +645,9 @@ class ParameterizationDocument(CharterDoc):
     sympy: Annotated[str, charter_field(nullable=True)]
     exactness: Annotated[str, charter_field(nullable=False)]
     conditions_cel: Annotated[str, charter_field(nullable=True)]
-    conditions_ir: Annotated[str, charter_field(nullable=True)]
+    conditions_ir: Annotated[
+        CheckedConditionSetDocument | None, charter_field(json=True, nullable=True)
+    ] = None
 
 
 PARAMETERIZATION_CHARTER: FamilyCharter = ParameterizationDocument.__charter__

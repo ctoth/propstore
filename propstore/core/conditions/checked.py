@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-import hashlib
-import json
 from typing import Any
 
-from propstore.core.conditions.codec import condition_ir_from_json, condition_ir_to_json
 from propstore.core.conditions.ir import ConditionIR
 from propstore.core.id_types import ConditionId
 
@@ -24,7 +21,6 @@ class CheckedCondition:
     ir: ConditionIR
     registry_fingerprint: str
     warnings: tuple[str, ...] = ()
-    encoded_ir: str | None = None
 
     def __post_init__(self) -> None:
         source = self.source.strip()
@@ -36,16 +32,6 @@ class CheckedCondition:
         object.__setattr__(self, "source", source)
         object.__setattr__(self, "registry_fingerprint", fingerprint)
         object.__setattr__(self, "warnings", tuple(self.warnings))
-        encoded_ir = self.encoded_ir
-        if encoded_ir is None:
-            encoded_ir = json.dumps(
-                condition_ir_to_json(self.ir),
-                sort_keys=True,
-                separators=(",", ":"),
-            )
-        elif encoded_ir.strip() == "":
-            raise ValueError("checked condition encoded IR must be non-empty")
-        object.__setattr__(self, "encoded_ir", encoded_ir)
 
 
 @dataclass(frozen=True)
@@ -106,23 +92,6 @@ def _normalize_checked_conditions(
             continue
         by_source[condition.source] = condition
     return tuple(by_source[source] for source in sorted(by_source))
-
-
-def checked_condition_set_to_json(
-    condition_set: CheckedConditionSet,
-) -> dict[str, Any]:
-    return {
-        "version": CHECKED_CONDITION_SET_JSON_VERSION,
-        "registry_fingerprint": condition_set.registry_fingerprint,
-        "conditions": [
-            {
-                "source": condition.source,
-                "warnings": list(condition.warnings),
-                "ir": condition_ir_to_json(condition.ir),
-            }
-            for condition in condition_set.conditions
-        ],
-    }
 
 
 def _entry_mapping(value: object) -> Mapping[str, Any]:

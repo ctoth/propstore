@@ -10,7 +10,10 @@ from propstore.conflict_detector import ConflictClass
 from propstore.cel_types import to_cel_exprs
 from propstore.core.conditions import (
     CheckedConditionSet,
-    checked_condition_set_from_json,
+)
+from propstore.families.conditions.declaration import (
+    CheckedConditionSetDocument,
+    checked_condition_set_semantic,
 )
 from propstore.core.environment import (
     ClaimCatalogStore,
@@ -90,24 +93,24 @@ def _parse_json_list(value: Any) -> tuple[str, ...]:
     return tuple(str(item) for item in value)
 
 
-def _checked_conditions_from_json_text(
-    value: str | None,
+def _checked_conditions_from_document(
+    value: CheckedConditionSetDocument | None,
     *,
     owner: str,
 ) -> CheckedConditionSet | None:
     if not value:
         return None
-    loaded = json.loads(value)
-    if not isinstance(loaded, Mapping):
-        raise ValueError(f"{owner} conditions_ir must decode to a mapping")
-    return checked_condition_set_from_json(loaded)
+    condition_set = checked_condition_set_semantic(value)
+    if condition_set is None:
+        raise ValueError(f"{owner} conditions_ir must be a checked condition set")
+    return condition_set
 
 
 def _parameterization_condition_sources(
     parameterization: Parameterization,
 ) -> tuple[str, ...]:
     if parameterization.conditions_ir:
-        condition_set = _checked_conditions_from_json_text(
+        condition_set = _checked_conditions_from_document(
             parameterization.conditions_ir,
             owner=f"parameterization {parameterization.output_concept_id}",
         )
@@ -296,7 +299,7 @@ def build_compiled_world_graph(
                     conditions=to_cel_exprs(
                         _parameterization_condition_sources(parameterization)
                     ),
-                    checked_conditions=_checked_conditions_from_json_text(
+                    checked_conditions=_checked_conditions_from_document(
                         parameterization.conditions_ir,
                         owner=f"parameterization {parameterization.output_concept_id}",
                     ),

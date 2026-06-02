@@ -33,10 +33,12 @@ from propstore.core.conditions import (
     CheckedCondition,
     CheckedConditionSet,
     ConditionSolver,
-    checked_condition_set_from_json,
-    checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo
+from propstore.families.conditions.declaration import (
+    checked_condition_set_document,
+    checked_condition_set_semantic,
+)
 from propstore.core.anytime import EnumerationExceeded
 from propstore.core.environment import WorldStore, MicropublicationCatalogStore
 from propstore.core.graph_build import build_compiled_world_graph
@@ -384,10 +386,7 @@ def _parameterization_edge_to_row(edge: ParameterizationEdge) -> Parameterizatio
         conditions_ir=(
             None
             if edge.checked_conditions is None
-            else json.dumps(
-                checked_condition_set_to_json(edge.checked_conditions),
-                sort_keys=True,
-            )
+            else checked_condition_set_document(edge.checked_conditions)
         ),
     )
 
@@ -1798,10 +1797,7 @@ class ATMSEngine:
                     "parameterization row is missing conditions_ir; rebuild the sidecar"
                 )
             return None
-        loaded = json.loads(parameterization.conditions_ir)
-        if not isinstance(loaded, Mapping):
-            raise ValueError("parameterization conditions_ir must decode to a mapping")
-        return checked_condition_set_from_json(loaded)
+        return checked_condition_set_semantic(parameterization.conditions_ir)
 
     def _condition_matches_assumption(
         self,

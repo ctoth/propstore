@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
@@ -11,7 +10,6 @@ from propstore.core.conditions import (
     CheckedConditionSet,
     check_condition_ir,
     checked_condition_set,
-    checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.core.graph_types import ClaimNode
@@ -61,15 +59,6 @@ def _synthetic_checked_conditions(
     return checked_condition_set(
         check_condition_ir(condition, cel_registry)
         for condition in synthetic.conditions
-    )
-
-
-def _conditions_ir_json(condition_set: CheckedConditionSet | None) -> str | None:
-    if condition_set is None:
-        return None
-    return json.dumps(
-        checked_condition_set_to_json(condition_set),
-        sort_keys=True,
     )
 
 

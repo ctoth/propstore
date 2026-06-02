@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-import json
 from typing import Any, cast
 
 from propstore.cel_types import CelExpr, to_cel_exprs
@@ -13,7 +12,6 @@ from propstore.core.conditions.checked import (
     CheckedCondition,
     CheckedConditionSet,
 )
-from propstore.core.conditions.codec import condition_ir_from_json
 from propstore.core.environment import Environment
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.graph_relation_types import (
@@ -26,6 +24,10 @@ from propstore.core.id_types import (
     ConceptId,
 )
 from propstore.core.labels import EnvironmentKey, Label
+from propstore.families.conditions.declaration import (
+    CheckedConditionDocument,
+    checked_condition_document,
+)
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
@@ -104,59 +106,8 @@ def label_from_dict(data: list[list[str]] | None) -> Label | None:
     )
 
 
-def _condition_to_dict(condition: CheckedCondition) -> dict[str, Any]:
-    return {
-        "source": condition.source,
-        "registry_fingerprint": condition.registry_fingerprint,
-        "warnings": list(condition.warnings),
-        "encoded_ir": condition.encoded_ir,
-    }
-
-
-def _condition_from_dict(data: Mapping[str, Any]) -> CheckedCondition:
-    encoded_ir = data.get("encoded_ir")
-    if not isinstance(encoded_ir, str) or not encoded_ir:
-        raise ValueError("graph condition requires encoded_ir")
-    source = data.get("source")
-    if not isinstance(source, str) or not source:
-        raise ValueError("graph condition requires source")
-    registry_fingerprint = data.get("registry_fingerprint")
-    if not isinstance(registry_fingerprint, str) or not registry_fingerprint:
-        raise ValueError("graph condition requires registry_fingerprint")
-    raw_warnings = data.get("warnings") or ()
-    if not isinstance(raw_warnings, list | tuple):
-        raise ValueError("graph condition warnings must be a sequence")
-    warnings = tuple(
-        str(warning)
-        for warning in cast(tuple[object, ...] | list[object], raw_warnings)
-    )
-    return CheckedCondition(
-        source=source,
-        ir=condition_ir_from_json(json.loads(encoded_ir)),
-        registry_fingerprint=registry_fingerprint,
-        warnings=warnings,
-        encoded_ir=encoded_ir,
-    )
-
-
-def _condition_set_from_dicts(
-    values: object,
-) -> CheckedConditionSet | None:
-    if not values:
-        return None
-    if not isinstance(values, list | tuple):
-        raise ValueError("graph claim conditions_ir must be a sequence")
-    raw_values = cast(tuple[object, ...] | list[object], values)
-    conditions_list: list[CheckedCondition] = []
-    for item in raw_values:
-        if not isinstance(item, Mapping):
-            raise ValueError("graph claim conditions_ir entries must be mappings")
-        conditions_list.append(_condition_from_dict(cast(Mapping[str, Any], item)))
-    conditions = tuple(conditions_list)
-    return CheckedConditionSet(
-        conditions=conditions,
-        registry_fingerprint=conditions[0].registry_fingerprint,
-    )
+def _condition_document(condition: CheckedCondition) -> CheckedConditionDocument:
+    return checked_condition_document(condition)
 
 
 def _opinion_to_dict(opinion: Opinion | None) -> dict[str, Any] | None:
@@ -349,7 +300,7 @@ class ClaimNode:
                 data[key] = value
         if self.checked_conditions is not None and self.checked_conditions.conditions:
             data["conditions_ir"] = [
-                _condition_to_dict(condition)
+                _condition_document(condition)
                 for condition in self.checked_conditions.conditions
             ]
         for key in ("opinion", "source_prior_opinion", "source_quality_opinion"):
@@ -443,7 +394,7 @@ class ParameterizationEdge:
             data["conditions"] = list(self.conditions)
         if self.checked_conditions is not None:
             data["conditions_ir"] = [
-                _condition_to_dict(condition)
+                _condition_document(condition)
                 for condition in self.checked_conditions.conditions
             ]
         if self.provenance is not None:

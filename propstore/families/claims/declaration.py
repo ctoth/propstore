@@ -35,10 +35,6 @@ from sqlalchemy import delete, select
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.claims.types import ClaimType
-from propstore.core.conditions import (
-    CheckedConditionSet,
-    checked_condition_set_from_json,
-)
 from propstore.core.diagnostics import QuarantineDiagnostic
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.dimensions import DimensionalForm, normalize_to_si

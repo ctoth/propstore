@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from propstore.core.conditions import (
     checked_condition_set,
-    checked_condition_set_from_json,
 )
 from propstore.core.conditions.cel_frontend import check_condition_ir
+from propstore.families.conditions.declaration import checked_condition_set_semantic
 from propstore.cel_types import CelExpr
 from propstore.core.activation import is_claim_active
 from propstore.families.claims.types import ClaimType
@@ -240,10 +239,7 @@ class BoundWorld(BeliefSpace):
                     "parameterization row is missing conditions_ir; rebuild the sidecar"
                 )
             return True
-        loaded_conditions = json.loads(parameterization.conditions_ir)
-        if not isinstance(loaded_conditions, Mapping):
-            raise ValueError("parameterization conditions_ir must decode to a mapping")
-        condition_set = checked_condition_set_from_json(loaded_conditions)
+        condition_set = checked_condition_set_semantic(parameterization.conditions_ir)
         if not condition_set.conditions:
             return True
         if not self._binding_conds:
