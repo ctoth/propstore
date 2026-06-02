@@ -90,6 +90,12 @@ longer defines claim/concept `compute_*_version_id` or
 `_family_definition` helper in the family registry was not restored; registry
 callers use Quire `FamilyDeclaration`.
 
+The checked condition slice deletes the stale `encoded_ir` runtime expectation.
+`CheckedCondition` carries typed runtime semantics: source text, `ConditionIR`,
+registry fingerprint, and warnings. Durable condition documents belong to the
+conditions family conversion layer, not a serialization field on the runtime
+semantic object.
+
 Next slices should keep the same recursion:
 - delete one remaining fake representation or helper surface;
 - follow only direct breakage from that deletion;

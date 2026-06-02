@@ -46,7 +46,6 @@ def test_check_condition_ir_carries_source_fingerprint_and_warnings(registry):
 
     assert checked.source == "task == 'novel'"
     assert checked.registry_fingerprint == registry.fingerprint
-    assert checked.encoded_ir is not None
     assert len(checked.warnings) == 1
 
 
