@@ -5,12 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom
+from quire.documents import LoadedDocument
 from propstore.claims import LoadedClaimsFile
 from propstore.families.rules.declaration import RuleDocument, RuleSuperiorityDocument
-from propstore.families.concepts.stages import (
-    LoadedConcept,
-    parse_concept_record_document,
-)
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import GroundingFactInputs, extract_facts
 from propstore.grounding.grounder import ground
@@ -53,11 +50,10 @@ def load_grounding_inputs(
 
     registry = PredicateRegistry.from_documents(predicates)
     concepts = [
-        LoadedConcept(
+        LoadedDocument(
             filename=handle.ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
-            record=parse_concept_record_document(handle.document),
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
             document=handle.document,
         )
         for handle in repo.families.concepts.iter_handles(commit=commit)

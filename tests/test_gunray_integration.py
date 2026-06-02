@@ -88,58 +88,72 @@ import inspect
 
 
 def _build_concept_relationship(relation: str, target: str):
-    """Build a single outgoing ``ConceptRelationship``.
+    """Build a single outgoing concept relationship document.
 
     Garcia & Simari 2004 §3.1 (p.4): concept-graph edges ground the
     Herbrand base. The Phase-1 fact extractor matches
-    ``relationship_type`` against the parsed ``derived_from`` spec's
+    ``type`` against the parsed ``derived_from`` spec's
     relation and ``target`` against its target string.
     """
 
-    from propstore.families.concepts.stages import ConceptRelationship
-    from propstore.core.id_types import ConceptId
+    from propstore.families.concepts.declaration import ConceptRelationshipDocument
 
-    return ConceptRelationship(
-        relationship_type=relation,
-        target=ConceptId(target),
+    return ConceptRelationshipDocument(
+        type=relation,
+        target=target,
         conditions=(),
         note=None,
     )
 
 
 def _build_loaded_concept(canonical_name: str, relationships):
-    """Wrap a minimal ``ConceptRecord`` in a ``LoadedConcept`` envelope.
+    """Wrap a minimal ``ConceptDocument`` in the loaded-document carrier.
 
     Garcia & Simari 2004 §3: the canonical name is the token the
     grounder emits as the ground-atom argument (``tweety`` in
-    ``bird(tweety)``). ``ConceptRecord``'s frozen-dataclass invariants
-    require a handful of metadata fields; only ``canonical_name`` and
-    ``relationships`` carry test-meaningful content.
+    ``bird(tweety)``). Only the canonical form and relationships carry
+    test-meaningful content.
     """
 
-    from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
-    from propstore.core.id_types import (
-        ConceptId,
-        LogicalId,
+    from quire.documents import LoadedDocument
+    from propstore.families.concepts.declaration import (
+        ConceptDocument,
+        ConceptLogicalIdDocument,
+        LexicalEntryDocument,
+        LexicalFormDocument,
+        LexicalSenseDocument,
+        OntologyReferenceDocument,
     )
 
-    artifact_id = ConceptId(f"ps:concept:{canonical_name}")
-    logical_id = LogicalId(namespace="propstore", value=canonical_name)
-    record = ConceptRecord(
+    artifact_id = f"ps:concept:{canonical_name}"
+    ontology_reference = OntologyReferenceDocument(
+        uri=artifact_id,
+        label=canonical_name,
+    )
+    document = ConceptDocument(
         artifact_id=artifact_id,
-        canonical_name=canonical_name,
         status="accepted",
-        definition=f"Test concept named {canonical_name}.",
-        form="Entity",
-        logical_ids=(logical_id,),
+        ontology_reference=ontology_reference,
+        lexical_entry=LexicalEntryDocument(
+            identifier=canonical_name,
+            canonical_form=LexicalFormDocument(
+                written_rep=canonical_name,
+                language="en",
+            ),
+            senses=(LexicalSenseDocument(reference=ontology_reference),),
+            physical_dimension_form="structural",
+        ),
+        logical_ids=(
+            ConceptLogicalIdDocument(namespace="propstore", value=canonical_name),
+        ),
         version_id=f"v-{canonical_name}",
         relationships=tuple(relationships),
     )
-    return LoadedConcept(
+    return LoadedDocument(
         filename=f"{canonical_name}.yaml",
-        source_path=None,
-        knowledge_root=None,
-        record=record,
+        artifact_path=None,
+        store_root=None,
+        document=document,
     )
 
 

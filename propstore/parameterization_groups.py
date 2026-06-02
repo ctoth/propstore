@@ -5,21 +5,25 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
+from quire.documents import LoadedDocument
+from propstore.families.concepts.declaration import ConceptDocument
+from propstore.families.concepts.stages import concept_reference_keys
 
 
-ConceptGroupInput = ConceptRecord | LoadedConcept | Mapping[str, Any]
+ConceptGroupInput = (
+    ConceptDocument | LoadedDocument[ConceptDocument] | Mapping[str, Any]
+)
 
 
-def _unwrap_concept(concept: ConceptGroupInput) -> ConceptRecord | Mapping[str, Any]:
-    if isinstance(concept, LoadedConcept):
-        return concept.record
+def _unwrap_concept(concept: ConceptGroupInput) -> ConceptDocument | Mapping[str, Any]:
+    if isinstance(concept, LoadedDocument):
+        return concept.document
     return concept
 
 
-def _concept_candidates(concept: ConceptRecord | Mapping[str, Any]) -> set[str]:
-    if isinstance(concept, ConceptRecord):
-        return set(concept.reference_keys())
+def _concept_candidates(concept: ConceptDocument | Mapping[str, Any]) -> set[str]:
+    if isinstance(concept, ConceptDocument):
+        return set(concept_reference_keys(concept))
 
     candidates: set[str] = set()
     artifact_id = concept.get("artifact_id")
@@ -50,9 +54,9 @@ def _concept_candidates(concept: ConceptRecord | Mapping[str, Any]) -> set[str]:
     return candidates
 
 
-def _concept_artifact_id(concept: ConceptRecord | Mapping[str, Any]) -> str | None:
-    if isinstance(concept, ConceptRecord):
-        return str(concept.artifact_id)
+def _concept_artifact_id(concept: ConceptDocument | Mapping[str, Any]) -> str | None:
+    if isinstance(concept, ConceptDocument):
+        return None if concept.artifact_id is None else str(concept.artifact_id)
     artifact_id = concept.get("artifact_id")
     if isinstance(artifact_id, str) and artifact_id:
         return artifact_id
@@ -60,11 +64,11 @@ def _concept_artifact_id(concept: ConceptRecord | Mapping[str, Any]) -> str | No
 
 
 def _parameterization_inputs(
-    concept: ConceptRecord | Mapping[str, Any],
+    concept: ConceptDocument | Mapping[str, Any],
 ) -> tuple[str, ...]:
-    if isinstance(concept, ConceptRecord):
+    if isinstance(concept, ConceptDocument):
         inputs: list[str] = []
-        for parameterization in concept.parameterizations:
+        for parameterization in concept.parameterization_relationships:
             inputs.extend(str(input_id) for input_id in parameterization.inputs)
         return tuple(inputs)
 

@@ -51,9 +51,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom, Scalar
+from quire.documents import LoadedDocument
 from propstore.claims import LoadedClaimsFile, claim_file_claims
 from propstore.families.claims.declaration import ClaimDocument
-from propstore.families.concepts.stages import LoadedConcept
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.grounding.predicates import (
     PredicateAtom,
     PredicateRegistry,
@@ -65,7 +66,7 @@ from propstore.grounding.predicates import (
 class GroundingFactInputs:
     """Typed source bundle for propstore-to-Datalog fact extraction."""
 
-    concepts: tuple[LoadedConcept, ...] = ()
+    concepts: tuple[LoadedDocument[ConceptDocument], ...] = ()
     claim_files: tuple[LoadedClaimsFile, ...] = ()
 
 
@@ -91,10 +92,8 @@ def extract_facts(
     set to be a deterministic function of the program and the fact
     base.
 
-    Note: ``ConceptRelationship.relationship_type`` is the parsed
-    dataclass field name (the underlying YAML uses ``type``, but
-    ``parse_concept_record`` renames it). The extractor reads
-    ``rel.relationship_type`` and compares against ``spec.relation``.
+    Note: concept relationships come from the charter document; the extractor
+    reads ``relationship.type`` and compares it against ``spec.relation``.
 
     Args:
         inputs: Typed source bundle with concept and claim-family data
@@ -157,7 +156,7 @@ def extract_facts(
 def _collect_concept_relation_facts(
     collected: set[GroundAtom],
     *,
-    concepts: Sequence[LoadedConcept],
+    concepts: Sequence[LoadedDocument[ConceptDocument]],
     registry: PredicateRegistry,
     predicate_id: str,
     relation: str | None,
@@ -175,16 +174,16 @@ def _collect_concept_relation_facts(
         return
 
     for concept in concepts:
-        record = concept.record
-        for relationship in record.relationships:
-            if relationship.relationship_type != relation:
+        document = concept.document
+        for relationship in document.relationships:
+            if relationship.type != relation:
                 continue
             if str(relationship.target) != target:
                 continue
             collected.add(
                 GroundAtom(
                     predicate=predicate_id,
-                    arguments=(record.canonical_name,),
+                    arguments=(document.lexical_entry.canonical_form.written_rep,),
                 )
             )
 

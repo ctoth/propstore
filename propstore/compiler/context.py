@@ -8,6 +8,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from quire.documents import LoadedDocument
 from quire.references import FamilyReferenceIndex
 from quire.tree_path import (
     TreePath as KnowledgePath,
@@ -33,7 +34,6 @@ from propstore.families.concepts.declaration import (
     AUTHORED_CONCEPT_CHARTER,
     ConceptDocument,
 )
-from propstore.families.concepts.stages import LoadedConcept
 from propstore.families.forms.stages import (
     FormDefinition,
     load_all_forms_path,
@@ -133,7 +133,7 @@ def _concept_reference_index(
 
 
 def _build_context_from_concepts(
-    concepts: list[LoadedConcept],
+    concepts: list[LoadedDocument[ConceptDocument]],
     form_registry: dict[str, FormDefinition],
     *,
     claim_files: Sequence[LoadedClaimsFile] | None,
@@ -166,7 +166,7 @@ def _build_context_from_concepts(
 
 
 def build_compilation_context_from_loaded(
-    concepts: list[LoadedConcept],
+    concepts: list[LoadedDocument[ConceptDocument]],
     *,
     forms_dir: Path | KnowledgePath | None = None,
     form_registry: dict[str, FormDefinition] | None = None,
@@ -205,13 +205,13 @@ def build_compilation_context_from_repo(
             context_ids=context_ids,
         )
     tree = repo.tree(commit=commit)
-    concepts: list[LoadedConcept] = []
+    concepts: list[LoadedDocument[ConceptDocument]] = []
     for handle in repo.families.concepts.iter_handles(commit=commit):
         concepts.append(
-            LoadedConcept(
+            LoadedDocument(
                 filename=handle.ref.name,
-                source_path=tree / handle.address.require_path(),
-                knowledge_root=tree,
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
                 document=handle.document,
             )
         )

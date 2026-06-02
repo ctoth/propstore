@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import Any, TypeAlias, cast
 
+from quire.documents import LoadedDocument
 from quire.lifecycle import FamilyRecordWrite
 from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import build_compilation_context_from_loaded
@@ -43,10 +44,6 @@ from propstore.families.registry import (
 )
 from propstore.families.concepts.declaration import (
     ConceptDocument,
-)
-from propstore.families.concepts.stages import (
-    LoadedConcept,
-    parse_concept_record_document,
 )
 from propstore.families.claims.declaration import (
     ClaimDocument,
@@ -183,16 +180,15 @@ def _validate_promoted_claims_before_commit(
             for concept_ref, concept_document in promoted_concept_documents.items()
         }
     )
-    concepts: list[LoadedConcept] = []
+    concepts: list[LoadedDocument[ConceptDocument]] = []
     for concept_name, concept_document in concepts_by_name.items():
         concept_ref = ConceptFileRef(concept_name)
         concepts.append(
-            LoadedConcept(
+            LoadedDocument(
                 filename=concept_name,
-                source_path=tree
+                artifact_path=tree
                 / repo.families.concepts.address(concept_ref).require_path(),
-                knowledge_root=tree,
-                record=parse_concept_record_document(concept_document),
+                store_root=tree,
                 document=concept_document,
             )
         )

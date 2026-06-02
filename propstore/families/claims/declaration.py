@@ -48,7 +48,7 @@ if TYPE_CHECKING:
     from propstore.families.claims.stages import (
         ClaimAlgorithmVariable,
     )
-    from propstore.families.concepts.stages import ConceptRecord
+    from propstore.families.concepts.declaration import ConceptDocument
 
 
 _WORLD_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
@@ -57,10 +57,10 @@ Justification: Any = import_module("propstore.core.justifications").Justificatio
 
 class ClaimConceptContext(Protocol):
     @property
-    def concepts_by_id(self) -> Mapping[str, "ConceptRecord"]: ...
+    def concepts_by_id(self) -> Mapping[str, "ConceptDocument"]: ...
 
     @property
-    def concept_index(self) -> FamilyReferenceIndex["ConceptRecord"]: ...
+    def concept_index(self) -> FamilyReferenceIndex["ConceptDocument"]: ...
 
 
 def _require_claim_type(value: object) -> ClaimType:
@@ -1277,7 +1277,7 @@ def _claim_concept_ref(claim_doc: object) -> str | None:
 def _claim_concept_record(
     claim_doc: object,
     concept_context: ClaimConceptContext | None,
-) -> ConceptRecord | None:
+) -> ConceptDocument | None:
     if concept_context is None:
         return None
     concept_ref = _claim_concept_ref(claim_doc)
@@ -1313,8 +1313,12 @@ def _resolve_concept_name(
     resolved_id = concept_context.concept_index.resolve_id(concept_ref)
     if resolved_id is None:
         resolved_id = concept_ref
-    concept_record = concept_context.concepts_by_id.get(resolved_id)
-    return concept_ref if concept_record is None else concept_record.canonical_name
+    concept_document = concept_context.concepts_by_id.get(resolved_id)
+    return (
+        concept_ref
+        if concept_document is None
+        else concept_document.lexical_entry.canonical_form.written_rep
+    )
 
 
 def compile_authored_justification_models(

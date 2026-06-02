@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Mapping
 
+from quire.documents import LoadedDocument
 
 from quire.references import FamilyReferenceIndex
 from propstore.claims import load_claim_batch_file
@@ -33,8 +34,9 @@ from propstore.families.concepts.stages import (
     ConceptCheckedRegistry,
     ConceptNormalizedSet,
     ConceptStage,
-    LoadedConcept,
+    concept_reference_keys,
 )
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.compiler.context import build_compiler_claim_index
 from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.registry import PropstoreFamily
@@ -64,20 +66,16 @@ class _ConceptCheckResult:
         return not self.errors
 
 
-def _concept_reference_keys(concept: LoadedConcept) -> set[str]:
-    keys = set(concept.record.reference_keys())
-    if concept.source_local_id:
-        keys.add(concept.source_local_id)
-    document = concept.document
-    if document is not None:
-        keys.add(document.ontology_reference.uri)
-        for sense in document.lexical_entry.senses:
-            keys.add(sense.reference.uri)
-    return {key for key in keys if key}
+def _concept_reference_keys(
+    concept: LoadedDocument[ConceptDocument],
+) -> set[str]:
+    return set(concept_reference_keys(concept.document))
 
 
-def _concept_reference_index(concepts: list[LoadedConcept]) -> dict[str, LoadedConcept]:
-    index: dict[str, LoadedConcept] = {}
+def _concept_reference_index(
+    concepts: list[LoadedDocument[ConceptDocument]],
+) -> dict[str, LoadedDocument[ConceptDocument]]:
+    index: dict[str, LoadedDocument[ConceptDocument]] = {}
     for concept in concepts:
         for key in _concept_reference_keys(concept):
             index.setdefault(key, concept)
@@ -85,22 +83,22 @@ def _concept_reference_index(concepts: list[LoadedConcept]) -> dict[str, LoadedC
 
 
 def _concept_satisfies_type(
-    concept: LoadedConcept,
+    concept: LoadedDocument[ConceptDocument],
     required_reference: str,
-    reference_index: dict[str, LoadedConcept],
+    reference_index: dict[str, LoadedDocument[ConceptDocument]],
 ) -> bool:
     pending = [concept]
     visited: set[str] = set()
     while pending:
         current = pending.pop(0)
-        current_id = str(current.record.artifact_id)
+        current_id = str(current.document.artifact_id)
         if current_id in visited:
             continue
         visited.add(current_id)
         if required_reference in _concept_reference_keys(current):
             return True
-        for relationship in current.record.relationships:
-            if relationship.relationship_type not in _TYPE_RELATIONSHIPS:
+        for relationship in current.document.relationships:
+            if relationship.type not in _TYPE_RELATIONSHIPS:
                 continue
             target = str(relationship.target)
             if target == required_reference:
@@ -112,13 +110,13 @@ def _concept_satisfies_type(
 
 
 def _validate_reference_exists(
-    concept: LoadedConcept,
+    concept: LoadedDocument[ConceptDocument],
     *,
     field: str,
     reference_uri: str,
-    reference_index: dict[str, LoadedConcept],
+    reference_index: dict[str, LoadedDocument[ConceptDocument]],
     result: _ConceptCheckResult,
-) -> LoadedConcept | None:
+) -> LoadedDocument[ConceptDocument] | None:
     target = reference_index.get(reference_uri)
     if target is None:
         result.errors.append(
@@ -128,9 +126,9 @@ def _validate_reference_exists(
 
 
 def _validate_phase3_lemon_references(
-    concept: LoadedConcept,
+    concept: LoadedDocument[ConceptDocument],
     *,
-    reference_index: dict[str, LoadedConcept],
+    reference_index: dict[str, LoadedDocument[ConceptDocument]],
     result: _ConceptCheckResult,
 ) -> None:
     document = concept.document
@@ -196,7 +194,7 @@ def _validate_phase3_lemon_references(
 
 
 def _validate_lemon_document(
-    concept: LoadedConcept,
+    concept: LoadedDocument[ConceptDocument],
     *,
     result: _ConceptCheckResult,
 ) -> None:
@@ -380,7 +378,8 @@ def register_concept_pipeline(registry: PipelineRegistry) -> None:
 
 
 def run_concept_pipeline(
-    concepts: tuple[LoadedConcept, ...] | list[LoadedConcept],
+    concepts: tuple[LoadedDocument[ConceptDocument], ...]
+    | list[LoadedDocument[ConceptDocument]],
     *,
     target_stage: ConceptStage = ConceptStage.CHECKED,
     context: ConceptPipelineContext | None = None,

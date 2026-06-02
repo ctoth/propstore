@@ -27,8 +27,18 @@ from propstore.cel_registry import (
     build_canonical_cel_registry,
     build_store_cel_registry,
 )
-from propstore.families.concepts.stages import ConceptRecord, parse_concept_record
-from propstore.families.concepts.declaration import Concept
+from quire.documents import DocumentSchemaError, convert_document
+
+from propstore.families.concepts.declaration import (
+    Concept,
+    ConceptDocument,
+    ConceptFormParametersDocument,
+    ConceptLogicalIdDocument,
+    LexicalEntryDocument,
+    LexicalFormDocument,
+    LexicalSenseDocument,
+    OntologyReferenceDocument,
+)
 
 
 # ── Fixtures: concept registries ─────────────────────────────────────
@@ -489,6 +499,54 @@ def test_closed_category_undeclared_literals_are_hard_errors(val):
 class TestBuildCelRegistry:
     """Tests for typed CEL registry projection."""
 
+    @staticmethod
+    def _record(
+        artifact_id: str,
+        canonical_name: str,
+        *,
+        form: str,
+        form_parameters: dict[str, object] | None = None,
+    ) -> ConceptDocument:
+        ontology_reference = OntologyReferenceDocument(
+            uri=artifact_id,
+            label=canonical_name,
+        )
+        return ConceptDocument(
+            artifact_id=artifact_id,
+            status="accepted",
+            ontology_reference=ontology_reference,
+            lexical_entry=LexicalEntryDocument(
+                identifier=canonical_name,
+                canonical_form=LexicalFormDocument(
+                    written_rep=canonical_name,
+                    language="en",
+                ),
+                senses=(LexicalSenseDocument(reference=ontology_reference),),
+                physical_dimension_form=form,
+            ),
+            logical_ids=(
+                ConceptLogicalIdDocument(
+                    namespace="propstore",
+                    value=canonical_name,
+                ),
+            ),
+            version_id="sha256:" + ("1" * 64),
+            form_parameters=(
+                None
+                if form_parameters is None
+                else ConceptFormParametersDocument(
+                    values=tuple(
+                        str(value) for value in form_parameters.get("values", ())
+                    ),
+                    extensible=(
+                        None
+                        if "extensible" not in form_parameters
+                        else bool(form_parameters["extensible"])
+                    ),
+                )
+            ),
+        )
+
     def test_canonical_input_quantity(self):
         result = build_canonical_cel_registry(
             [
@@ -539,14 +597,10 @@ class TestBuildCelRegistry:
             )
 
     def test_empty_canonical_name_on_canonical_record_is_error(self):
-        record = ConceptRecord(
-            artifact_id="ps:concept:oops",
-            canonical_name="",
-            status="accepted",
-            definition="Definition.",
+        record = self._record(
+            "ps:concept:oops",
+            "",
             form="frequency",
-            logical_ids=(),
-            version_id="sha256:" + ("1" * 64),
         )
         with pytest.raises(ValueError, match="canonical_name"):
             build_canonical_cel_registry([record])
@@ -565,19 +619,33 @@ class TestBuildCelRegistry:
         assert result["status"].category_extensible is True
 
     def test_canonical_record_rejects_malformed_form_parameters(self):
-        record = ConceptRecord(
-            artifact_id="ps:concept:oops",
-            canonical_name="oops",
-            status="accepted",
-            definition="Definition.",
-            form="category",
-            form_parameters=["active"],
-            logical_ids=(),
-            version_id="sha256:" + ("1" * 64),
-        )
-
-        with pytest.raises(ValueError, match="form_parameters"):
-            build_canonical_cel_registry([record])
+        with pytest.raises(DocumentSchemaError, match="form_parameters"):
+            convert_document(
+                {
+                    "artifact_id": "ps:concept:oops",
+                    "status": "accepted",
+                    "ontology_reference": {
+                        "uri": "ps:concept:oops",
+                        "label": "oops",
+                    },
+                    "lexical_entry": {
+                        "identifier": "oops",
+                        "canonical_form": {
+                            "written_rep": "oops",
+                            "language": "en",
+                        },
+                        "senses": [
+                            {"reference": {"uri": "ps:concept:oops"}},
+                        ],
+                        "physical_dimension_form": "category",
+                    },
+                    "form_parameters": ["active"],
+                    "logical_ids": [],
+                    "version_id": "sha256:" + ("1" * 64),
+                },
+                ConceptDocument,
+                source="concepts/oops.yaml",
+            )
 
     def test_store_projection_requires_typed_rows(self):
         with pytest.raises(TypeError):

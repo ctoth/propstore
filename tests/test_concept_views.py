@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from typing import cast
 
 import pytest
+from quire.documents import LoadedDocument
 
 from propstore.app import concept_views
 from propstore.app.concept_views import (
@@ -20,8 +21,15 @@ from propstore.app.repository_views import (
 from propstore.families.claims.types import ClaimType
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim, ClaimConceptLink
-from propstore.families.concepts.declaration import Concept
-from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
+from propstore.families.concepts.declaration import (
+    Concept,
+    ConceptDocument,
+    ConceptLogicalIdDocument,
+    LexicalEntryDocument,
+    LexicalFormDocument,
+    LexicalSenseDocument,
+    OntologyReferenceDocument,
+)
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
 from tests.claim_model_helpers import claim_concept_link
@@ -138,24 +146,38 @@ def _claim_link(
     )
 
 
-def _concept_entry() -> LoadedConcept:
-    record = parse_concept_record(
-        {
-            "artifact_id": "ps:concept:fundamental_frequency",
-            "canonical_name": "fundamental_frequency",
-            "status": "accepted",
-            "definition": "Primary oscillation rate.",
-            "form": "frequency",
-            "logical_ids": [{"namespace": "speech", "value": "fundamental_frequency"}],
-            "version_id": "concept-version-1",
-            "domain": "speech",
-        }
+def _concept_entry() -> LoadedDocument[ConceptDocument]:
+    ontology_reference = OntologyReferenceDocument(
+        uri="ps:concept:fundamental_frequency",
+        label="fundamental_frequency",
     )
-    return LoadedConcept(
+    document = ConceptDocument(
+        artifact_id="ps:concept:fundamental_frequency",
+        status="accepted",
+        ontology_reference=ontology_reference,
+        lexical_entry=LexicalEntryDocument(
+            identifier="fundamental_frequency",
+            canonical_form=LexicalFormDocument(
+                written_rep="fundamental_frequency",
+                language="en",
+            ),
+            senses=(LexicalSenseDocument(reference=ontology_reference),),
+            physical_dimension_form="frequency",
+        ),
+        logical_ids=(
+            ConceptLogicalIdDocument(
+                namespace="speech",
+                value="fundamental_frequency",
+            ),
+        ),
+        version_id="concept-version-1",
+        domain="speech",
+    )
+    return LoadedDocument(
         filename="fundamental_frequency.yaml",
-        source_path=None,
-        knowledge_root=None,
-        record=record,
+        artifact_path=None,
+        store_root=None,
+        document=document,
     )
 
 

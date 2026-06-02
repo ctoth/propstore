@@ -175,13 +175,20 @@ def build_concept_view(
         )
 
     artifact_id = (
-        str(concept_entry.record.artifact_id)
+        str(concept_entry.document.artifact_id)
         if concept_entry is not None
         else concept_id
     )
-    version_id = None if concept_entry is None else concept_entry.record.version_id
+    version_id = None if concept_entry is None else concept_entry.document.version_id
     logical_id = (
-        concept_entry.record.primary_logical_id
+        (
+            None
+            if not concept_entry.document.logical_ids
+            else (
+                f"{concept_entry.document.logical_ids[0].namespace}:"
+                f"{concept_entry.document.logical_ids[0].value}"
+            )
+        )
         if concept_entry is not None
         else concept_row.primary_logical_id
     )
@@ -211,8 +218,8 @@ def build_concept_view(
 def _concept_form(concept_row, concept_entry, visible_claims) -> ConceptViewForm:
     unit = _first_value_unit(visible_claims)
     range_text = None
-    if concept_entry is not None and concept_entry.record.range is not None:
-        lower, upper = concept_entry.record.range
+    if concept_entry is not None and concept_entry.document.range is not None:
+        lower, upper = concept_entry.document.range
         range_text = f"{lower} to {upper}"
     if concept_row.form is None:
         return ConceptViewForm(

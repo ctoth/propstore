@@ -3,20 +3,16 @@
 Concept-graph data structure (verified by reading
 ``propstore/core/concepts.py`` and ``propstore/sidecar/build.py``):
 
-    The propstore concept graph is a flat sequence of ``LoadedConcept``
-    envelopes — exactly what ``load_concepts(knowledge_root /
-    "concepts")`` returns and what ``sidecar/build.py`` passes around.
-    Each ``LoadedConcept`` wraps a frozen ``ConceptRecord`` whose
-    ``relationships`` field is a ``tuple[ConceptRelationship, ...]``.
-    Each ``ConceptRelationship`` is a frozen dataclass with
-    ``relationship_type: str`` (the relation name, e.g. ``"is_a"``),
-    ``target: ConceptId`` (a NewType-wrapped string identifying the
-    target concept, e.g. ``ConceptId("Bird")``), an optional tuple of
+    The propstore concept graph is a flat sequence of loaded
+    ``ConceptDocument`` artifacts. Each document has a ``relationships``
+    field containing relationship documents with ``type: str`` (the
+    relation name, e.g. ``"is_a"``), ``target: str`` (the target
+    concept identifier, e.g. ``"Bird"``), an optional tuple of
     condition strings, and an optional note. Relationships are
     *outgoing* edges from the source concept (``concept_record``) to
     the target concept identified by the ``target`` string. The
     extractor walks every relationship on every loaded concept,
-    matches the ``relationship_type`` and ``target`` against each
+    matches the ``type`` and ``target`` against each
     predicate's parsed ``DerivedFromSpec`` (kind ==
     ``"concept_relation"``), and emits one ``GroundAtom`` per matching
     edge whose single argument is the source concept's
@@ -73,67 +69,75 @@ _RELATION_NAMES = st.sampled_from(["is_a", "part_of", "kind_of"])
 _TARGET_NAMES = st.sampled_from(["Bird", "Penguin", "Mammal"])
 
 
-def _build_concept_record(canonical_name: str, relationships):
-    """Construct a minimal ``ConceptRecord`` for one concept.
+def _build_concept_document(canonical_name: str, relationships):
+    """Construct a minimal ``ConceptDocument`` for one concept.
 
     Diller et al. 2025 §3 treats the concept graph as the source of
     ground atoms; the extractor only reads the canonical name and
-    relationships, so this helper supplies just enough additional
-    fields to satisfy ``ConceptRecord``'s frozen-dataclass invariants
-    without invoking the heavier ``parse_concept_record`` normaliser.
+    relationships.
     """
 
-    from propstore.families.concepts.stages import ConceptRecord
-    from propstore.core.id_types import ConceptId
-    from propstore.core.id_types import LogicalId
+    from propstore.families.concepts.declaration import (
+        ConceptDocument,
+        ConceptLogicalIdDocument,
+        LexicalEntryDocument,
+        LexicalFormDocument,
+        LexicalSenseDocument,
+        OntologyReferenceDocument,
+    )
 
-    artifact_id = ConceptId(f"ps:concept:{canonical_name}")
-    logical_id = LogicalId(namespace="propstore", value=canonical_name)
-    return ConceptRecord(
+    artifact_id = f"ps:concept:{canonical_name}"
+    ontology_reference = OntologyReferenceDocument(
+        uri=artifact_id,
+        label=canonical_name,
+    )
+    return ConceptDocument(
         artifact_id=artifact_id,
-        canonical_name=canonical_name,
         status="accepted",
-        definition=f"Test concept named {canonical_name}.",
-        form="Entity",
-        logical_ids=(logical_id,),
+        ontology_reference=ontology_reference,
+        lexical_entry=LexicalEntryDocument(
+            identifier=canonical_name,
+            canonical_form=LexicalFormDocument(
+                written_rep=canonical_name,
+                language="en",
+            ),
+            senses=(LexicalSenseDocument(reference=ontology_reference),),
+            physical_dimension_form="structural",
+        ),
+        logical_ids=(
+            ConceptLogicalIdDocument(namespace="propstore", value=canonical_name),
+        ),
         version_id=f"v-{canonical_name}",
         relationships=tuple(relationships),
     )
 
 
 def _build_loaded_concept(canonical_name: str, relationships):
-    """Wrap a ConceptRecord in a LoadedConcept envelope.
+    """Wrap a concept document in the loaded-document carrier."""
 
-    ``sidecar/build.py`` consumes ``Sequence[LoadedConcept]`` from
-    ``load_concepts``; the extractor must accept the same shape.
-    """
+    from quire.documents import LoadedDocument
 
-    from propstore.families.concepts.stages import LoadedConcept
-
-    record = _build_concept_record(canonical_name, relationships)
-    return LoadedConcept(
+    document = _build_concept_document(canonical_name, relationships)
+    return LoadedDocument(
         filename=f"{canonical_name}.yaml",
-        source_path=None,
-        knowledge_root=None,
-        record=record,
+        artifact_path=None,
+        store_root=None,
+        document=document,
     )
 
 
 def _build_concept_relationship(relation: str, target: str):
     """Build a single outgoing concept relationship.
 
-    Mirrors the shape produced by ``parse_concept_record`` for entries
-    in a concept's ``relationships`` block (Garcia & Simari 2004 §3.1
-    treats these as the ground-fact-bearing edges of the concept
-    graph).
+    Garcia & Simari 2004 §3.1 treats these as the ground-fact-bearing
+    edges of the concept graph.
     """
 
-    from propstore.families.concepts.stages import ConceptRelationship
-    from propstore.core.id_types import ConceptId
+    from propstore.families.concepts.declaration import ConceptRelationshipDocument
 
-    return ConceptRelationship(
-        relationship_type=relation,
-        target=ConceptId(target),
+    return ConceptRelationshipDocument(
+        type=relation,
+        target=target,
         conditions=(),
         note=None,
     )
@@ -178,15 +182,15 @@ def _fact_inputs(concepts=(), claim_files=()):
 def concept_relationship_graphs() -> st.SearchStrategy:
     """Strategy producing small concept relationship graphs.
 
-    Each element is a ``Sequence[LoadedConcept]``, mirroring the shape
+    Each element is a loaded ``ConceptDocument`` sequence, mirroring the shape
     that ``propstore.families.concepts.stages.load_concepts`` produces and that
     ``propstore.compiler.workflows`` passes through the build pipeline.
     Each generated concept carries zero or more outgoing
-    ``ConceptRelationship`` edges drawn from a small fixed pool of
+    relationship edges drawn from a small fixed pool of
     relation names and target tokens (Garcia & Simari 2004 §3:
     ``is_a:Bird`` is the canonical defeasible-reasoning example).
     Concept canonical_names are unique per draw so the resulting
-    LoadedConcept sequence has no duplicate sources.
+    loaded-document sequence has no duplicate sources.
     """
 
     @st.composite

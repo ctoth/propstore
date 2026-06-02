@@ -1,42 +1,54 @@
-from propstore.core.id_types import (
-    ConceptId,
-    LogicalId,
+from quire.documents import LoadedDocument
+from propstore.families.concepts.declaration import (
+    ConceptDocument,
+    ConceptLogicalIdDocument,
+    ConceptRelationshipDocument,
+    LexicalEntryDocument,
+    LexicalFormDocument,
+    LexicalSenseDocument,
+    OntologyReferenceDocument,
 )
 from propstore.families.concepts.passes import (
     _concept_reference_index,
     _concept_satisfies_type,
 )
-from propstore.families.concepts.stages import (
-    ConceptRecord,
-    ConceptRelationship,
-    LoadedConcept,
-)
 
 
-def _relationship(relation: str, target: str) -> ConceptRelationship:
-    return ConceptRelationship(
-        relationship_type=relation,
-        target=ConceptId(target),
+def _relationship(relation: str, target: str) -> ConceptRelationshipDocument:
+    return ConceptRelationshipDocument(
+        type=relation,
+        target=target,
     )
 
 
-def _concept(name: str, relationships=()) -> LoadedConcept:
-    artifact_id = ConceptId(f"ps:concept:{name}")
-    record = ConceptRecord(
+def _concept(
+    name: str,
+    relationships=(),
+) -> LoadedDocument[ConceptDocument]:
+    artifact_id = f"ps:concept:{name}"
+    ontology_reference = OntologyReferenceDocument(
+        uri=artifact_id,
+        label=name,
+    )
+    document = ConceptDocument(
         artifact_id=artifact_id,
-        canonical_name=name,
         status="accepted",
-        definition=f"Test concept {name}.",
-        form="entity",
-        logical_ids=(LogicalId(namespace="propstore", value=name),),
+        ontology_reference=ontology_reference,
+        lexical_entry=LexicalEntryDocument(
+            identifier=name,
+            canonical_form=LexicalFormDocument(written_rep=name, language="en"),
+            senses=(LexicalSenseDocument(reference=ontology_reference),),
+            physical_dimension_form="structural",
+        ),
+        logical_ids=(ConceptLogicalIdDocument(namespace="propstore", value=name),),
         version_id=f"sha256:{name:0<64}"[:71],
         relationships=tuple(relationships),
     )
-    return LoadedConcept(
+    return LoadedDocument(
         filename=f"{name}.yaml",
-        source_path=None,
-        knowledge_root=None,
-        record=record,
+        artifact_path=None,
+        store_root=None,
+        document=document,
     )
 
 

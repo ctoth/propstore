@@ -25,7 +25,9 @@ from quire.tree_path import (
 )
 
 if TYPE_CHECKING:
-    from propstore.families.concepts.stages import LoadedConcept
+    from quire.documents import LoadedDocument
+
+    from propstore.families.concepts.declaration import ConceptDocument
 
 
 def _form_document_type() -> type[FormDocument]:
@@ -234,7 +236,7 @@ def compile_form_models(form_registry: dict[str, FormDefinition]) -> tuple[Form,
 
 
 def compile_form_algebra(
-    concepts: list["LoadedConcept"],
+    concepts: list["LoadedDocument[ConceptDocument]"],
     form_registry: dict[str, FormDefinition],
 ) -> tuple[FormAlgebra, ...]:
     from propstore.families.concepts.stages import concept_symbol_candidates
@@ -245,22 +247,26 @@ def compile_form_algebra(
     id_to_form: dict[str, str] = {}
     id_to_symbols: dict[str, tuple[str, ...]] = {}
     for concept in concepts:
-        record = concept.record
-        concept_id = str(record.artifact_id)
-        id_to_form[concept_id] = record.form
-        id_to_symbols[concept_id] = concept_symbol_candidates(record)
+        document = concept.document
+        if document.artifact_id is None:
+            continue
+        concept_id = str(document.artifact_id)
+        id_to_form[concept_id] = document.lexical_entry.physical_dimension_form
+        id_to_symbols[concept_id] = concept_symbol_candidates(document)
 
     seen: set[tuple[object, ...]] = set()
     models: list[FormAlgebra] = []
 
     for concept in concepts:
-        record = concept.record
-        concept_id = str(record.artifact_id)
+        document = concept.document
+        if document.artifact_id is None:
+            continue
+        concept_id = str(document.artifact_id)
         output_form = id_to_form.get(concept_id)
         if not output_form:
             continue
 
-        for parameterization in record.parameterizations:
+        for parameterization in document.parameterization_relationships:
             inputs = [str(input_id) for input_id in parameterization.inputs]
             if not inputs:
                 continue

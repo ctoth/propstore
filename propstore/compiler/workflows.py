@@ -61,8 +61,8 @@ from propstore.families.contexts.declaration import (
 from propstore.families.concepts.stages import (
     ConceptCheckedRegistry,
     ConceptStage,
-    LoadedConcept,
 )
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.families.micropublications.declaration import (
@@ -190,7 +190,7 @@ def build_repository_world_store(
     claim_checked_bundle: ClaimCheckedBundle | None = None,
     claim_files: tuple[LoadedClaimsFile, ...] | None = None,
     claim_diagnostics: tuple[PassDiagnostic, ...] = (),
-    concept_files: tuple[LoadedConcept, ...] | None = None,
+    concept_files: tuple[LoadedDocument[ConceptDocument], ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
     context_files: tuple[LoadedDocument[ContextDocument], ...] | None = None,
     context_diagnostics: tuple[PassDiagnostic, ...] = (),
@@ -243,7 +243,7 @@ def write_repository_world_store(
     claim_checked_bundle: ClaimCheckedBundle | None = None,
     claim_files: tuple[LoadedClaimsFile, ...] | None = None,
     claim_diagnostics: tuple[PassDiagnostic, ...] = (),
-    concept_files: tuple[LoadedConcept, ...] | None = None,
+    concept_files: tuple[LoadedDocument[ConceptDocument], ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
     context_files: tuple[LoadedDocument[ContextDocument], ...] | None = None,
     context_diagnostics: tuple[PassDiagnostic, ...] = (),
@@ -517,13 +517,13 @@ def _messages_from_pipeline_result(result) -> tuple[PassDiagnostic, ...]:
 def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     tree = repo.tree()
     try:
-        concepts: list[LoadedConcept] = []
+        concepts: list[LoadedDocument[ConceptDocument]] = []
         for handle in repo.families.concepts.iter_handles():
             concepts.append(
-                LoadedConcept(
+                LoadedDocument(
                     filename=handle.ref.name,
-                    source_path=tree / handle.address.require_path(),
-                    knowledge_root=tree,
+                    artifact_path=tree / handle.address.require_path(),
+                    store_root=tree,
                     document=handle.document,
                 )
             )
