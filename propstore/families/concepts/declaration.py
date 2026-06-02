@@ -280,13 +280,19 @@ class ConceptDocument(CharterDoc, kw_only=True):
     ]
     artifact_id: Annotated[
         str | None,
-        charter_field(column_name="id", primary_key=True, nullable=True, order=3),
+        charter_field(
+            column_name="id",
+            primary_key=True,
+            nullable=True,
+            order=3,
+            versioned=False,
+        ),
     ] = None
     logical_ids: Annotated[
         tuple[ConceptLogicalIdDocument, ...],
         charter_field(json=True, nullable=False, default_sql="'[]'"),
     ] = ()
-    version_id: str | None = None
+    version_id: Annotated[str | None, charter_field(versioned=False)] = None
     aliases: Annotated[
         tuple[ConceptAliasDocument, ...],
         charter_field(json=True, nullable=False, default_sql="'[]'"),

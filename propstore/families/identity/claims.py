@@ -1,22 +1,11 @@
 from __future__ import annotations
 
-import copy
 import hashlib
-import json
 import re
 from typing import Any
 
-from quire import canonical_json_sha256
-
 from propstore.families.identity import logical_ids
 
-CLAIM_VERSION_ID_EXCLUDED_FIELDS = (
-    "artifact_id",
-    "version_id",
-    "id",
-    "source_local_id",
-    "source",
-)
 CLAIM_SOURCE_LOCAL_FIELDS = ("id", "source_local_id", "artifact_code")
 DEFAULT_CLAIM_NAMESPACE = "source"
 DEFAULT_CLAIM_HANDLE_PREFIX = "claim"
@@ -31,36 +20,6 @@ def derive_claim_artifact_id(namespace: str, value: str) -> str:
         f"{normalized_namespace}:{normalized_value}".encode("utf-8")
     ).hexdigest()
     return f"ps:claim:{digest}"
-
-
-def canonicalize_claim_for_version(claim: dict[str, Any]) -> dict[str, Any]:
-    """Normalize a claim into deterministic canonical content for hashing."""
-    canonical = copy.deepcopy(claim)
-    _drop_fields(canonical, CLAIM_VERSION_ID_EXCLUDED_FIELDS)
-
-    if isinstance(canonical.get("logical_ids"), list):
-        canonical["logical_ids"] = _canonical_logical_ids(canonical.get("logical_ids"))
-
-    conditions = canonical.get("conditions")
-    if isinstance(conditions, list):
-        canonical["conditions"] = sorted(
-            condition for condition in conditions if isinstance(condition, str)
-        )
-
-    stances = canonical.get("stances")
-    if isinstance(stances, list):
-        normalized_stances = [stance for stance in stances if isinstance(stance, dict)]
-        canonical["stances"] = sorted(
-            normalized_stances,
-            key=lambda stance: json.dumps(
-                stance,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=False,
-            ),
-        )
-
-    return canonical
 
 
 def _claim_file_namespace(data: dict[str, Any], default_namespace: str | None) -> str:
@@ -184,28 +143,3 @@ def _rewrite_stance_targets(
             rewritten["target"] = local_handle_map[target]
         rewritten_stances.append(rewritten)
     claim["stances"] = rewritten_stances
-
-
-def _stamp_claim_version_id(claim: dict[str, Any]) -> None:
-    claim["version_id"] = compute_claim_version_id(claim)
-
-
-def _canonical_logical_ids(value: object) -> list[dict[str, str]]:
-    if not isinstance(value, list):
-        return []
-    normalized_handles: list[dict[str, str]] = []
-    for entry in value:
-        if not isinstance(entry, dict):
-            continue
-        namespace = entry.get("namespace")
-        logical_value = entry.get("value")
-        if isinstance(namespace, str) and isinstance(logical_value, str):
-            normalized_handles.append(
-                {
-                    "namespace": namespace,
-                    "value": logical_value,
-                }
-            )
-    return sorted(
-        normalized_handles, key=lambda item: (item["namespace"], item["value"])
-    )

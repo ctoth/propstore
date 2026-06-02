@@ -55,7 +55,6 @@ from propstore.families.claims.passes.diagnostics import claim_diagnostic
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassDiagnostic, PassResult, PipelineResult
-from propstore.families.identity.claims import compute_claim_version_id
 
 
 def _synthesize_quarantine_id(filename: str, raw_id: str, seq: int) -> str:

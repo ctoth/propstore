@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -24,15 +23,17 @@ from quire.artifacts import (
     batch_artifact_family,
 )
 from quire import ContractManifest
-from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
+from quire.families import (
+    FamilyDeclaration,
+    FamilyDefinition,
+    FamilyIdentityPolicy,
+    FamilyRegistry,
+)
 from quire.documents import (
-    coerce_json_mapping,
-    coerce_text_document,
     decode_json_mapping,
     decode_text_document,
     encode_json_mapping,
     encode_text_document,
-    identity_json_mapping,
     identity_text_document,
     render_json_mapping,
 )
@@ -96,18 +97,12 @@ from propstore.families.worldlines.declaration import (
 )
 from propstore.families.identity.claims import (
     CLAIM_SOURCE_LOCAL_FIELDS,
-    CLAIM_VERSION_ID_EXCLUDED_FIELDS,
-    canonicalize_claim_for_version,
-    compute_claim_version_id,
     derive_claim_artifact_id,
 )
 from propstore.families.sources.declaration import (
     SourceDocument,
 )
 from propstore.families.identity.concepts import (
-    CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
-    canonicalize_concept_for_version,
-    compute_concept_version_id,
     derive_concept_artifact_id,
 )
 
@@ -334,19 +329,26 @@ def _callable_id(callback: object) -> str:
     return f"{module}.{qualname}"
 
 
+def _version_excluded_fields(charter: object) -> tuple[str, ...]:
+    fields = getattr(charter, "fields", ())
+    return tuple(
+        field.document_name or field.name
+        for field in fields
+        if getattr(field, "document", False) and not getattr(field, "versioned", True)
+    )
+
+
 CLAIM_IDENTITY_POLICY = FamilyIdentityPolicy(
     artifact_id_function=_callable_id(derive_claim_artifact_id),
-    version_id_function=_callable_id(compute_claim_version_id),
     logical_id_fields=("logical_ids",),
-    version_excluded_fields=CLAIM_VERSION_ID_EXCLUDED_FIELDS,
+    version_excluded_fields=_version_excluded_fields(AUTHORED_CLAIM_CHARTER),
     source_local_fields=CLAIM_SOURCE_LOCAL_FIELDS,
 )
 
 CONCEPT_IDENTITY_POLICY = FamilyIdentityPolicy(
     artifact_id_function=_callable_id(derive_concept_artifact_id),
-    version_id_function=_callable_id(compute_concept_version_id),
     logical_id_fields=("logical_ids",),
-    version_excluded_fields=CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
+    version_excluded_fields=_version_excluded_fields(AUTHORED_CONCEPT_CHARTER),
 )
 
 CLAIM_PLACEMENT = FlatYamlPlacement["Repository", ClaimRef](
@@ -474,13 +476,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             reference_keys=_charter_reference_keys(AUTHORED_CONCEPT_CHARTER),
             metadata=_semantic_metadata(importable=True, import_order=10),
         ),
-        _family_definition(
+        FamilyDeclaration(
             key=PropstoreFamily.CONTEXTS,
             name=PropstoreFamily.CONTEXTS.value,
             contract_version=CONTEXT_FAMILY_CONTRACT_VERSION,
             artifact_name="context",
             artifact_contract_version=CONTEXT_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            document_type=CONTEXT_DOCUMENT_TYPE,
+            doc_type=CONTEXT_DOCUMENT_TYPE,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.CONTEXTS.value,
                 ref_factory=ContextRef,
@@ -490,14 +492,14 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             identity_field="id",
             reference_keys=_charter_reference_keys(CONTEXT_CHARTER),
             metadata=_semantic_metadata(importable=True, import_order=30),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.FORMS,
             name=PropstoreFamily.FORMS.value,
             contract_version=FORM_FAMILY_CONTRACT_VERSION,
             artifact_name="form",
             artifact_contract_version=FORM_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            document_type=FORM_DOCUMENT_TYPE,
+            doc_type=FORM_DOCUMENT_TYPE,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.FORMS.value,
                 ref_factory=FormRef,
@@ -506,13 +508,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             ),
             identity_field="name",
             metadata=_semantic_metadata(importable=True, import_order=30),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PREDICATES,
             name=PropstoreFamily.PREDICATES.value,
             contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
             artifact_name="predicate",
-            document_type=PredicateDocument,
+            doc_type=PredicateDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.PREDICATES.value,
                 ref_factory=PredicateRef,
@@ -523,14 +525,14 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 importable=True,
                 import_order=40,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.RULES,
             name=PropstoreFamily.RULES.value,
             contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             artifact_name="rule",
             artifact_contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
-            document_type=RuleDocument,
+            doc_type=RuleDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.RULES.value,
                 ref_factory=RuleRef,
@@ -541,14 +543,14 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 importable=True,
                 import_order=50,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.RULE_SUPERIORITY,
             name=PropstoreFamily.RULE_SUPERIORITY.value,
             contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             artifact_name="rule_superiority",
             artifact_contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
-            document_type=RuleSuperiorityDocument,
+            doc_type=RuleSuperiorityDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.RULE_SUPERIORITY.value,
                 ref_factory=RuleSuperiorityRef,
@@ -559,14 +561,14 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 importable=True,
                 import_order=55,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.STANCES,
             name=PropstoreFamily.STANCES.value,
             contract_version=STANCE_FAMILY_CONTRACT_VERSION,
             artifact_name="stance",
             artifact_contract_version=STANCE_FAMILY_CONTRACT_VERSION,
-            document_type=StanceDocument,
+            doc_type=StanceDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.STANCES.value,
                 ref_factory=StanceRef,
@@ -577,13 +579,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             foreign_keys=_charter_foreign_keys(STANCE_CHARTER),
             identity_field="artifact_code",
             metadata=_semantic_metadata(importable=True, import_order=60),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SAMEAS,
             name=PropstoreFamily.SAMEAS.value,
             contract_version=SAMEAS_FAMILY_CONTRACT_VERSION,
             artifact_name="same_as_assertion",
-            document_type=SameAsAssertionDocument,
+            doc_type=SameAsAssertionDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.SAMEAS.value,
                 ref_factory=SameAsAssertionRef,
@@ -592,14 +594,14 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 branch=PRIMARY_ARTIFACT_BRANCH,
             ),
             metadata=_semantic_metadata(importable=True, import_order=65),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.WORLDLINES,
             name=PropstoreFamily.WORLDLINES.value,
             contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
             artifact_name="worldline",
             artifact_contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-            document_type=WorldlineDefinitionDocument,
+            doc_type=WorldlineDefinitionDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.WORLDLINES.value,
                 ref_factory=WorldlineRef,
@@ -610,7 +612,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 **_semantic_metadata(importable=True, import_order=70),
                 "trajectory_field": "journal",
             },
-        ),
+        ).to_definition(),
         FamilyDefinition(
             key=PropstoreFamily.SOURCES,
             name=PropstoreFamily.SOURCES.value,
@@ -626,13 +628,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             foreign_keys=_charter_foreign_keys(MICROPUBLICATION_CHARTER),
             identity_field="artifact_id",
         ),
-        _family_definition(
+        FamilyDeclaration(
             key=PropstoreFamily.JUSTIFICATIONS,
             name=PropstoreFamily.JUSTIFICATIONS.value,
             contract_version=JUSTIFICATION_FAMILY_CONTRACT_VERSION,
             artifact_name="justification",
             artifact_contract_version=JUSTIFICATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            document_type=JustificationDocument,
+            doc_type=JustificationDocument,
             placement=FlatYamlPlacement(
                 "justifications",
                 JustificationRef,
@@ -643,37 +645,37 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             foreign_keys=_charter_foreign_keys(JUSTIFICATION_CHARTER),
             identity_field="artifact_code",
             reference_keys=_charter_reference_keys(JUSTIFICATION_CHARTER),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_DOCUMENTS,
             name=PropstoreFamily.SOURCE_DOCUMENTS.value,
             contract_version=SOURCE_DOCUMENT_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_document",
-            document_type=SourceDocument,
+            doc_type=SourceDocument,
             placement=FixedFilePlacement("source.yaml", branch=SOURCE_BRANCH),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_NOTES,
             name=PropstoreFamily.SOURCE_NOTES.value,
             contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_notes",
-            document_type=str,
+            doc_type=str,
             placement=FixedFilePlacement("notes.md", branch=SOURCE_BRANCH),
             decode_bytes=decode_text_document,
             encode_document=encode_text_document,
             render_document=identity_text_document,
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_METADATA,
             name=PropstoreFamily.SOURCE_METADATA.value,
             contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_metadata",
-            document_type=dict,
+            doc_type=dict,
             placement=FixedFilePlacement("metadata.json", branch=SOURCE_BRANCH),
             decode_bytes=decode_json_mapping,
             encode_document=encode_json_mapping,
             render_document=render_json_mapping,
-        ),
+        ).to_definition(),
         FamilyDefinition(
             key=PropstoreFamily.SOURCE_CONCEPTS,
             name=PropstoreFamily.SOURCE_CONCEPTS.value,
@@ -733,25 +735,25 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 batch_spec=SOURCE_STANCE_BATCH_SPEC,
             ),
         ),
-        _family_definition(
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_FINALIZE_REPORTS,
             name=PropstoreFamily.SOURCE_FINALIZE_REPORTS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_finalize_report",
-            document_type=SourceFinalizeReportDocument,
+            doc_type=SourceFinalizeReportDocument,
             placement=TemplateFilePlacement(
                 "merge/finalize/{stem}.yaml",
                 ref_field="name",
                 codec="safe_slug",
                 branch=SOURCE_BRANCH,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PROPOSAL_STANCES,
             name=PropstoreFamily.PROPOSAL_STANCES.value,
             contract_version=STANCE_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_stance",
-            document_type=StanceDocument,
+            doc_type=StanceDocument,
             placement=FlatYamlPlacement(
                 "stances",
                 StanceRef,
@@ -759,14 +761,14 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 codec="colon_to_double_underscore",
                 branch=PROPOSAL_STANCE_BRANCH,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PROPOSAL_PREDICATES,
             name=PropstoreFamily.PROPOSAL_PREDICATES.value,
             contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_predicates",
             artifact_contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
-            document_type=PredicateProposalArtifact,
+            doc_type=PredicateProposalArtifact,
             placement=SubdirFixedFilePlacement(
                 namespace="predicates",
                 filename="declarations.yaml",
@@ -774,14 +776,14 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 ref_field="source_paper",
                 branch=PROPOSAL_PREDICATE_BRANCH,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PROPOSAL_RULES,
             name=PropstoreFamily.PROPOSAL_RULES.value,
             contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_rules",
             artifact_contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
-            document_type=AuthoredRuleProposalArtifact,
+            doc_type=AuthoredRuleProposalArtifact,
             placement=NestedFlatYamlPlacement(
                 namespace="rules",
                 ref_factory=RuleProposalRef,
@@ -789,33 +791,33 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 stem_ref_field="rule_id",
                 branch=PROPOSAL_RULE_BRANCH,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.CONCEPT_ALIGNMENTS,
             name=PropstoreFamily.CONCEPT_ALIGNMENTS.value,
             contract_version=SOURCE_ALIGNMENT_FAMILY_CONTRACT_VERSION,
             artifact_name="concept_alignment",
             artifact_contract_version=SOURCE_ALIGNMENT_FAMILY_CONTRACT_VERSION,
-            document_type=ConceptAlignmentArtifactDocument,
+            doc_type=ConceptAlignmentArtifactDocument,
             placement=FlatYamlPlacement(
                 "merge/concepts",
                 ConceptAlignmentRef,
                 ref_field="slug",
                 branch=PROPOSAL_CONCEPT_BRANCH,
             ),
-        ),
-        _family_definition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.MERGE_MANIFESTS,
             name=PropstoreFamily.MERGE_MANIFESTS.value,
             contract_version=MERGE_MANIFEST_FAMILY_CONTRACT_VERSION,
             artifact_name="merge_manifest",
-            document_type=MergeManifestDocument,
+            doc_type=MergeManifestDocument,
             placement=SingletonFilePlacement(
                 "merge/manifest.yaml",
                 ref_factory=MergeManifestRef,
                 branch=PRIMARY_ARTIFACT_BRANCH,
             ),
-        ),
+        ).to_definition(),
         FamilyDefinition(
             key=PropstoreFamily.SCHEMA,
             name=PropstoreFamily.SCHEMA.value,

@@ -82,6 +82,14 @@ ask for a `ConditionRegistry`; they should not pass bare
 `dict[str, ConceptInfo]`, call `scope_condition_registry`, or restore
 `condition_registry_fingerprint`.
 
+The version identity slice moves claim/concept version hashing to generic
+Quire charter metadata. Quire fields now carry `versioned`, Quire charters can
+compute version payloads and version IDs from typed documents, and Propstore no
+longer defines claim/concept `compute_*_version_id` or
+`canonicalize_*_for_version` dict helpers. The deleted local
+`_family_definition` helper in the family registry was not restored; registry
+callers use Quire `FamilyDeclaration`.
+
 Next slices should keep the same recursion:
 - delete one remaining fake representation or helper surface;
 - follow only direct breakage from that deletion;

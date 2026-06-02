@@ -473,26 +473,38 @@ class ClaimDocument(CharterDoc, kw_only=True):
     ] = None
     source: Annotated[
         ClaimSourceDocument | None,
-        charter_field(json=True, nullable=True, order=2),
+        charter_field(json=True, nullable=True, order=2, versioned=False),
     ] = None
     artifact_id: Annotated[
         str | None,
-        charter_field(column_name="id", primary_key=True, nullable=True, order=3),
+        charter_field(
+            column_name="id",
+            primary_key=True,
+            nullable=True,
+            order=3,
+            versioned=False,
+        ),
     ] = None
     artifact_code: Annotated[
-        str | None, charter_field(artifact=True, nullable=True)
+        str | None, charter_field(artifact=True, nullable=True, versioned=False)
     ] = None
     logical_ids: Annotated[
         tuple[ClaimLogicalIdDocument, ...],
         charter_field(json=True, nullable=False, default_sql="'[]'"),
     ] = ()
-    version_id: str | None = None
+    version_id: Annotated[str | None, charter_field(versioned=False)] = None
     type: ClaimType | None = None
     provenance: Annotated[
         ProvenanceDocument | None, charter_field(json=True, nullable=True)
     ] = None
     id: Annotated[
-        str | None, charter_field(column_name="source_local_id", nullable=True)
+        str | None,
+        charter_field(
+            column_name="source_local_id",
+            nullable=True,
+            source_local_only=True,
+            versioned=False,
+        ),
     ] = None
     body: str | None = None
     concepts: Annotated[

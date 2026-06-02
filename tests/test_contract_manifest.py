@@ -21,12 +21,6 @@ _HEAD_MANIFEST_HELPER = (
     / "scripts"
     / "build_head_contract_manifest.py"
 )
-from propstore.families.identity.claims import (
-    CLAIM_SOURCE_LOCAL_FIELDS,
-    CLAIM_VERSION_ID_EXCLUDED_FIELDS,
-)
-from propstore.families.identity.concepts import CONCEPT_VERSION_ID_EXCLUDED_FIELDS
-
 
 def test_every_artifact_family_has_contract_version() -> None:
     missing = [

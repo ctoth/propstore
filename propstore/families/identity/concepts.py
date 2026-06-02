@@ -1,24 +1,13 @@
 from __future__ import annotations
 
-import copy
 import hashlib
-import json
 from typing import Any
-
-from quire import canonical_json_sha256
 
 from propstore.families.identity import logical_ids
 
-CONCEPT_VERSION_ID_EXCLUDED_FIELDS = ("artifact_id", "version_id", "id")
 DEFAULT_CONCEPT_DOMAIN = "propstore"
 DEFAULT_CONCEPT_NAME = "concept"
 DEFAULT_LEXICAL_LANGUAGE = "en"
-PARAMETERIZATION_RELATIONSHIPS_FIELD = "parameterization_relationships"
-CONCEPT_SORTED_DICT_LIST_FIELDS = (
-    "aliases",
-    "relationships",
-    PARAMETERIZATION_RELATIONSHIPS_FIELD,
-)
 
 
 def derive_concept_artifact_id(namespace: str, value: str) -> str:
@@ -29,22 +18,6 @@ def derive_concept_artifact_id(namespace: str, value: str) -> str:
         f"{normalized_namespace}:{normalized_value}".encode("utf-8")
     ).hexdigest()
     return f"ps:concept:{digest}"
-
-
-def canonicalize_concept_for_version(concept: dict[str, Any]) -> dict[str, Any]:
-    """Normalize a concept into deterministic canonical content for hashing."""
-    canonical = copy.deepcopy(concept)
-    _drop_fields(canonical, CONCEPT_VERSION_ID_EXCLUDED_FIELDS)
-
-    if isinstance(canonical.get("logical_ids"), list):
-        canonical["logical_ids"] = _canonical_logical_ids(canonical.get("logical_ids"))
-
-    for field in CONCEPT_SORTED_DICT_LIST_FIELDS:
-        value = canonical.get(field)
-        if isinstance(value, list):
-            canonical[field] = _sorted_dicts(value)
-
-    return canonical
 
 
 def concept_reference_keys(
@@ -68,43 +41,6 @@ def concept_reference_keys(
         if isinstance(alias, dict):
             _add_reference_key(reference_keys, alias.get("name"))
     return reference_keys
-
-
-def _canonical_logical_ids(value: object) -> list[dict[str, str]]:
-    if not isinstance(value, list):
-        return []
-    normalized_handles: list[dict[str, str]] = []
-    for entry in value:
-        if not isinstance(entry, dict):
-            continue
-        namespace = entry.get("namespace")
-        logical_value = entry.get("value")
-        if isinstance(namespace, str) and isinstance(logical_value, str):
-            normalized_handles.append(
-                {
-                    "namespace": namespace,
-                    "value": logical_value,
-                }
-            )
-    return sorted(
-        normalized_handles, key=lambda item: (item["namespace"], item["value"])
-    )
-
-
-def _sorted_dicts(value: list[object]) -> list[dict[str, Any]]:
-    return sorted(
-        (item for item in value if isinstance(item, dict)),
-        key=_canonical_json_sort_key,
-    )
-
-
-def _canonical_json_sort_key(value: dict[str, Any]) -> str:
-    return json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
 
 
 def _effective_concept_name(

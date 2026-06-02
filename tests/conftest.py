@@ -5,33 +5,33 @@ Plain functions (not pytest fixtures) since callers invoke them directly.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 
 import msgspec
 from sqlite3 import Connection
 import warnings
-from types import MappingProxyType
 
 import pytest
 from hypothesis import settings
-from quire.references import FamilyReferenceIndex
 
-from propstore.core.conditions.registry import KindType
 from propstore.families.identity.claims import (
-    compute_claim_version_id,
     derive_claim_artifact_id,
 )
 from propstore.families.identity.concepts import (
-    compute_concept_version_id,
     derive_concept_artifact_id,
+)
+from propstore.families.claims.declaration import (
+    AUTHORED_CLAIM_CHARTER,
+    ClaimDocument,
+)
+from propstore.families.concepts.declaration import (
+    AUTHORED_CONCEPT_CHARTER,
+    ConceptDocument,
 )
 from propstore.families.identity.logical_ids import (
     normalize_identity_namespace,
     normalize_logical_value,
 )
-from propstore.families.forms.stages import FormDefinition
 from propstore.opinion import Opinion
 
 
@@ -109,7 +109,12 @@ def make_claim_identity(local_id: str, *, namespace: str = "test") -> dict:
 def attach_claim_version_id(claim: dict) -> dict:
     """Return a claim dict with a correct version_id."""
     enriched = dict(claim)
-    enriched["version_id"] = compute_claim_version_id(enriched)
+    document = AUTHORED_CLAIM_CHARTER.document_codec().convert(
+        enriched,
+        ClaimDocument,
+        source="test claim",
+    )
+    enriched["version_id"] = AUTHORED_CLAIM_CHARTER.version_id(document)
     return enriched
 
 
@@ -136,7 +141,12 @@ def make_concept_identity(
 def attach_concept_version_id(concept: dict) -> dict:
     """Return a concept dict with a correct version_id."""
     enriched = dict(concept)
-    enriched["version_id"] = compute_concept_version_id(enriched)
+    document = AUTHORED_CONCEPT_CHARTER.document_codec().convert(
+        enriched,
+        ConceptDocument,
+        source="test concept",
+    )
+    enriched["version_id"] = AUTHORED_CONCEPT_CHARTER.version_id(document)
     return enriched
 
 

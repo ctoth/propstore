@@ -287,14 +287,21 @@ def test_claim_and_concept_identity_policy_is_family_owned() -> None:
     assert claim_policy.artifact_id_function == (
         "propstore.families.identity.claims.derive_claim_artifact_id"
     )
-    assert claim_policy.version_id_function == (
-        "propstore.families.identity.claims.compute_claim_version_id"
-    )
     assert concept_policy.artifact_id_function == (
         "propstore.families.identity.concepts.derive_concept_artifact_id"
     )
-    assert concept_policy.version_id_function == (
-        "propstore.families.identity.concepts.compute_concept_version_id"
+    assert claim_policy.version_id_function is None
+    assert concept_policy.version_id_function is None
+    assert claim_policy.version_excluded_fields == (
+        "source",
+        "artifact_id",
+        "artifact_code",
+        "version_id",
+        "id",
+    )
+    assert concept_policy.version_excluded_fields == (
+        "artifact_id",
+        "version_id",
     )
 
 
@@ -307,4 +314,4 @@ def test_artifact_codes_do_not_own_claim_identity_canonicalization() -> None:
 
     assert "canonicalize_claim_for_version" not in defined_functions
     assert "derive_claim_artifact_id" not in defined_functions
-    assert _imports_module(tree, "propstore.families.identity.claims")
+    assert not _imports_module(tree, "propstore.families.identity.claims")
