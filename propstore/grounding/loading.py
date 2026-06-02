@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom
 from quire.documents import LoadedDocument
-from propstore.claims import LoadedClaimsFile
 from propstore.families.rules.declaration import RuleDocument, RuleSuperiorityDocument
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import GroundingFactInputs, extract_facts
@@ -58,8 +57,8 @@ def load_grounding_inputs(
         )
         for handle in repo.families.concepts.iter_handles(commit=commit)
     ]
-    claim_files = tuple(
-        LoadedClaimsFile(
+    claim_documents = tuple(
+        LoadedDocument(
             filename=handle.ref.artifact_id,
             artifact_path=tree / handle.address.require_path(),
             store_root=tree,
@@ -70,7 +69,7 @@ def load_grounding_inputs(
     facts = extract_facts(
         GroundingFactInputs(
             concepts=tuple(concepts),
-            claim_files=claim_files,
+            claim_documents=claim_documents,
         ),
         registry,
     )
