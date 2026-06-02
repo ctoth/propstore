@@ -7,9 +7,9 @@ for presenting these reports, not for deciding which compiler passes run.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 from quire.derived_store import (
     DerivedStoreHandle,
     derived_store_content_hash,
@@ -17,40 +17,27 @@ from quire.derived_store import (
     read_dependency_pins,
 )
 from quire.documents import DocumentSchemaError, LoadedDocument
-from quire.sqlalchemy_store import create_sqlalchemy_store, populate_fts_index
 from propstore.compiler.context import (
     build_compiler_claim_index,
     build_compilation_context_from_loaded,
     build_compilation_context_from_repo,
-    concept_registry_for_context,
 )
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import ClaimCheckedBundle, ClaimStage
 from propstore.families.claims.declaration import (
-    compile_authored_justification_models_with_diagnostics,
-    compile_claim_models,
-    compile_promotion_blocked_models,
-    compile_raw_id_quarantine_models,
-    write_promotion_blocked_models,
+    ClaimDocument,
 )
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
     run_concept_pipeline,
 )
-from propstore.families.concepts.declaration import (
-    compile_concept_sidecar_rows,
-)
 from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (
-    ContextCheckedGraph,
     ContextStage,
-    loaded_contexts_to_lifting_system,
 )
 from propstore.families.contexts.declaration import (
     ContextDocument,
-    compile_context_models,
-    filter_invalid_context_lifting_models,
 )
 from propstore.families.concepts.stages import (
     ConceptCheckedRegistry,
@@ -59,51 +46,27 @@ from propstore.families.concepts.stages import (
 from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry
-from propstore.families.micropublications.declaration import (
-    compile_micropublication_models_with_diagnostics,
-)
-from propstore.families.relations.declaration import (
-    compile_authored_stance_models_with_diagnostics,
-    compile_claim_embedded_stance_models_for_claims_with_diagnostics,
-    compile_conflict_witness_models,
-)
 from propstore.families.registry import PropstoreFamily
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, world_schema
-from propstore.families.sources.declaration import compile_source_models
-from propstore.families.diagnostics.declaration import (
-    build_authoring_diagnostics,
-    build_pass_diagnostics,
-    build_quarantine_diagnostics,
-    embedding_restore_diagnostic,
-    sidecar_build_exception_diagnostic,
-)
-from propstore.families.embeddings.declaration import (
-    EmbeddingSnapshotReport,
-    extract_embedding_snapshot,
-    restore_embedding_snapshot_to_session,
-)
 from propstore.families.meta.declaration import (
-    PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
-    WorldMeta,
 )
-from propstore.grounding.loading import build_grounded_bundle
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic
-from propstore.families.diagnostics.authoring_lints import collect_authoring_lints
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.families.claims.passes import register_claim_pipeline
 from propstore.families.concepts.passes import register_concept_pipeline
 from propstore.families.contexts.passes import register_context_pipeline
 from propstore.families.forms.passes import register_form_pipeline
-from propstore.source.promote import collect_all_source_promotion_blocked_facts
-from propstore.families.rules.declaration import persist_grounded_bundle
+
+if TYPE_CHECKING:
+    from propstore.families.embeddings.declaration import EmbeddingSnapshotReport
 
 
 @dataclass(frozen=True)
 class RepositoryValidationSummary:
     concept_count: int
-    claim_file_count: int
+    claim_count: int
     messages: tuple[PassDiagnostic, ...]
     no_concepts: bool = False
 
@@ -405,7 +368,7 @@ def _claim_schema_diagnostic(
 
 
 def _enforce_cel_structural_invariants(
-    claim_files,
+    claims,
     context_files,
     cel_registry,
 ) -> None:
@@ -425,12 +388,6 @@ def _enforce_cel_structural_invariants(
         iter_context_assumption_expressions,
         validate_cel_expressions,
     )
-    from propstore.claims import (
-        claim_file_claims,
-        claim_file_source_paper,
-        claim_file_filename,
-    )
-
     diagnostics: list[PassDiagnostic] = []
 
     def _record(
@@ -449,30 +406,39 @@ def _enforce_cel_structural_invariants(
             )
         )
 
-    for claim_file in claim_files or ():
-        paper = claim_file_source_paper(claim_file)
-        filename = claim_file_filename(claim_file)
-        for claim in claim_file_claims(claim_file):
-            if not claim.conditions:
-                continue
-            claim_label = claim.id or "<unnamed>"
-            artifact_label = f"claim '{claim_label}' in paper '{paper}'"
-            try:
-                validate_cel_expressions(
-                    iter_claim_condition_expressions(
-                        [str(condition) for condition in claim.conditions],
-                        artifact_label=artifact_label,
-                    ),
-                    cel_registry,
-                )
-            except CelIngestValidationError as exc:
-                _record(
-                    PropstoreFamily.CLAIMS,
-                    ClaimStage.AUTHORED,
-                    str(exc),
-                    filename=filename,
-                    artifact_id=claim.id,
-                )
+    for loaded_claim in claims or ():
+        claim = loaded_claim.document
+        if not claim.conditions:
+            continue
+        source = claim.source
+        provenance = claim.provenance
+        paper = (
+            source.paper
+            if source is not None
+            else (
+                provenance.paper
+                if provenance is not None and provenance.paper is not None
+                else loaded_claim.filename
+            )
+        )
+        claim_label = claim.artifact_id or claim.id or "<unnamed>"
+        artifact_label = f"claim '{claim_label}' in paper '{paper}'"
+        try:
+            validate_cel_expressions(
+                iter_claim_condition_expressions(
+                    [str(condition) for condition in claim.conditions],
+                    artifact_label=artifact_label,
+                ),
+                cel_registry,
+            )
+        except CelIngestValidationError as exc:
+            _record(
+                PropstoreFamily.CLAIMS,
+                ClaimStage.AUTHORED,
+                str(exc),
+                filename=loaded_claim.filename,
+                artifact_id=claim.artifact_id or claim.id,
+            )
 
     for context_file in context_files or ():
         document = context_file.document
@@ -535,7 +501,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     if not concepts:
         return RepositoryValidationSummary(
             concept_count=0,
-            claim_file_count=0,
+            claim_count=0,
             messages=(),
             no_concepts=True,
         )
@@ -559,7 +525,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
         else {}
     )
 
-    files = [
+    claims = [
         LoadedDocument(
             filename=handle.ref.artifact_id,
             artifact_path=tree / handle.address.require_path(),
@@ -573,17 +539,17 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
         concepts,
         context=ConceptPipelineContext(
             form_registry=form_registry,
-            claim_index=build_compiler_claim_index(files),
+            claim_index=build_compiler_claim_index(claims),
         ),
     )
     messages.extend(_messages_from_pipeline_result(concept_result))
 
     claim_error_count = 0
-    claim_file_count = len(files)
-    if files:
+    claim_count = len(claims)
+    if claims:
         try:
-            context = build_compilation_context_from_repo(repo, claim_files=files)
-            claim_pipeline_result = run_claim_pipeline(files, context)
+            context = build_compilation_context_from_repo(repo, claim_files=claims)
+            claim_pipeline_result = run_claim_pipeline(claims, context)
         except DocumentSchemaError as exc:
             raise CompilerWorkflowError(
                 "Validation FAILED: 1 error(s)",
@@ -633,10 +599,10 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
         cel_registry = build_compilation_context_from_loaded(
             concepts,
             form_registry=form_registry,
-            claim_files=files if files else None,
+            claim_files=claims if claims else None,
         ).cel_registry
         _enforce_cel_structural_invariants(
-            files,
+            claims,
             ctx_list,
             cel_registry,
         )
@@ -650,12 +616,12 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     if total_errors:
         return RepositoryValidationSummary(
             concept_count=len(concepts),
-            claim_file_count=claim_file_count,
+            claim_count=claim_count,
             messages=tuple(messages),
         )
 
     return RepositoryValidationSummary(
         concept_count=len(concepts),
-        claim_file_count=claim_file_count,
+        claim_count=claim_count,
         messages=tuple(messages),
     )

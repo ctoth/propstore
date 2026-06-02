@@ -59,7 +59,7 @@ def validate(obj: dict) -> None:
     if report.ok:
         emit_success(
             f"Validation passed: {report.concept_count} concept(s), "
-            f"{report.claim_file_count} claim file(s)"
+            f"{report.claim_count} claim(s)"
         )
     else:
         emit_error(f"Validation FAILED: {len(report.errors)} error(s)")
