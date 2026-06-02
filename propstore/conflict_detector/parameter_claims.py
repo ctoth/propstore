@@ -26,17 +26,17 @@ from .context import _append_context_classified_record, _claim_context
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.core.conditions.registry import ConceptInfo
+    from propstore.core.conditions.registry import ConditionRegistry
     from propstore.families.contexts.lifting import LiftingSystem
 
 
-def _build_z3_solver(cel_registry: dict[str, ConceptInfo]):
+def _build_z3_solver(cel_registry: ConditionRegistry):
     return ConditionSolver(cel_registry)
 
 
 def detect_parameter_conflicts(
     claims: Sequence[ConflictClaim],
-    cel_registry: dict[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     *,
     lifting_system: LiftingSystem | None = None,
     solver=None,
@@ -114,7 +114,7 @@ def _detect_pairwise_parameter_conflicts(
     concept_id: str,
     claims: list[ConflictClaim],
     all_conditions: list[list[CelExpr]],
-    cel_registry: dict[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     *,
     lifting_system: LiftingSystem | None,
     solver=None,
@@ -236,7 +236,7 @@ def _detect_cross_class_parameter_conflicts(
     claims: list[ConflictClaim],
     all_conditions: list[list[CelExpr]],
     eq_classes: list[list[int]],
-    cel_registry: dict[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     z3_solver,
     checked_conditions: list[CheckedConditionSet],
     *,

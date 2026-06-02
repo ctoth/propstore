@@ -16,13 +16,13 @@ from .context import _append_context_classified_record, _claim_context
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.core.conditions.registry import ConceptInfo
+    from propstore.core.conditions.registry import ConditionRegistry
     from propstore.families.contexts.lifting import LiftingSystem
 
 
 def detect_measurement_conflicts(
     claims: Sequence[ConflictClaim],
-    cel_registry: dict[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     *,
     lifting_system: LiftingSystem | None = None,
     solver=None,

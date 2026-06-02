@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from propstore.cel_types import CelExpr
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.registry import ConditionRegistry
 from propstore.core.conditions.solver import SolverSat, SolverUnknown, SolverUnsat
 from propstore.conflict_detector.models import ConflictClass
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 def _try_z3_classify(
     conditions_a: list[CelExpr],
     conditions_b: list[CelExpr],
-    cel_registry: dict[str, ConceptInfo] | None,
+    cel_registry: ConditionRegistry | None,
     solver: ConditionSolver | None = None,
 ) -> ConflictClass:
     """Classify conditions using Z3, failing loudly if Z3 is unavailable."""
@@ -58,7 +58,7 @@ def _try_z3_classify(
 def classify_conditions(
     conditions_a: list[CelExpr],
     conditions_b: list[CelExpr],
-    cel_registry: dict[str, ConceptInfo] | None = None,
+    cel_registry: ConditionRegistry | None = None,
     *,
     solver: ConditionSolver | None = None,
 ) -> ConflictClass:

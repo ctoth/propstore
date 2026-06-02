@@ -2,43 +2,45 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConditionRegistry, ConceptInfo, KindType
 from propstore.core.conditions import check_condition_ir, checked_condition_set
 from propstore.core.conditions.cel_frontend import runtime_condition_ir_from_cel
 
 
-def _registry() -> dict[str, ConceptInfo]:
-    return {
-        "fundamental_frequency": ConceptInfo(
-            id="ps:concept:fundamental-frequency",
-            canonical_name="fundamental_frequency",
-            kind=KindType.QUANTITY,
-        ),
-        "subglottal_pressure": ConceptInfo(
-            id="ps:concept:subglottal-pressure",
-            canonical_name="subglottal_pressure",
-            kind=KindType.QUANTITY,
-        ),
-        "task": ConceptInfo(
-            id="ps:concept:task",
-            canonical_name="task",
-            kind=KindType.CATEGORY,
-            category_values=["speech", "singing", "whisper"],
-            category_extensible=True,
-        ),
-        "closed_task": ConceptInfo(
-            id="ps:concept:closed-task",
-            canonical_name="closed_task",
-            kind=KindType.CATEGORY,
-            category_values=["speech", "singing"],
-            category_extensible=False,
-        ),
-        "voiced": ConceptInfo(
-            id="ps:concept:voiced",
-            canonical_name="voiced",
-            kind=KindType.BOOLEAN,
-        ),
-    }
+def _registry() -> ConditionRegistry:
+    return ConditionRegistry(
+        {
+            "fundamental_frequency": ConceptInfo(
+                id="ps:concept:fundamental-frequency",
+                canonical_name="fundamental_frequency",
+                kind=KindType.QUANTITY,
+            ),
+            "subglottal_pressure": ConceptInfo(
+                id="ps:concept:subglottal-pressure",
+                canonical_name="subglottal_pressure",
+                kind=KindType.QUANTITY,
+            ),
+            "task": ConceptInfo(
+                id="ps:concept:task",
+                canonical_name="task",
+                kind=KindType.CATEGORY,
+                category_values=["speech", "singing", "whisper"],
+                category_extensible=True,
+            ),
+            "closed_task": ConceptInfo(
+                id="ps:concept:closed-task",
+                canonical_name="closed_task",
+                kind=KindType.CATEGORY,
+                category_values=["speech", "singing"],
+                category_extensible=False,
+            ),
+            "voiced": ConceptInfo(
+                id="ps:concept:voiced",
+                canonical_name="voiced",
+                kind=KindType.BOOLEAN,
+            ),
+        }
+    )
 
 
 def _condition_set(*sources: str):
@@ -155,13 +157,15 @@ def test_condition_solver_rejects_registry_fingerprint_mismatch() -> None:
 def test_condition_solver_compares_checked_conditions_to_runtime_ir() -> None:
     from propstore.core.conditions.solver import ConditionSolver
 
-    registry = {
-        "x": ConceptInfo(
-            id="ps:concept:x",
-            canonical_name="x",
-            kind=KindType.QUANTITY,
-        )
-    }
+    registry = ConditionRegistry(
+        {
+            "x": ConceptInfo(
+                id="ps:concept:x",
+                canonical_name="x",
+                kind=KindType.QUANTITY,
+            )
+        }
+    )
     checked = checked_condition_set((check_condition_ir("x == 1", registry),))
     solver = ConditionSolver(registry)
 
@@ -176,15 +180,17 @@ def test_condition_solver_compares_checked_conditions_to_runtime_ir() -> None:
 
 
 def test_runtime_condition_ir_uses_canonical_registry_semantics() -> None:
-    registry = {
-        "task": ConceptInfo(
-            id="ps:concept:task",
-            canonical_name="task",
-            kind=KindType.CATEGORY,
-            category_values=["speech"],
-            category_extensible=False,
-        )
-    }
+    registry = ConditionRegistry(
+        {
+            "task": ConceptInfo(
+                id="ps:concept:task",
+                canonical_name="task",
+                kind=KindType.CATEGORY,
+                category_values=["speech"],
+                category_extensible=False,
+            )
+        }
+    )
 
     condition = runtime_condition_ir_from_cel("task == 'speech'", registry, {})
 
@@ -195,4 +201,4 @@ def test_runtime_condition_ir_uses_canonical_registry_semantics() -> None:
 
 def test_runtime_condition_ir_rejects_ambiguous_runtime_only_symbols() -> None:
     with pytest.raises(ValueError, match="no inferable type"):
-        runtime_condition_ir_from_cel("y == z", {}, {})
+        runtime_condition_ir_from_cel("y == z", ConditionRegistry(), {})

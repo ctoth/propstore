@@ -16,8 +16,7 @@ from quire.tree_path import (
 )
 from propstore.cel_registry import build_canonical_cel_registry
 from propstore.core.conditions.registry import (
-    ConceptInfo,
-    with_standard_synthetic_bindings,
+    ConditionRegistry,
 )
 from propstore.conflict_detector.models import (
     ConflictConcept,
@@ -53,7 +52,7 @@ class CompilationContext:
     concepts_by_id: Mapping[str, ConceptDocument]
     concept_index: FamilyReferenceIndex[ConceptDocument]
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord]
-    cel_registry: Mapping[str, ConceptInfo]
+    cel_registry: ConditionRegistry
 
 
 def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -157,11 +156,9 @@ def _build_context_from_concepts(
             if claim_files is None
             else build_compiler_claim_index(claim_files)
         ),
-        cel_registry=_freeze_mapping(
-            with_standard_synthetic_bindings(
-                build_canonical_cel_registry(concept.document for concept in concepts)
-            )
-        ),
+        cel_registry=build_canonical_cel_registry(
+            concept.document for concept in concepts
+        ).with_standard_synthetic_bindings(),
     )
 
 

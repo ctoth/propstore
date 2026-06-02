@@ -20,7 +20,7 @@ from .equation_inputs import bound_equation_from_conflict_claim
 from .models import ConflictClaim, ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.core.conditions.registry import ConceptInfo
+    from propstore.core.conditions.registry import ConditionRegistry
     from propstore.families.contexts.lifting import LiftingSystem
 
 
@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def detect_equation_conflicts(
     claims: Sequence[ConflictClaim],
-    cel_registry: dict[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     *,
     lifting_system: LiftingSystem | None = None,
     solver=None,

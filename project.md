@@ -75,6 +75,13 @@ wrapper. Form pipeline callers now use Quire `LoadedDocument[FormDocument]`
 directly when filename/path provenance is needed, and `FormDocument` directly
 when only fields are needed.
 
+The condition registry slice deletes the free helper surface around CEL concept
+registries. `ConditionRegistry` is now the owner for registry scoping,
+synthetic bindings, and deterministic fingerprints. Callers should receive or
+ask for a `ConditionRegistry`; they should not pass bare
+`dict[str, ConceptInfo]`, call `scope_condition_registry`, or restore
+`condition_registry_fingerprint`.
+
 Next slices should keep the same recursion:
 - delete one remaining fake representation or helper surface;
 - follow only direct breakage from that deletion;

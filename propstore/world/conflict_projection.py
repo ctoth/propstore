@@ -12,7 +12,7 @@ from propstore.conflict_detector.models import (
     ConflictConceptRegistry,
     ConflictParameterization,
 )
-from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.registry import ConditionRegistry
 from propstore.core.environment import ConditionSolverStore
 from propstore.families.concepts.declaration import Concept, Parameterization
 
@@ -20,7 +20,7 @@ from propstore.families.concepts.declaration import Concept, Parameterization
 @dataclass(frozen=True)
 class ConflictDetectorInputs:
     concept_registry: ConflictConceptRegistry
-    cel_registry: dict[str, ConceptInfo]
+    cel_registry: ConditionRegistry
 
 
 @runtime_checkable
@@ -84,7 +84,7 @@ def conflict_detector_inputs_for_world(
         )
     concept_registry = ConflictConceptRegistry(tuple(entries))
     if isinstance(world, ConditionSolverStore):
-        cel_registry = dict(world.condition_solver().registry)
+        cel_registry = world.condition_solver().registry
     else:
         cel_registry = build_store_cel_registry(rows)
     return ConflictDetectorInputs(

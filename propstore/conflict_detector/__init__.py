@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.registry import ConditionRegistry
 
 from .models import ConflictClass, ConflictConceptRegistry, ConflictRecord
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 def detect_conflicts(
     claims: Sequence[ConflictClaim],
     concept_registry: ConflictConceptRegistry,
-    cel_registry: Mapping[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     lifting_system: LiftingSystem | None = None,
 ) -> list[ConflictRecord]:
     from .orchestrator import detect_conflicts as _detect_conflicts

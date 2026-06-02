@@ -17,7 +17,7 @@ from assignment_selection import (
 from propstore.cel_registry import build_store_cel_registry
 from propstore.core.conditions import CheckedCondition
 from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.conditions.registry import ConceptInfo, scope_condition_registry
+from propstore.core.conditions.registry import ConditionRegistry
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.environment import WorldStore
 from propstore.core.id_types import ClaimId
@@ -135,14 +135,14 @@ def _integrity_constraint_concept_ids(
 def _cel_registry_for_concepts(
     world: WorldStore,
     concept_ids: Sequence[str],
-) -> dict[str, ConceptInfo]:
+) -> ConditionRegistry:
     rows = [
         concept
         for concept_id in concept_ids
         if (concept := world.get_concept(concept_id)) is not None
     ]
     registry = build_store_cel_registry(rows)
-    return scope_condition_registry(registry, tuple(concept_ids))
+    return registry.scope(tuple(concept_ids))
 
 
 def _enriched_policy_integrity_constraints(
@@ -181,17 +181,17 @@ def _constraint_scope_values(
     }
 
 
-def _scoped_cel_registry(constraint: IntegrityConstraint) -> dict[str, ConceptInfo]:
+def _scoped_cel_registry(constraint: IntegrityConstraint) -> ConditionRegistry:
     registry = constraint.metadata.get("registry")
-    if not isinstance(registry, Mapping):
+    if not isinstance(registry, ConditionRegistry):
         raise TypeError("CEL integrity constraint requires metadata['registry']")
-    return scope_condition_registry(registry, constraint.concept_ids)
+    return registry.scope(constraint.concept_ids)
 
 
 def _cel_bindings(
     assignment: Assignment,
     constraint: IntegrityConstraint,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
 ) -> dict[str, object]:
     bindings: dict[str, object] = {}
     for canonical_name, info in registry.items():
@@ -201,7 +201,7 @@ def _cel_bindings(
 
 def _validate_cel_constraint(
     constraint: IntegrityConstraint,
-) -> tuple[dict[str, ConceptInfo], CheckedCondition]:
+) -> tuple[ConditionRegistry, CheckedCondition]:
     if not constraint.cel:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
     registry = _scoped_cel_registry(constraint)

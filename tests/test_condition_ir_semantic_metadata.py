@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConditionRegistry, ConceptInfo, KindType
 from propstore.core.conditions import (
     ConditionBinary,
     ConditionLiteral,
@@ -19,13 +19,15 @@ def test_timepoint_lowers_to_distinct_condition_value_kind() -> None:
 
     condition = condition_ir_from_cel(
         "valid_from >= 100",
-        {
-            "valid_from": ConceptInfo(
-                id="ps:concept:valid-from",
-                canonical_name="valid_from",
-                kind=KindType.TIMEPOINT,
-            )
-        },
+        ConditionRegistry(
+            {
+                "valid_from": ConceptInfo(
+                    id="ps:concept:valid-from",
+                    canonical_name="valid_from",
+                    kind=KindType.TIMEPOINT,
+                )
+            }
+        ),
     )
 
     assert isinstance(condition, ConditionBinary)
@@ -36,15 +38,17 @@ def test_timepoint_lowers_to_distinct_condition_value_kind() -> None:
 def test_category_reference_carries_open_closed_metadata() -> None:
     closed = condition_ir_from_cel(
         "task == 'speech'",
-        {
-            "task": ConceptInfo(
-                id="ps:concept:task",
-                canonical_name="task",
-                kind=KindType.CATEGORY,
-                category_values=["speech", "singing"],
-                category_extensible=False,
-            )
-        },
+        ConditionRegistry(
+            {
+                "task": ConceptInfo(
+                    id="ps:concept:task",
+                    canonical_name="task",
+                    kind=KindType.CATEGORY,
+                    category_values=["speech", "singing"],
+                    category_extensible=False,
+                )
+            }
+        ),
     )
 
     assert isinstance(closed, ConditionBinary)
@@ -54,15 +58,17 @@ def test_category_reference_carries_open_closed_metadata() -> None:
 
     open_condition = condition_ir_from_cel(
         "task == 'dancing'",
-        {
-            "task": ConceptInfo(
-                id="ps:concept:task",
-                canonical_name="task",
-                kind=KindType.CATEGORY,
-                category_values=["speech"],
-                category_extensible=True,
-            )
-        },
+        ConditionRegistry(
+            {
+                "task": ConceptInfo(
+                    id="ps:concept:task",
+                    canonical_name="task",
+                    kind=KindType.CATEGORY,
+                    category_values=["speech"],
+                    category_extensible=True,
+                )
+            }
+        ),
     )
 
     assert isinstance(open_condition, ConditionBinary)
@@ -82,4 +88,4 @@ def test_numeric_literal_rejects_bool_at_construction() -> None:
 
 def test_bare_string_expression_fails_at_frontend_boundary() -> None:
     with pytest.raises(TypeError, match="bare string|unsupported"):
-        condition_ir_from_cel("'loose'", {})
+        condition_ir_from_cel("'loose'", ConditionRegistry())

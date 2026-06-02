@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from quire.documents import DocumentStruct
 from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConditionRegistry, ConceptInfo, KindType
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.cel_types import CelExpr
 from propstore.provenance import Provenance
@@ -76,15 +76,17 @@ _RELATION_EXPRESSIONS: dict[AllenRelation, CelExpr] = {
 }
 
 
-def _description_temporal_registry() -> dict[str, ConceptInfo]:
-    return {
-        name: ConceptInfo(
-            id=f"ps:concept:{name}",
-            canonical_name=name,
-            kind=KindType.TIMEPOINT,
-        )
-        for name in ("left_from", "left_until", "right_from", "right_until")
-    }
+def _description_temporal_registry() -> ConditionRegistry:
+    return ConditionRegistry(
+        {
+            name: ConceptInfo(
+                id=f"ps:concept:{name}",
+                canonical_name=name,
+                kind=KindType.TIMEPOINT,
+            )
+            for name in ("left_from", "left_until", "right_from", "right_until")
+        }
+    )
 
 
 def description_temporal_relation(

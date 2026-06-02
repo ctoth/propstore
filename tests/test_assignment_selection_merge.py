@@ -15,7 +15,7 @@ from assignment_selection.solver import (
     enumerate_candidate_assignments,
 )
 
-from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConditionRegistry, ConceptInfo, KindType
 import propstore.storage as repo_api
 from propstore.world import assignment_selection_policy as assignment_selection_adapter
 from propstore.world.assignment_selection_policy import _compile_integrity_constraint
@@ -27,15 +27,17 @@ from propstore.world.types import (
 )
 
 
-def _numeric_cel_registry(*concept_ids: str) -> dict[str, ConceptInfo]:
-    return {
-        concept_id: ConceptInfo(
-            id=concept_id,
-            canonical_name=concept_id,
-            kind=KindType.QUANTITY,
-        )
-        for concept_id in concept_ids
-    }
+def _numeric_cel_registry(*concept_ids: str) -> ConditionRegistry:
+    return ConditionRegistry(
+        {
+            concept_id: ConceptInfo(
+                id=concept_id,
+                canonical_name=concept_id,
+                kind=KindType.QUANTITY,
+            )
+            for concept_id in concept_ids
+        }
+    )
 
 
 def _compile_problem(problem: Problem) -> Problem:
@@ -144,14 +146,10 @@ def _eval_cel_ast_oracle(node, bindings):
 def _eval_cel_constraint_bruteforce_oracle(assignment, constraint) -> bool:
     from cel_parser import parse as parse_cel
     from propstore.core.conditions.cel_frontend import check_cel_expression
-    from propstore.core.conditions.registry import scope_condition_registry
 
     if not constraint.cel:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
-    registry = scope_condition_registry(
-        constraint.metadata["registry"],
-        constraint.concept_ids,
-    )
+    registry = constraint.metadata["registry"].scope(constraint.concept_ids)
     errors = check_cel_expression(constraint.cel, registry)
     hard_errors = [error for error in errors if not error.is_warning]
     if hard_errors:

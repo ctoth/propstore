@@ -17,9 +17,9 @@ from propstore.core.conditions import (
     checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import (
+    ConditionRegistry,
     ConceptInfo,
     KindType,
-    with_standard_synthetic_bindings,
 )
 
 
@@ -37,7 +37,7 @@ def condition_sources_from_json(value: object) -> tuple[str, ...]:
     return (str(value),)
 
 
-def condition_registry_for_sources(sources: Iterable[str]) -> dict[str, ConceptInfo]:
+def condition_registry_for_sources(sources: Iterable[str]) -> ConditionRegistry:
     names: dict[str, KindType] = {}
     for source in sources:
         for name in _NAME_RE.findall(source):
@@ -46,7 +46,7 @@ def condition_registry_for_sources(sources: Iterable[str]) -> dict[str, ConceptI
             names[name] = (
                 KindType.CATEGORY if quoted else names.get(name, KindType.QUANTITY)
             )
-    return with_standard_synthetic_bindings(
+    return ConditionRegistry(
         {
             name: ConceptInfo(
                 id=name,
@@ -56,10 +56,10 @@ def condition_registry_for_sources(sources: Iterable[str]) -> dict[str, ConceptI
             )
             for name, kind in names.items()
         }
-    )
+    ).with_standard_synthetic_bindings()
 
 
-def condition_ir_json(value: object, registry: Mapping[str, ConceptInfo]) -> str | None:
+def condition_ir_json(value: object, registry: ConditionRegistry) -> str | None:
     sources = condition_sources_from_json(value)
     if not sources:
         return None
@@ -75,7 +75,7 @@ def condition_ir_json(value: object, registry: Mapping[str, ConceptInfo]) -> str
 
 def condition_registry_for_rows(
     rows: Iterable[Mapping[str, object]],
-) -> dict[str, ConceptInfo]:
+) -> ConditionRegistry:
     sources: list[str] = []
     for row in rows:
         sources.extend(condition_sources_from_json(row.get("conditions_cel")))
@@ -84,7 +84,7 @@ def condition_registry_for_rows(
 
 def row_with_condition_ir(
     row: Mapping[str, object],
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
 ) -> dict:
     normalized = dict(row)
     if normalized.get("conditions_cel") and not normalized.get("conditions_ir"):
@@ -97,7 +97,7 @@ def row_with_condition_ir(
 
 def rows_with_condition_ir(
     rows: Iterable[Mapping[str, object]],
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
 ) -> list[dict]:
     return [row_with_condition_ir(row, registry) for row in rows]
 

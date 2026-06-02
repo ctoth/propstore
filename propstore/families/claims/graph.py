@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from propstore.families.claims.types import ClaimType
@@ -11,8 +10,7 @@ from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
 )
-from propstore.core.conditions.registry import ConceptInfo
-from propstore.core.graph_types import ClaimNode
+from propstore.core.conditions.registry import ConditionRegistry
 from propstore.core.id_types import (
     ClaimId,
     ConceptId,
@@ -21,8 +19,6 @@ from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import (
     Claim,
     ClaimConceptLink,
-    ClaimNumericPayload,
-    ClaimTextPayload,
 )
 
 if TYPE_CHECKING:
@@ -52,7 +48,7 @@ def _claim_graph_attributes(claim: Claim) -> tuple[tuple[str, Any], ...]:
 def _synthetic_checked_conditions(
     synthetic: SyntheticClaim,
     *,
-    cel_registry: Mapping[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
 ) -> CheckedConditionSet | None:
     if not synthetic.conditions:
         return None

@@ -53,9 +53,9 @@ from cel_parser import (
 
 from propstore.cel_types import CelExpr, to_cel_expr
 from propstore.core.conditions.registry import (
+    ConditionRegistry,
     ConceptInfo,
     KindType,
-    condition_registry_fingerprint,
 )
 from propstore.core.conditions.checked import CheckedCondition
 from propstore.core.conditions.ir import (
@@ -110,7 +110,7 @@ _DISALLOWED_KIND_USAGE: dict[str, dict[KindType, str]] = {
 
 def check_cel_expression(
     expr: str | CelExpr,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
 ) -> list[CelError]:
     """Type-check a CEL expression against the concept registry."""
     source = to_cel_expr(expr)
@@ -156,7 +156,7 @@ def _is_ternary_call(node: Expr) -> bool:
 def _resolve_type(
     node: Expr,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> ExprType:
     if isinstance(node, (IntLit, DoubleLit, UintLit)):
@@ -241,7 +241,7 @@ def _resolve_type(
 def _check_logical(
     node: Call,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> ExprType:
     left, right = node.args
@@ -267,7 +267,7 @@ def _check_logical(
 def _check_arithmetic(
     node: Call,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> ExprType:
     left, right = node.args
@@ -285,7 +285,7 @@ def _check_arithmetic(
 def _check_ordering(
     node: Call,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> ExprType:
     left, right = node.args
@@ -306,7 +306,7 @@ def _check_ordering(
 def _check_equality(
     node: Call,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> ExprType:
     left, right = node.args
@@ -323,7 +323,7 @@ def _check_equality(
 def _check_in_call(
     node: Call,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> ExprType:
     element, list_expr = node.args
@@ -379,7 +379,7 @@ def _check_in_call(
 def _check_ternary_call(
     node: Call,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> ExprType:
     condition, true_branch, false_branch = node.args
@@ -409,7 +409,7 @@ def _check_ternary_call(
 def _check_node(
     node: Expr,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> None:
     _resolve_type(node, expr, registry, errors)
@@ -418,7 +418,7 @@ def _check_node(
 def _check_disallowed_kind_usage(
     node: Expr,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
     *,
     operation_class: str,
@@ -440,7 +440,7 @@ def _check_comparison_type_mismatch(
     left_type: ExprType,
     right_type: ExprType,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> None:
     if left_type in {ExprType.UNKNOWN} or right_type in {ExprType.UNKNOWN}:
@@ -487,7 +487,7 @@ def _check_concept_literal_type_mismatch(
     other_node: Expr,
     other_type: ExprType,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> bool:
     if not isinstance(concept_node, Ident):
@@ -540,7 +540,7 @@ def _check_category_value(
     concept_node: Expr,
     value_node: Expr,
     expr: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     errors: list[CelError],
 ) -> None:
     if not isinstance(concept_node, Ident):
@@ -598,7 +598,7 @@ def _short_op(function: str) -> str:
 
 def condition_ir_from_cel(
     source: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
 ) -> ConditionIR:
     errors = check_cel_expression(source, registry)
     hard_errors = [error for error in errors if not error.is_warning]
@@ -614,7 +614,7 @@ def condition_ir_from_cel(
 
 def runtime_condition_ir_from_cel(
     source: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     runtime_bindings: Mapping[str, Any],
 ) -> ConditionIR:
     """Lower runtime-only CEL into IR without minting a checked-condition fingerprint."""
@@ -633,7 +633,7 @@ def runtime_condition_ir_from_cel(
 
 def check_condition_ir(
     source: str,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
 ) -> CheckedCondition:
     errors = check_cel_expression(source, registry)
     hard_errors = [error for error in errors if not error.is_warning]
@@ -647,16 +647,16 @@ def check_condition_ir(
     return CheckedCondition(
         source=source,
         ir=_lower_node(ast, registry),
-        registry_fingerprint=str(condition_registry_fingerprint(registry)),
+        registry_fingerprint=str(registry.fingerprint),
         warnings=tuple(error.message for error in errors if error.is_warning),
     )
 
 
 def _runtime_condition_registry(
     ast: Expr,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     runtime_bindings: Mapping[str, Any],
-) -> dict[str, ConceptInfo]:
+) -> ConditionRegistry:
     inferred: dict[str, KindType] = {}
     _collect_runtime_symbol_kinds(
         ast,
@@ -665,7 +665,7 @@ def _runtime_condition_registry(
         inferred=inferred,
         expected_kind=None,
     )
-    runtime_registry = dict(registry)
+    runtime_registry = dict(registry.items())
     for name, kind in sorted(inferred.items()):
         if name in runtime_registry:
             continue
@@ -675,13 +675,13 @@ def _runtime_condition_registry(
             kind=kind,
             category_extensible=True,
         )
-    return runtime_registry
+    return ConditionRegistry(runtime_registry)
 
 
 def _collect_runtime_symbol_kinds(
     node: Expr,
     *,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     runtime_bindings: Mapping[str, Any],
     inferred: dict[str, KindType],
     expected_kind: KindType | None,
@@ -806,7 +806,7 @@ def _collect_runtime_symbol_kinds(
 def _record_runtime_symbol_kind(
     name: str,
     *,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     runtime_bindings: Mapping[str, Any],
     inferred: dict[str, KindType],
     expected_kind: KindType | None,
@@ -831,7 +831,7 @@ def _record_runtime_symbol_kind(
 
 def _runtime_kind_from_peer(
     node: Expr,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     runtime_bindings: Mapping[str, Any],
 ) -> KindType | None:
     literal_kind = _runtime_kind_from_literal(node)
@@ -907,7 +907,7 @@ _BINARY_OP_MAP: dict[str, ConditionBinaryOp] = {
 
 def _lower_node(
     node: Expr,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
     *,
     allow_string_literal: bool = False,
 ) -> ConditionIR:
@@ -1006,7 +1006,7 @@ def _lower_node(
 
 def _lower_name(
     node: Ident,
-    registry: Mapping[str, ConceptInfo],
+    registry: ConditionRegistry,
 ) -> ConditionReference:
     info = registry.get(node.name)
     if info is None:

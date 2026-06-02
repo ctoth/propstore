@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from itertools import combinations, product
 from typing import (
     TYPE_CHECKING,
@@ -34,7 +34,7 @@ from propstore.core.conditions import (
     CheckedConditionSet,
     ConditionSolver,
 )
-from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.registry import ConditionRegistry
 from propstore.families.conditions.declaration import (
     checked_condition_set_document,
     checked_condition_set_semantic,
@@ -141,7 +141,7 @@ class _ATMSRuntimeLike(Protocol):
     def is_param_compatible(self) -> Callable[[Parameterization], bool]: ...
 
     @property
-    def condition_registry(self) -> Mapping[str, ConceptInfo]: ...
+    def condition_registry(self) -> ConditionRegistry: ...
 
     @property
     def condition_solver(self) -> Callable[[], ConditionSolver]: ...
@@ -323,7 +323,7 @@ class _ATMSRuntime:
     active_claims: Callable[[], list[Claim]]
     conflicts: Callable[[], list[ConflictWitness]]
     is_param_compatible: Callable[[Parameterization], bool]
-    condition_registry: Mapping[str, ConceptInfo]
+    condition_registry: ConditionRegistry
     condition_solver: Callable[[], ConditionSolver]
     claim_support: Callable[[Claim], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], ValueStatus]

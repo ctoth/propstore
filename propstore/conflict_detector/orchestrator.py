@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
@@ -11,9 +11,9 @@ from propstore.cel_bindings import STANDARD_SYNTHETIC_BINDING_NAMES
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import (
+    ConditionRegistry,
     ConceptInfo,
     synthetic_category_concept,
-    with_synthetic_concepts,
 )
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ContextId
@@ -43,7 +43,7 @@ class LiftingDecisionCache:
 def detect_conflicts(
     claims: Sequence[ConflictClaim],
     concept_registry: ConflictConceptRegistry,
-    cel_registry: Mapping[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     lifting_system: LiftingSystem | None = None,
 ) -> list[ConflictRecord]:
     """Detect conflicts between claims binding to the same concept."""
@@ -77,10 +77,7 @@ def detect_conflicts(
             )
         )
     _raise_on_synthetic_collisions(cel_registry, synthetic_concepts)
-    cel_registry = with_synthetic_concepts(
-        cel_registry,
-        synthetic_concepts,
-    )
+    cel_registry = cel_registry.with_synthetic_concepts(synthetic_concepts)
     condition_solver = _build_condition_solver(cel_registry)
     claims = _expand_lifted_conflict_claims(
         claims,
@@ -135,7 +132,7 @@ def detect_conflicts(
 
 
 def _raise_on_synthetic_collisions(
-    cel_registry: Mapping[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     synthetic_concepts: Sequence[ConceptInfo],
 ) -> None:
     for concept in synthetic_concepts:
@@ -155,7 +152,7 @@ def _build_condition_solver(cel_registry):
 def _expand_lifted_conflict_claims(
     claims: Sequence[ConflictClaim],
     *,
-    cel_registry: Mapping[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
     lifting_system: LiftingSystem | None,
     solver,
 ) -> list[ConflictClaim]:
@@ -234,7 +231,7 @@ def _lifting_rule_applies(
     claim: ConflictClaim,
     rule: LiftingRule,
     solver,
-    cel_registry: Mapping[str, ConceptInfo],
+    cel_registry: ConditionRegistry,
 ) -> bool:
     if not rule.conditions:
         return True

@@ -9,6 +9,7 @@ from hypothesis import strategies as st
 from cel_parser import ParseError, StringLit, parse
 
 from propstore.core.conditions import check_condition_ir
+from propstore.core.conditions.registry import ConditionRegistry
 
 
 @pytest.mark.parametrize(
@@ -86,4 +87,4 @@ def test_cel_string_escape_sequences_round_trip_through_parser(parts) -> None:
     node = parse(source)
     assert isinstance(node, StringLit)
     assert node.value == expected
-    check_condition_ir(f"{source} == {source}", {})
+    check_condition_ir(f"{source} == {source}", ConditionRegistry())

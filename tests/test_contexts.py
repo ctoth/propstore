@@ -335,9 +335,10 @@ class TestBoundWorldContextLifting:
     class _Store:
         def __init__(self, claims) -> None:
             from propstore.core.conditions.solver import ConditionSolver
+            from propstore.core.conditions.registry import ConditionRegistry
 
             self._claims = claims
-            self._solver = ConditionSolver({})
+            self._solver = ConditionSolver(ConditionRegistry())
 
         def claims_for(self, concept_id):
             return [

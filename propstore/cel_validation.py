@@ -25,12 +25,12 @@ text while wrapping it in a contextual envelope.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from propstore.core.conditions.registry import ConceptInfo
+    from propstore.core.conditions.registry import ConditionRegistry
 
 
 class CelIngestValidationError(ValueError):
@@ -65,7 +65,7 @@ class CelExpressionLocation:
 
 def validate_cel_expression(
     expression: str,
-    registry: Mapping[str, "ConceptInfo"],
+    registry: "ConditionRegistry",
     *,
     location: CelExpressionLocation,
 ) -> None:
@@ -90,7 +90,7 @@ def validate_cel_expression(
 
 def validate_cel_expressions(
     items: Iterable[tuple[str, CelExpressionLocation]],
-    registry: Mapping[str, "ConceptInfo"],
+    registry: "ConditionRegistry",
 ) -> None:
     """Validate a sequence of expressions. Raises on the first failure.
 

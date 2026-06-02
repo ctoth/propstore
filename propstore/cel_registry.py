@@ -6,7 +6,7 @@ import json
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConditionRegistry, ConceptInfo, KindType
 from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.stages import kind_type_from_form_name
 
@@ -109,7 +109,7 @@ def _parse_row_form_parameters(value: str | None) -> Mapping[str, Any]:
 
 def _build_registry(
     infos: Iterable[ConceptInfo],
-) -> dict[str, ConceptInfo]:
+) -> ConditionRegistry:
     registry: dict[str, ConceptInfo] = {}
     ids_by_name: dict[str, str] = {}
     names_by_id: dict[str, str] = {}
@@ -125,12 +125,12 @@ def _build_registry(
         ids_by_name[info.canonical_name] = info.id
         names_by_id[info.id] = info.canonical_name
         registry[info.canonical_name] = info
-    return registry
+    return ConditionRegistry(registry)
 
 
 def build_canonical_cel_registry(
     documents: Iterable[ConceptDocument],
-) -> dict[str, ConceptInfo]:
+) -> ConditionRegistry:
     typed_documents: list[ConceptDocument] = []
     for document in documents:
         if not isinstance(document, ConceptDocument):
@@ -145,10 +145,26 @@ def build_canonical_cel_registry(
 
 def build_store_cel_registry(
     rows: Iterable[Any],
-) -> dict[str, ConceptInfo]:
-    typed_rows: list[Any] = []
+) -> ConditionRegistry:
+    infos: list[ConceptInfo] = []
     for row in rows:
         if not _is_concept_row(row):
             raise TypeError("build_store_cel_registry expects Iterable[ConceptRow]")
-        typed_rows.append(row)
-    return _build_registry(concept_info_from_concept_row(row) for row in typed_rows)
+        concept_id = str(row.concept_id)
+        if not concept_id:
+            raise ValueError("concept row must define a non-empty concept_id")
+        if not isinstance(row.canonical_name, str) or not row.canonical_name:
+            raise ValueError("concept row must define a non-empty canonical_name")
+        kind = _kind_type_from_optional_fields(kind_type=row.kind_type, form=row.form)
+        form_parameters = _parse_row_form_parameters(row.form_parameters)
+        category_values, category_extensible = _category_metadata(form_parameters)
+        infos.append(
+            ConceptInfo(
+                id=concept_id,
+                canonical_name=row.canonical_name,
+                kind=kind,
+                category_values=category_values,
+                category_extensible=category_extensible,
+            )
+        )
+    return _build_registry(infos)

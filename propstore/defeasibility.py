@@ -20,7 +20,7 @@ from propstore.core.conditions import (
     ConditionUnary,
 )
 from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.conditions.registry import ConceptInfo
+from propstore.core.conditions.registry import ConditionRegistry
 from argumentation.aspic import Argument, CSAF, conc
 from argumentation.dung import ArgumentationFramework
 from propstore.provenance import (
@@ -66,7 +66,7 @@ class PatternSelectionStatus(StrEnum):
 
 class ExceptionPatternSolver(Protocol):
     @property
-    def registry(self) -> Mapping[str, ConceptInfo]: ...
+    def registry(self) -> ConditionRegistry: ...
 
     def is_condition_satisfied_result(
         self,

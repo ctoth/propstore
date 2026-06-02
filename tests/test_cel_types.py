@@ -7,24 +7,26 @@ from propstore.core.conditions.checked import (
     checked_condition_set,
 )
 from propstore.core.conditions.registry import (
+    ConditionRegistry,
     ConceptInfo,
     KindType,
-    condition_registry_fingerprint,
 )
 
 
 @pytest.fixture
 def registry():
-    return {
-        "x": ConceptInfo("ps:concept:x", "x", KindType.QUANTITY),
-        "task": ConceptInfo(
-            "ps:concept:task",
-            "task",
-            KindType.CATEGORY,
-            category_values=["speech"],
-            category_extensible=True,
-        ),
-    }
+    return ConditionRegistry(
+        {
+            "x": ConceptInfo("ps:concept:x", "x", KindType.QUANTITY),
+            "task": ConceptInfo(
+                "ps:concept:task",
+                "task",
+                KindType.CATEGORY,
+                category_values=["speech"],
+                category_extensible=True,
+            ),
+        }
+    )
 
 
 def test_raw_cel_source_is_branded_text():
@@ -43,7 +45,7 @@ def test_check_condition_ir_carries_source_fingerprint_and_warnings(registry):
     checked = check_condition_ir("task == 'novel'", registry)
 
     assert checked.source == "task == 'novel'"
-    assert checked.registry_fingerprint == condition_registry_fingerprint(registry)
+    assert checked.registry_fingerprint == registry.fingerprint
     assert checked.encoded_ir is not None
     assert len(checked.warnings) == 1
 
@@ -54,18 +56,19 @@ def test_check_condition_ir_rejects_hard_errors(registry):
 
 
 def test_registry_fingerprint_changes_with_condition_semantics(registry):
-    changed = dict(registry)
-    changed["task"] = ConceptInfo(
-        "ps:concept:task",
-        "task",
-        KindType.CATEGORY,
-        category_values=["speech"],
-        category_extensible=False,
+    changed = registry.with_synthetic_concepts(
+        (
+            ConceptInfo(
+                "ps:concept:task",
+                "task",
+                KindType.CATEGORY,
+                category_values=["speech"],
+                category_extensible=False,
+            ),
+        )
     )
 
-    assert condition_registry_fingerprint(registry) != condition_registry_fingerprint(
-        changed
-    )
+    assert registry.fingerprint != changed.fingerprint
 
 
 def test_checked_condition_set_normalizes_and_deduplicates(registry):
@@ -78,9 +81,7 @@ def test_checked_condition_set_normalizes_and_deduplicates(registry):
     )
 
     assert condition_set.sources == ("task == 'speech'", "x > 1")
-    assert condition_set.registry_fingerprint == condition_registry_fingerprint(
-        registry
-    )
+    assert condition_set.registry_fingerprint == registry.fingerprint
 
 
 def test_checked_condition_set_rejects_mixed_registry_fingerprints(registry):

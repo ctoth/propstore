@@ -21,6 +21,7 @@ from propstore.claims import LoadedClaimsFile
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.conflict_detector.models import ConflictConceptRegistry
+from propstore.core.conditions.registry import ConditionRegistry
 from propstore.core.id_types import (
     ClaimId,
     JustificationId,
@@ -315,7 +316,7 @@ def compile_claim_embedded_stance_models_for_claims_with_diagnostics(
 def compile_conflict_witness_models(
     claim_files: Sequence[LoadedClaimsFile],
     concept_registry: ConflictConceptRegistry,
-    cel_registry: dict,
+    cel_registry: ConditionRegistry,
     lifting_system=None,
 ) -> tuple[ConflictWitness, ...]:
     conflict_claims = conflict_claims_from_claim_files(claim_files)

@@ -125,10 +125,7 @@ def validate_source_claim_cel_expressions(
         validate_cel_expressions,
     )
     from propstore.compiler.context import build_compilation_context_from_repo
-    from propstore.core.conditions.registry import (
-        with_standard_synthetic_bindings,
-        with_synthetic_concepts,
-    )
+    from propstore.core.conditions.registry import ConditionRegistry
 
     compilation_context = build_compilation_context_from_repo(repo)
     master_registry = compilation_context.cel_registry
@@ -143,15 +140,17 @@ def validate_source_claim_cel_expressions(
             for info in source_concepts
             if info.canonical_name not in master_registry
         ]
-        layered = with_synthetic_concepts(master_registry, non_overlapping)
+        layered = master_registry.with_synthetic_concepts(non_overlapping)
         # If master was empty, the standard runtime synthetic bindings
         # ("source", "domain", ...) were never applied — apply them now
         # so source-only validation matches the master-present semantics.
         registry = (
-            layered if master_registry else with_standard_synthetic_bindings(layered)
+            layered
+            if master_registry
+            else layered.with_standard_synthetic_bindings()
         )
     else:
-        registry = dict(master_registry) if master_registry else {}
+        registry = master_registry if master_registry else ConditionRegistry()
 
     if not registry:
         # No master concepts AND no source-branch proposals — nothing to

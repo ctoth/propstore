@@ -188,7 +188,9 @@ def test_lifting_system_does_not_expose_visibility_as_semantics() -> None:
 def test_bound_world_projection_honors_local_lifting_exception() -> None:
     class _Store:
         def __init__(self) -> None:
-            self._solver = ConditionSolver({})
+            from propstore.core.conditions.registry import ConditionRegistry
+
+            self._solver = ConditionSolver(ConditionRegistry())
             self._claims = [
                 make_claim(
                     claim_id="claim_alpha",

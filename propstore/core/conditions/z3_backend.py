@@ -20,7 +20,7 @@ from propstore.core.conditions.ir import (
     ConditionUnaryOp,
     ConditionValueKind,
 )
-from propstore.core.conditions.registry import ConceptInfo, KindType
+from propstore.core.conditions.registry import ConditionRegistry, ConceptInfo, KindType
 
 
 @dataclass(frozen=True)
@@ -34,11 +34,11 @@ class ConditionZ3Encoder:
 
     def __init__(
         self,
-        registry: Mapping[str, ConceptInfo] | None = None,
+        registry: ConditionRegistry | None = None,
         *,
         ctx: z3.Context | None = None,
     ) -> None:
-        self._registry = registry or {}
+        self._registry = registry or ConditionRegistry()
         self.ctx = ctx
         self.true = z3.BoolVal(True, self.ctx)
         self.false = z3.BoolVal(False, self.ctx)

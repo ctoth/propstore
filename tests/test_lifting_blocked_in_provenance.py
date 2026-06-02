@@ -37,8 +37,9 @@ def test_ws_j_worldline_dependencies_include_blocked_lifting_exception() -> None
     class _Store:
         def __init__(self) -> None:
             from propstore.core.conditions.solver import ConditionSolver
+            from propstore.core.conditions.registry import ConditionRegistry
 
-            self._solver = ConditionSolver({})
+            self._solver = ConditionSolver(ConditionRegistry())
             self._claims = {
                 "claim_alpha": make_claim(
                     claim_id="claim_alpha",

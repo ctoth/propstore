@@ -15,14 +15,12 @@ from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
 from propstore.core.conditions.registry import (
-    ConceptInfo,
+    ConditionRegistry,
     KindType,
-    with_standard_synthetic_bindings,
 )
 from propstore.cel_registry import build_store_cel_registry
 from propstore.families.contexts.declaration import load_lifting_system
 from propstore.core.id_types import (
-    ConceptId,
     ContextId,
 )
 from propstore.core.justifications import CanonicalJustification, Justification
@@ -72,13 +70,7 @@ from propstore.world.types import (
     WorldStore,
     ClaimView,
     Environment,
-    ChainResult,
-    ChainStep,
-    DerivedResult,
     RenderPolicy,
-    ResolutionStrategy,
-    ValueResult,
-    ValueStatus,
 )
 
 
@@ -150,7 +142,7 @@ class WorldQuery(WorldStore):
         self._knowledge_root = knowledge_root
         self._grounding_bundle_cache = None
         self._solver: ConditionSolver | None = None
-        self._registry: dict[str, ConceptInfo] | None = None
+        self._registry: ConditionRegistry | None = None
         self._lifting_system: LiftingSystem | None = None
         self._lifting_system_loaded = False
         self._compiled_graph_cache = None
@@ -231,16 +223,16 @@ class WorldQuery(WorldStore):
         self._solver = ConditionSolver(registry)
         return self._solver
 
-    def _build_registry(self) -> dict[str, ConceptInfo]:
+    def _build_registry(self) -> ConditionRegistry:
         if self._registry is not None:
             return self._registry
         schema = world_schema()
         concept = schema.model(CONCEPT_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             normalized_rows = list(derived.execute(select(concept)).scalars())
-        registry = with_standard_synthetic_bindings(
-            build_store_cel_registry(normalized_rows)
-        )
+        registry = build_store_cel_registry(
+            normalized_rows
+        ).with_standard_synthetic_bindings()
         self._registry = registry
         return registry
 

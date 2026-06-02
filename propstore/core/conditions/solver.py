@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from enum import StrEnum
-from types import MappingProxyType
 from typing import Any
 
 import z3
@@ -17,8 +16,7 @@ from propstore.core.conditions.checked import (
 )
 from propstore.core.conditions.ir import ConditionIR
 from propstore.core.conditions.registry import (
-    ConceptInfo,
-    condition_registry_fingerprint,
+    ConditionRegistry,
 )
 from propstore.core.conditions.z3_backend import (
     ConditionZ3Encoder,
@@ -91,19 +89,14 @@ class ConditionSolver:
 
     def __init__(
         self,
-        registry: Mapping[str, ConceptInfo],
+        registry: ConditionRegistry,
         *,
         timeout_ms: int = DEFAULT_Z3_TIMEOUT_MS,
     ) -> None:
         if timeout_ms <= 0:
             raise ValueError("Z3 timeout must be a positive number of milliseconds")
-        self._registry = MappingProxyType(
-            {
-                name: replace(info, category_values=list(info.category_values))
-                for name, info in registry.items()
-            }
-        )
-        self._registry_fingerprint = condition_registry_fingerprint(self._registry)
+        self._registry = registry
+        self._registry_fingerprint = registry.fingerprint
         self._timeout_ms = timeout_ms
         self._ctx = z3.Context()
         self._encoder = ConditionZ3Encoder(self._registry, ctx=self._ctx)
@@ -115,7 +108,7 @@ class ConditionSolver:
         return str(self._registry_fingerprint)
 
     @property
-    def registry(self) -> Mapping[str, ConceptInfo]:
+    def registry(self) -> ConditionRegistry:
         return self._registry
 
     def is_condition_satisfied(
