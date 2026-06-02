@@ -54,7 +54,6 @@ from propstore.families.claims.declaration import (
     SourceJustificationDocument,
 )
 from propstore.families.claims.types import ClaimType
-from propstore.families.contexts.stages import parse_context_record_document
 from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.forms.stages import parse_form
 from propstore.provenance import (
@@ -205,9 +204,7 @@ def _validate_promoted_claims_before_commit(
 
     context_ids: set[str] = set()
     for handle in repo.families.contexts.iter_handles(commit=head_sha):
-        record = parse_context_record_document(handle.document)
-        if record.context_id is not None:
-            context_ids.add(str(record.context_id))
+        context_ids.add(str(handle.document.id))
 
     claim_files: list[LoadedClaimsFile] = [
         LoadedClaimsFile(

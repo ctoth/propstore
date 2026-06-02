@@ -18,7 +18,7 @@ from quire.sqlalchemy_store import (
     readonly_session,
     writable_session,
 )
-from quire.documents import DocumentSchemaError, convert_document_value
+from quire.documents import DocumentSchemaError, LoadedDocument, convert_document_value
 from propstore.families.contexts.declaration import ContextDocument
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
@@ -37,9 +37,7 @@ from propstore.families.contexts.declaration import (
 )
 from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (
-    LoadedContext,
     loaded_contexts_to_lifting_system,
-    parse_context_record,
 )
 from propstore.families.contexts.declaration import (
     compile_context_models,
@@ -67,12 +65,11 @@ class TestLoadAndValidateContexts:
         contexts = load_contexts(tmp_path)
 
         assert len(contexts) == 2
-        assert all(isinstance(context, LoadedContext) for context in contexts)
-        assert {
-            str(context.record.context_id)
-            for context in contexts
-            if context.record.context_id is not None
-        } == {"ctx_foo", "ctx_bar"}
+        assert all(isinstance(context, LoadedDocument) for context in contexts)
+        assert {str(context.document.id) for context in contexts} == {
+            "ctx_foo",
+            "ctx_bar",
+        }
 
     def test_validate_structured_context_and_lifting_rule(self, tmp_path: Path) -> None:
         contexts = [

@@ -12,12 +12,9 @@ from propstore.families.contexts.declaration import (
     ContextDocument,
     LiftingRuleDocument,
 )
-from propstore.families.contexts.stages import (
-    LoadedContext,
-    parse_context_record_document,
-)
 from propstore.families.registry import ContextRef, SourceRef
 from propstore.repository import Repository
+from quire.documents import LoadedDocument
 
 
 class ContextWorkflowError(Exception):
@@ -192,8 +189,8 @@ def list_context_items(repo: Repository) -> tuple[ContextListItem, ...]:
     items = [
         ContextListItem(
             context_id=_context_display_id(context),
-            description=context.record.description or "",
-            perspective=context.record.perspective,
+            description=context.document.description or "",
+            perspective=context.document.perspective,
         )
         for context in _loaded_contexts(repo)
     ]
@@ -272,15 +269,15 @@ def list_context_lifting_rules(
         contexts = (loaded,)
     for context in contexts:
         owner_context = _context_display_id(context)
-        for rule in context.record.lifting_rules:
+        for rule in context.document.lifting_rules or ():
             items.append(
                 ContextLiftingRuleListItem(
                     owner_context=owner_context,
                     rule_id=rule.id,
-                    source_context=str(rule.source.id),
-                    target_context=str(rule.target.id),
-                    mode=rule.mode,
-                    condition_count=len(rule.conditions),
+                    source_context=rule.source,
+                    target_context=rule.target,
+                    mode=LiftingMode(rule.mode),
+                    condition_count=len(rule.conditions or ()),
                     justification=rule.justification,
                 )
             )
@@ -432,39 +429,35 @@ def remove_context_lifting_rule(
     )
 
 
-def _loaded_contexts(repo: Repository) -> tuple[LoadedContext, ...]:
-    items: list[LoadedContext] = []
+def _loaded_contexts(repo: Repository) -> tuple[LoadedDocument[ContextDocument], ...]:
+    items: list[LoadedDocument[ContextDocument]] = []
     tree = repo.tree()
     for handle in repo.families.contexts.iter_handles():
         items.append(
-            LoadedContext(
+            LoadedDocument(
                 filename=handle.ref.name,
-                source_path=tree / handle.address.require_path(),
-                knowledge_root=tree,
-                record=parse_context_record_document(handle.document),
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
+                document=handle.document,
             )
         )
     return tuple(items)
 
 
-def _context_display_id(context: LoadedContext) -> str:
-    return (
-        context.filename
-        if context.record.context_id is None
-        else str(context.record.context_id)
-    )
+def _context_display_id(context: LoadedDocument[ContextDocument]) -> str:
+    return str(context.document.id)
 
 
-def _require_context_id(context: LoadedContext, name: str) -> str:
-    if context.record.context_id is None:
+def _require_context_id(context: LoadedDocument[ContextDocument], name: str) -> str:
+    if not context.document.id:
         raise ContextWorkflowError(f"Context '{name}' is missing an authored id")
-    return str(context.record.context_id)
+    return str(context.document.id)
 
 
 def _require_context(
     repo: Repository,
     name: str,
-) -> tuple[ContextRef, LoadedContext]:
+) -> tuple[ContextRef, LoadedDocument[ContextDocument]]:
     for context in _loaded_contexts(repo):
         display_id = _context_display_id(context)
         if name not in {context.filename, display_id}:

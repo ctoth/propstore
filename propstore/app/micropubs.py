@@ -6,12 +6,9 @@ from dataclasses import dataclass
 
 from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.registry import MicropublicationRef
-from propstore.families.contexts.stages import (
-    LoadedContext,
-    loaded_contexts_to_lifting_system,
-    parse_context_record_document,
-)
+from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
 from propstore.repository import Repository
+from quire.documents import LoadedDocument
 
 
 class MicropubNotFoundError(Exception):
@@ -66,11 +63,11 @@ def inspect_micropub_lift(
     entry = find_micropub(repo, artifact_id)
     tree = repo.tree()
     contexts = [
-        LoadedContext(
+        LoadedDocument(
             filename=handle.ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
-            record=parse_context_record_document(handle.document),
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
         )
         for handle in repo.families.contexts.iter_handles()
     ]

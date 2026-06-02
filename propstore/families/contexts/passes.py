@@ -3,20 +3,22 @@
 from __future__ import annotations
 
 from propstore.cel_types import to_cel_exprs
-from propstore.families.contexts.lifting import LiftingSystem
+from propstore.families.contexts.lifting import LiftingMode, LiftingRule, LiftingSystem
 from propstore.core.assertions.refs import ContextReference
+from propstore.core.id_types import ContextId
+from propstore.families.contexts.declaration import ContextDocument
 from propstore.families.contexts.stages import (
     ContextAuthoredSet,
     ContextBoundGraph,
     ContextCheckedGraph,
     ContextNormalizedSet,
     ContextStage,
-    LoadedContext,
 )
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassDiagnostic, PassResult, PipelineResult
+from quire.documents import LoadedDocument
 
 
 class ContextNormalizePass:
@@ -50,20 +52,10 @@ class ContextIdentityPass:
         seen_ids: dict[str, str] = {}
 
         for loaded_context in value.contexts:
-            record = loaded_context.record
-            context_id = None if record.context_id is None else str(record.context_id)
-            if context_id is None:
-                diagnostics.append(
-                    _error(
-                        "context.id.missing",
-                        "context missing 'id'",
-                        loaded_context,
-                        self.name,
-                    )
-                )
-                continue
+            document = loaded_context.document
+            context_id = str(document.id)
 
-            if record.name is None:
+            if not document.name:
                 diagnostics.append(
                     _error(
                         "context.name.missing",
@@ -107,17 +99,15 @@ class ContextLiftingBindingPass:
         context: object,
     ) -> PassResult[ContextBoundGraph]:
         all_ids = {
-            str(loaded_context.record.context_id)
-            for loaded_context in value.contexts
-            if loaded_context.record.context_id is not None
+            str(loaded_context.document.id) for loaded_context in value.contexts
         }
         diagnostics: list[PassDiagnostic] = []
         bound_rules = []
 
         for loaded_context in value.contexts:
-            for rule in loaded_context.record.lifting_rules:
-                source_id = str(rule.source.id)
-                target_id = str(rule.target.id)
+            for rule in loaded_context.document.lifting_rules or ():
+                source_id = rule.source
+                target_id = rule.target
                 valid_rule = True
                 if source_id not in all_ids:
                     valid_rule = False
@@ -126,7 +116,7 @@ class ContextLiftingBindingPass:
                             "context.lifting.source_missing",
                             (
                                 f"lifting rule '{rule.id}' references "
-                                f"nonexistent source context '{rule.source.id}'"
+                                f"nonexistent source context '{rule.source}'"
                             ),
                             loaded_context,
                             self.name,
@@ -139,7 +129,7 @@ class ContextLiftingBindingPass:
                             "context.lifting.target_missing",
                             (
                                 f"lifting rule '{rule.id}' references "
-                                f"nonexistent target context '{rule.target.id}'"
+                                f"nonexistent target context '{rule.target}'"
                             ),
                             loaded_context,
                             self.name,
@@ -150,17 +140,25 @@ class ContextLiftingBindingPass:
 
         lifting_system = LiftingSystem(
             contexts=tuple(
-                ContextReference(id=loaded_context.record.context_id)
+                ContextReference(id=ContextId(loaded_context.document.id))
                 for loaded_context in value.contexts
-                if loaded_context.record.context_id is not None
             ),
-            lifting_rules=tuple(bound_rules),
+            lifting_rules=tuple(
+                LiftingRule(
+                    id=rule.id,
+                    source=ContextReference(id=ContextId(rule.source)),
+                    target=ContextReference(id=ContextId(rule.target)),
+                    conditions=rule.conditions or (),
+                    mode=LiftingMode(rule.mode),
+                    justification=rule.justification,
+                )
+                for rule in bound_rules
+            ),
             context_assumptions={
-                loaded_context.record.context_id: to_cel_exprs(
-                    loaded_context.record.assumptions
+                ContextId(loaded_context.document.id): to_cel_exprs(
+                    loaded_context.document.assumptions or ()
                 )
                 for loaded_context in value.contexts
-                if loaded_context.record.context_id is not None
             },
         )
         return PassResult(
@@ -200,7 +198,8 @@ def register_context_pipeline(registry: PipelineRegistry) -> None:
 
 
 def run_context_pipeline(
-    contexts: tuple[LoadedContext, ...] | list[LoadedContext],
+    contexts: tuple[LoadedDocument[ContextDocument], ...]
+    | list[LoadedDocument[ContextDocument]],
     *,
     target_stage: ContextStage = ContextStage.CHECKED,
     context: object | None = None,
@@ -220,7 +219,7 @@ def run_context_pipeline(
 def _error(
     code: str,
     message: str,
-    context: LoadedContext,
+    context: LoadedDocument[ContextDocument],
     pass_name: str,
     *,
     artifact_id: str | None = None,

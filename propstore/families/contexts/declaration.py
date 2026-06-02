@@ -10,23 +10,14 @@ from sqlalchemy import select
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import CharterIndex, FamilyCharter, FamilyModel
 from quire.derived_store import DerivedStoreHandle
+from quire.documents import LoadedDocument
 from quire.references import ReferenceKey
 from quire.versions import VersionId
 
-from .lifting import (
-    IstProposition,
-    LiftingMode,
-    LiftingRule,
-    LiftingSystem,
-)
+from .lifting import LiftingMode, LiftingRule, LiftingSystem
 from ...core.assertions.refs import ContextReference
 from ...core.id_types import ContextId
 from ...cel_types import CelExpr, to_cel_exprs
-from .stages import (
-    LoadedContext,
-    loaded_contexts_to_lifting_system,
-)
-
 
 _CONTEXT_WORLD_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
 
@@ -222,43 +213,41 @@ def filter_invalid_context_lifting_models(
 
 
 def compile_context_models(
-    contexts: Sequence[LoadedContext],
-    *,
-    authored_ist_assertions: Sequence[IstProposition] = (),
+    contexts: Sequence[LoadedDocument[ContextDocument]],
 ) -> ContextModelBatches:
     context_models: list[Context] = []
     assumption_models: list[ContextAssumption] = []
     lifting_rule_models: list[ContextLiftingRule] = []
 
     for context in contexts:
-        record = context.record
-        if record.context_id is None:
-            continue
-        context_id = str(record.context_id)
+        document = context.document
+        context_id = str(document.id)
 
         context_models.append(
             Context(
                 id=context_id,
-                name=record.name or "",
-                description=record.description,
-                assumptions=tuple(record.assumptions),
-                parameters_json=dict(record.parameters) if record.parameters else None,
-                perspective=record.perspective,
+                name=document.name,
+                description=document.description,
+                assumptions=tuple(document.assumptions or ()),
+                parameters_json=(
+                    dict(document.parameters) if document.parameters else None
+                ),
+                perspective=document.perspective,
                 lifting_rules=tuple(
                     LiftingRuleDocument(
                         id=rule.id,
-                        source=str(rule.source.id),
-                        target=str(rule.target.id),
-                        conditions=tuple(rule.conditions),
-                        mode=rule.mode.value,
+                        source=rule.source,
+                        target=rule.target,
+                        conditions=tuple(rule.conditions or ()),
+                        mode=rule.mode,
                         justification=rule.justification,
                     )
-                    for rule in record.lifting_rules
+                    for rule in (document.lifting_rules or ())
                 ),
             )
         )
 
-        for seq, assumption in enumerate(record.assumptions, 1):
+        for seq, assumption in enumerate(document.assumptions or (), 1):
             assumption_models.append(
                 ContextAssumption(
                     context_id=context_id,
@@ -267,33 +256,23 @@ def compile_context_models(
                 )
             )
 
-        for rule in record.lifting_rules:
+        for rule in document.lifting_rules or ():
             lifting_rule_models.append(
                 ContextLiftingRule(
                     id=rule.id,
-                    source_context_id=str(rule.source.id),
-                    target_context_id=str(rule.target.id),
-                    conditions_cel=tuple(rule.conditions),
-                    mode=rule.mode.value,
+                    source_context_id=rule.source,
+                    target_context_id=rule.target,
+                    conditions_cel=tuple(rule.conditions or ()),
+                    mode=rule.mode,
                     justification=rule.justification,
                 )
             )
-
-    materialization_models = ()
-    if authored_ist_assertions:
-        lifting_system = loaded_contexts_to_lifting_system(contexts)
-        decisions = tuple(
-            decision
-            for assertion in authored_ist_assertions
-            for decision in lifting_system.lift_decisions_for(assertion)
-        )
-        materialization_models = compile_context_lifting_materializations(decisions)
 
     return (
         tuple(context_models),
         tuple(assumption_models),
         tuple(lifting_rule_models),
-        tuple(materialization_models),
+        (),
     )
 
 

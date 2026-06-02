@@ -16,7 +16,7 @@ from quire.derived_store import (
     materialize_sqlite_file,
     read_dependency_pins,
 )
-from quire.documents import DocumentSchemaError
+from quire.documents import DocumentSchemaError, LoadedDocument
 from quire.sqlalchemy_store import create_sqlalchemy_store, populate_fts_index
 from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import (
@@ -51,11 +51,10 @@ from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (
     ContextCheckedGraph,
     ContextStage,
-    LoadedContext,
     loaded_contexts_to_lifting_system,
-    parse_context_record_document,
 )
 from propstore.families.contexts.declaration import (
+    ContextDocument,
     compile_context_models,
     filter_invalid_context_lifting_models,
 )
@@ -193,7 +192,7 @@ def build_repository_world_store(
     claim_diagnostics: tuple[PassDiagnostic, ...] = (),
     concept_files: tuple[LoadedConcept, ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
-    context_files: tuple[LoadedContext, ...] | None = None,
+    context_files: tuple[LoadedDocument[ContextDocument], ...] | None = None,
     context_diagnostics: tuple[PassDiagnostic, ...] = (),
     authoring_diagnostics: tuple[PassDiagnostic, ...] = (),
     on_embedding_snapshot: Callable[[EmbeddingSnapshotReport], None] | None = None,
@@ -246,7 +245,7 @@ def write_repository_world_store(
     claim_diagnostics: tuple[PassDiagnostic, ...] = (),
     concept_files: tuple[LoadedConcept, ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
-    context_files: tuple[LoadedContext, ...] | None = None,
+    context_files: tuple[LoadedDocument[ContextDocument], ...] | None = None,
     context_diagnostics: tuple[PassDiagnostic, ...] = (),
     authoring_diagnostics: tuple[PassDiagnostic, ...] = (),
     on_embedding_snapshot: Callable[[EmbeddingSnapshotReport], None] | None = None,
@@ -413,7 +412,7 @@ def _claim_schema_diagnostic(
 
 def _enforce_cel_structural_invariants(
     claim_files,
-    ctx_records,
+    context_files,
     cel_registry,
 ) -> None:
     """Pre-pass: fail early if any CEL expression references a structural concept.
@@ -481,19 +480,16 @@ def _enforce_cel_structural_invariants(
                     artifact_id=claim.id,
                 )
 
-    for record in ctx_records or ():
-        if not record.assumptions:
+    for context_file in context_files or ():
+        document = context_file.document
+        if not document.assumptions:
             continue
-        context_id = (
-            str(record.context_id)
-            if record.context_id is not None
-            else record.name or "<unnamed>"
-        )
+        context_id = str(document.id or document.name or "<unnamed>")
         artifact_label = f"context '{context_id}'"
         try:
             validate_cel_expressions(
                 iter_context_assumption_expressions(
-                    list(record.assumptions),
+                    [str(assumption) for assumption in document.assumptions],
                     artifact_label=artifact_label,
                 ),
                 cel_registry,
@@ -503,7 +499,7 @@ def _enforce_cel_structural_invariants(
                 PropstoreFamily.CONTEXTS,
                 ContextStage.AUTHORED,
                 str(exc),
-                filename=None,
+                filename=context_file.filename,
                 artifact_id=context_id,
             )
 
@@ -608,11 +604,11 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     context_error_count = 0
     try:
         ctx_list = [
-            LoadedContext(
+            LoadedDocument(
                 filename=handle.ref.name,
-                source_path=tree / handle.address.require_path(),
-                knowledge_root=tree,
-                record=parse_context_record_document(handle.document),
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
+                document=handle.document,
             )
             for handle in repo.families.contexts.iter_handles()
         ]
@@ -644,7 +640,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
         ).cel_registry
         _enforce_cel_structural_invariants(
             files,
-            [c.record for c in ctx_list],
+            ctx_list,
             cel_registry,
         )
 
