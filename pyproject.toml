@@ -24,7 +24,7 @@ dependencies = [
     "pint>=0.25.3",
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray.git@a06da9c06a8c20262edec56f8a1f55dc1901781d",
-    "quire @ git+https://github.com/ctoth/quire@4e6b2eacbb081b79426693b9244661b13006aa80",
+    "quire",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
@@ -77,6 +77,9 @@ markers = [
     "migration: temporary migration or cutover protection tests",
     "slow: intentionally slow tests or suites",
 ]
+
+[tool.uv.sources]
+quire = { git = "https://github.com/ctoth/quire", rev = "dba3493b64526101482c501bae2474ed8d190fce" }
 
 [dependency-groups]
 dev = [
