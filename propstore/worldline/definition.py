@@ -6,13 +6,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from propstore.families.worldlines.declaration import (
-    WorldlineDefinitionDocument,
-    WorldlineInputsDocument,
-    WorldlineRevisionQueryDocument,
-    WorldlineResultDocument,
-)
-from quire.documents import convert_document_value
 from propstore.support_revision.history import TransitionJournal
 from propstore.world.types import Environment, RenderPolicy
 from propstore.worldline.result_types import (
@@ -63,18 +56,6 @@ class WorldlineInputs:
     environment: Environment = field(default_factory=Environment)
     overrides: dict[str, float | str] = field(default_factory=dict)
 
-    @classmethod
-    def from_dict(cls, data: object) -> WorldlineInputs:
-        if data is None:
-            return cls()
-        return cls.from_document(
-            convert_document_value(
-                data,
-                WorldlineInputsDocument,
-                source="worldline:inputs",
-            )
-        )
-
     def to_dict(self) -> dict[str, object]:
         data = self.environment.to_dict()
         if self.overrides:
@@ -96,20 +77,6 @@ class WorldlineRevisionQuery:
     integrity_constraint: Mapping[str, object] | None = None
     merge_parent_commits: tuple[str, ...] = ()
     max_alphabet_size: int | None = None
-
-    @classmethod
-    def from_dict(cls, data: object) -> WorldlineRevisionQuery | None:
-        if data is None:
-            return None
-        if isinstance(data, Mapping) and not data:
-            return None
-        return cls.from_document(
-            convert_document_value(
-                data,
-                WorldlineRevisionQueryDocument,
-                source="worldline:revision",
-            ),
-        )
 
     def to_dict(self) -> dict[str, object]:
         data: dict[str, object] = {"operation": self.operation}
@@ -187,20 +154,6 @@ class WorldlineResult:
                 "WorldlineResult.revision must be WorldlineRevisionState or None"
             )
 
-    @classmethod
-    def from_dict(cls, data: object) -> WorldlineResult | None:
-        if data is None:
-            return None
-        if isinstance(data, Mapping) and not data:
-            return None
-        return cls.from_document(
-            convert_document_value(
-                data,
-                WorldlineResultDocument,
-                source="worldline:results",
-            ),
-        )
-
     def to_dict(self) -> dict[str, object]:
         data: dict[str, object] = {
             "computed": self.computed,
@@ -234,16 +187,6 @@ class WorldlineDefinition:
     revision: WorldlineRevisionQuery | None = None
     journal: TransitionJournal | None = None
     results: WorldlineResult | None = None
-
-    @classmethod
-    def from_dict(cls, data: object) -> WorldlineDefinition:
-        return cls.from_document(
-            convert_document_value(
-                data,
-                WorldlineDefinitionDocument,
-                source="worldline:definition",
-            )
-        )
 
     def to_dict(self) -> dict[str, object]:
         data: dict[str, object] = {"id": self.id}
