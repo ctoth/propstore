@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from quire.documents import LoadedDocument
 from quire.references import ReferenceResolution as ResolvedReference
 
-from propstore.claims import LoadedClaimsFile
 from propstore.core.conditions.checked import CheckedConditionSet
 from propstore.families.claims.declaration import (
     ClaimDocument,
@@ -45,11 +45,11 @@ class SemanticClaim:
 
 @dataclass(frozen=True)
 class ClaimCompilationBundle:
-    """The result of compiling authored claim files into semantic IR."""
+    """The result of compiling authored claim documents into semantic IR."""
 
     context: Any
-    normalized_claim_files: tuple[LoadedClaimsFile, ...]
-    semantic_files: tuple[SemanticClaimFile, ...]
+    claim_documents: tuple[LoadedDocument[ClaimDocument], ...]
+    semantic_claims: tuple[SemanticClaim, ...]
     diagnostics: tuple[PassDiagnostic, ...] = field(default_factory=tuple)
 
     @property

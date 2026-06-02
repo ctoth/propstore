@@ -18,7 +18,6 @@ from quire.derived_store import (
 )
 from quire.documents import DocumentSchemaError, LoadedDocument
 from quire.sqlalchemy_store import create_sqlalchemy_store, populate_fts_index
-from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import (
     build_compiler_claim_index,
     build_compilation_context_from_loaded,
@@ -27,11 +26,7 @@ from propstore.compiler.context import (
 )
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
-from propstore.families.claims.stages import (
-    ClaimAuthoredFiles,
-    ClaimCheckedBundle,
-    ClaimStage,
-)
+from propstore.families.claims.stages import ClaimCheckedBundle, ClaimStage
 from propstore.families.claims.declaration import (
     compile_authored_justification_models_with_diagnostics,
     compile_claim_models,
@@ -187,7 +182,7 @@ def build_repository_world_store(
     commit_hash: str | None = None,
     compilation_context=None,
     claim_checked_bundle: ClaimCheckedBundle | None = None,
-    claim_files: tuple[LoadedClaimsFile, ...] | None = None,
+    claim_files: tuple[LoadedDocument[ClaimDocument], ...] | None = None,
     claim_diagnostics: tuple[PassDiagnostic, ...] = (),
     concept_files: tuple[LoadedDocument[ConceptDocument], ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
@@ -240,7 +235,7 @@ def write_repository_world_store(
     commit_hash: str | None = None,
     compilation_context=None,
     claim_checked_bundle: ClaimCheckedBundle | None = None,
-    claim_files: tuple[LoadedClaimsFile, ...] | None = None,
+    claim_files: tuple[LoadedDocument[ClaimDocument], ...] | None = None,
     claim_diagnostics: tuple[PassDiagnostic, ...] = (),
     concept_files: tuple[LoadedDocument[ConceptDocument], ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
@@ -565,7 +560,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     )
 
     files = [
-        LoadedClaimsFile(
+        LoadedDocument(
             filename=handle.ref.artifact_id,
             artifact_path=tree / handle.address.require_path(),
             store_root=tree,
@@ -588,9 +583,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     if files:
         try:
             context = build_compilation_context_from_repo(repo, claim_files=files)
-            claim_pipeline_result = run_claim_pipeline(
-                ClaimAuthoredFiles.from_sequence(files, context)
-            )
+            claim_pipeline_result = run_claim_pipeline(files, context)
         except DocumentSchemaError as exc:
             raise CompilerWorkflowError(
                 "Validation FAILED: 1 error(s)",

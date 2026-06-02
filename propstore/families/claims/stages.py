@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
 from ast_equiv import canonical_dump
 
-from propstore.claims import LoadedClaimsFile
-from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.families.claims.types import ClaimType
 from propstore.core.id_types import ConceptId

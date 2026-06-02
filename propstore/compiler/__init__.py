@@ -9,7 +9,6 @@ from propstore.compiler.ir import (
     ClaimCompilationBundle,
     ResolvedReference,
     SemanticClaim,
-    SemanticClaimFile,
     SemanticStance,
 )
 
@@ -18,7 +17,6 @@ __all__ = [
     "CompilationContext",
     "ResolvedReference",
     "SemanticClaim",
-    "SemanticClaimFile",
     "SemanticStance",
     "build_compilation_context_from_loaded",
     "build_compilation_context_from_repo",

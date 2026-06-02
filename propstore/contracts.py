@@ -69,7 +69,6 @@ def iter_semantic_stage_contracts() -> tuple[
     tuple[str, str, type[Any], tuple[str, ...]], ...
 ]:
     from propstore.families.claims.stages import (
-        ClaimAuthoredFiles,
         ClaimCheckedBundle,
         ClaimStage,
     )
@@ -95,7 +94,6 @@ def iter_semantic_stage_contracts() -> tuple[
     )
 
     return (
-        (ClaimStage.AUTHORED.value, "claims", ClaimAuthoredFiles, ()),
         (ClaimStage.CHECKED.value, "claims", ClaimCheckedBundle, ()),
         (ConceptStage.AUTHORED.value, "concepts", ConceptAuthoredSet, ()),
         (ConceptStage.NORMALIZED.value, "concepts", ConceptNormalizedSet, ()),

@@ -7,21 +7,22 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from quire.documents import LoadedDocument
 
 from propstore.core.id_types import (
     ClaimId,
     JustificationId,
 )
-from propstore.compiler.ir import (
-    ClaimCompilationBundle,
-    SemanticClaimFile,
+from propstore.compiler.ir import ClaimCompilationBundle
+from propstore.families.claims.declaration import (
+    Claim,
+    ClaimDocument,
+    compile_claim_models,
 )
-from propstore.families.claims.declaration import Claim, compile_claim_models
 from propstore.families.relations.declaration import Stance
 from propstore.stances import coerce_stance_type
 from argumentation.dung import ArgumentationFramework
 from propstore.aspic_bridge import build_aspic_projection
-from propstore.claims import LoadedClaimsFile
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.structured_projection import StructuredProjection
@@ -274,8 +275,8 @@ def _load_branch_claims(
     return active_claims
 
 
-def _claim_entry(claim: MergeClaim) -> LoadedClaimsFile:
-    return LoadedClaimsFile(
+def _claim_entry(claim: MergeClaim) -> LoadedDocument[ClaimDocument]:
+    return LoadedDocument(
         filename=claim.artifact_id,
         artifact_path=None,
         store_root=None,
@@ -285,18 +286,10 @@ def _claim_entry(claim: MergeClaim) -> LoadedClaimsFile:
 
 def _compiled_branch_claims(active_claims: list[MergeClaim]) -> tuple[Claim, ...]:
     entries = tuple(_claim_entry(claim) for claim in active_claims)
-    semantic_files = tuple(
-        SemanticClaimFile(
-            loaded_entry=entry,
-            normalized_entry=entry,
-            claims=(_semantic_claim(claim, entry),),
-        )
-        for claim, entry in zip(active_claims, entries, strict=True)
-    )
     bundle = ClaimCompilationBundle(
         context=None,
-        normalized_claim_files=entries,
-        semantic_files=semantic_files,
+        claim_documents=entries,
+        semantic_claims=(),
     )
     return compile_claim_models(bundle, concept_context=None).claims
 

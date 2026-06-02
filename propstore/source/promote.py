@@ -24,12 +24,10 @@ from typing import Any, TypeAlias, cast
 
 from quire.documents import LoadedDocument
 from quire.lifecycle import FamilyRecordWrite
-from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import (
-    ClaimAuthoredFiles,
     PromotionBlockedClaimFact,
     PromotionBlockedReason,
 )
@@ -202,8 +200,8 @@ def _validate_promoted_claims_before_commit(
     for handle in repo.families.contexts.iter_handles(commit=head_sha):
         context_ids.add(str(handle.document.id))
 
-    claim_files: list[LoadedClaimsFile] = [
-        LoadedClaimsFile(
+    claim_files: list[LoadedDocument[ClaimDocument]] = [
+        LoadedDocument(
             filename=handle.ref.artifact_id,
             artifact_path=tree / handle.address.require_path(),
             store_root=tree,
@@ -214,7 +212,7 @@ def _validate_promoted_claims_before_commit(
     ]
     for claim_ref, claim_document in promoted_claim_documents.items():
         claim_files.append(
-            LoadedClaimsFile(
+            LoadedDocument(
                 filename=claim_ref.artifact_id,
                 artifact_path=tree
                 / repo.families.claims.address(claim_ref).require_path(),
@@ -230,11 +228,9 @@ def _validate_promoted_claims_before_commit(
         context_ids=context_ids or None,
     )
     claim_pipeline_result = run_claim_pipeline(
-        ClaimAuthoredFiles.from_sequence(
-            claim_files,
-            compilation_context,
-            context_ids=context_ids or None,
-        )
+        claim_files,
+        compilation_context,
+        context_ids=context_ids or None,
     )
     claim_errors = tuple(
         diagnostic

@@ -2,58 +2,27 @@
 
 from __future__ import annotations
 
-import copy
 from collections.abc import Sequence
-from dataclasses import replace
 from pathlib import Path
-from typing import Any, cast
 
-from propstore.families.claims.declaration import (
-    ClaimDocument,
-    StanceDocument as ClaimStanceDocument,
-)
-from propstore.core.conditions import check_condition_ir
-from propstore.core.conditions.checked import CheckedCondition, checked_condition_set
-from propstore.claims import (
-    LoadedClaimsFile,
-    claim_file_claims,
-    claim_file_filename,
-    claim_file_source_paper,
-    claim_file_stage,
-    load_claim_file,
-)
+import msgspec
+from quire.documents import LoadedDocument, load_document
+
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.claims.passes.checks import (
     _validate_logical_ids,
     _validate_stances,
     validate_claim_semantics,
 )
-from propstore.compiler.context import (
-    CompilationContext,
-    build_compiler_claim_index,
-    compiler_claim_match_kind,
-    compiler_concept_match_kind,
-)
-from propstore.compiler.ir import (
-    ClaimCompilationBundle,
-    ResolvedReference,
-    SemanticClaim,
-    SemanticClaimFile,
-    SemanticStance,
-)
-from propstore.families.identity.logical_ids import (
-    CLAIM_ARTIFACT_ID_RE,
-    CLAIM_VERSION_ID_RE,
-)
+from propstore.compiler.context import CompilationContext
+from propstore.compiler.ir import ClaimCompilationBundle, SemanticClaim
 from propstore.families.claims.stages import (
-    ClaimAuthoredFiles,
     ClaimCheckedBundle,
     ClaimStage,
     RawIdQuarantineRecord,
 )
 from propstore.families.registry import PropstoreFamily
-from propstore.families.claims.passes.diagnostics import claim_diagnostic
 from propstore.semantic_passes.registry import PipelineRegistry
-from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassDiagnostic, PassResult, PipelineResult
 
 
@@ -77,53 +46,57 @@ def _collect_raw_id_quarantine_records(
 
     records: list[RawIdQuarantineRecord] = []
     seq = 0
-    for claim_file in claim_bundle.normalized_claim_files:
-        filename = claim_file_filename(claim_file)
+    for loaded_claim in claim_bundle.claim_documents:
+        claim = loaded_claim.document
+        filename = loaded_claim.filename
         if filename not in raw_id_filenames:
             continue
-        source_paper = claim_file_source_paper(claim_file) or filename
-        for file_seq, claim in enumerate(claim_file_claims(claim_file), start=1):
-            raw_id = claim.id
-            artifact_id = claim.artifact_id
-            if (
-                isinstance(raw_id, str)
-                and raw_id
-                and not (isinstance(artifact_id, str) and artifact_id)
-            ):
-                seq += 1
-                records.append(
-                    RawIdQuarantineRecord(
-                        filename=filename,
-                        source_paper=str(source_paper),
-                        raw_id=raw_id,
-                        seq=seq,
-                        synthetic_id=_synthesize_quarantine_id(
-                            filename,
-                            raw_id,
-                            file_seq,
-                        ),
-                        message=(
-                            "claim uses raw 'id' input "
-                            "without canonical identity fields"
-                        ),
-                    )
+        source = claim.source
+        provenance = claim.provenance
+        source_paper = (
+            source.paper
+            if source is not None
+            else (
+                provenance.paper
+                if provenance is not None and provenance.paper is not None
+                else filename
+            )
+        )
+        raw_id = claim.id
+        artifact_id = claim.artifact_id
+        if (
+            isinstance(raw_id, str)
+            and raw_id
+            and not (isinstance(artifact_id, str) and artifact_id)
+        ):
+            seq += 1
+            records.append(
+                RawIdQuarantineRecord(
+                    filename=filename,
+                    source_paper=str(source_paper),
+                    raw_id=raw_id,
+                    seq=seq,
+                    synthetic_id=_synthesize_quarantine_id(
+                        filename,
+                        raw_id,
+                        1,
+                    ),
+                    message=(
+                        "claim uses raw 'id' input "
+                        "without canonical identity fields"
+                    ),
                 )
+            )
     return tuple(records)
 
 
 def validate_claims(
-    claim_files: Sequence[LoadedClaimsFile],
+    claim_files: Sequence[LoadedDocument[ClaimDocument]],
     context: CompilationContext,
     context_ids: set[str] | None = None,
 ) -> PipelineResult[object]:
     """Validate claim files against schema and compiler contract."""
-    return run_claim_pipeline(
-        ClaimAuthoredFiles.from_sequence(
-            claim_files,
-            context,
-            context_ids=context_ids,
-        )
-    )
+    return run_claim_pipeline(claim_files, context, context_ids=context_ids)
 
 
 def validate_single_claim_file(
@@ -131,8 +104,133 @@ def validate_single_claim_file(
     context: CompilationContext,
 ) -> PipelineResult[object]:
     """Validate a single typed claims YAML file."""
-    loaded = load_claim_file(filepath)
+    loaded = load_document(filepath, ClaimDocument)
     return validate_claims([loaded], context)
+
+
+def _source_paper(claim: ClaimDocument, fallback: str) -> str:
+    source = claim.source
+    if source is not None:
+        return source.paper
+    provenance = claim.provenance
+    if provenance is not None and provenance.paper is not None:
+        return provenance.paper
+    return fallback
+
+
+def compile_claim_documents(
+    claims: Sequence[LoadedDocument[ClaimDocument]],
+    context: CompilationContext,
+    *,
+    context_ids: set[str] | None = None,
+) -> ClaimCompilationBundle:
+    diagnostics: list[PassDiagnostic] = []
+    semantic_claims: list[SemanticClaim] = []
+    seen_artifact_ids: dict[str, str] = {}
+    seen_logical_ids: dict[str, str] = {}
+    all_artifact_ids = {
+        claim.document.artifact_id
+        for claim in claims
+        if isinstance(claim.document.artifact_id, str) and claim.document.artifact_id
+    }
+
+    for loaded_claim in claims:
+        claim = loaded_claim.document
+        filename = loaded_claim.filename
+        raw_claim = msgspec.to_builtins(claim)
+        if not isinstance(raw_claim, dict):
+            continue
+
+        raw_id = claim.id
+        artifact_id = claim.artifact_id
+        if isinstance(raw_id, str) and raw_id and not artifact_id:
+            diagnostics.append(
+                PassDiagnostic(
+                    level="error",
+                    code="claim.raw_id_input",
+                    message=(
+                        "claim uses raw 'id' input "
+                        "without canonical identity fields"
+                    ),
+                    family=PropstoreFamily.CLAIMS,
+                    stage=ClaimStage.CHECKED,
+                    filename=filename,
+                    artifact_id=None,
+                    pass_name="claim.compile",
+                )
+            )
+            continue
+
+        if not isinstance(artifact_id, str) or not artifact_id:
+            diagnostics.append(
+                PassDiagnostic(
+                    level="error",
+                    code="claim.missing_artifact_id",
+                    message="claim missing 'artifact_id'",
+                    family=PropstoreFamily.CLAIMS,
+                    stage=ClaimStage.CHECKED,
+                    filename=filename,
+                    artifact_id=None,
+                    pass_name="claim.compile",
+                )
+            )
+            continue
+
+        if artifact_id in seen_artifact_ids:
+            diagnostics.append(
+                PassDiagnostic(
+                    level="error",
+                    code="claim.duplicate_artifact_id",
+                    message=(
+                        f"duplicate claim artifact_id '{artifact_id}' "
+                        f"(also in {seen_artifact_ids[artifact_id]})"
+                    ),
+                    family=PropstoreFamily.CLAIMS,
+                    stage=ClaimStage.CHECKED,
+                    filename=filename,
+                    artifact_id=artifact_id,
+                    pass_name="claim.compile",
+                )
+            )
+        else:
+            seen_artifact_ids[artifact_id] = filename
+
+        _validate_logical_ids(
+            raw_claim.get("logical_ids"),
+            filename=filename,
+            artifact_id=artifact_id,
+            seen_logical_ids=seen_logical_ids,
+            diagnostics=diagnostics,
+        )
+        _validate_stances(
+            raw_claim,
+            artifact_id,
+            filename,
+            all_artifact_ids,
+            diagnostics,
+        )
+        validate_claim_semantics(raw_claim, artifact_id, filename, context, diagnostics)
+
+        semantic_claims.append(
+            SemanticClaim(
+                filename=filename,
+                source_paper=_source_paper(claim, filename),
+                artifact_id=artifact_id,
+                claim_type=str(claim.type) if claim.type is not None else None,
+                authored_claim=raw_claim,
+                resolved_claim=claim,
+            )
+        )
+
+    return ClaimCompilationBundle(
+        context={
+            "compilation_context": context,
+            "context_ids": frozenset(context_ids or set()),
+        },
+        claim_documents=tuple(claims),
+        semantic_claims=tuple(semantic_claims),
+        diagnostics=tuple(diagnostics),
+    )
 
 
 class ClaimCompilePass:
@@ -144,13 +242,14 @@ class ClaimCompilePass:
 
     def run(
         self,
-        value: ClaimAuthoredFiles,
+        value: Sequence[LoadedDocument[ClaimDocument]],
         context: object,
     ) -> PassResult[ClaimCheckedBundle]:
-        bundle = compile_claim_files(
-            value.claim_files,
-            value.context,
-            context_ids=(None if value.context_ids is None else set(value.context_ids)),
+        if not isinstance(context, CompilationContext):
+            raise TypeError("claim compile pass requires a CompilationContext")
+        bundle = compile_claim_documents(
+            value,
+            context,
         )
         return PassResult(
             output=ClaimCheckedBundle(
@@ -166,15 +265,22 @@ def register_claim_pipeline(registry: PipelineRegistry) -> None:
 
 
 def run_claim_pipeline(
-    authored: ClaimAuthoredFiles,
+    claim_files: Sequence[LoadedDocument[ClaimDocument]],
+    context: CompilationContext,
+    *,
+    context_ids: set[str] | None = None,
 ) -> PipelineResult[object]:
-    registry = PipelineRegistry()
-    register_claim_pipeline(registry)
-    return run_pipeline(
-        authored,
+    bundle = compile_claim_documents(
+        claim_files,
+        context,
+        context_ids=context_ids,
+    )
+    return PipelineResult(
         family=PropstoreFamily.CLAIMS,
-        start_stage=ClaimStage.AUTHORED,
-        target_stage=ClaimStage.CHECKED,
-        registry=registry,
-        context=None,
+        stage=ClaimStage.CHECKED,
+        output=ClaimCheckedBundle(
+            bundle=bundle,
+            raw_id_quarantine_records=_collect_raw_id_quarantine_records(bundle),
+        ),
+        diagnostics=bundle.diagnostics,
     )
