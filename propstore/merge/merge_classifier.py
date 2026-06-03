@@ -7,18 +7,17 @@ argumentation framework over the claim alternatives that survive the merge.
 
 from __future__ import annotations
 
+import json
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
 from itertools import product
 
-from propstore.conflict_detector.models import ConflictClaim
 from propstore.merge.merge_claims import MergeClaim
 from propstore.merge.witness import ProvenanceWitness
 from argumentation.partial_af import PartialArgumentationFramework
 from propstore.storage.snapshot import RepositorySnapshot
-from propstore.value_comparison import values_compatible
 
 
 class _DiffKind(Enum):
@@ -140,47 +139,7 @@ def _indexed_claim(claim: MergeClaim) -> _IndexedClaim | None:
 
 
 def _claims_equal(a: MergeClaim, b: MergeClaim) -> bool:
-    return a.semantic_key() == b.semantic_key()
-
-
-def _classify_pair(left: MergeClaim, right: MergeClaim) -> _DiffKind:
-    if left.source_paper is None or right.source_paper is None:
-        raise MergeComparisonProvenanceError(
-            "merge comparison requires source provenance on both claims"
-        )
-    if left.semantic_key() == right.semantic_key():
-        return _DiffKind.COMPATIBLE
-
-    left_conflict = ConflictClaim.from_claim_document(left.document)
-    right_conflict = ConflictClaim.from_claim_document(right.document)
-    if left_conflict is None or right_conflict is None:
-        return _DiffKind.UNTRANSLATABLE
-
-    if values_compatible(
-        left_conflict.value,
-        right_conflict.value,
-        claim_a=left_conflict,
-        claim_b=right_conflict,
-    ):
-        same_expression = (
-            left_conflict.expression,
-            left_conflict.sympy,
-            left_conflict.body,
-        ) == (
-            right_conflict.expression,
-            right_conflict.sympy,
-            right_conflict.body,
-        )
-        if same_expression:
-            return _DiffKind.COMPATIBLE
-
-    if left.source_paper != right.source_paper:
-        return _DiffKind.PHI_NODE
-    left_conditions = tuple(str(condition) for condition in left_conflict.conditions)
-    right_conditions = tuple(str(condition) for condition in right_conflict.conditions)
-    if left_conditions == right_conditions:
-        return _DiffKind.CONFLICT
-    return _DiffKind.UNKNOWN
+    return _claim_semantic_key(a) == _claim_semantic_key(b)
 
 
 def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
@@ -439,9 +398,10 @@ def build_merge_framework(
                 ignorance.add(pair)
                 ignorance.add(reverse_pair)
 
-    semantic_candidate_map: dict[tuple[object, ...], list[str]] = {}
+    semantic_candidate_map: dict[str, list[str]] = {}
     for argument in emitted:
-        semantic_candidate_map.setdefault(argument.claim.semantic_key(), []).append(
+        semantic_key = json.dumps(_claim_candidate_key(argument.claim), sort_keys=True)
+        semantic_candidate_map.setdefault(semantic_key, []).append(
             argument.assertion_id
         )
     semantic_candidates = tuple(
