@@ -64,7 +64,6 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
         "materialize_cmd",
         "Project committed artifacts to loose files.",
     ),
-    "merge": ("propstore.cli.merge_cmds", "merge", "Merge repository branches."),
     "micropub": ("propstore.cli.micropub", "micropub", "Manage micropublications."),
     "observatory": (
         "propstore.cli.observatory",
@@ -111,7 +110,6 @@ _QUICKSTART_COMMANDS = (
     "diff",
     "validate",
     "verify",
-    "merge",
     "web",
 )
 
