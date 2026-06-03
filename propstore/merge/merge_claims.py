@@ -7,16 +7,12 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-
-from propstore.core.assertions.refs import (
-    ConditionRef,
-    ContextReference,
-    ProvenanceGraphRef,
+from propstore.core.assertions.situated import derive_assertion_id
+from propstore.core.id_types import AssertionId
+from propstore.families.claims.declaration import (
+    ClaimDocument,
+    claim_logical_id_formatted,
 )
-from propstore.core.assertions.situated import SituatedAssertion
-from propstore.core.id_types import AssertionId, ContextId, ProvenanceGraphId
-from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
-from propstore.families.claims.declaration import ClaimDocument
 
 
 @dataclass(frozen=True)
@@ -62,8 +58,69 @@ class MergeClaim:
         return self.document.value
 
     @property
+    def source_paper(self) -> str | None:
+        if self.document.source is not None:
+            return self.document.source.paper
+        if self.document.provenance is not None:
+            return self.document.provenance.paper
+        return None
+
+    @property
+    def source_page(self) -> int | None:
+        if self.document.provenance is not None:
+            return self.document.provenance.page
+        return None
+
+    @property
+    def logical_ids(self) -> tuple[str, ...]:
+        return tuple(
+            claim_logical_id_formatted(logical_id)
+            for logical_id in self.document.logical_ids
+        )
+
+    @property
     def assertion_id(self) -> AssertionId:
-        return self.assertion.assertion_id
+        return derive_assertion_id(
+            ("merge_claim", self.artifact_id, self.branch_origin, self.semantic_key())
+        )
+
+    def semantic_key(self) -> tuple[object, ...]:
+        document = self.document
+        context_id = None if document.context is None else str(document.context.id)
+        return (
+            _enum_value(document.type),
+            context_id,
+            document.body,
+            tuple(str(concept) for concept in document.concepts),
+            tuple(str(condition) for condition in document.conditions),
+            document.expression,
+            document.listener_population,
+            document.lower_bound,
+            document.measure,
+            document.output_concept,
+            tuple(
+                (parameter.name, parameter.concept, parameter.note)
+                for parameter in document.parameters
+            ),
+            document.sample_size,
+            _enum_value(document.stage),
+            document.statement,
+            document.sympy,
+            document.target_concept,
+            document.uncertainty,
+            document.uncertainty_type,
+            document.unit,
+            document.upper_bound,
+            document.value,
+            tuple(
+                (variable.concept, variable.symbol, variable.role, variable.name)
+                for variable in document.variables
+            ),
+        )
+
+
+def _enum_value(value: object) -> object:
+    return getattr(value, "value", value)
 
 
 def _stable_json(value: object) -> str:
