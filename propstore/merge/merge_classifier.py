@@ -18,7 +18,6 @@ from propstore.merge.merge_claims import MergeClaim
 from propstore.merge.witness import ProvenanceWitness
 from argumentation.partial_af import PartialArgumentationFramework
 from propstore.storage.snapshot import RepositorySnapshot
-from propstore.claims import claim_file_claims
 
 
 class _DiffKind(Enum):
@@ -146,11 +145,10 @@ def _claims_equal(a: MergeClaim, b: MergeClaim) -> bool:
 def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
     index: dict[str, _IndexedClaim] = {}
     for claim_file in claim_files:
-        for claim in claim_file_claims(claim_file):
-            merge_claim = MergeClaim(document=claim)
-            indexed = _indexed_claim(merge_claim)
-            if indexed is not None:
-                index[indexed.artifact_id] = indexed
+        merge_claim = MergeClaim(document=claim_file.document)
+        indexed = _indexed_claim(merge_claim)
+        if indexed is not None:
+            index[indexed.artifact_id] = indexed
     return index
 
 
