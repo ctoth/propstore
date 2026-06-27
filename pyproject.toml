@@ -29,6 +29,7 @@ dependencies = [
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
     "formal-belief-set @ git+https://github.com/ctoth/belief-set@2ebe82cab23a3f379d7c8d1b62eac7ccd12977bd",
+    "provenance-semiring @ git+https://github.com/ctoth/provenance-semiring.git@13380ece8ca5e7abcbf21d568d27246d5bc6c964",
     "rfc8785>=0.1.4",
     "jinja2>=3.1",
 ]
