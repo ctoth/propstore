@@ -68,6 +68,45 @@ workflow surfaces from low-level packages when that would force circular or
 cross-layer imports; import those concrete modules at the call site that owns
 the behavior.
 
+## Substrate boundary discipline
+
+The formal substrates are their own packages (quire, condition-ir,
+provenance-semiring, doxa, belief-set, argumentation, assignment-selection,
+gunray, bridgman, cel-parser, ast-equiv, eq-equiv, human-to-sympy, …). propstore
+composes them; it does not re-implement or wrap them. We own every package, so a
+package boundary is an `import`, not a membrane — there is no third-party
+impedance to "adapt" to.
+
+There are no adapters and no coercers across package boundaries. Concretely:
+
+1. **The package owns the canonical type; propstore imports and uses it
+   directly.** Where a package defines the type for a thing (`Opinion`,
+   `ConditionIR`/`ConditionSolver`, `ProvenancePolynomial`, the ATMS engine's
+   assumption ids), propstore uses *that* type. It does not define a parallel
+   `propstore` spelling and convert. The moment you are tempted to write
+   `to_X`/`from_X` between a propstore type and a package type, stop: delete the
+   propstore mirror, or — since we own the package — fix the package's type so it
+   is good enough to be the one canonical type. Never a second spelling.
+
+2. **Generic packages are parameterized by arguments, not wrapped.** Where a
+   package was deliberately generalized (provenance-semiring's
+   `why_provenance(..., kind_of=…)`, condition-ir's
+   `registry(synthetic_binding_names=…)`), propstore supplies its specifics by
+   passing a function or value at the call site. The propstore-specific knowledge
+   lives in the argument, not in a wrapper layer.
+
+3. **Crossing a boundary is a call, not a conversion.** Turning stored charter
+   fields into a compute form is a package-owned parse/compile/evaluate
+   (`condition_ir.compile(...)`) that returns the package's own type, used
+   directly — not a round-trippable propstore↔package pair. Composition across
+   packages is by shared id plus lookup (a Dung argument holds a `claim_id`;
+   resolve it to a `Claim` when needed), never by mirroring types.
+
+This is the cross-package generalization of the in-repo single-canonical-type
+rule: one spelling per thing, even when the spelling lives in another package we
+own. Reaching for an "adapter" is the same instinct that produced the coercer
+debt; the boundary is just the function call.
+
 ## Literature Grounding
 
 See `papers/index.md` for the full collection with descriptions and tags. Each paper directory contains `notes.md` with detailed extraction, `claims.yaml` where extracted, and cross-references via `reconcile`.
