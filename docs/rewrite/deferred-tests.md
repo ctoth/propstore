@@ -316,3 +316,45 @@ Deferred past 7b-2 (CLI/web phase):
 - test_revision_cli.py, test_revision_phase1_cli.py, test_revision_app_contract.py,
   test_web_revision_readonly.py -> CLI/web phase (Click/app surface over the
   workflows owner layer).
+
+## Phase 7b-3 (fragility / sensitivity intervention-ranking)
+
+PORTed in 7b-3 (now green), `tests/test_fragility.py` (26 passed / 3 skipped):
+- TestInterventionModel, TestUtilityScores, TestATMSInterventions,
+  TestMissingMeasurementInterventions, TestConflictInterventions,
+  TestInteractions, TestRankFragility — all ported. Retyped over the rewrite
+  surface: the semiring value objects import from `provenance_semiring` (not the
+  reference `propstore.provenance`, which keeps only the lemon
+  `Provenance`/`ProvenanceStatus`); `ProvenanceNogood` is the two-argument
+  `(variables, witness)` form; parameterization mocks return
+  `core.graph_types.ParameterizationEdge` (the charter type `all_parameterizations`
+  yields) instead of the reference row dicts; the world mocks use the public
+  `store` / `active_graph` properties (`FragilityWorld` exposes those, not a
+  private `_store`); the conflict AF reader is
+  `core.analyzers.shared_analyzer_input_from_graph`.
+- `imps_rev` retyped to take `propstore.opinion_provenance.OpinionWithProvenance`
+  (the canonical provenance-paired opinion; `doxa.Opinion` is provenance-free).
+  `test_imps_rev_uses_supplied_opinions_without_fabricating_certainty` is ported
+  with `OpinionWithProvenance` inputs and the dfquad monkeypatch retargeted to
+  `argumentation.gradual.dfquad.dfquad_strengths`. `opinion_sensitivity` is
+  re-exported from `doxa` (doxa lifted it from propstore), not re-implemented.
+
+DROPPED in 7b-3:
+- `test_imps_rev_rejects_unprovenanced_opinions` — its premise (passing a
+  provenance-free `Opinion`) is now enforced by the `OpinionWithProvenance`
+  parameter type rather than a runtime "provenance-bearing" check, so the runtime
+  rejection path no longer exists.
+
+SKIPPED in 7b-3 (deferred — see `docs/gaps.md` MED grounding/bridge entry):
+- TestGroundFactInterventions, TestGroundedRuleInterventions,
+  TestBridgeUndercutInterventions — the grounding/bridge families need the
+  rule-authoring document surface `propstore.families.documents.rules` to author a
+  non-empty grounded bundle, plus the gunray complement encoder
+  `propstore.grounding.gunray_complement.GUNRAY_COMPLEMENT_ENCODER` /
+  `aspic_bridge.grounding._decode_grounded_predicate`; none are present in the
+  rewrite substrate. The collectors are implemented and importable (no-complement
+  decode), but cannot be driven end-to-end until that surface lands.
+
+The fragility-driven worldline sensitivity-capture case
+(`test_worldline_error_visibility.py::test_sensitivity_failure_produces_error_indicator`)
+and `epistemic_process` cases remain owed to Phase 7b-4.
