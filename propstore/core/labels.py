@@ -13,23 +13,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import Any
 
+from provenance_semiring import SupportQuality
 
-class SupportQuality(StrEnum):
-    """How faithfully a projected support reproduces the underlying claim's label.
-
-    ``EXACT`` — the support is the claim's own environment label verbatim.
-    ``MIXED`` — environments from differently graded supports were combined.
-    ``CONTEXT_VISIBLE_ONLY`` — the support exists only via context visibility.
-    ``SEMANTIC_COMPATIBLE`` — the support holds only up to semantic compatibility.
-    """
-
-    EXACT = "exact"
-    MIXED = "mixed"
-    CONTEXT_VISIBLE_ONLY = "context_visible_only"
-    SEMANTIC_COMPATIBLE = "semantic_compatible"
+__all__ = ["Label", "SupportMetadata", "SupportQuality", "label_from_dict", "label_to_dict"]
 
 
 @dataclass(frozen=True)
