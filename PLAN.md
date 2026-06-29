@@ -108,6 +108,13 @@ ast-equiv consume-pin). `adjudicate` workflow: never existed; not a feature.
 - **Exit**: green.
 
 ### Phase 5 — argumentation-bridge + stances
+- **PREREQ (Q, 2026-06-29): bump `formal-argumentation` to NEWEST.** Current pin `90dcbe29`;
+  newest is `argumentation` `main` `5ea0c34` (Fix ABA ICCMA query sidecar detection) which is
+  LOCAL-ONLY, 1 ahead of `origin/main` (`5fc78e3a`). Per no-local-path-pins: push `argumentation`
+  main to origin FIRST, then pin propstore `formal-argumentation` to `5ea0c34`'s full sha. Build
+  this slice against that bump.
+- Also lands here (moved from Phase 4 per F4.1): CKR justifiable-exceptions → Dung-defeat ASPIC+
+  integration + `test_defeasibility_aspic_integration` (needs CSAF).
 - **`core/analyzers.py`** (the real Dung-AF + PrAF assembly — NOT the `argumentation.py` marker),
   aspic_bridge (claims/justifications/stances → argumentation kernel), praf, claim_graph delegators,
   source-trust calibration, stances/relations, preference heuristic, opinion (consume `doxa`; keep the
