@@ -132,12 +132,23 @@ ast-equiv consume-pin). `adjudicate` workflow: never existed; not a feature.
     query/grounding/projection/lifting on `argumentation.structured.aspic.aspic`), praf engine
     (`enforce_coh`) + projection (`argumentation.probabilistic.probabilistic` — NOT the package root),
     claim_graph delegators, source-trust projection, CKR justifiable-exceptions → Dung-defeat (CSAF).
+  - **DONE 5a `1bc1ace3`; 5b `8e9a10a8`+`bbe56d71`.** 5b landed the ASPIC+ kernel bridge + PrAF value
+    layer + source-trust + CKR (empty-bundle). It DEFERRED the store→AF *assembly* to Phase 6/7 (see
+    next): the reference analyzers build over `conflict_detector` (Phase 6) + `world.types`/active-graph
+    (Phase 7), which do not exist yet — building them now needs phantom infra / a parallel mirror.
 - **Exit**: green.
 
-### Phase 6 — merge-conflict + relations
+### Phase 6 — merge-conflict + relations  (+ the store→AF assembly moved from 5b)
 - conflict_detector (Z3 disjointness via condition-ir, eq-equiv, ast-equiv, value/param conflict),
   merge framework (Dung-backed via argumentation, partial-AF sum/max/leximax), merge-claim coreference,
   two-parent merge commit (quire), relations/sameas, concept alignment (vocab reconciliation via PAF).
+- **MOVED FROM 5b (build here where conflict_detector + the active claim graph exist):** core/analyzers.py
+  (Dung-AF + PrAF assembly over the active claim graph), claim_graph.py, praf.build_praf,
+  aspic_bridge/projection.py (csaf_to_projection → StructuredProjection), and the gunray-inspection →
+  ASPIC+ `GroundedDatalogTheory` seam for NON-empty bundles (currently `NotImplementedError` + HIGH gap
+  docs/gaps.md:18). Tests: test_core_analyzers, test_praf_integration, test_praf_uncalibrated_explicit,
+  test_aspic_bridge_grounded, test_core_justifications, the lifting/projection/Label subset of
+  test_ws_f_aspic_bridge (the active-graph parts may slip to Phase 7). See docs/rewrite/deferred-tests.md.
 - PORT: `merge-conflict` slice (27). Closes M3 IntegrityConstraint (test_ic_postulate_coverage).
 - **Exit**: green.
 

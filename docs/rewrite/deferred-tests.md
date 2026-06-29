@@ -14,13 +14,39 @@ Recording convention: `reference test -> owning phase (infra it needs)`.
 that 5a deliberately did not stub (stubbing phantom infra would violate
 build-fresh + no-Document-mirror):
 
-- test_relate_opinions.py -> 5b (relation_analysis over the AF / praf surface)
-- test_relation_concept_identity.py -> 5b/6 (relation+concept alignment graph)
+- test_relate_opinions.py -> 6/10 (classify/proposals/sidecar/core.relations — 5b reconfirmed)
+- test_relation_concept_identity.py -> 6/10 (relation+concept alignment graph — 5b reconfirmed)
 - test_source_relations.py -> 8 (source subsystem)
 - test_trust_calibration_runs_at_promote.py -> 8 (source promote lifecycle)
 - test_sidecar_relation_edge_projection.py -> 9 (projection_catalog relation_edge schema)
 - test_sidecar_calibration_counts_projection.py -> 9/10 (families.calibration sidecar; calibration extract)
 - test_opinion_schema.py -> 9/10 (opinion sidecar/schema projection)
 - test_render_policy_opinions.py -> 10 (render policy)
-- test_prior_base_rate_is_opinion.py -> 5b/7 (base-rate resolution against a store)
-- test_claim_and_stance_document_enums.py -> 5b (needs the stance Document surface alongside claim enums)
+- test_prior_base_rate_is_opinion.py -> 7 (base-rate resolution against a store)
+- test_claim_and_stance_document_enums.py -> 9/10 (families.documents surface — 5b reconfirmed)
+
+## Deferred during Phase 5b (commits 8e9a10a8, bbe56d71)
+
+5b built the ASPIC+ kernel bridge + PrAF value layer + source-trust + CKR
+(empty-bundle). It deferred the store→AF *assembly* (core/analyzers, claim_graph,
+praf.build_praf, aspic_bridge/projection) because the reference builds those over
+`propstore.conflict_detector` (Phase 6) + `propstore.world.types` /
+active-claim-graph (Phase 7) — building them now needs phantom WorldStore/
+conflict_detector or a parallel mirror. They land WITH Phase 6/7.
+
+Moved deliverables (PLAN updated): core/analyzers.py (Dung-AF + PrAF assembly over
+the active claim graph), claim_graph.py, praf.build_praf, aspic_bridge/projection.py
+(csaf_to_projection -> StructuredProjection), and the gunray-inspection -> ASPIC+
+GroundedDatalogTheory seam for NON-empty bundles (currently NotImplementedError +
+HIGH gap docs/gaps.md:18).
+
+Tests deferred to their owning phase:
+- test_core_analyzers.py -> 6/7 (analyzers/SharedAnalyzerInput + conflict synthesis)
+- test_praf_integration.py -> 6/7 (analyzers/build_praf)
+- test_praf_uncalibrated_explicit.py -> 6/7 (analyzers/build_praf)
+- test_argumentation_integration.py -> 6/7 (SQLiteArgumentationStore/conflict_detector)
+- test_core_justifications.py -> 6/7 (active claim graph)
+- test_ws_f_aspic_bridge.py (lifting/projection/Label subset) -> 6/7 (StructuredProjection/Label)
+- test_aspic_bridge_grounded.py -> 6 (non-empty grounding seam; gates the gaps.md:18 follow-up)
+- test_justification_rule_kind_validated.py -> 8 (cli/source)
+- test_praf_argument_enumeration_budget.py -> 7 (gunray budget; was a skipped stub in the reference too)
