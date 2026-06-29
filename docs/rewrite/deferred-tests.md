@@ -131,16 +131,46 @@ PORTed in 7a-world-B2 (now green):
 - tests/test_atms_cel_semantic_equality.py — charter port (CEL-equivalent
   antecedent matching).
 
+PORTed in 7a-world-B2 COVERAGE follow-up (now green over `tests/atms_feed.py`):
+- tests/test_atms_propagation_nogood_interleave.py — `_build` interleaves the
+  nogood update before propagation observes final labels (source-level E.M3).
+- tests/test_atms_consequent_field_discipline.py — one `consequent_id` field; the
+  dead multi-consequent surface stays deleted (source-level E.M2).
+- tests/test_atms_max_iterations_anytime.py — bounded build returns partial
+  fixpoint state (`fixpoint_reached`/`iterations_run`/`warnings`), not an
+  exception (E.M1).
+- tests/test_atms_unbounded_stability_api.py — unbounded stability finds the
+  flipping witness; `limit` is a required keyword; `BudgetExhausted(examined,
+  total)` is loud + counted; AST gate on propstore call sites; monotone-budget
+  property (E.H1a/b/c, Codex 2.9).
+- tests/test_atms_was_pruned_by_nogood_cycle.py — a cycle whose external SCC
+  support is a nogood is `NOGOOD_PRUNED`, not `MISSING_SUPPORT` (de Kleer p.146,
+  E.H2).
+- tests/test_provenance_atms_equivalence.py — rewrite-native: the propstore
+  `core.labels` door IS the carved `provenance_semiring` algebra (no
+  `label_to_polynomial`/`polynomial_to_label` mirror); `combine_labels` /
+  `merge_labels` / `NogoodSet` pruning equal polynomial product / sum / `live`,
+  and assumption-vs-context variable meaning survives projection.
+
 Deferred (reference test files whose remaining surface is not B2's):
 - test_atms_engine.py CLI / `app.world_atms` / worldline paths -> 10 (CLI/web) /
   7b (worldline).
-- test_atms_propagation_nogood_interleave.py, test_atms_max_iterations_anytime.py,
-  test_atms_unbounded_stability_api.py, test_atms_was_pruned_by_nogood_cycle.py,
-  test_atms_categorical_provider_visibility.py,
-  test_atms_consequent_field_discipline.py, test_provenance_atms_equivalence.py,
-  test_micropub_identity_consumes_wscm.py -> follow-up within 7a-world (engine
-  behaviour is implemented; these add finer-grained / provenance-equivalence
-  coverage over the same charter feed).
+- test_atms_categorical_provider_visibility.py -> ported as a SKIP
+  (`tests/test_atms_categorical_provider_visibility.py`,
+  `@pytest.mark.skip`). The engine behaviour (a categorical parameterization
+  input surfaced as a visible OUT `ATMSDerivedNode` with
+  `PARAMETERIZATION_INPUT_TYPE_INCOMPATIBLE`) is implemented, but it needs a
+  categorical *claim value* the float-only `Claim.value` charter cannot hold.
+  Tracked in docs/gaps.md (HIGH, categorical-provider entry); unskip after the
+  Claim charter carries categorical/boolean values.
+- test_micropub_identity_consumes_wscm.py -> 8 (source/document subsystem). This
+  is a *document-identity* test (trusty `ni:///sha-256` URIs over
+  `propstore.families.documents.micropubs.MicropublicationDocument` +
+  `propstore.families.identity.micropubs` + `propstore.provenance.trusty`), none
+  of which exist yet — it is not an ATMS-engine test. The engine's
+  micropublication *support* node behaviour is already covered by
+  `tests/test_atms_engine.py::test_micropublication_node_supported_when_claims_and_context_supported`.
+  Port when the Phase-8 source/document/trusty-identity infra lands.
 - test_world_bound_conflicts_cache.py -> 9 (its fixtures import the repo-backed
   `tests.test_world_query` `world` fixture; the in-memory cases use row-dict
   stores rather than charters). The cache itself (`conflict_inputs_for_store`
