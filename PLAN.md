@@ -195,6 +195,12 @@ These directives SUPERSEDE any conflicting phase text above. Sourced from report
 5. A standing BEHAVIORAL Z1 quarantine gate runs in CI from day 0 (see 12.1).
 
 ### 12.1 Standing gates (CI from day 0 — the structural import-linter gates CANNOT catch a behavioral Z1 regression)
+- **Quality gate (EVERY slice, hard exit condition — no slice ships otherwise):** STRICT TYPES EVERYWHERE.
+  `[tool.pyright]` in propstore/pyproject.toml is `typeCheckingMode = "strict"` (NOT "basic"); `uv run pyright propstore` = 0
+  errors / 0 warnings under strict; `uv run ruff check` clean; `uv run pytest tests/ -q` all green. Strict means: no implicit
+  `Any`, every function fully annotated (params + return), no untyped defs, no `# type: ignore` / `# pyright: ignore` / `cast(...)`
+  to silence a real error, no `Any`-widening to dodge a type. Fix the type, not the checker. A slice with a strict-pyright error is
+  NOT done.
 - **Z1 quarantine gate (NEW, top priority):** feed deliberately-invalid concept/claim/form/stance → assert each
   appears as a `build_status='blocked'` quarantined sidecar row + a diagnostics row, ZERO dropped, and render-policy
   is the thing that hides it. Port the quarantine behavioral corpus (remediation `T2_2*`, the FI quarantine caps) as
