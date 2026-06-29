@@ -143,7 +143,42 @@ Deferred (reference test files whose remaining surface is not B2's):
   coverage over the same charter feed).
 - test_world_bound_conflicts_cache.py -> 9 (its fixtures import the repo-backed
   `tests.test_world_query` `world` fixture; the in-memory cases use row-dict
-  stores rather than charters). The cache itself (`_conflict_inputs_for_store`
+  stores rather than charters). The cache itself (`conflict_inputs_for_store`
   built once per BoundWorld) is implemented and exercised by the conflict path.
 - BoundWorld revision surface (expand/contract/revise/iterated/epistemic) -> 7b
   (support_revision); the seam is marked in `world/bound.py`.
+
+## Phase 7a-world-C3 (WorldQuery glue + OverlayWorld + consistency; this commit)
+
+C3 built the render-time query glue (`world/model.py` — bind / active_graph /
+compiled_graph / intervene / observe / chain_query as free functions over the
+`WorldStore` protocol), `world/overlay.py` (charter-native OverlayWorld +
+`_GraphOverlayStore`), `world/consistency.py`, and the `world/__init__` render
+re-export surface. The reference `WorldQuery` tests are sqlite/sidecar-backed; the
+glue *behaviour* is re-covered charter-natively over `tests/atms_feed.py`.
+
+PORTed in 7a-world-C3 (now green):
+- tests/test_world_model_glue.py — bind / active_graph / compiled_graph /
+  chain_query (derive / unresolved-conflict / strategy-resolve) / intervene /
+  observe over the in-memory feed (translates the reference
+  test_world_query.py bind/chain/intervene/observe/active_graph/compiled_graph
+  cases off the repo fixture).
+- tests/test_overlay_world.py — add / replace / remove / diff / parameterization
+  preservation / recompute_conflicts (translates the reference overlay cases).
+- tests/test_world_consistency.py — direct-conflict report + JSON-ready view.
+- tests/test_chain_query_enum_discipline.py — AST: chain_query compares
+  ValueStatus by identity (copied; works over `world/model.py`).
+- tests/test_overlay_world_renamed.py — AST: no `HypotheticalWorld` surface +
+  `propstore.OverlayWorld` export + disclaimer docstring (copied).
+
+Deferred (reference surface not built in C3):
+- test_world_query.py sidecar-build / historical / embedding / similar /
+  build-diagnostics / form-algebra / grounding / schema-validation cases -> 9
+  (concrete repo-backed `WorldQuery` reader: `__init__`/`from_path`/`select_*`/
+  sqlite-vec/`materialize_world_sidecar`). The Phase-9 reader satisfies the
+  `WorldStore` protocol and reuses the `world/model.py` glue.
+- test_world_model_resolve_cache.py, test_world_model_branch_column_required.py
+  -> 9 (sqlite reader caching / branch column).
+- test_world_query_at_journal_step.py, test_world_query_at_journal_step_method.py
+  -> 8 (`at_journal_step` / `bind_for_view` / `_BoundView` / `ClaimView` —
+  support_revision journal/worldline bridge).

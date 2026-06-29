@@ -145,7 +145,7 @@ class _ConflictInputs:
     cel_registry: dict[str, ConceptInfo]
 
 
-def _conflict_inputs_for_store(
+def conflict_inputs_for_store(
     store: WorldStore,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, ConceptInfo]]:
     """Build the concept + CEL registry the conflict detector reads."""
@@ -175,7 +175,7 @@ def _conflict_inputs_for_store(
     return registry, cel_registry
 
 
-def _conflict_claim_from_node(node: ClaimNode) -> ConflictClaim | None:
+def conflict_claim_from_node(node: ClaimNode) -> ConflictClaim | None:
     """Build a :class:`ConflictClaim` payload view from a compiled claim node."""
 
     payload: dict[str, Any] = dict(node.attribute_mapping())
@@ -190,7 +190,7 @@ def _conflict_claim_from_node(node: ClaimNode) -> ConflictClaim | None:
     return ConflictClaim.from_payload(payload)
 
 
-def _recomputed_conflicts(
+def recomputed_conflicts(
     store: WorldStore,
     claim_nodes: Sequence[ClaimNode],
     *,
@@ -204,10 +204,10 @@ def _recomputed_conflicts(
     conflict_claims = [
         conflict_claim
         for node in claim_nodes
-        if (conflict_claim := _conflict_claim_from_node(node)) is not None
+        if (conflict_claim := conflict_claim_from_node(node)) is not None
     ]
     if precomputed_inputs is None:
-        concept_registry, cel_registry = _conflict_inputs_for_store(store)
+        concept_registry, cel_registry = conflict_inputs_for_store(store)
     else:
         concept_registry = precomputed_inputs.concept_registry
         cel_registry = precomputed_inputs.cel_registry
@@ -521,7 +521,7 @@ class BoundWorld(BeliefSpace):
 
     def _get_or_build_conflict_inputs(self) -> _ConflictInputs:
         if self._conflict_inputs_cache is None:
-            concept_registry, cel_registry = _conflict_inputs_for_store(self._store)
+            concept_registry, cel_registry = conflict_inputs_for_store(self._store)
             self._conflict_inputs_cache = _ConflictInputs(
                 concept_registry=concept_registry,
                 cel_registry=cel_registry,
@@ -562,7 +562,7 @@ class BoundWorld(BeliefSpace):
             if (node := self._claim_node(str(claim.claim_id))) is not None
         ]
         precomputed = self._get_or_build_conflict_inputs()
-        for conflict in _recomputed_conflicts(
+        for conflict in recomputed_conflicts(
             self._store,
             active_nodes,
             lifting_system=self._lifting_system,

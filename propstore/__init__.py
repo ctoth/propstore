@@ -17,6 +17,7 @@ from __future__ import annotations
 from propstore.world import (
     InterventionWorld,
     ObservationWorld,
+    OverlayWorld,
     StructuralCausalModel,
     StructuralEquation,
     actual_cause,
@@ -27,6 +28,7 @@ __version__ = "0.4.0"
 __all__ = [
     "InterventionWorld",
     "ObservationWorld",
+    "OverlayWorld",
     "StructuralCausalModel",
     "StructuralEquation",
     "actual_cause",

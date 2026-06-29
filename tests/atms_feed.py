@@ -31,7 +31,7 @@ from propstore.conflict_detector.models import ConflictClass, ConflictRecord
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.environment import Environment
 from propstore.core.graph_build import build_compiled_world_graph
-from propstore.core.graph_types import ParameterizationEdge
+from propstore.core.graph_types import ParameterizationEdge, RelationEdge
 from propstore.core.labels import binding_condition_to_cel, compile_environment_assumptions
 from propstore.core.micropublications import ActiveMicropublication
 from propstore.families.claims import Claim, ClaimType
@@ -160,10 +160,37 @@ class InMemoryWorldStore:
     def all_parameterizations(self) -> Sequence[ParameterizationEdge]:
         return self.parameterizations
 
+    def all_relationships(self) -> Sequence[RelationEdge]:
+        return ()
+
     def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationEdge]:
         return [
             edge for edge in self.parameterizations if str(edge.output_concept_id) == concept_id
         ]
+
+    def group_members(self, concept_id: str) -> list[str]:
+        """Concepts reachable from ``concept_id`` through parameterization edges.
+
+        Walks each edge as connecting its output to its inputs in both
+        directions, returning the connected component (the chain-query group).
+        """
+
+        adjacency: dict[str, set[str]] = {}
+        for edge in self.parameterizations:
+            output = str(edge.output_concept_id)
+            for raw_input in edge.input_concept_ids:
+                neighbour = str(raw_input)
+                adjacency.setdefault(output, set()).add(neighbour)
+                adjacency.setdefault(neighbour, set()).add(output)
+        seen: set[str] = {concept_id}
+        frontier = [concept_id]
+        while frontier:
+            current = frontier.pop()
+            for neighbour in adjacency.get(current, set()):
+                if neighbour not in seen:
+                    seen.add(neighbour)
+                    frontier.append(neighbour)
+        return sorted(seen)
 
     def conflicts(self) -> Sequence[ConflictRecord]:
         return self.conflict_records
