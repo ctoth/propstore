@@ -2127,7 +2127,7 @@ requires-dist = [
     { name = "litellm", marker = "extra == 'embeddings'", specifier = ">=1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "pint", specifier = ">=0.25.3" },
-    { name = "provenance-semiring", git = "https://github.com/ctoth/provenance-semiring.git?rev=13380ece8ca5e7abcbf21d568d27246d5bc6c964" },
+    { name = "provenance-semiring", git = "https://github.com/ctoth/provenance-semiring.git?rev=91bbc34c87a1e0a39fa6635286e75bc374926496" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "quire", git = "https://github.com/ctoth/quire?rev=dba3493b64526101482c501bae2474ed8d190fce" },
     { name = "rfc8785", specifier = ">=0.1.4" },
@@ -2155,7 +2155,7 @@ dev = [
 [[package]]
 name = "provenance-semiring"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/provenance-semiring.git?rev=13380ece8ca5e7abcbf21d568d27246d5bc6c964#13380ece8ca5e7abcbf21d568d27246d5bc6c964" }
+source = { git = "https://github.com/ctoth/provenance-semiring.git?rev=91bbc34c87a1e0a39fa6635286e75bc374926496#91bbc34c87a1e0a39fa6635286e75bc374926496" }
 
 [[package]]
 name = "pydantic"

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from propstore.core.labels import (
+    EnvironmentKey,
     Label,
     SupportQuality,
     label_from_dict,
@@ -52,11 +53,11 @@ def test_atms_only_supports_grounded() -> None:
 
 
 def test_label_empty_is_unconditional_environment() -> None:
-    assert Label.empty().environments == (frozenset(),)
+    assert Label.empty().environments == (EnvironmentKey(()),)
 
 
 def test_label_round_trips_through_dict() -> None:
-    label = Label((frozenset({"a", "b"}), frozenset({"c"})))
+    label = Label((EnvironmentKey(("a", "b")), EnvironmentKey(("c",))))
     assert label_from_dict(label_to_dict(label)) == label
 
 

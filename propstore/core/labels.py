@@ -1,41 +1,51 @@
-"""Minimal core label types for the semantic kernel.
+"""Core label types for the semantic kernel.
 
-Full ATMS environment labels (the provenance-semiring-backed antichain with
-nogood pruning) arrive with the world layer in Phase 7. This module provides the
-minimal :class:`Label` surface the structured-projection and analyzer-result
-types need now: an antichain of supporting environments, each an immutable set of
-assumption ids, with an unconditional :meth:`Label.empty` environment. It also
-carries the :class:`SupportQuality` grading and the :data:`SupportMetadata`
-mapping those layers attach to projected supports.
+The ATMS label / environment / nogood antichain algebra is owned by the
+``provenance-semiring`` package (it is a thin polynomial-native layer over the
+provenance semiring). propstore imports those canonical types directly —
+:class:`Label`, :class:`EnvironmentKey`, :class:`NogoodSet`,
+:func:`combine_labels`, :func:`merge_labels`, :func:`normalize_environments`,
+and :class:`JustificationRecord` — rather than carrying a second spelling.
+
+This module re-exports them as the propstore-local door, adds the
+:class:`SupportQuality` grading and :data:`SupportMetadata` mapping the
+structured-projection and analyzer-result layers attach to projected supports,
+and owns the deterministic JSON (de)serialization of a :class:`Label`. The
+propstore-specific *meaning* of a label's variables (an assumption id versus a
+context id, and the ``ps:source:*`` encoding) lives with the world-layer
+engine, not here.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from typing import Any
 
-from provenance_semiring import SupportQuality
+from provenance_semiring import (
+    EnvironmentKey,
+    JustificationRecord,
+    Label,
+    NogoodSet,
+    SourceVariableId,
+    SupportQuality,
+    combine_labels,
+    merge_labels,
+    normalize_environments,
+)
 
-__all__ = ["Label", "SupportMetadata", "SupportQuality", "label_from_dict", "label_to_dict"]
-
-
-@dataclass(frozen=True)
-class Label:
-    """A minimal antichain of supporting environments.
-
-    Each environment is the immutable set of assumption ids that, taken together,
-    support the labelled datum. The empty environment (:meth:`empty`) denotes
-    unconditional support.
-    """
-
-    environments: tuple[frozenset[str], ...] = ()
-
-    @classmethod
-    def empty(cls) -> Label:
-        """Unconditional support: a single empty environment."""
-
-        return cls((frozenset(),))
+__all__ = [
+    "EnvironmentKey",
+    "JustificationRecord",
+    "Label",
+    "NogoodSet",
+    "SupportMetadata",
+    "SupportQuality",
+    "combine_labels",
+    "label_from_dict",
+    "label_to_dict",
+    "merge_labels",
+    "normalize_environments",
+]
 
 
 SupportMetadata = Mapping[str, tuple["Label | None", SupportQuality]]
@@ -44,7 +54,9 @@ SupportMetadata = Mapping[str, tuple["Label | None", SupportQuality]]
 def label_to_dict(label: Label) -> dict[str, Any]:
     """Serialize a :class:`Label` to a deterministic JSON-ready mapping."""
 
-    return {"environments": [sorted(environment) for environment in label.environments]}
+    return {
+        "environments": [sorted(environment.variables) for environment in label.environments]
+    }
 
 
 def label_from_dict(data: Mapping[str, Any] | None) -> Label | None:
@@ -54,6 +66,7 @@ def label_from_dict(data: Mapping[str, Any] | None) -> Label | None:
         return None
     raw_environments = data.get("environments") or ()
     environments = tuple(
-        frozenset(str(item) for item in environment) for environment in raw_environments
+        EnvironmentKey(tuple(SourceVariableId(str(item)) for item in environment))
+        for environment in raw_environments
     )
     return Label(environments)
