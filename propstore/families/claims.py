@@ -35,9 +35,12 @@ from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
+from quire.references import ForeignKeySpec
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from sqlalchemy import select
+
+from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 
 
 class ClaimType(str, Enum):
@@ -94,7 +97,20 @@ class Claim(CharterDoc):
     """
 
     claim_id: Annotated[str, charter_field(primary_key=True)]
-    context_id: str | None = None
+    context_id: Annotated[
+        str | None,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="claim_context",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claim",
+                source_field="context_id",
+                target_family="context",
+                target_field="context_id",
+                required=False,
+            )
+        ),
+    ] = None
     claim_type: ClaimType | None = None
     status: ClaimStatus = ClaimStatus.AUTHORED
     statement: str | None = None
@@ -105,9 +121,52 @@ class Claim(CharterDoc):
     measure: str | None = None
     methodology: str | None = None
     notes: str | None = None
-    output_concept: str | None = None
-    target_concept: str | None = None
-    concepts: Annotated[tuple[str, ...], charter_field(json=True)] = ()
+    output_concept: Annotated[
+        str | None,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="claim_output_concept",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claim",
+                source_field="output_concept",
+                target_family="concept",
+                target_field="concept_id",
+                required=False,
+            )
+        ),
+    ] = None
+    target_concept: Annotated[
+        str | None,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="claim_target_concept",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claim",
+                source_field="target_concept",
+                target_family="concept",
+                target_field="concept_id",
+                required=False,
+            )
+        ),
+    ] = None
+    concepts: Annotated[
+        tuple[str, ...],
+        charter_field(
+            json=True,
+            foreign_keys=(
+                ForeignKeySpec(
+                    name="claim_concepts",
+                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                    source_family="claim",
+                    source_field="concepts[]",
+                    target_family="concept",
+                    target_field="concept_id",
+                    required=False,
+                    many=True,
+                ),
+            ),
+        ),
+    ] = ()
     equations: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     conditions: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     conditions_ir: str | None = None

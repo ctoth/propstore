@@ -35,7 +35,9 @@ from enum import Enum
 from typing import Annotated
 
 from quire.charter_class import CharterDoc, charter, charter_field
+from quire.references import ForeignKeySpec
 
+from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 from propstore.core.lemon import LexicalEntry, OntologyReference
 
 
@@ -77,4 +79,20 @@ class Concept(CharterDoc):
     status: ConceptStatus = ConceptStatus.AUTHORED
     definition: str | None = None
     ontology_reference: Annotated[OntologyReference | None, charter_field(json=True)] = None
-    lexical_entry: Annotated[LexicalEntry | None, charter_field(json=True)] = None
+    lexical_entry: Annotated[
+        LexicalEntry | None,
+        charter_field(
+            json=True,
+            foreign_keys=(
+                ForeignKeySpec(
+                    name="concept_physical_dimension_form",
+                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                    source_family="concept",
+                    source_field="lexical_entry.physical_dimension_form",
+                    target_family="form",
+                    target_field="name",
+                    required=False,
+                ),
+            ),
+        ),
+    ] = None

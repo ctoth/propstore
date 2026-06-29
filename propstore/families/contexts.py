@@ -145,6 +145,12 @@ class LiftingMaterialization(CharterDoc):
     """
 
     materialization_id: Annotated[str, charter_field(primary_key=True)]
+    # A lifting materialization is a non-commitment INSPECTION record: every
+    # decision (LIFTED / BLOCKED / UNKNOWN) is projected, including ones whose
+    # rule / context / proposition references do not (yet) resolve. These
+    # references are therefore deliberately NOT declared as foreign keys — a hard
+    # referential constraint would reject a blocked/unknown decision row, which
+    # is exactly the drop the non-commitment discipline forbids.
     rule_id: str
     source_context_id: str
     target_context_id: str

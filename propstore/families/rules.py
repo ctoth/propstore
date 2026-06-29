@@ -34,8 +34,11 @@ from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
+from quire.references import ForeignKeySpec
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+
+from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 from sqlalchemy import select
 
 RuleKind = Literal["strict", "defeasible", "proper_defeater", "blocking_defeater"]
@@ -112,8 +115,32 @@ class RuleSuperiority(CharterDoc):
     """An authored ``superior_rule_id > inferior_rule_id`` priority."""
 
     superiority_id: Annotated[str, charter_field(primary_key=True)]
-    superior_rule_id: str
-    inferior_rule_id: str
+    superior_rule_id: Annotated[
+        str,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="rule_superiority_superior_rule",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="rule_superiority",
+                source_field="superior_rule_id",
+                target_family="defeasible_rule",
+                target_field="rule_id",
+            )
+        ),
+    ]
+    inferior_rule_id: Annotated[
+        str,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="rule_superiority_inferior_rule",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="rule_superiority",
+                source_field="inferior_rule_id",
+                target_family="defeasible_rule",
+                target_field="rule_id",
+            )
+        ),
+    ]
     source: str | None = None
     authoring_group: str | None = None
     promoted_from_sha: str | None = None

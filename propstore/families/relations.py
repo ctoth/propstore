@@ -32,6 +32,7 @@ from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
+from quire.references import ForeignKeySpec
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.sqlalchemy_store import (
     create_sqlalchemy_store,
@@ -40,6 +41,7 @@ from quire.sqlalchemy_store import (
 )
 from sqlalchemy import select
 
+from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 from propstore.stances import NON_ATTACK_TYPES, StanceType, coerce_stance_type
 
 _DOGMATIC_TOL = 1e-9
@@ -63,8 +65,34 @@ class Stance(CharterDoc):
     """
 
     stance_id: Annotated[str, charter_field(primary_key=True)]
-    source_claim_id: str | None = None
-    target_claim_id: str | None = None
+    source_claim_id: Annotated[
+        str | None,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="stance_source_claim",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stance",
+                source_field="source_claim_id",
+                target_family="claim",
+                target_field="claim_id",
+                required=False,
+            )
+        ),
+    ] = None
+    target_claim_id: Annotated[
+        str | None,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="stance_target_claim",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stance",
+                source_field="target_claim_id",
+                target_family="claim",
+                target_field="claim_id",
+                required=False,
+            )
+        ),
+    ] = None
     stance_type: StanceType | None = None
     resolution_model: str | None = None
     confidence: float | None = None
