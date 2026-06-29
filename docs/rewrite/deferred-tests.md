@@ -37,9 +37,12 @@ git+families yet):
 
 belief-set / worldline IC-merge (model-theoretic IC merge, layer 4 — distinct
 from the merge-side IntegrityConstraint built in 6c):
-- test_ic_postulate_coverage.py -> 7 (belief_set.ic_merge)
+- test_ic_postulate_coverage.py -> 8/9 (propstore.merge merge-framework over a
+  git-backed knowledge store + tests.git_store_helpers / tests.ws_l_merge_helpers;
+  this is the merge-side IntegrityConstraint, not support_revision)
 - test_assignment_selection_merge.py -> 7 (world.assignment_selection_merge)
-- test_revision_merge_uses_ic_merge.py / test_worldline_ic_merge*.py -> 7
+- test_worldline_ic_merge*.py -> 7b-4 (belief_set IC merge over a captured
+  worldline epistemic state). test_revision_merge_uses_ic_merge.py PORTed in 7b-1.
 
 ## Deferred during Phase 5b (commits 8e9a10a8, bbe56d71)
 
@@ -250,3 +253,32 @@ test_observatory_cli_adapter_builds_typed_app_request /
 test_root_cli_registers_observatory_lazily /
 test_epistemic_os_documentation_maps_artifact_to_journal) -> CLI/docs phase; the
 owner-layer report-builder cases are ported and green.
+
+## Phase 7b-1 (support_revision core)
+
+7b-1 built the `support_revision/` support-incision package (L0-L7 + explain):
+explanation_types, scope_policy, state, belief_set_adapter (the sole belief_set
+contact point), input_normalization, entrenchment, realization, snapshot_types,
+history, iterated, dispatch, explain. belief_set is consumed directly (now
+py.typed) with no propstore mirror; support_revision.BeliefBase stays distinct
+from belief_set.BeliefBase.
+
+PORTed in 7b-1 (now green), translated to the structural situated-assertion
+helper (`tests/support_revision/revision_assertion_helpers.make_assertion_atom`
+builds a `SituatedAssertion` via `core.assertions`, not `projection`):
+- test_revision_operators.py, test_revision_iterated.py,
+  test_revision_adapter_budget.py, test_revision_adapter_expand_contract_revise.py,
+  test_revision_adapter_iterated.py, test_revision_iterated_examples.py,
+  test_revision_properties.py, test_revision_entrenchment.py,
+  test_revision_formal_entrenchment_boundary.py, test_revision_explain.py,
+  test_revision_event_contract.py, test_revision_formal_decision_reports.py,
+  test_iterated_revision_recomputes_entrenchment.py,
+  test_revision_merge_uses_ic_merge.py, test_revision_policy_provenance.py
+  (the last inlines `TransitionJournalEntry.from_states` rather than the
+  charter-heavy `tests.fixtures.journal` fixture).
+
+Deferred past 7b-1:
+- test_revision_state.py, test_revision_assertion_identity.py -> 7b-2
+  (`support_revision.projection.project_belief_base` + `_make_bound`/BoundWorld).
+- test_revision_retirement.py -> 7b-4 (reads
+  `propstore/worldline/revision_capture.py`, which lands in 7b-4).
