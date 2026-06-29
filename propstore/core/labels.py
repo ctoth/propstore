@@ -46,13 +46,22 @@ __all__ = [
     "JustificationRecord",
     "Label",
     "NogoodSet",
+    "SourceVariableId",
     "SupportMetadata",
     "SupportQuality",
+    "assumption_label",
+    "assumption_variable",
     "binding_condition_to_cel",
+    "cel_to_binding",
     "combine_labels",
     "compile_environment_assumptions",
+    "context_label",
+    "context_variable",
+    "environment_assumption_ids",
+    "environment_context_ids",
     "label_from_dict",
     "label_to_dict",
+    "make_environment_key",
     "merge_labels",
     "normalize_environments",
 ]
@@ -90,6 +99,106 @@ def binding_condition_to_cel(key: str, value: Any) -> CelExpr:
     if isinstance(value, str):
         return to_cel_expr(f"{key} == '{value}'")
     return to_cel_expr(f"{key} == {value}")
+
+
+_ASSUMPTION_VARIABLE_PREFIX = "ps:source:assumption:"
+_CONTEXT_VARIABLE_PREFIX = "ps:source:context:"
+
+
+def assumption_variable(assumption_id: AssumptionId | str) -> SourceVariableId:
+    """Encode an assumption id as a provenance-polynomial indeterminate.
+
+    The carved ``EnvironmentKey`` is generic over ``SourceVariableId``; propstore
+    owns the *meaning* of a variable (assumption vs context) through this
+    ``ps:source:*`` naming scheme (CLAUDE.md substrate boundary — the
+    propstore-specific knowledge is supplied at the call site, not by wrapping the
+    package). :func:`environment_assumption_ids` is the matching decode.
+    """
+
+    return SourceVariableId(f"{_ASSUMPTION_VARIABLE_PREFIX}{to_assumption_id(assumption_id)}")
+
+
+def context_variable(context_id: ContextId | str) -> SourceVariableId:
+    """Encode a context id as a provenance-polynomial indeterminate."""
+
+    return SourceVariableId(f"{_CONTEXT_VARIABLE_PREFIX}{to_context_id(context_id)}")
+
+
+def assumption_label(assumption_id: AssumptionId | str) -> Label:
+    """A label whose single environment is the one supporting assumption."""
+
+    return Label.from_variable(assumption_variable(assumption_id))
+
+
+def context_label(context_id: ContextId | str) -> Label:
+    """A label whose single environment is the one supporting context."""
+
+    return Label.from_variable(context_variable(context_id))
+
+
+def make_environment_key(
+    *,
+    assumption_ids: Sequence[AssumptionId | str] = (),
+    context_ids: Sequence[ContextId | str] = (),
+) -> EnvironmentKey:
+    """Build an :class:`EnvironmentKey` from assumption and context ids.
+
+    Each id is encoded to its ``ps:source:*`` ``SourceVariableId``; the carved
+    ``EnvironmentKey`` then normalizes (dedups + sorts) the variable set.
+    """
+
+    variables = tuple(assumption_variable(value) for value in assumption_ids) + tuple(
+        context_variable(value) for value in context_ids
+    )
+    return EnvironmentKey(variables)
+
+
+def environment_assumption_ids(environment: EnvironmentKey) -> tuple[AssumptionId, ...]:
+    """Decode the assumption ids carried by an environment's variables."""
+
+    return tuple(
+        to_assumption_id(str(variable)[len(_ASSUMPTION_VARIABLE_PREFIX) :])
+        for variable in environment.variables
+        if str(variable).startswith(_ASSUMPTION_VARIABLE_PREFIX)
+    )
+
+
+def environment_context_ids(environment: EnvironmentKey) -> tuple[ContextId, ...]:
+    """Decode the context ids carried by an environment's variables."""
+
+    return tuple(
+        to_context_id(str(variable)[len(_CONTEXT_VARIABLE_PREFIX) :])
+        for variable in environment.variables
+        if str(variable).startswith(_CONTEXT_VARIABLE_PREFIX)
+    )
+
+
+def cel_to_binding(cel: str | CelExpr) -> tuple[str, Any] | None:
+    """Reverse of :func:`binding_condition_to_cel`: parse ``key == value``.
+
+    Returns ``None`` when the CEL is not a simple binding equality. Used by the
+    world engine to project a queryable assumption back into a binding so a future
+    replay can rebuild the bound world under it.
+    """
+
+    parts = str(cel).split(" == ", 1)
+    if len(parts) != 2:
+        return None
+    key, raw = parts[0].strip(), parts[1].strip()
+    if not key:
+        return None
+    if raw.startswith("'") and raw.endswith("'"):
+        return (key, raw[1:-1])
+    if raw == "true":
+        return (key, True)
+    if raw == "false":
+        return (key, False)
+    try:
+        if "." in raw:
+            return (key, float(raw))
+        return (key, int(raw))
+    except ValueError:
+        return None
 
 
 def _stable_id(kind: str, source: str, body: str) -> AssumptionId:
