@@ -13,7 +13,6 @@ visible without touching storage.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -24,33 +23,9 @@ from quire.sqlalchemy_store import readonly_session
 
 from propstore.core.lemon import LexicalEntry, OntologyReference
 from propstore.families.concepts import Concept, ConceptStatus
+from propstore.world.types import RenderPolicy
 
-
-@dataclass(frozen=True)
-class RenderPolicy:
-    """Which non-default concept statuses to surface at render time.
-
-    Both flags default to ``False``: the default view shows only ``AUTHORED``
-    concepts, keeping drafts and blocked items present-in-storage-but-hidden.
-    Setting a flag reveals the corresponding status without any change to the
-    stored corpus or the sidecar.
-    """
-
-    include_drafts: bool = False
-    include_blocked: bool = False
-
-    def _hidden_statuses(self) -> frozenset[ConceptStatus]:
-        hidden: set[ConceptStatus] = set()
-        if not self.include_drafts:
-            hidden.add(ConceptStatus.DRAFT)
-        if not self.include_blocked:
-            hidden.add(ConceptStatus.BLOCKED)
-        return frozenset(hidden)
-
-    def admits(self, status: ConceptStatus) -> bool:
-        """Whether a concept of ``status`` is visible under this policy."""
-
-        return status not in self._hidden_statuses()
+__all__ = ["RenderPolicy", "render_concepts"]
 
 
 class _ConceptRow(Protocol):

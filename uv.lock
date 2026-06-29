@@ -194,7 +194,7 @@ wheels = [
 [[package]]
 name = "assignment-selection"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/assignment-selection.git?rev=ac1040cc7087239bf96906b799c4a839281c6199#ac1040cc7087239bf96906b799c4a839281c6199" }
+source = { git = "https://github.com/ctoth/assignment-selection.git?rev=d8554962eee40b73dd8444f6361a72b9b9f95d86#d8554962eee40b73dd8444f6361a72b9b9f95d86" }
 
 [[package]]
 name = "ast-equiv"
@@ -2104,7 +2104,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "assignment-selection", git = "https://github.com/ctoth/assignment-selection.git?rev=ac1040cc7087239bf96906b799c4a839281c6199" },
+    { name = "assignment-selection", git = "https://github.com/ctoth/assignment-selection.git?rev=d8554962eee40b73dd8444f6361a72b9b9f95d86" },
     { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=b7423889daef74154193317099ae9992ecbcd958" },
     { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=5eb6118bb2e346122aae6f7e3e9cd8581ec6c781" },
     { name = "causal-models", git = "https://github.com/ctoth/causal-models?rev=21d6b1e341c42ae4db57309bab48f1994a9d734f" },
