@@ -1,0 +1,101 @@
+"""Typed literal identity objects for the ASPIC+ bridge.
+
+A propositional literal in the bridge is identified by *structure*, not by a
+serialized UI string. The three key kinds below give one canonical spelling for
+each way a claim or grounded atom becomes an ASPIC+ ``Literal``, so the bridge
+interns literals deterministically and never collapses two distinct propositions
+that happen to share a display name.
+
+References:
+    Modgil & Prakken 2018, Def. 1 (p.8): the logical language ``L`` contains
+    formulas and their contradictories; identity is defined over formula
+    structure rather than serialized strings.
+    Diller, Borg, Bex 2025, Def. 7 (p.3): a ground atom is a predicate symbol
+    applied to a tuple of ground terms — that tuple is part of the atom's
+    identity, modelled directly here.
+
+Substrate boundary (CLAUDE.md): ``GroundAtom``/``Scalar`` are the argumentation
+package's own ASPIC+ types, imported from their leaf module and used directly.
+There is no propstore mirror of an atom type.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TypeAlias
+
+from argumentation.structured.aspic.aspic import GroundAtom, Scalar
+
+from propstore.core.id_types import ClaimId, ContextId, to_claim_id, to_context_id
+
+REPOSITORY_ROOT_CONTEXT_ID = to_context_id("propstore:context:root")
+
+
+@dataclass(frozen=True)
+class ClaimLiteralKey:
+    """Identity key for a claim-backed propositional literal."""
+
+    claim_id: str
+
+
+@dataclass(frozen=True)
+class IstLiteralKey:
+    """Identity key for a context-scoped ``ist(c, p)`` proposition literal."""
+
+    context_id: ContextId
+    proposition_id: ClaimId
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "context_id", to_context_id(self.context_id))
+        object.__setattr__(self, "proposition_id", to_claim_id(self.proposition_id))
+
+
+@dataclass(frozen=True)
+class GroundLiteralKey:
+    """Identity key for a grounded predicate literal.
+
+    The polarity bit is explicit because ASPIC+ literals are atoms or their
+    negations, not a single atom carrying out-of-band sign metadata
+    (Modgil & Prakken 2018, Def. 1, p.8).
+    """
+
+    predicate: str
+    arguments: tuple[Scalar, ...]
+    negated: bool
+
+
+LiteralKey: TypeAlias = ClaimLiteralKey | IstLiteralKey | GroundLiteralKey
+
+
+def claim_key(
+    claim_id: str,
+    *,
+    context_id: ContextId | str = REPOSITORY_ROOT_CONTEXT_ID,
+) -> IstLiteralKey:
+    """Return the canonical typed key for a situated claim literal."""
+
+    return IstLiteralKey(
+        context_id=to_context_id(context_id),
+        proposition_id=to_claim_id(claim_id),
+    )
+
+
+def ground_key(atom: GroundAtom, negated: bool) -> GroundLiteralKey:
+    """Return the canonical typed key for a grounded literal."""
+
+    return GroundLiteralKey(
+        predicate=atom.predicate,
+        arguments=atom.arguments,
+        negated=negated,
+    )
+
+
+__all__ = [
+    "REPOSITORY_ROOT_CONTEXT_ID",
+    "ClaimLiteralKey",
+    "GroundLiteralKey",
+    "IstLiteralKey",
+    "LiteralKey",
+    "claim_key",
+    "ground_key",
+]

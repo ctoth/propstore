@@ -11,9 +11,23 @@ from __future__ import annotations
 from typing import NewType
 
 AssertionId = NewType("AssertionId", str)
+ClaimId = NewType("ClaimId", str)
+ContextId = NewType("ContextId", str)
 
 
 def to_assertion_id(value: object) -> AssertionId:
     """Brand an arbitrary value's string form as an :data:`AssertionId`."""
 
     return AssertionId(str(value))
+
+
+def to_claim_id(value: object) -> ClaimId:
+    """Brand an arbitrary value's string form as a :data:`ClaimId`."""
+
+    return ClaimId(str(value))
+
+
+def to_context_id(value: object) -> ContextId:
+    """Brand an arbitrary value's string form as a :data:`ContextId`."""
+
+    return ContextId(str(value))

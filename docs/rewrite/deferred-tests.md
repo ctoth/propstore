@@ -16,8 +16,6 @@ build-fresh + no-Document-mirror):
 
 - test_relate_opinions.py -> 5b (relation_analysis over the AF / praf surface)
 - test_relation_concept_identity.py -> 5b/6 (relation+concept alignment graph)
-- test_defeat_summary_opinion_honest.py -> 5b (praf defeat-summary)
-- test_defeat_summary_opinion_no_fabrication.py -> 5b (praf defeat-summary)
 - test_source_relations.py -> 8 (source subsystem)
 - test_trust_calibration_runs_at_promote.py -> 8 (source promote lifecycle)
 - test_sidecar_relation_edge_projection.py -> 9 (projection_catalog relation_edge schema)
