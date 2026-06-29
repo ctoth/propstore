@@ -223,22 +223,20 @@ resolution / argumentation / hashing / result_types / revision_types data
 shapes) + observatory over the in-memory `WorldlineStore` feed. Revision/
 sensitivity *capture* and the concrete repo-backed store land later:
 
-Deferred to 7b (need support_revision / fragility):
-- test_worldline_hash_repr_typed_failure.py -> 7b (imports
-  support_revision.history / support_revision.projection).
-- test_capture_journal.py -> 7b/8 (support_revision.history.TransitionJournal /
-  EpistemicState + CLI).
-- tests/test_worldline_error_visibility.py::test_sensitivity_failure_produces_error_indicator
-  -> 7b (worldline sensitivity capture = propstore.sensitivity / fragility;
-  skip-marked in the ported file, the argumentation case is green now).
-- test_worldline_revision.py, test_worldline_revision_event_capture.py,
-  test_worldline_revision_merge_parent_evidence.py,
+Closed in 7b-4 (see "## Phase 7b-4" below):
+- test_worldline_hash_repr_typed_failure.py, test_capture_journal.py (in-memory
+  capture cases; document/CLI cases stay deferred),
+  test_worldline_error_visibility.py::test_sensitivity_failure_produces_error_indicator,
+  test_worldline_revision.py, test_worldline_revision_event_capture.py,
   test_worldline_revision_properties.py,
-  test_worldline_revision_snapshot_boundary.py -> 7b (revision_capture +
-  WorldlineRevisionState.event / support_revision.RevisionEvent).
-- test_worldline_ic_merge.py, test_worldline_ic_merge_properties.py,
-  test_worldline_ic_merge_realization.py -> 7b (belief_set IC merge over a
-  captured epistemic state).
+  test_worldline_revision_snapshot_boundary.py, test_worldline_ic_merge.py,
+  test_worldline_ic_merge_properties.py, test_worldline_ic_merge_realization.py.
+
+Still deferred past 7b-4 (need a concrete repo-backed git scope):
+- test_worldline_revision_merge_parent_evidence.py -> 8/9 (needs
+  `propstore.repository.Repository` + a real git merge DAG to populate
+  `RevisionScope.merge_parent_commits`; the in-memory feed degrades scope to
+  `None`/`()`).
 
 Deferred to Phase 9 (need a concrete repo-backed WorldStore beyond the
 in-memory feed; the reference fakes are pre-charter dict-shaped):
@@ -358,3 +356,48 @@ SKIPPED in 7b-3 (deferred — see `docs/gaps.md` MED grounding/bridge entry):
 The fragility-driven worldline sensitivity-capture case
 (`test_worldline_error_visibility.py::test_sensitivity_failure_produces_error_indicator`)
 and `epistemic_process` cases remain owed to Phase 7b-4.
+
+## Phase 7b-4 (worldline revision tail + epistemic_process)
+
+7b-4 built `propstore/worldline/revision_capture.py`
+(`capture_revision_state` / `capture_journal` over the re-attached BoundWorld
+revision surface), re-wired `worldline/runner.py` (both seams:
+`_capture_sensitivity` -> `propstore.sensitivity.analyze_sensitivity`, and
+`definition.revision` -> `capture_revision_state`; the content hash now lowers the
+render policy through `policies.policy_profile_from_render_policy`), added the
+`event: RevisionEvent | None` field to `worldline/revision_types.WorldlineRevisionState`,
+and built `propstore/epistemic_process.py` (JobKind / InvestigationPlan /
+InterventionPlan / plan_fragility_investigation / ProcessJob / QueuedProcessJob /
+ProcessCompletionRecord / ProcessReplayReport / EpistemicProcessManager).
+`plan_fragility_investigation` takes a `core.environment.WorldStore` (the rewrite
+has no `WorldQuery` type). belief_set stays confined to `belief_set_adapter.py`.
+
+PORTed in 7b-4 (now green):
+- test_worldline_revision.py, test_worldline_revision_event_capture.py,
+  test_worldline_revision_properties.py,
+  test_worldline_revision_snapshot_boundary.py, test_worldline_ic_merge.py,
+  test_worldline_ic_merge_properties.py, test_worldline_ic_merge_realization.py,
+  test_worldline_hash_repr_typed_failure.py, test_epistemic_process_manager.py,
+  test_epistemic_history.py, test_epistemic_snapshot_detaches_state.py,
+  test_revision_retirement.py (paths trimmed to surfaces that exist in the
+  rewrite — `cli/compiler_cmds.py` is not present yet),
+  test_worldline_error_visibility.py::test_sensitivity_failure_produces_error_indicator
+  (skip removed). `tests/fixtures/journal.py` was ported, translated off the
+  deleted `ClaimRow`/`ActiveClaim.from_claim_row` onto `coerce_active_claim`;
+  the Mara-Jade / SyntheticBeliefSpace `bind_for_view` fixtures (Phase-8
+  `at_journal_step` only) were not carried over.
+
+PORTed partially (in-memory capture only) in 7b-4:
+- test_capture_journal.py — the `capture_journal` determinism / replay-vs-direct-
+  dispatch / revise-revise-contract / expand-operator cases are ported and green.
+  The document-codec roundtrip cases (need
+  `families.documents.worldlines.WorldlineDefinitionDocument` +
+  `WorldlineDefinition.journal` / `to_document`), the
+  `worldline_build_journal` / `worldline_at_step` CLI cases (need
+  `propstore.cli.worldline.journal` + `propstore.app.worldlines`), and the
+  `at_journal_step` case (Phase 8) are NOT ported — those surfaces are not in the
+  rewrite yet.
+
+Still deferred past 7b-4:
+- test_worldline_revision_merge_parent_evidence.py -> 8/9 (real git merge DAG via
+  `propstore.repository.Repository`).

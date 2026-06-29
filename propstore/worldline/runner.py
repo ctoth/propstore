@@ -1,10 +1,10 @@
 """Worldline materialization engine.
 
 ``run_worldline`` is the render-time hypothetical: it binds a world over the
-corpus, resolves each target, captures argumentation/value state, and fingerprints
-the rendered content. It never mutates source. Sensitivity capture (fragility) and
-revision capture (support_revision) are Phase-7b seams: until they land the runner
-records ``None`` for both rather than fabricate a result.
+corpus, resolves each target, captures argumentation/value/sensitivity/revision
+state, and fingerprints the rendered content. It never mutates source. When a
+subsystem (sensitivity, argumentation, revision) raises, the runner records an
+explicit error indicator rather than fabricating or silently dropping a result.
 """
 
 from __future__ import annotations
@@ -13,7 +13,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from propstore.core.id_types import ConceptId, ContextId
+from propstore.core.id_types import ConceptId, ContextId, to_concept_id
+from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
@@ -22,16 +23,20 @@ from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineCaptureError,
     WorldlineDependencies,
+    WorldlineSensitivityEntry,
+    WorldlineSensitivityOutcome,
     WorldlineSensitivityReport,
     WorldlineTargetValue,
 )
 from propstore.worldline.resolution import (
     ResolutionContext,
+    concept_name as _concept_name,
     display_claim_id as _display_claim_id,
     pre_resolve_conflicts as _pre_resolve_conflicts,
     resolve_concept_name as _resolve_concept_name,
     resolve_target as _resolve_target,
 )
+from propstore.worldline.revision_capture import capture_revision_state
 from propstore.worldline.revision_types import WorldlineRevisionState
 from propstore.worldline.trace import ResolutionTrace
 
@@ -97,9 +102,13 @@ def run_worldline(
                 reason=f"concept '{target}' not found in knowledge base",
             )
 
-    # 7b seam: sensitivity capture routes into the fragility engine; until that
-    # lands the runner reports no sensitivity rather than a fabricated one.
-    sensitivity_results: WorldlineSensitivityReport | None = None
+    sensitivity_results = _capture_sensitivity(
+        world,
+        bound,
+        target_map,
+        values,
+        override_concept_ids,
+    )
 
     argumentation_state: WorldlineArgumentationState | None = None
     stance_dependencies: list[str] = []
@@ -119,9 +128,17 @@ def run_worldline(
                 error=WorldlineCaptureError.ARGUMENTATION,
             )
 
-    # 7b seam: revision capture routes into support_revision; until it lands the
-    # runner reports no revision state.
     revision_state: WorldlineRevisionState | None = None
+    if definition.revision is not None:
+        try:
+            revision_state = capture_revision_state(bound, definition.revision)
+        except Exception:
+            logger.warning("revision capture failed", exc_info=True)
+            revision_state = WorldlineRevisionState(
+                operation=definition.revision.operation,
+                status="error",
+                error=WorldlineCaptureError.REVISION,
+            )
 
     lifting_rules, blocked_exceptions = _lifting_dependencies(bound, world, context_id)
     dependencies = WorldlineDependencies(
@@ -135,7 +152,7 @@ def run_worldline(
         blocked_exceptions=tuple(blocked_exceptions),
     )
     content_hash = compute_worldline_content_hash(
-        policy=definition.policy.to_dict(),
+        policy=policy_profile_from_render_policy(definition.policy).to_dict(),
         values=values,
         steps=trace.steps,
         dependencies=dependencies,
@@ -154,6 +171,54 @@ def run_worldline(
         argumentation=argumentation_state,
         revision=revision_state,
     )
+
+
+def _capture_sensitivity(
+    world: WorldlineStore,
+    bound: Any,
+    target_map: dict[str, ConceptId],
+    values: dict[str, WorldlineTargetValue],
+    override_concept_ids: dict[ConceptId, float | str],
+) -> WorldlineSensitivityReport | None:
+    outcomes: dict[str, WorldlineSensitivityOutcome] = {}
+    float_overrides = {
+        str(concept_id): float(value)
+        for concept_id, value in override_concept_ids.items()
+        if isinstance(value, (int, float))
+    }
+    for target_name, concept_id in target_map.items():
+        value = values.get(target_name)
+        if value is None or value.status != "derived":
+            continue
+        try:
+            from propstore.sensitivity import analyze_sensitivity
+
+            result = analyze_sensitivity(
+                world,
+                to_concept_id(concept_id),
+                bound,
+                override_values=float_overrides,
+            )
+            if result is not None and result.entries:
+                outcomes[target_name] = WorldlineSensitivityOutcome(
+                    entries=tuple(
+                        WorldlineSensitivityEntry(
+                            input_name=_concept_name(world, entry.input_concept_id),
+                            elasticity=entry.elasticity,
+                            partial_derivative=entry.partial_derivative_value,
+                        )
+                        for entry in result.entries
+                        if entry.elasticity is not None
+                    )
+                )
+        except Exception:
+            logger.warning("sensitivity analysis failed for %s", target_name, exc_info=True)
+            outcomes[target_name] = WorldlineSensitivityOutcome(
+                error=WorldlineCaptureError.SENSITIVITY,
+            )
+    if not outcomes:
+        return None
+    return WorldlineSensitivityReport(targets=outcomes)
 
 
 def _context_dependencies(

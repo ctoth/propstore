@@ -1,11 +1,9 @@
 """Typed worldline revision-query shapes (data only).
 
 These are the parse-time/result shapes the worldline revision *query* and
-*result* surfaces use. The revision *capture* path that materializes a
-``WorldlineRevisionState`` from a bound world (and the ``support_revision``
-``RevisionEvent`` carried on a captured state) lands in Phase 7b together with
-``worldline/revision_capture.py``; until then ``WorldlineRevisionState`` carries
-no ``event`` and the runner never populates it. See ``docs/rewrite/deferred-tests.md``.
+*result* surfaces use. A captured ``WorldlineRevisionState`` carries the
+``support_revision`` ``RevisionEvent`` materialized by
+``worldline/revision_capture.py``.
 """
 
 from __future__ import annotations
@@ -14,6 +12,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
+from propstore.support_revision.state import RevisionEvent
 from propstore.worldline.result_types import (
     WorldlineCaptureError,
     coerce_worldline_capture_error,
@@ -201,9 +200,7 @@ class WorldlineRevisionState:
     state: Any | None = None
     status: str | None = None
     error: WorldlineCaptureError | None = None
-    # 7b seam: the captured ``support_revision.RevisionEvent`` lands with
-    # ``worldline/revision_capture.py``; until then no ``event`` is carried and
-    # the runner never populates a ``WorldlineRevisionState``.
+    event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
@@ -222,6 +219,9 @@ class WorldlineRevisionState:
             raise ValueError("worldline revision field 'result' must be a mapping")
         if state_data is not None and not _is_mapping(state_data):
             raise ValueError("worldline revision field 'state' must be a mapping")
+        event_data = payload.get("event")
+        if event_data is not None and not _is_mapping(event_data):
+            raise ValueError("worldline revision field 'event' must be a mapping")
         return cls(
             operation=str(payload.get("operation") or ""),
             input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
@@ -230,6 +230,7 @@ class WorldlineRevisionState:
             state=None if state_data is None else dict(state_data),
             status=None if payload.get("status") is None else str(payload.get("status")),
             error=coerce_worldline_capture_error(payload.get("error")),
+            event=None if event_data is None else RevisionEvent.from_mapping(event_data),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -247,6 +248,8 @@ class WorldlineRevisionState:
             data["status"] = self.status
         if self.error is not None:
             data["error"] = self.error.value
+        if self.event is not None:
+            data["event"] = self.event.to_dict()
         return data
 
 

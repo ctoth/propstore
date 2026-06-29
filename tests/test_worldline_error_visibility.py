@@ -17,8 +17,6 @@ from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from propstore.world.types import Environment
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
 from propstore.worldline import (
@@ -121,9 +119,6 @@ class _FakeBound:
 class TestSensitivityErrorVisibility:
     """F1.4 — the worldline runner surfaces sensitivity failures explicitly."""
 
-    @pytest.mark.skip(
-        reason="Phase 7b: worldline sensitivity capture (propstore.sensitivity / fragility) is deferred"
-    )
     def test_sensitivity_failure_produces_error_indicator(self):
         """When analyze_sensitivity raises, the result must carry an
         error indicator — not silently return sensitivity=None."""
