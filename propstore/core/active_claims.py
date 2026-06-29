@@ -104,15 +104,18 @@ def _active_claim_from_mapping(claim: Mapping[str, Any]) -> ActiveClaim:
     )
 
 
+def coerce_active_claim(claim: ActiveClaimInput) -> ActiveClaim:
+    """Normalize a single claim-or-mapping into an ``ActiveClaim`` value."""
+
+    return claim if isinstance(claim, ActiveClaim) else _active_claim_from_mapping(claim)
+
+
 def coerce_active_claims(
     active_claims: Sequence[ActiveClaimInput],
 ) -> tuple[ActiveClaim, ...]:
     """Normalize a sequence of claims-or-mappings into ``ActiveClaim`` values."""
 
-    return tuple(
-        claim if isinstance(claim, ActiveClaim) else _active_claim_from_mapping(claim)
-        for claim in active_claims
-    )
+    return tuple(coerce_active_claim(claim) for claim in active_claims)
 
 
-__all__ = ["ActiveClaim", "ActiveClaimInput", "coerce_active_claims"]
+__all__ = ["ActiveClaim", "ActiveClaimInput", "coerce_active_claim", "coerce_active_claims"]
