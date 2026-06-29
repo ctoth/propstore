@@ -15,7 +15,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from argumentation.dung import ArgumentationFramework
+from argumentation.core.dung import ArgumentationFramework
 
 from propstore.core.lemon import (
     AllenRelation,

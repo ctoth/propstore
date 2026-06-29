@@ -13,7 +13,7 @@ import json
 from collections.abc import Sequence
 
 import gunray
-from argumentation.preference import strict_partial_order_closure
+from argumentation.core.preference import strict_partial_order_closure
 
 from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, RuleSuperiority, Term
 from propstore.grounding.predicates import PredicateRegistry

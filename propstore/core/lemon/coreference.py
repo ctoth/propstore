@@ -2,7 +2,7 @@
 
 Coreference is NOT stored. Given a set of :class:`MergeArgument` hypotheses and
 the attacks among them, this module builds a Dung
-:class:`~argumentation.dung.ArgumentationFramework` and resolves which merges hold
+:class:`~argumentation.core.dung.ArgumentationFramework` and resolves which merges hold
 *at render time* under a chosen argumentation semantics. Because the result is
 policy-dependent, the SAME merge arguments yield DIFFERENT coreference clusters
 under different semantics — e.g. a pair of mutually-attacking merge hypotheses
@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import msgspec
 
-from argumentation.dung import (
+from argumentation.core.dung import (
     ArgumentationFramework,
     grounded_extension,
     preferred_extensions,
