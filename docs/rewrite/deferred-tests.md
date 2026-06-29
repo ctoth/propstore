@@ -110,3 +110,40 @@ Deferred to Phase 8 (source subsystem: Repository / source branches / CLI):
 - test_concept_alignment_cli.py -> 8 (alignment CLI over a Repository)
 - test_source_promotion_alignment.py -> 8 (align_sources/decide/promote_alignment)
 - test_source_relations.py -> 8 (already listed above; source-relation projection)
+
+## Phase 7a-world-B2 (BoundWorld + ATMS engine; commit f8ad6fe1 + follow-up)
+
+B2 ported `world/bound.py` (BoundWorld) + `world/atms.py` (ATMSEngine) onto the
+charters and the carved provenance-semiring label algebra. The reference ATMS
+suite is row/dict-based and pulls in CLI / worldline / app-layer / sidecar paths;
+the engine *behaviour* is re-covered charter-natively over the in-memory feed
+`tests/atms_feed.py`.
+
+PORTed in 7a-world-B2 (now green):
+- tests/test_atms_engine.py — charter-native core: exact-support propagation
+  (TRUE/IN/OUT + support quality), value-label attach, conflict→nogood pruning
+  (NOGOOD_PRUNED), parameterization-derived support, derived-vs-derived
+  contradiction → nogood, bounded future replay (could_become_in), stability,
+  relevance, interventions + next-queryables, explain_node/explain_nogood/
+  verify_labels, claims_in_environment, micropublication support, environment/
+  context serialisation split, future-budget exhaustion, argumentation_state.
+- tests/test_atms_derived_contradictions.py — charter port.
+- tests/test_atms_cel_semantic_equality.py — charter port (CEL-equivalent
+  antecedent matching).
+
+Deferred (reference test files whose remaining surface is not B2's):
+- test_atms_engine.py CLI / `app.world_atms` / worldline paths -> 10 (CLI/web) /
+  7b (worldline).
+- test_atms_propagation_nogood_interleave.py, test_atms_max_iterations_anytime.py,
+  test_atms_unbounded_stability_api.py, test_atms_was_pruned_by_nogood_cycle.py,
+  test_atms_categorical_provider_visibility.py,
+  test_atms_consequent_field_discipline.py, test_provenance_atms_equivalence.py,
+  test_micropub_identity_consumes_wscm.py -> follow-up within 7a-world (engine
+  behaviour is implemented; these add finer-grained / provenance-equivalence
+  coverage over the same charter feed).
+- test_world_bound_conflicts_cache.py -> 9 (its fixtures import the repo-backed
+  `tests.test_world_query` `world` fixture; the in-memory cases use row-dict
+  stores rather than charters). The cache itself (`_conflict_inputs_for_store`
+  built once per BoundWorld) is implemented and exercised by the conflict path.
+- BoundWorld revision surface (expand/contract/revise/iterated/epistemic) -> 7b
+  (support_revision); the seam is marked in `world/bound.py`.
