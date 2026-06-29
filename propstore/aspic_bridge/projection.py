@@ -32,8 +32,11 @@ from argumentation.structured.aspic.aspic import (
 from argumentation.core.dung import ArgumentationFramework
 
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
+from propstore.core.environment import StanceStore
+from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
 from propstore.core.literal_keys import IstLiteralKey
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.preference import claim_strength
 from propstore.provenance import ProjectionFrameProvenanceRecord
 from propstore.structured_projection import (
@@ -43,6 +46,8 @@ from propstore.structured_projection import (
     StructuredProjection,
 )
 
+from .build import build_bridge_csaf
+from .extract import extract_justifications, extract_stance_rows
 from .grounding import typed_scalar_key
 from .translate import claims_to_literals
 
@@ -341,4 +346,43 @@ def csaf_to_projection(
     )
 
 
-__all__ = ["csaf_to_projection"]
+def build_aspic_projection(
+    store: StanceStore,
+    active_claims: Sequence[ActiveClaimInput],
+    *,
+    bundle: GroundedRulesBundle,
+    support_metadata: SupportMetadata | None = None,
+    comparison: str = "elitist",
+    link: str = "last",
+    active_graph: ActiveWorldGraph | None = None,
+) -> StructuredProjection:
+    """Build a :class:`StructuredProjection` by reading stances/justifications.
+
+    Stances and justifications are harvested from ``active_graph`` when supplied,
+    otherwise from the ``store``; the bridge then compiles them (plus the grounded
+    bundle) into a CSAF and projects it. The CSAF is the package's own type, used
+    directly (CLAUDE.md substrate boundary).
+    """
+
+    normalized_claims = tuple(coerce_active_claims(active_claims))
+    active_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
+
+    stance_rows = extract_stance_rows(store, active_by_id, active_graph=active_graph)
+    justifications = extract_justifications(
+        store,
+        active_by_id,
+        stance_rows,
+        active_graph=active_graph,
+    )
+    csaf = build_bridge_csaf(
+        normalized_claims,
+        justifications,
+        stance_rows,
+        bundle=bundle,
+        comparison=comparison,
+        link=link,
+    )
+    return csaf_to_projection(csaf, normalized_claims, support_metadata=support_metadata)
+
+
+__all__ = ["build_aspic_projection", "csaf_to_projection"]

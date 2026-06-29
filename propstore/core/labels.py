@@ -18,9 +18,12 @@ engine, not here.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+import hashlib
+import json
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
+from condition_ir import CelExpr, to_cel_expr, to_cel_exprs
 from provenance_semiring import (
     EnvironmentKey,
     JustificationRecord,
@@ -33,6 +36,11 @@ from provenance_semiring import (
     normalize_environments,
 )
 
+from propstore.core.id_types import AssumptionId, ContextId, to_assumption_id, to_context_id
+
+if TYPE_CHECKING:
+    from propstore.core.environment import AssumptionRef
+
 __all__ = [
     "EnvironmentKey",
     "JustificationRecord",
@@ -40,7 +48,9 @@ __all__ = [
     "NogoodSet",
     "SupportMetadata",
     "SupportQuality",
+    "binding_condition_to_cel",
     "combine_labels",
+    "compile_environment_assumptions",
     "label_from_dict",
     "label_to_dict",
     "merge_labels",
@@ -70,3 +80,64 @@ def label_from_dict(data: Mapping[str, Any] | None) -> Label | None:
         for environment in raw_environments
     )
     return Label(environments)
+
+
+def binding_condition_to_cel(key: str, value: Any) -> CelExpr:
+    """Render a query binding into the CEL string the world model reasons over."""
+
+    if isinstance(value, bool):
+        return to_cel_expr(f"{key} == {'true' if value else 'false'}")
+    if isinstance(value, str):
+        return to_cel_expr(f"{key} == '{value}'")
+    return to_cel_expr(f"{key} == {value}")
+
+
+def _stable_id(kind: str, source: str, body: str) -> AssumptionId:
+    """A deterministic assumption id over an assumption's kind/source/body."""
+
+    digest = hashlib.sha256(f"{kind}\0{source}\0{body}".encode()).hexdigest()
+    return to_assumption_id(f"{kind}:{source}:{digest}")
+
+
+def compile_environment_assumptions(
+    *,
+    bindings: Mapping[str, Any],
+    effective_assumptions: Sequence[str | CelExpr] = (),
+    context_id: ContextId | str | None = None,
+) -> tuple[AssumptionRef, ...]:
+    """Compile bindings and inherited context assumptions into stable refs.
+
+    Each binding becomes a ``binding`` assumption whose CEL is the rendered
+    equality; each inherited context CEL becomes a ``context`` assumption. The
+    result is ordered by ``assumption_id`` so the compiled frame is deterministic.
+    """
+
+    from propstore.core.environment import AssumptionRef
+
+    compiled: list[AssumptionRef] = []
+
+    for key in sorted(bindings):
+        value = bindings[key]
+        rendered_value = json.dumps(value, sort_keys=True, default=str)
+        compiled.append(
+            AssumptionRef(
+                assumption_id=_stable_id("binding", key, rendered_value),
+                kind="binding",
+                source=key,
+                cel=binding_condition_to_cel(key, value),
+            )
+        )
+
+    normalized_context_id = None if context_id is None else to_context_id(context_id)
+    context_source = str(normalized_context_id) if normalized_context_id is not None else "<context>"
+    for cel in sorted(dict.fromkeys(to_cel_exprs(effective_assumptions))):
+        compiled.append(
+            AssumptionRef(
+                assumption_id=_stable_id("context", context_source, str(cel)),
+                kind="context",
+                source=context_source,
+                cel=cel,
+            )
+        )
+
+    return tuple(sorted(compiled, key=lambda ref: ref.assumption_id))

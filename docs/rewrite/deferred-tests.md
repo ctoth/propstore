@@ -57,15 +57,30 @@ GroundedDatalogTheory seam for NON-empty bundles (currently NotImplementedError 
 HIGH gap docs/gaps.md:18).
 
 Tests deferred to their owning phase:
-- test_core_analyzers.py -> 6/7 (analyzers/SharedAnalyzerInput + conflict synthesis)
-- test_praf_integration.py -> 6/7 (analyzers/build_praf)
-- test_praf_uncalibrated_explicit.py -> 6/7 (analyzers/build_praf)
-- test_argumentation_integration.py -> 6/7 (SQLiteArgumentationStore/conflict_detector)
-- test_core_justifications.py -> 6/7 (active claim graph)
-- test_ws_f_aspic_bridge.py (lifting/projection/Label subset) -> 6/7 (StructuredProjection/Label)
 - test_aspic_bridge_grounded.py -> 6 (non-empty grounding seam; gates the gaps.md:18 follow-up)
 - test_justification_rule_kind_validated.py -> 8 (cli/source)
-- test_praf_argument_enumeration_budget.py -> 7 (gunray budget; was a skipped stub in the reference too)
+
+PORTed in Phase 7a-world-A (store->graph->AF assembly; now green, removed above):
+- test_core_analyzers.py + test_argumentation_integration.py (store-based
+  shared_analyzer_input_from_store / analyze_claim_graph / build_argumentation_framework /
+  compute_claim_graph_justified_claims + conflict-stance synthesis) -> folded into
+  tests/test_world_store_assembly.py over the in-memory compiled-graph feed
+  (tests/world_store_feed.py); the reference SQLiteArgumentationStore/conftest dict
+  store is replaced by the charter/compiled-graph WorldStore feed.
+- test_praf_integration.py (build_praf deterministic/uncertain/no-stances +
+  analyze_praf metadata + paper-td routing) -> tests/test_world_store_assembly.py.
+  The reference resolve()/RenderPolicy/ValueResult slice stays deferred to
+  7a-world-C (render policy + resolution).
+- test_praf_uncalibrated_explicit.py -> tests/test_praf_uncalibrated_explicit.py.
+- test_core_justifications.py -> tests/test_core_justifications.py (charter feed +
+  build_compiled_world_graph + activate_compiled_world_graph + claim_justifications_from_active_graph).
+- test_ws_f_aspic_bridge.py (analyzer slice: SharedAnalyzerInput.active_graph +
+  analyze_praf paper-td + build_aspic_projection store path) -> covered by
+  tests/test_world_store_assembly.py. The bridge-math slice already passes in
+  tests/test_*_aspic*/structured_projection; the app/ContextReference slice stays
+  for the app/lifting phase.
+- test_praf_argument_enumeration_budget.py -> tests/test_praf_argument_enumeration_budget.py
+  (skip stub; unskips when propstore consumes the gunray enumeration budget).
 
 ## Phase 6d (concept alignment + sameas + relation-concept identity)
 

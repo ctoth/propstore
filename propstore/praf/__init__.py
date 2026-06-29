@@ -21,6 +21,7 @@ from propstore.praf.engine import (
     propstore_praf_kernel,
     summarize_defeat_relations,
 )
+from propstore.praf.projection import build_praf
 
 __all__ = [
     "COHDivergenceError",
@@ -29,6 +30,7 @@ __all__ = [
     "NoCalibration",
     "PreferenceLayerError",
     "PropstorePrAF",
+    "build_praf",
     "enforce_coh",
     "p_arg_from_claim",
     "p_defeat_from_stance",

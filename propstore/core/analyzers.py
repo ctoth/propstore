@@ -18,7 +18,7 @@ filtering is a render-time concern over the resulting framework.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from argumentation.core.bipolar import (
     BipolarArgumentationFramework,
@@ -34,6 +34,25 @@ from argumentation.structured.aspic.aspic import (
 )
 
 from propstore.conflict_detector import ConflictClass
+from propstore.core.environment import (
+    CompiledGraphStore,
+    Environment,
+    WorldStore,
+)
+from propstore.core.graph_build import (
+    claim_to_node,
+    conflict_record_to_witness,
+    stance_to_edge,
+)
+from propstore.core.graph_relation_types import GraphRelationType
+from propstore.core.graph_types import (
+    ActiveWorldGraph,
+    ClaimNode,
+    CompiledWorldGraph,
+    ConflictWitness,
+    RelationEdge,
+)
+from propstore.core.id_types import to_claim_ids
 from propstore.core.reasoning import (
     ArgumentationSemantics,
     ReasoningBackend,
@@ -58,6 +77,7 @@ from propstore.stances import (
     PREFERENCE_SENSITIVE_ATTACK_TYPES,
     SUPPORT_TYPES,
     UNCONDITIONAL_ATTACK_TYPES,
+    VALID_STANCE_TYPES,
 )
 
 _ATTACK_TYPES = ATTACK_TYPES
@@ -66,9 +86,18 @@ _PREFERENCE_TYPES = PREFERENCE_SENSITIVE_ATTACK_TYPES
 _SUPPORT_TYPES = SUPPORT_TYPES
 _REAL_CONFLICT_CLASSES = frozenset({"CONFLICT", "OVERLAP", "PARAM_CONFLICT"})
 
+# The graph relation types that are claim-to-claim stances (rebut/support/…), as
+# opposed to concept-to-concept relationships (broader/part-of/…). Only these
+# become stance rows for the AF assembly.
+_STANCE_GRAPH_RELATION_TYPES = frozenset(
+    relation_type
+    for relation_type in GraphRelationType
+    if relation_type.value in VALID_STANCE_TYPES
+)
+
 # A row is a plain claim/stance/conflict payload mapping: stored field name to a
-# scalar value. The world layer (Phase 7) produces these from the active graph;
-# the analyzer math here only ever reads them.
+# scalar value. The store/world readers below produce these from the active
+# graph; the analyzer math only ever reads them.
 Row = dict[str, object]
 
 
@@ -80,6 +109,7 @@ class SharedAnalyzerInput:
     relations: ClaimGraphRelations
     argumentation_framework: ArgumentationFramework
     bipolar_framework: BipolarArgumentationFramework
+    active_graph: ActiveWorldGraph | None = None
 
 
 @dataclass(frozen=True)
@@ -320,6 +350,181 @@ def shared_analyzer_input_from_active_graph(
         relations=relations,
         argumentation_framework=af,
         bipolar_framework=bipolar,
+    )
+
+
+# --- store / active-graph readers (produce the plain payloads above) ---------
+# These lower the canonical graph carriers (ClaimNode / RelationEdge /
+# ConflictWitness) into the plain claim/stance/conflict rows the math above
+# reads, and read a charter-backed store into an active graph. The math stays
+# store-free; only this section knows about the world graph and the store.
+
+
+def _claim_mapping_from_node(claim: ClaimNode) -> Row:
+    """The plain claim row the analyzer/preference layers read from a node."""
+
+    data: Row = {
+        "id": str(claim.claim_id),
+        "value_concept_id": (
+            None if claim.value_concept_id is None else str(claim.value_concept_id)
+        ),
+        "type": claim.claim_type.value,
+        "value": claim.scalar_value,
+    }
+    data.update(claim.attribute_mapping())
+    if claim.provenance is not None:
+        if claim.provenance.paper is not None:
+            data.setdefault("source_paper", claim.provenance.paper)
+        if claim.provenance.page is not None:
+            data.setdefault("provenance_page", claim.provenance.page)
+    return data
+
+
+def _stance_row_from_edge(edge: RelationEdge) -> Row:
+    """The plain stance row for one relation edge (calibration rides on it)."""
+
+    data: Row = {
+        "claim_id": edge.source_id,
+        "target_claim_id": edge.target_id,
+        "stance_type": edge.relation_type.value,
+    }
+    data.update(dict(edge.attributes))
+    if edge.provenance is not None:
+        if edge.provenance.source_table is not None:
+            data.setdefault("source_table", edge.provenance.source_table)
+        if edge.provenance.source_id is not None:
+            data.setdefault("source_id", edge.provenance.source_id)
+    return data
+
+
+def _conflict_row_from_witness(conflict: ConflictWitness) -> Row:
+    """The plain conflict row for one conflict witness."""
+
+    details = dict(conflict.details)
+    warning_class = (
+        details.get("warning_class") or details.get("conflict_class") or conflict.kind
+    )
+    return {
+        "claim_a_id": conflict.left_claim_id,
+        "claim_b_id": conflict.right_claim_id,
+        "warning_class": (
+            warning_class.value
+            if isinstance(warning_class, ConflictClass)
+            else str(warning_class)
+        ),
+        **details,
+    }
+
+
+def _active_claim_ids(active_graph: ActiveWorldGraph) -> set[str]:
+    return {str(claim_id) for claim_id in active_graph.active_claim_ids}
+
+
+def _graph_claim_rows(active_graph: ActiveWorldGraph) -> dict[str, Row]:
+    active_ids = _active_claim_ids(active_graph)
+    return {
+        str(claim.claim_id): _claim_mapping_from_node(claim)
+        for claim in active_graph.compiled.claims
+        if str(claim.claim_id) in active_ids
+    }
+
+
+def _graph_stance_rows(active_graph: ActiveWorldGraph) -> list[Row]:
+    active_ids = _active_claim_ids(active_graph)
+    return [
+        _stance_row_from_edge(edge)
+        for edge in active_graph.compiled.relations
+        if edge.relation_type in _STANCE_GRAPH_RELATION_TYPES
+        and edge.source_id in active_ids
+        and edge.target_id in active_ids
+    ]
+
+
+def _graph_conflict_rows(active_graph: ActiveWorldGraph) -> list[Row]:
+    active_ids = _active_claim_ids(active_graph)
+    return [
+        _conflict_row_from_witness(conflict)
+        for conflict in active_graph.compiled.conflicts
+        if str(conflict.left_claim_id) in active_ids
+        and str(conflict.right_claim_id) in active_ids
+    ]
+
+
+def _minimal_compiled_graph(
+    store: WorldStore,
+    active_claim_ids: set[str],
+) -> CompiledWorldGraph:
+    """Read just the active claims, their stances, and conflicts from a store."""
+
+    claims = tuple(
+        claim_to_node(claim)
+        for claim in store.claims_by_ids(active_claim_ids).values()
+    )
+    relations = tuple(
+        edge
+        for stance in store.stances_between(active_claim_ids)
+        if (edge := stance_to_edge(stance)) is not None
+    )
+    conflicts = tuple(
+        conflict_record_to_witness(record)
+        for record in store.conflicts()
+        if str(record.claim_a_id) in active_claim_ids
+        and str(record.claim_b_id) in active_claim_ids
+    )
+    return CompiledWorldGraph(claims=claims, relations=relations, conflicts=conflicts)
+
+
+def _active_graph_from_store(
+    store: WorldStore,
+    active_claim_ids: set[str],
+) -> ActiveWorldGraph:
+    if isinstance(store, CompiledGraphStore):
+        compiled = store.compiled_graph()
+    else:
+        compiled = _minimal_compiled_graph(store, active_claim_ids)
+    all_claim_ids = {claim.claim_id for claim in compiled.claims}
+    active_ids = set(to_claim_ids(active_claim_ids))
+    return ActiveWorldGraph(
+        compiled=compiled,
+        environment=Environment(),
+        active_claim_ids=tuple(active_ids),
+        inactive_claim_ids=tuple(all_claim_ids - active_ids),
+    )
+
+
+def shared_analyzer_input_from_graph(
+    active_graph: ActiveWorldGraph,
+    *,
+    comparison: str = "elitist",
+) -> SharedAnalyzerInput:
+    """Assemble the shared AF inputs from an active world graph.
+
+    Extracts the plain claim/stance/conflict rows from the active graph, runs the
+    store-free assembly math, and re-attaches the active graph to the result so
+    downstream consumers that need the carrier (the world layer) can reach it.
+    """
+
+    shared = shared_analyzer_input_from_active_graph(
+        _graph_claim_rows(active_graph),
+        _graph_stance_rows(active_graph),
+        _graph_conflict_rows(active_graph),
+        _active_claim_ids(active_graph),
+        comparison=comparison,
+    )
+    return replace(shared, active_graph=active_graph)
+
+
+def shared_analyzer_input_from_store(
+    store: WorldStore,
+    active_claim_ids: set[str],
+    *,
+    comparison: str = "elitist",
+) -> SharedAnalyzerInput:
+    """Read a charter-backed store into the shared AF inputs over its active claims."""
+
+    return shared_analyzer_input_from_graph(
+        _active_graph_from_store(store, active_claim_ids),
+        comparison=comparison,
     )
 
 

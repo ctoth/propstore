@@ -18,7 +18,7 @@ from propstore.aspic_bridge.lifting_projection import (
     LiftingProjectionRecord,
     project_lifting_decisions,
 )
-from propstore.aspic_bridge.projection import csaf_to_projection
+from propstore.aspic_bridge.projection import build_aspic_projection, csaf_to_projection
 from propstore.aspic_bridge.query import ClaimQueryResult, query_claim
 from propstore.aspic_bridge.translate import (
     build_preference_config,
@@ -35,6 +35,7 @@ __all__ = [
     "GroundedAspicProjection",
     "LiftingProjection",
     "LiftingProjectionRecord",
+    "build_aspic_projection",
     "build_bridge_csaf",
     "build_preference_config",
     "claims_to_kb",

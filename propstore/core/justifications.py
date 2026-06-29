@@ -16,11 +16,17 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import msgspec
 
+from propstore.core.graph_relation_types import GraphRelationType
 from propstore.provenance import Provenance
+
+if TYPE_CHECKING:
+    from propstore.core.graph_types import ActiveWorldGraph
+
+_SUPPORT_RELATION_TYPES = frozenset({GraphRelationType.SUPPORTS, GraphRelationType.EXPLAINS})
 
 
 def _normalize_attrs(
@@ -84,4 +90,58 @@ class CanonicalJustification:
         )
 
 
-__all__ = ["CanonicalJustification"]
+def claim_justifications_from_active_graph(
+    active_graph: ActiveWorldGraph,
+) -> tuple[CanonicalJustification, ...]:
+    """Derive canonical justifications from an active world graph.
+
+    Every active claim contributes a ``reported_claim`` justification; every
+    active ``supports``/``explains`` relation edge between active claims becomes a
+    single-premise justification concluding the edge's target. The result is
+    sorted so the projection is deterministic under relation-iteration order
+    (CLAUDE.md: the graph never gates; ordering is a render concern). Provenance
+    is not carried here — the claim/relation graph carries a
+    :class:`~propstore.core.graph_types.ProvenanceRecord`, which is the world
+    graph's spelling, not the source-semiring :class:`Provenance` this record
+    uses; the two are not interchangeable, so the justification stays
+    provenance-free rather than mirror one onto the other.
+    """
+
+    active_ids = set(active_graph.active_claim_ids)
+    claim_ids = sorted(
+        str(claim.claim_id)
+        for claim in active_graph.compiled.claims
+        if claim.claim_id in active_ids
+    )
+
+    justifications: list[CanonicalJustification] = [
+        CanonicalJustification(
+            justification_id=f"reported:{claim_id}",
+            conclusion_claim_id=claim_id,
+            rule_kind="reported_claim",
+        )
+        for claim_id in claim_ids
+    ]
+
+    for relation in active_graph.compiled.relations:
+        if relation.source_id not in active_ids or relation.target_id not in active_ids:
+            continue
+        if relation.relation_type not in _SUPPORT_RELATION_TYPES:
+            continue
+        relation_kind = str(relation.relation_type)
+        justifications.append(
+            CanonicalJustification(
+                justification_id=(
+                    f"{relation_kind}:{relation.source_id}->{relation.target_id}"
+                ),
+                conclusion_claim_id=str(relation.target_id),
+                premise_claim_ids=(str(relation.source_id),),
+                rule_kind=relation_kind,
+                attributes=relation.attributes,
+            )
+        )
+
+    return tuple(sorted(justifications))
+
+
+__all__ = ["CanonicalJustification", "claim_justifications_from_active_graph"]
