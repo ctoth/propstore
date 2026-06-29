@@ -66,3 +66,32 @@ Tests deferred to their owning phase:
 - test_aspic_bridge_grounded.py -> 6 (non-empty grounding seam; gates the gaps.md:18 follow-up)
 - test_justification_rule_kind_validated.py -> 8 (cli/source)
 - test_praf_argument_enumeration_budget.py -> 7 (gunray budget; was a skipped stub in the reference too)
+
+## Phase 6d (concept alignment + sameas + relation-concept identity)
+
+6d built the alignment MATH over plain inputs (proposal-only, never source
+mutation): `source/alignment.py` (classify_relation by lemon identity,
+build_alignment_artifact over a PartialArgumentationFramework, repo-free
+load/save), the `families/alignment.py` ConceptAlignmentArtifact charter, the
+`families/sameas.py` SameAs charter, and the `core/relations.py`
+relation-concept-identity kernel.
+
+PORTed in 6d (now green, removed from the deferred set above):
+- test_relation_concept_identity.py -> tests/test_relation_concept_identity.py
+  (was deferred to 6/10 at line 18; the kernel landed in 6d).
+- test_alignment_default_classification.py -> folded into
+  tests/test_alignment_classification.py (classify_relation + artifact + codec).
+- test_sameas_family_schema.py -> rewritten to charter shape as
+  tests/test_sameas_charter.py (no PROPSTORE_FAMILY_REGISTRY / DocumentStruct /
+  to_payload in the rewrite; the family name + columns fall out of the charter).
+
+Superseded (NOT ported): test_relation_analysis.py — the reference's store-based
+`stance_summary(store, active_ids) -> dict` is replaced by
+`families.relations.stance_summary(Iterable[Stance]) -> StanceSummary`, already
+covered by tests/test_relations_charter.py
+(test_stance_summary_counts_attacks_without_pruning).
+
+Deferred to Phase 8 (source subsystem: Repository / source branches / CLI):
+- test_concept_alignment_cli.py -> 8 (alignment CLI over a Repository)
+- test_source_promotion_alignment.py -> 8 (align_sources/decide/promote_alignment)
+- test_source_relations.py -> 8 (already listed above; source-relation projection)

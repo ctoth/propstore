@@ -12,6 +12,7 @@ from typing import NewType
 
 AssertionId = NewType("AssertionId", str)
 ClaimId = NewType("ClaimId", str)
+ConceptId = NewType("ConceptId", str)
 ContextId = NewType("ContextId", str)
 
 
@@ -19,6 +20,12 @@ def to_assertion_id(value: object) -> AssertionId:
     """Brand an arbitrary value's string form as an :data:`AssertionId`."""
 
     return AssertionId(str(value))
+
+
+def to_concept_id(value: object) -> ConceptId:
+    """Brand an arbitrary value's string form as a :data:`ConceptId`."""
+
+    return ConceptId(str(value))
 
 
 def to_claim_id(value: object) -> ClaimId:
