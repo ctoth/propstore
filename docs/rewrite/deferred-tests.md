@@ -212,3 +212,41 @@ Deferred (reference surface not built in C3):
 - test_world_query_at_journal_step.py, test_world_query_at_journal_step_method.py
   -> 8 (`at_journal_step` / `bind_for_view` / `_BoundView` / `ClaimView` —
   support_revision journal/worldline bridge).
+
+## Deferred during Phase 7a-worldline
+
+7a-worldline built the worldline materialization core (definition / runner /
+resolution / argumentation / hashing / result_types / revision_types data
+shapes) + observatory over the in-memory `WorldlineStore` feed. Revision/
+sensitivity *capture* and the concrete repo-backed store land later:
+
+Deferred to 7b (need support_revision / fragility):
+- test_worldline_hash_repr_typed_failure.py -> 7b (imports
+  support_revision.history / support_revision.projection).
+- test_capture_journal.py -> 7b/8 (support_revision.history.TransitionJournal /
+  EpistemicState + CLI).
+- tests/test_worldline_error_visibility.py::test_sensitivity_failure_produces_error_indicator
+  -> 7b (worldline sensitivity capture = propstore.sensitivity / fragility;
+  skip-marked in the ported file, the argumentation case is green now).
+- test_worldline_revision.py, test_worldline_revision_event_capture.py,
+  test_worldline_revision_merge_parent_evidence.py,
+  test_worldline_revision_properties.py,
+  test_worldline_revision_snapshot_boundary.py -> 7b (revision_capture +
+  WorldlineRevisionState.event / support_revision.RevisionEvent).
+- test_worldline_ic_merge.py, test_worldline_ic_merge_properties.py,
+  test_worldline_ic_merge_realization.py -> 7b (belief_set IC merge over a
+  captured epistemic state).
+
+Deferred to Phase 9 (need a concrete repo-backed WorldStore beyond the
+in-memory feed; the reference fakes are pre-charter dict-shaped):
+- test_worldline.py -> 9 (Repository / GitStore / CLI / family_helpers /
+  conftest fixtures).
+- test_worldline_properties.py -> 9 (family_helpers.materialized_world_store_path).
+- test_worldline_praf.py -> 9 (full store->AF PRAF path over a charter-shaped
+  store feed; reference FakeWorld returns pre-charter dict claims/stances).
+
+Observatory CLI/doc cases (test_observatory.py
+test_observatory_cli_adapter_builds_typed_app_request /
+test_root_cli_registers_observatory_lazily /
+test_epistemic_os_documentation_maps_artifact_to_journal) -> CLI/docs phase; the
+owner-layer report-builder cases are ported and green.
