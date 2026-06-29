@@ -19,8 +19,6 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **`ast_equiv.compare` symbol-binding params are typed as bare `dict` (loose upstream surface).** `propstore/conflict_detector/algorithms.py` consumes ast-equiv's `compare`, whose pinned rev types `bindings_a` / `bindings_b` as unparameterized `dict`, making the imported symbol partially-unknown under strict pyright. propstore narrows it at a single documented Any-boundary (a `getattr` + typed `ast_compare` call-through) rather than mirroring the type. Per the substrate-boundary discipline the canonical fix is upstream. Citation: rewrite Phase 6a observation; `reports/p6a-blocked.md`. Plan: tighten `ast_equiv.compare` to `dict[str, str]` and re-pin ast-equiv, then drop the propstore narrowing boundary.
 
-- **Grounded-rule → ASPIC+ projection is empty-bundle only (rewrite Phase 5b).** `propstore/aspic_bridge/grounding.py` — `project_grounded_rules` / `ground_facts_to_axioms` handle an empty `GroundedRulesBundle` (the non-grounded bridge and CKR integration) and raise `NotImplementedError` for a non-empty bundle rather than silently dropping its rules. The gunray grounding-inspection → argumentation `GroundedDatalogTheory` translation (and the rule-superiority projection) is a dedicated sub-slice. Citation: rewrite Phase 5b observation. Plan: implement the gunray→ASPIC+ inspection seam in a follow-up; gates are the reference `tests/test_aspic_bridge_grounded.py` corpus.
-
 - **Sidecar claim SI normalization silently writes non-SI values to `_si` columns.** `propstore/sidecar/claim_utils.py:596-606` — on `ValueError`/`TypeError` from `normalize_to_si`, the code writes `value_si = typed_fields.value` (i.e., the unnormalized value). Downstream queries trust the `_si` suffix. Citation: axis-5 Finding 3.1. Plan: not yet scheduled (axis-5 docket).
 
 ### MED
@@ -62,6 +60,10 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
 ## Closed gaps (reference only — kept for traceability)
+
+### Closed 2026-06-29 (Phase 6b gunray grounding seam)
+
+- Grounded-rule → ASPIC+ projection now handles non-empty bundles. `propstore/aspic_bridge/grounding.py` `project_grounded_rules` / `ground_facts_to_axioms` hand the bundle's `gunray.GroundingInspection` to `argumentation.structured.aspic.datalog_grounding.grounding_inspection_to_aspic` (with the bundle's `source_superiority` as the superiority order) and surface the returned `GroundedDatalogTheory`'s strict/defeasible rules, axioms, rule origins, and `rule_order` directly — no propstore mirror type. The empty-bundle path is preserved; a bundle that carries source rules/facts but no inspection is rejected rather than silently dropped (non-commitment). This closes the rewrite Phase-5b `NotImplementedError` seam. Evidence: `tests/test_aspic_bridge_grounded.py` (10 cases over real `grounder.ground` bundles), `tests/test_projection_boundary_ws6.py`. (Separate, still-open: the transitive/parameterization-derivation conflict detector — that is the human-to-sympy follow-up under Open gaps, untouched here.)
 
 ### Closed 2026-05-12 (grounded ASPIC rule origins)
 

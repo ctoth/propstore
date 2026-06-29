@@ -65,6 +65,26 @@ class Provenance(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     operations: tuple[str, ...] = ()
 
 
+class ProjectionFrameProvenanceRecord(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True
+):
+    """Out-of-band provenance for one backend-projected argumentation frame.
+
+    When a claim is projected into a backend atom (ASPIC+, ATMS, …) the frame
+    records which backend produced it, when, and the situated source assertion
+    ids the projected atom is attributable to. Like every other provenance value
+    object this rides *beside* the projected datum and never enters identity
+    (module docstring): the projection's identity is its structural atom key, not
+    this record. The carrier is logical here; the physical git-note carrier is a
+    later phase.
+    """
+
+    frame_id: str
+    backend: str
+    projected_at: str
+    source_assertion_ids: tuple[str, ...] = ()
+
+
 def compose_provenance(provenance: Provenance, *, operation: str) -> Provenance:
     """Return a new :class:`Provenance` with ``operation`` appended to the chain.
 
