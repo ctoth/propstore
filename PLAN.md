@@ -163,9 +163,14 @@ ast-equiv consume-pin). `adjudicate` workflow: never existed; not a feature.
     analyze_aspic_backend/analyze_claim_graph/build_praf_from_shared_input/analyze_praf, structured_projection.py,
     aspic_bridge/projection.py (csaf_to_projection→StructuredProjection; Label.empty()/None), and the
     gunray-inspection→ASPIC+ grounding-seam fill in aspic_bridge/grounding.py (closes docs/gaps.md:18).
-  - **6c merge:** merge/ package (merge_classifier build_merge_framework over partial_af, IntegrityConstraint
-    M3, structured_merge sum/max/leximax via af_merging, merge_claims coreference, two-parent merge_commit via
-    quire commit_flat_tree, merge_report). Depends on 6a (conflict_detector) + 6b (structured_projection).
+  - **6c merge (MATH only; commit→9):** merge/ package merge MATH over PLAIN claim inputs — merge_classifier
+    build_merge_framework over partial_af, IntegrityConstraint (merge-side), structured_merge sum/max/leximax
+    via af_merging (per-branch CSAF→csaf_to_projection→framework, store-free), merge_claims coreference,
+    merge_report. Depends on 6a (conflict_detector) + 6b (structured_projection/csaf_to_projection).
+    **DEFERRED to Phase 9** (needs the Repository/snapshot facade + family registry that don't exist yet —
+    quire GitStore has commit_flat_tree/commit_parent_shas but no propstore Repository binds git+families):
+    two-parent `merge_commit` + MergeManifest family materialization; tests test_repo_merge_object,
+    test_merge_cli, test_merge_symmetry_non_claim_files. (Same re-parameterize-now / defer-store pattern as 6b.)
   - **6d relations/alignment/sameas:** source/alignment.py (PAF over candidate proposals via partial_af;
     classify_relation via lemon identity not Jaccard; proposal-only) + sameas family. families/relations.py +
     probabilistic_relations.py already exist — consume.

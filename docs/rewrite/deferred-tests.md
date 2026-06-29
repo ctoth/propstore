@@ -25,6 +25,22 @@ build-fresh + no-Document-mirror):
 - test_prior_base_rate_is_opinion.py -> 7 (base-rate resolution against a store)
 - test_claim_and_stance_document_enums.py -> 9/10 (families.documents surface — 5b reconfirmed)
 
+## Deferred during Phase 6c (merge math; commit→Phase 9)
+
+merge math builds over plain claim inputs in 6c; the two-parent storage commit +
+Repository/family-registry materialization need the Phase-9 Repository/snapshot
+facade (quire GitStore has commit_flat_tree but no propstore Repository binds
+git+families yet):
+- test_repo_merge_object.py -> 9 (two-parent merge_commit + Repository)
+- test_merge_cli.py -> 9/10 (merge CLI over Repository)
+- test_merge_symmetry_non_claim_files.py -> 9 (non-claim-file merge over git trees)
+
+belief-set / worldline IC-merge (model-theoretic IC merge, layer 4 — distinct
+from the merge-side IntegrityConstraint built in 6c):
+- test_ic_postulate_coverage.py -> 7 (belief_set.ic_merge)
+- test_assignment_selection_merge.py -> 7 (world.assignment_selection_merge)
+- test_revision_merge_uses_ic_merge.py / test_worldline_ic_merge*.py -> 7
+
 ## Deferred during Phase 5b (commits 8e9a10a8, bbe56d71)
 
 5b built the ASPIC+ kernel bridge + PrAF value layer + source-trust + CKR
