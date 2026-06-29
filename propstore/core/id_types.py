@@ -19,6 +19,8 @@ AssertionId = NewType("AssertionId", str)
 ClaimId = NewType("ClaimId", str)
 ConceptId = NewType("ConceptId", str)
 ContextId = NewType("ContextId", str)
+ConditionId = NewType("ConditionId", str)
+ProvenanceGraphId = NewType("ProvenanceGraphId", str)
 AssumptionId = NewType("AssumptionId", str)
 QueryableId = NewType("QueryableId", str)
 
@@ -45,6 +47,18 @@ def to_context_id(value: object) -> ContextId:
     """Brand an arbitrary value's string form as a :data:`ContextId`."""
 
     return ContextId(str(value))
+
+
+def to_condition_id(value: object) -> ConditionId:
+    """Brand an arbitrary value's string form as a :data:`ConditionId`."""
+
+    return ConditionId(str(value))
+
+
+def to_provenance_graph_id(value: object) -> ProvenanceGraphId:
+    """Brand an arbitrary value's string form as a :data:`ProvenanceGraphId`."""
+
+    return ProvenanceGraphId(str(value))
 
 
 def to_assumption_id(value: object) -> AssumptionId:
