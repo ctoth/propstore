@@ -1,1 +1,0 @@
-"""sameAs assertion family."""

@@ -1,74 +1,17 @@
-"""Propositional Knowledge Store — hold disagreement, reason about it."""
+"""propstore — a semantic operating system.
+
+This is the post-decomposition rebuild: a thin semantic-composition layer over
+substrate packages we own (quire, condition-ir, provenance-semiring, doxa,
+belief-set, argumentation, assignment-selection, gunray, bridgman, cel-parser,
+ast-equiv, eq-equiv, human-to-sympy, …). propstore composes them; it does not
+re-implement or wrap them — a package boundary is an ``import``, not a membrane
+(see CLAUDE.md "Substrate boundary discipline").
+
+The build is sliced bottom-up per domain entity; each entity is ONE quire charter
+class and its projections fall out of field annotations. See PLAN.md for the
+phased execution plan and docs/rewrite/ for the targeting inventory + spec.
+"""
 
 from __future__ import annotations
 
-from importlib import import_module
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from propstore.world.bound import BoundWorld
-    from propstore.world.actual_cause import actual_cause
-    from propstore.world.intervention import InterventionWorld, ObservationWorld
-    from propstore.world.overlay import OverlayWorld
-    from propstore.world.model import WorldQuery
-    from propstore.world.scm import StructuralCausalModel, StructuralEquation
-    from propstore.world.types import (
-        DerivedResult,
-        ReasoningBackend,
-        RenderPolicy,
-        ResolvedResult,
-        ResolutionStrategy,
-        SyntheticClaim,
-        ValueResult,
-    )
-
-_EXPORTS: dict[str, tuple[str, str]] = {
-    "actual_cause": ("propstore.world.actual_cause", "actual_cause"),
-    "BoundWorld": ("propstore.world.bound", "BoundWorld"),
-    "DerivedResult": ("propstore.world.types", "DerivedResult"),
-    "InterventionWorld": ("propstore.world.intervention", "InterventionWorld"),
-    "ObservationWorld": ("propstore.world.intervention", "ObservationWorld"),
-    "OverlayWorld": ("propstore.world.overlay", "OverlayWorld"),
-    "ReasoningBackend": ("propstore.world.types", "ReasoningBackend"),
-    "RenderPolicy": ("propstore.world.types", "RenderPolicy"),
-    "ResolvedResult": ("propstore.world.types", "ResolvedResult"),
-    "ResolutionStrategy": ("propstore.world.types", "ResolutionStrategy"),
-    "StructuralCausalModel": ("propstore.world.scm", "StructuralCausalModel"),
-    "StructuralEquation": ("propstore.world.scm", "StructuralEquation"),
-    "SyntheticClaim": ("propstore.world.types", "SyntheticClaim"),
-    "ValueResult": ("propstore.world.types", "ValueResult"),
-    "WorldQuery": ("propstore.world.model", "WorldQuery"),
-}
-
-__all__ = [
-    "actual_cause",
-    "BoundWorld",
-    "DerivedResult",
-    "InterventionWorld",
-    "ObservationWorld",
-    "OverlayWorld",
-    "ReasoningBackend",
-    "RenderPolicy",
-    "ResolvedResult",
-    "ResolutionStrategy",
-    "StructuralCausalModel",
-    "StructuralEquation",
-    "SyntheticClaim",
-    "ValueResult",
-    "WorldQuery",
-]
-
-
-def __getattr__(name: str) -> Any:
-    try:
-        module_name, attr_name = _EXPORTS[name]
-    except KeyError as exc:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
-    module = import_module(module_name)
-    value = getattr(module, attr_name)
-    globals()[name] = value
-    return value
-
-
-def __dir__() -> list[str]:
-    return sorted(set(globals()) | set(__all__))
+__version__ = "0.4.0"

@@ -1,1 +1,0 @@
-"""Source family declaration package."""

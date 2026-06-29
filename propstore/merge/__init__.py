@@ -1,1 +1,0 @@
-"""Semantic repository merge services."""
