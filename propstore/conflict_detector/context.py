@@ -27,7 +27,7 @@ def _has_lift(decisions: Sequence[LiftingDecision]) -> bool:
     )
 
 
-def _classify_pair_context(
+def classify_pair_context(
     context_a: str | None,
     context_b: str | None,
     lifting_system: LiftingSystem | None,
@@ -73,7 +73,7 @@ def append_context_classified_record(
     lifting_system: LiftingSystem | None,
     derivation_chain: str | None = None,
 ) -> bool:
-    context_class = _classify_pair_context(
+    context_class = classify_pair_context(
         context_a,
         context_b,
         lifting_system,

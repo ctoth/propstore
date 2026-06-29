@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from condition_ir import ConceptInfo
 
     from propstore.context_lifting import LiftingSystem
+    from propstore.families.forms import FormDefinition
 
     from .models import ConflictClaim
 
@@ -39,8 +40,28 @@ def detect_conflicts(
     )
 
 
+def detect_transitive_conflicts(
+    claims: Sequence[ConflictClaim],
+    concept_registry: Mapping[str, Mapping[str, object]],
+    *,
+    lifting_system: LiftingSystem | None = None,
+    forms: Mapping[str, FormDefinition] | None = None,
+) -> list[ConflictRecord]:
+    from .parameterization_conflicts import (
+        detect_transitive_conflicts as _detect_transitive_conflicts,
+    )
+
+    return _detect_transitive_conflicts(
+        claims,
+        concept_registry,
+        lifting_system=lifting_system,
+        forms=forms,
+    )
+
+
 __all__ = [
     "ConflictClass",
     "ConflictRecord",
     "detect_conflicts",
+    "detect_transitive_conflicts",
 ]

@@ -6,10 +6,12 @@ the parameter, measurement, equation, and algorithm detectors. Every detected
 relationship becomes a :class:`ConflictRecord` with provenance; nothing is
 dropped or aborted.
 
-The parameterization-derivation (transitive) detector is intentionally absent
-here: it requires a SymPy numeric-evaluation substrate that propstore cannot host
-under the strict type gate (SymPy ships no type stubs). See ``docs/gaps.md`` and
-``reports/p6a-blocked.md``.
+The single-hop parameterization-derivation detector is wired in here over the
+``by_concept`` partition the direct parameter detector already builds. Its SymPy
+numeric evaluation is delegated to the ``human-to-sympy`` substrate, so propstore
+never imports SymPy. The multi-hop :func:`detect_transitive_conflicts` is a
+standalone public entry (it walks parameterization components), not run as part of
+this orchestration.
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ from .equations import detect_equation_conflicts
 from .measurements import detect_measurement_conflicts
 from .models import ConflictClaim, ConflictRecord, payload_get
 from .parameter_claims import detect_parameter_conflicts
+from .parameterization_conflicts import detect_parameterization_conflicts
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
@@ -118,12 +121,13 @@ def detect_conflicts(
         solver=condition_solver,
     )
 
-    parameter_records, _by_concept = detect_parameter_conflicts(
+    forms = _forms_from_conflict_concept_registry(concept_registry)
+    parameter_records, by_concept = detect_parameter_conflicts(
         expanded_claims,
         registry,
         lifting_system=lifting_system,
         solver=condition_solver,
-        forms=_forms_from_conflict_concept_registry(concept_registry),
+        forms=forms,
         concept_forms=_concept_forms_from_conflict_concept_registry(concept_registry),
     )
     records.extend(parameter_records)
@@ -149,6 +153,15 @@ def detect_conflicts(
             registry,
             lifting_system=lifting_system,
             solver=condition_solver,
+        )
+    )
+    records.extend(
+        detect_parameterization_conflicts(
+            by_concept,
+            concept_registry,
+            expanded_claims,
+            lifting_system=lifting_system,
+            forms=forms,
         )
     )
     return records
