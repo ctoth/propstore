@@ -287,3 +287,5 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 - axis-1 Finding 3.1 — raw-id claim quarantine. Closed by commit `67fccc1` (WS-Z-gates phase 3).
 - axis-1 Finding 3.2 — compiler draft filter. Closed by commit `5bb948d` (WS-Z-gates phase 3).
 - axis-1 Finding 3.3 — source promote all-or-nothing. Closed by commits `8923b9f` + `c263db6` (WS-Z-gates phases 3 + 4).
+
+- **Multi-algorithm per-variable concept bindings are not carried on the Claim charter (rewrite Phase 7a-world-B2).** The provenance-free `Claim` charter / its `ClaimNode` does not carry algorithm per-variable symbol→concept bindings, so `BoundWorld.extract_variable_concepts` / `extract_bindings` return empty and multi-algorithm equivalence has no per-variable concepts to read. Documented inline in `propstore/world/bound.py`. Plan: if multi-algorithm equivalence is needed, extend the Claim charter to carry the symbol→concept bindings (a charter addition + migration), then wire extract_*; until then this is an honest empty result, not a fabricated binding. Citation: rewrite Phase 7a-world-B2 observation.
