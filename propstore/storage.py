@@ -108,6 +108,8 @@ class ConceptRepository:
                         "canonical_name": concept.canonical_name,
                         "status": concept.status,
                         "definition": concept.definition,
+                        "ontology_reference": concept.ontology_reference,
+                        "lexical_entry": concept.lexical_entry,
                     },
                 )
             session.commit()

@@ -4,18 +4,29 @@ This is the *thinnest* end-to-end entity: enough of a concept to prove the
 rewrite's central thesis — that authoring ONE quire charter class makes the
 git-stored document, the SQL sidecar projection, and the serialized contract all
 fall out of field annotations, with no hand-authored DTO/Record/Row/payload
-mass. Phase 2 grows this into the full lemon model (entries/forms/senses, qualia,
-proto-roles, description-kinds, temporal/coreference); none of that lives here.
+mass. Phase 2a grows this into the full OntoLex-Lemon model. The lemon entities live in
+:mod:`propstore.core.lemon` (entries/forms/senses, qualia, Dowty proto-roles,
+description-kinds, temporal/coreference); this charter carries them as OPTIONAL
+nested document fields so the sidecar projection still falls out of the one
+charter — there is no separately authored lemon DTO/Record/Row. Lemon enrichment
+is optional on a concept: a Phase-1 flat concept (no entry) remains valid, so the
+walking-skeleton invariants hold while authored concepts can carry full lemon
+semantics.
 
 Discipline anchored by this module (PLAN.md §12):
 
 * ONE canonical ``Concept`` type. There is no ``ConceptDocument`` /
   ``ConceptRecord`` / ``ConceptRow`` / ``Loaded*`` second spelling and no
-  ``to_payload`` / ``from_payload`` / ``coerce_`` conversion anywhere.
+  ``to_payload`` / ``from_payload`` / ``coerce_`` conversion anywhere. The nested
+  lemon entities are likewise their single canonical spellings.
 * Identity is the authored content keyed by ``concept_id``. Provenance is NOT a
-  field of the concept and therefore can never enter concept identity.
+  top-level concept field; the provenance carried inside nested senses/qualia is
+  excluded from lemon identity keys, so it can never enter concept identity.
 * The stored form is the RAW authored form. No normalization is baked at
   storage time; any normalization is a render-time derivation.
+* ``forbid_unknown_fields`` (inherited from ``CharterDoc``) rejects a flat
+  pre-lemon shape: an unknown ``form`` key fails to decode rather than silently
+  flattening the lemon entry.
 """
 
 from __future__ import annotations
@@ -24,6 +35,8 @@ from enum import Enum
 from typing import Annotated
 
 from quire.charter_class import CharterDoc, charter, charter_field
+
+from propstore.core.lemon import LexicalEntry, OntologyReference
 
 
 class ConceptStatus(str, Enum):
@@ -63,3 +76,5 @@ class Concept(CharterDoc):
     canonical_name: str
     status: ConceptStatus = ConceptStatus.AUTHORED
     definition: str | None = None
+    ontology_reference: Annotated[OntologyReference | None, charter_field(json=True)] = None
+    lexical_entry: Annotated[LexicalEntry | None, charter_field(json=True)] = None

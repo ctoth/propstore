@@ -66,6 +66,8 @@ def _row_to_concept(row: object) -> Concept:
         canonical_name=row.canonical_name,  # type: ignore[attr-defined]
         status=status,
         definition=row.definition,  # type: ignore[attr-defined]
+        ontology_reference=row.ontology_reference,  # type: ignore[attr-defined]
+        lexical_entry=row.lexical_entry,  # type: ignore[attr-defined]
     )
 
 
