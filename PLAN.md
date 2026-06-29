@@ -120,6 +120,18 @@ ast-equiv consume-pin). `adjudicate` workflow: never existed; not a feature.
   source-trust calibration, stances/relations, preference heuristic, opinion (consume `doxa`; keep the
   thin provenance/honesty deltas — enforce_coh, metadata_strength_vector — propstore-side).
 - PORT: `argumentation-bridge` slice (34, incl. the NEW core_analyzers/justifications/base_rates rows).
+- **SPLIT 5a/5b (like Phase 7)** given size + the opinion→doxa migration that ripples through the slice.
+  Map: `reports/scout-p5-map.md` (0.3.0 OLD→NEW import table §D, doxa API §C, opinion-mirror caveat §E).
+  - **5a value/honesty layer:** consume `doxa.Opinion` DIRECTLY (delete the reference `opinion.py` mirror;
+    no propstore Opinion/BetaEvidence second-spelling, no free-fn spellings — use doxa classmethods;
+    provenance carried as a PAIRING beside the opinion, not baked into a re-spelled type). stances
+    (`StanceType` + relation_analysis, all stances enter AF, no pre-render gate), preference heuristic
+    (`MetadataStrengthVector`/`metadata_strength_vector`/`claim_strength`), calibration (temperature
+    scaling Guo 2017, ECE, base-rate-is-Opinion). No ASPIC/PrAF kernel.
+  - **5b argument-assembly layer:** core/analyzers (Dung-AF+PrAF assembly), aspic_bridge (build/translate/
+    query/grounding/projection/lifting on `argumentation.structured.aspic.aspic`), praf engine
+    (`enforce_coh`) + projection (`argumentation.probabilistic.probabilistic` — NOT the package root),
+    claim_graph delegators, source-trust projection, CKR justifiable-exceptions → Dung-defeat (CSAF).
 - **Exit**: green.
 
 ### Phase 6 — merge-conflict + relations
