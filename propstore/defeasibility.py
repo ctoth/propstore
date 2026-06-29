@@ -25,11 +25,14 @@ Substrate boundary (CLAUDE.md):
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Protocol, TypeAlias
 
+from argumentation.core.dung import ArgumentationFramework
+from argumentation.structured.aspic.aspic import CSAF, Argument, Literal, conc
 from condition_ir import (
     CelExpr,
     CheckedCondition,
@@ -486,6 +489,83 @@ def _collect_condition_ir_names(condition: ConditionIR, names: set[str]) -> None
     _collect_condition_ir_names(condition.when_false, names)
 
 
+def apply_exception_defeats_to_csaf(
+    csaf: CSAF,
+    results: Iterable[ContextualClaimResult],
+) -> CSAF:
+    """Return a CSAF whose Dung layer includes CKR exception defeats.
+
+    ASPIC+ remains responsible for structural argument construction; CKR
+    contributes only extra defeat edges (CLAUDE.md: ASPIC+ does not own contextual
+    exception semantics — propstore decides applicability and injects the
+    defeats). For each ``EXCEPTED`` use, every argument concluding a justification
+    claim defeats every argument concluding the excepted contextual claim. A use
+    whose claim has no ASPIC argument is an authoring error (``ValueError``); an
+    exception whose justification claims have no argument is skipped with a warning
+    rather than silently fabricating a defeat.
+    """
+
+    extra_defeats: set[tuple[Argument, Argument]] = set()
+    for result in results:
+        if result.applicability is not ClaimApplicability.EXCEPTED:
+            continue
+        target_arguments = _arguments_concluding(csaf, result.use.claim)
+        if not target_arguments:
+            raise ValueError(
+                "CKR exception result targets a claim with no ASPIC argument: "
+                f"{result.use.claim!r}"
+            )
+        for exception in result.applied_exceptions:
+            attacker_arguments: set[Argument] = set()
+            for justification_claim in exception.justification_claims:
+                attacker_arguments.update(_arguments_concluding(csaf, justification_claim))
+            if not attacker_arguments:
+                warnings.warn(
+                    "CKR exception has no ASPIC argument for its justification claims; "
+                    "skipping that exception",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                continue
+            for attacker in attacker_arguments:
+                for target in target_arguments:
+                    if attacker != target:
+                        extra_defeats.add((attacker, target))
+
+    if not extra_defeats:
+        return csaf
+
+    defeat_ids = frozenset(
+        (csaf.arg_to_id[attacker], csaf.arg_to_id[target])
+        for attacker, target in extra_defeats
+    )
+    framework = ArgumentationFramework(
+        arguments=csaf.framework.arguments,
+        defeats=csaf.framework.defeats | defeat_ids,
+        attacks=csaf.framework.attacks,
+    )
+    return replace(
+        csaf,
+        defeats=csaf.defeats | frozenset(extra_defeats),
+        framework=framework,
+    )
+
+
+def _arguments_concluding(csaf: CSAF, claim_id: str) -> set[Argument]:
+    return {
+        argument
+        for argument in csaf.arguments
+        if _literal_concludes_claim(conc(argument), claim_id)
+    }
+
+
+def _literal_concludes_claim(literal: Literal, claim_id: str) -> bool:
+    atom = literal.atom
+    if atom.predicate == claim_id:
+        return True
+    return atom.predicate == "ist" and atom.arguments[-1:] == (claim_id,)
+
+
 def _compose_support_quality(left: SupportQuality, right: SupportQuality) -> SupportQuality:
     left = SupportQuality(left)
     right = SupportQuality(right)
@@ -511,6 +591,7 @@ __all__ = [
     "ExceptionPolicyIssueKind",
     "JustifiableException",
     "LiftingRuleSupport",
+    "apply_exception_defeats_to_csaf",
     "build_exception_defeat",
     "evaluate_contextual_claim",
     "exception_defeat_is_live",

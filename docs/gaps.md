@@ -15,6 +15,8 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ### HIGH
 
+- **Grounded-rule → ASPIC+ projection is empty-bundle only (rewrite Phase 5b).** `propstore/aspic_bridge/grounding.py` — `project_grounded_rules` / `ground_facts_to_axioms` handle an empty `GroundedRulesBundle` (the non-grounded bridge and CKR integration) and raise `NotImplementedError` for a non-empty bundle rather than silently dropping its rules. The gunray grounding-inspection → argumentation `GroundedDatalogTheory` translation (and the rule-superiority projection) is a dedicated sub-slice. Citation: rewrite Phase 5b observation. Plan: implement the gunray→ASPIC+ inspection seam in a follow-up; gates are the reference `tests/test_aspic_bridge_grounded.py` corpus.
+
 - **Sidecar claim SI normalization silently writes non-SI values to `_si` columns.** `propstore/sidecar/claim_utils.py:596-606` — on `ValueError`/`TypeError` from `normalize_to_si`, the code writes `value_si = typed_fields.value` (i.e., the unnormalized value). Downstream queries trust the `_si` suffix. Citation: axis-5 Finding 3.1. Plan: not yet scheduled (axis-5 docket).
 
 ### MED
