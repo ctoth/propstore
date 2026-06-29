@@ -55,17 +55,9 @@ allow-direct-references = true
 packages = ["propstore"]
 
 [tool.pyright]
-typeCheckingMode = "basic"
+typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
-strict = [
-    "propstore/core/literal_keys.py",
-    "propstore/core/labels.py",
-    "propstore/core/graph_types.py",
-    "propstore/core/results.py",
-    "propstore/conflict_detector/models.py",
-    "propstore/opinion.py",
-]
 
 [tool.pytest.ini_options]
 # Hypothesis profiles: HYPOTHESIS_PROFILE=overnight for thorough runs (see tests/conftest.py)
