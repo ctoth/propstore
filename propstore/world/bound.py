@@ -77,10 +77,29 @@ from propstore.world.types import (
     ValueStatus,
     coerce_queryable_assumptions,
 )
+from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_ITERATED_OPERATOR,
+    DEFAULT_MAX_ALPHABET_SIZE,
+    decide_contract,
+    decide_expand,
+    decide_revise,
+)
+from propstore.support_revision.input_normalization import normalize_revision_input
+from propstore.support_revision.realization import realize_formal_decision
+from propstore.support_revision.state import AssertionAtom, AssumptionAtom
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
+    from propstore.support_revision.entrenchment import EntrenchmentReport
+    from propstore.support_revision.explanation_types import RevisionExplanation
+    from propstore.support_revision.history import EpistemicSnapshot
+    from propstore.support_revision.state import (
+        BeliefAtom,
+        BeliefBase,
+        EpistemicState,
+        RevisionResult,
+    )
     from propstore.world.atms import ATMSEngine
 
 
@@ -1070,10 +1089,180 @@ class BoundWorld(BeliefSpace):
     def explain_claim_support(self, claim_id: str) -> ATMSNodeExplanation:
         return self.atms_engine().explain_node(self.claim_status(claim_id).node_id)
 
-    # -- revision surface (DEFERRED to the support_revision phase) ----------
-    # The AGM / Darwiche-Pearl revision surface — revision_base,
-    # revision_entrenchment, expand, contract, revise, revision_explain,
-    # epistemic_state, revision_state_snapshot, iterated_revise — is owned by
-    # ``propstore.support_revision`` and re-attaches here when that package
-    # lands. It is intentionally absent: this slice does not import
-    # support_revision. See reports/scout-p7w-map.md section B.
+    # -- revision surface (owned by propstore.support_revision) -------------
+    # The AGM / Darwiche-Pearl revision surface projects this bound world into a
+    # scoped belief base and delegates the formal decision to
+    # ``propstore.support_revision``. The projection/entrenchment/explanation/
+    # iterated/history modules are imported lazily inside the method bodies to keep
+    # the eager import graph acyclic (those modules read a BoundWorld back).
+
+    def revision_base(self) -> BeliefBase:
+        """Project this bound world into a revision-facing belief base."""
+
+        from propstore.support_revision.projection import project_belief_base
+
+        return project_belief_base(self)
+
+    def revision_entrenchment(
+        self,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> EntrenchmentReport:
+        """Compute the current revision-facing entrenchment ordering."""
+
+        from propstore.support_revision.entrenchment import compute_entrenchment
+
+        return compute_entrenchment(self, self.revision_base(), overrides=overrides)
+
+    def expand(self, atom: BeliefAtom | str | Mapping[str, Any]) -> RevisionResult:
+        """Expand the scoped revision belief base without mutating source storage."""
+
+        base = self.revision_base()
+        normalized = normalize_revision_input(base, atom)
+        decision = decide_expand(
+            base,
+            normalized,
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        return realize_formal_decision(
+            base,
+            decision,
+            extra_atoms=(normalized,),
+            accepted_reason="expanded",
+        )
+
+    def contract(
+        self,
+        targets: BeliefAtom | str | Mapping[str, Any] | Sequence[BeliefAtom | str | Mapping[str, Any]],
+        *,
+        max_candidates: int,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> RevisionResult:
+        """Contract the scoped revision belief base using the current entrenchment."""
+
+        base = self.revision_base()
+        target_ids = _normalize_revision_targets(base, targets)
+        decision = decide_contract(
+            base,
+            target_ids,
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        return realize_formal_decision(
+            base,
+            decision,
+            rejected_reason="contracted",
+            support_entrenchment=self.revision_entrenchment(overrides=overrides),
+            max_candidates=max_candidates,
+        )
+
+    def revise(
+        self,
+        atom: BeliefAtom | str | Mapping[str, Any],
+        *,
+        max_candidates: int,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
+    ) -> RevisionResult:
+        """Revise the scoped belief base by delegating to the revision package."""
+
+        base = self.revision_base()
+        normalized = normalize_revision_input(base, atom)
+        decision = decide_revise(
+            base,
+            normalized,
+            conflicts=_conflicts_for_revision_atom(normalized.atom_id, conflicts),
+            max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
+        )
+        return realize_formal_decision(
+            base,
+            decision,
+            extra_atoms=(normalized,),
+            accepted_reason="revised_in",
+            rejected_reason="revised_out",
+            support_entrenchment=self.revision_entrenchment(overrides=overrides),
+            max_candidates=max_candidates,
+        )
+
+    def revision_explain(
+        self,
+        result: RevisionResult,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> RevisionExplanation:
+        """Render the default explanation payload for a revision result."""
+
+        from propstore.support_revision.explain import build_revision_explanation
+
+        return build_revision_explanation(
+            result,
+            entrenchment=self.revision_entrenchment(overrides=overrides),
+        )
+
+    def epistemic_state(
+        self,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> EpistemicState:
+        """Build the explicit iterated revision state for this scoped world."""
+
+        from propstore.support_revision.iterated import make_epistemic_state
+
+        return make_epistemic_state(
+            self.revision_base(),
+            self.revision_entrenchment(overrides=overrides),
+        )
+
+    def revision_state_snapshot(self, state: EpistemicState) -> EpistemicSnapshot:
+        """Render an iterated revision state as the worldline persistence payload."""
+
+        from propstore.support_revision.history import EpistemicSnapshot
+
+        return EpistemicSnapshot.from_state(state)
+
+    def iterated_revise(
+        self,
+        atom: BeliefAtom | str | Mapping[str, Any],
+        *,
+        max_candidates: int,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
+        operator: str = DEFAULT_ITERATED_OPERATOR,
+        state: EpistemicState | None = None,
+    ) -> tuple[RevisionResult, EpistemicState]:
+        """Revise an explicit epistemic state using the selected iterated operator."""
+
+        from propstore.support_revision.iterated import iterated_revise as iterated_revise_state
+
+        current_state = state or self.epistemic_state(overrides=overrides)
+        return iterated_revise_state(
+            current_state,
+            atom,
+            max_candidates=max_candidates,
+            conflicts=None if conflicts is None else dict(conflicts),
+            operator=operator,
+        )
+
+
+def _normalize_revision_targets(
+    base: BeliefBase,
+    targets: BeliefAtom
+    | str
+    | Mapping[str, Any]
+    | Sequence[BeliefAtom | str | Mapping[str, Any]],
+) -> tuple[str, ...]:
+    """Normalize one-or-many contract targets to their belief-atom ids."""
+
+    if isinstance(targets, AssertionAtom | AssumptionAtom | str | Mapping):
+        return (normalize_revision_input(base, targets).atom_id,)
+    return tuple(normalize_revision_input(base, target).atom_id for target in targets)
+
+
+def _conflicts_for_revision_atom(
+    atom_id: str,
+    conflicts: Mapping[str, Sequence[str]] | None,
+) -> tuple[str, ...]:
+    """Resolve the conflicting atom ids declared for one revision input atom."""
+
+    if conflicts is None:
+        return ()
+    return tuple(str(conflict) for conflict in conflicts.get(atom_id, ()))

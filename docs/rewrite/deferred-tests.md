@@ -278,7 +278,41 @@ builds a `SituatedAssertion` via `core.assertions`, not `projection`):
   charter-heavy `tests.fixtures.journal` fixture).
 
 Deferred past 7b-1:
-- test_revision_state.py, test_revision_assertion_identity.py -> 7b-2
-  (`support_revision.projection.project_belief_base` + `_make_bound`/BoundWorld).
 - test_revision_retirement.py -> 7b-4 (reads
   `propstore/worldline/revision_capture.py`, which lands in 7b-4).
+
+## Phase 7b-2 (projection + af_adapter + workflows + BoundWorld re-attach)
+
+7b-2 built `support_revision/{projection,af_adapter,workflows}` and re-attached the
+BoundWorld revision surface (revision_base / revision_entrenchment / expand /
+contract / revise / revision_explain / epistemic_state / revision_state_snapshot /
+iterated_revise + the two free helpers). `projection.py` retypes the situated-
+assertion build over the slim charter `ActiveClaim` (value/claim_type ride in
+`attributes`; conditions are not on the thin claim view, so the projected
+assertion is unconditional — the condition's belief effect is already in the
+support sets / essential support). `af_adapter.py` retypes the read-only overlay
+over the charter `Claim`/`Stance`/`ConflictRecord` and `core.environment` store
+protocols (no `*Row`/`*RowInput`). belief_set stays confined to
+`belief_set_adapter.py`.
+
+PORTed in 7b-2 (now green), `_RevisionStore`/`_make_bound` replaced by the
+charter-native `tests.atms_feed.build_bound` / `ClaimSpec`:
+- test_revision_projection.py, test_revision_state.py,
+  test_revision_assertion_identity.py (the two 7b-1-deferred rows above),
+  test_revision_bound_world.py (carries `_operator_bound`/`_atom_id_for_claim` +
+  the entrenchment-override case from the reference test_revision_phase1.py),
+  test_revision_adapter_projection.py, test_revision_argumentation_views.py.
+- test_revision_af_adapter.py: the structured-projection (`build_aspic_projection`
+  over the revision overlay + support metadata) case and the import-discipline AST
+  case are ported. The `build_argumentation_framework`-over-the-overlay case
+  (`test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims`)
+  is NOT ported: it asserts the overlay store returns a synthetic accepted claim
+  (`claim_synthetic`) with `.value == 9.0`, which the slim charter `ActiveClaim`
+  cannot carry (the value lives in the situated assertion, not the claim) — it
+  needs a charter-Claim synthesis from the accepted assertion. Deferred until the
+  revision overlay can materialize charter claims for synthetic atoms.
+
+Deferred past 7b-2 (CLI/web phase):
+- test_revision_cli.py, test_revision_phase1_cli.py, test_revision_app_contract.py,
+  test_web_revision_readonly.py -> CLI/web phase (Click/app surface over the
+  workflows owner layer).
