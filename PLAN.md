@@ -149,7 +149,29 @@ ast-equiv consume-pin). `adjudicate` workflow: never existed; not a feature.
   docs/gaps.md:18). Tests: test_core_analyzers, test_praf_integration, test_praf_uncalibrated_explicit,
   test_aspic_bridge_grounded, test_core_justifications, the lifting/projection/Label subset of
   test_ws_f_aspic_bridge (the active-graph parts may slip to Phase 7). See docs/rewrite/deferred-tests.md.
+- **SPLIT 6a→6d (dependency-ordered, serial), per scout map `reports/scout-p6-map.md`. Prereqs confirmed:**
+  condition-ir ConditionSolver has are_equivalent_result/are_disjoint_result/Solver{Sat,Unsat,Unknown}/
+  synthetic_category_concept/with_synthetic_concepts/ConceptInfo; ast-equiv has compare/ComparisonResult/
+  Tier; argumentation 0.3.0 af_merging (sum/max/leximax MOVED out of partial_af), partial_af, and
+  datalog_grounding.grounding_inspection_to_aspic → GroundedDatalogTheory all resolve.
+  - **6a keystone:** core/{reasoning,results,labels}.py prereqs (canonical enums/value types; Phase 7
+    world.types re-exports reasoning) + the `conflict_detector/` package + condition_classifier — Z3
+    disjointness via condition-ir ConditionSolver, equation conflict via eq-equiv (propstore.claim_equations),
+    AST via ast-equiv compare, value/param via value_comparison+dimensions, context φ-node via context_lifting.
+  - **6b moved-assembly:** the Phase-6 portion of core/analyzers.py (AF/BAF/PrAF math RE-PARAMETERIZED over
+    plain (claims_by_id, stance_rows, conflict_rows, active_ids); SharedAnalyzerInput WITHOUT active_graph),
+    analyze_aspic_backend/analyze_claim_graph/build_praf_from_shared_input/analyze_praf, structured_projection.py,
+    aspic_bridge/projection.py (csaf_to_projection→StructuredProjection; Label.empty()/None), and the
+    gunray-inspection→ASPIC+ grounding-seam fill in aspic_bridge/grounding.py (closes docs/gaps.md:18).
+  - **6c merge:** merge/ package (merge_classifier build_merge_framework over partial_af, IntegrityConstraint
+    M3, structured_merge sum/max/leximax via af_merging, merge_claims coreference, two-parent merge_commit via
+    quire commit_flat_tree, merge_report). Depends on 6a (conflict_detector) + 6b (structured_projection).
+  - **6d relations/alignment/sameas:** source/alignment.py (PAF over candidate proposals via partial_af;
+    classify_relation via lemon identity not Jaccard; proposal-only) + sameas family. families/relations.py +
+    probabilistic_relations.py already exist — consume.
 - PORT: `merge-conflict` slice (27). Closes M3 IntegrityConstraint (test_ic_postulate_coverage).
+- NOTE: belief-set/worldline IC-merge tests (test_ic_postulate_coverage, test_*ic_merge*, assignment_selection_
+  merge) are the model-theoretic IC merge (layer 4) → Phase 7+, distinct from the merge-side IntegrityConstraint.
 - **Exit**: green.
 
 ### Phase 7 — world + ATMS + worldline + belief-revision  (LARGEST — may split 7a/7b)
