@@ -36,8 +36,11 @@ def ast_compare(
     bindings_a: dict[str, str],
     body_b: str,
     bindings_b: dict[str, str],
+    known_values: dict[str, float] | None = None,
 ) -> ComparisonResult:
-    result: ComparisonResult = _ast_equiv_compare(body_a, bindings_a, body_b, bindings_b)
+    result: ComparisonResult = _ast_equiv_compare(
+        body_a, bindings_a, body_b, bindings_b, known_values
+    )
     return result
 
 

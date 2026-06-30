@@ -10,6 +10,7 @@ rows are present in storage, not dropped).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from propstore.app.claim_views import (
@@ -25,6 +26,93 @@ from propstore.reporting import JsonReportMixin
 from propstore.world import RenderPolicy, WorldQuery
 
 _SUMMARY_TEXT_LIMIT = 120
+
+
+class ClaimWorkflowError(Exception):
+    """Base class for expected claim owner-layer failures."""
+
+
+class UnknownClaimError(ClaimWorkflowError):
+    """Raised when a claim reference does not resolve to a stored claim."""
+
+    def __init__(self, claim_id: str) -> None:
+        super().__init__(f"Unknown claim: {claim_id}")
+        self.claim_id = claim_id
+
+
+class ClaimComparisonError(ClaimWorkflowError):
+    """Raised when two claims cannot be compared as algorithm bodies."""
+
+
+@dataclass(frozen=True)
+class ClaimCompareRequest:
+    """A request to compare two algorithm claims' bodies for equivalence."""
+
+    claim_a_id: str
+    claim_b_id: str
+    known_values: Mapping[str, float] | None = None
+
+
+@dataclass(frozen=True)
+class ClaimCompareReport(JsonReportMixin):
+    """The AST-equivalence verdict between two algorithm claim bodies."""
+
+    tier: str
+    equivalent: bool
+    similarity: float
+    details: str
+
+
+def compare_algorithm_claims(
+    world: WorldQuery,
+    request: ClaimCompareRequest,
+) -> ClaimCompareReport:
+    """Compare two algorithm claims' bodies via AST equivalence (``ast_equiv``).
+
+    Both claims must exist (else :class:`UnknownClaimError`) and both must carry a
+    non-empty algorithm ``body`` (else :class:`ClaimComparisonError`). The charter
+    claim carries no per-variable symbol→concept bindings, so the comparison runs
+    over the bare bodies; ``known_values`` is passed through to the partial-eval
+    tier. A runaway comparison surfaces as :class:`ClaimComparisonError` rather
+    than crashing the caller.
+    """
+
+    from ast_equiv import AlgorithmParseError
+
+    from propstore.conflict_detector.algorithms import ast_compare
+
+    claim_a = world.get_claim(request.claim_a_id)
+    if claim_a is None:
+        raise UnknownClaimError(request.claim_a_id)
+    claim_b = world.get_claim(request.claim_b_id)
+    if claim_b is None:
+        raise UnknownClaimError(request.claim_b_id)
+
+    body_a = claim_a.body
+    body_b = claim_b.body
+    if not body_a or not body_b:
+        raise ClaimComparisonError(
+            "Both claims must be algorithm claims with a body."
+        )
+
+    known_values = None if request.known_values is None else dict(request.known_values)
+    try:
+        result = ast_compare(body_a, {}, body_b, {}, known_values=known_values)
+    except RecursionError as exc:
+        raise ClaimComparisonError(
+            "Algorithm comparison exceeded recursion depth."
+        ) from exc
+    except AlgorithmParseError as exc:
+        raise ClaimComparisonError(
+            f"Claim body is not a parseable algorithm: {exc}"
+        ) from exc
+
+    return ClaimCompareReport(
+        tier=result.tier.name,
+        equivalent=bool(result.equivalent),
+        similarity=float(result.similarity),
+        details=str(result.details),
+    )
 
 
 @dataclass(frozen=True)
