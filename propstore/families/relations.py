@@ -25,14 +25,16 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Protocol
+from typing import TYPE_CHECKING, Annotated, Protocol
 
 from doxa import Opinion
+from quire.artifacts import BranchPlacement, FlatYamlPlacement
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
 from quire.references import ForeignKeySpec
+from quire.refs import single_field_ref_type
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.sqlalchemy_store import (
     create_sqlalchemy_store,
@@ -295,3 +297,74 @@ def stance_summary(stances: Iterable[Stance]) -> StanceSummary:
         models=tuple(sorted(models)),
         mean_uncertainty=mean_uncertainty,
     )
+
+
+# ---------------------------------------------------------------------------
+# Stance proposal artifact (heuristic layer 3)
+# ---------------------------------------------------------------------------
+#
+# A *stance proposal* is a heuristic-layer candidate stance (CLAUDE.md layer 3):
+# what an NLI/LLM classifier proposed one claim's position toward another to be,
+# carrying its honest confidence/opinion. It lives on the ``proposal/stances``
+# branch and is never a canonical :class:`Stance` until an explicit promotion. The
+# proposal carries the same content-derived ``stance_id`` the canonical edge would,
+# so promoting the same proposal twice is naturally idempotent.
+
+STANCE_PROPOSAL_BRANCH = BranchPlacement(
+    policy="fixed", fixed_branch="proposal/stances"
+)
+"""Place every stance proposal on ``proposal/stances``."""
+
+
+if TYPE_CHECKING:
+
+    @dataclass(frozen=True)
+    class StanceProposalRef:
+        stance_id: str
+
+else:
+    StanceProposalRef = single_field_ref_type(
+        "StanceProposalRef", "stance_id", module=__name__
+    )
+
+
+_STANCE_PROPOSAL_PLACEMENT: FlatYamlPlacement[object, StanceProposalRef] = (
+    FlatYamlPlacement(
+        "stances",
+        StanceProposalRef,
+        ref_field="stance_id",
+        codec="colon_to_double_underscore",
+        branch=STANCE_PROPOSAL_BRANCH,
+    )
+)
+
+
+@charter(
+    key="proposal_stances",
+    name="proposal_stances",
+    contract_version="2026.06.29",
+    placement=_STANCE_PROPOSAL_PLACEMENT,
+    accessor="proposal_stances",
+    identity_field="stance_id",
+)
+class StanceProposal(CharterDoc):
+    """A candidate typed relation one claim takes toward another.
+
+    The class *is* the document: ``stance_id`` is the content-derived identity, the
+    candidate edge is ``source_claim_id``/``target_claim_id``/``stance_type``, and
+    the heuristic confidence is the optional ``resolution_model``/``confidence`` and
+    the four Jøsang ``opinion_*`` components. Missing opinion components mean honest
+    ignorance, never a fabricated mass.
+    """
+
+    stance_id: Annotated[str, charter_field(primary_key=True)]
+    source_claim_id: str | None = None
+    target_claim_id: str | None = None
+    stance_type: StanceType | None = None
+    resolution_model: str | None = None
+    confidence: float | None = None
+    opinion_belief: float | None = None
+    opinion_disbelief: float | None = None
+    opinion_uncertainty: float | None = None
+    opinion_base_rate: float | None = None
+    note: str | None = None

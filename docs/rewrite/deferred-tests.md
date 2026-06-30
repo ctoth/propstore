@@ -135,9 +135,12 @@ Phase 8-4 predicate proposals (landed) and their deferred edges:
   test_propose_rules_lifecycle.py -> 8-4 (rule proposals, sibling of predicates) or
   later; rule-proposal promotion not yet built.
 - test_proposal_promotion.py / test_promote_stance_proposals_idempotency.py /
-  test_plan_stance_proposal_promotion_typo_path.py -> 8-4 stance proposals (the
-  rewrite Stance charter diverges from the reference StanceDocument; the stance
-  proposal charter + workflow are not yet built).
+  test_plan_stance_proposal_promotion_typo_path.py -> owner-layer stance proposal
+  record/plan/promote landed in tests/test_stance_proposals.py. The rewrite Stance
+  charter diverges from the reference StanceDocument, so the stance proposal is its
+  own charter and idempotency rides on the content-derived stance_id rather than a
+  promoted_from_sha stamp. The reference's NLI/LLM commit_stance_proposals batch
+  recorder and the CLI promote surface stay deferred to Phase 6 / Phase 10.
 - test_cli_promote_rules_*.py / test_cli_propose_rules_*.py /
   test_concept_alignment_cli.py -> 10 (Click surface only).
 
