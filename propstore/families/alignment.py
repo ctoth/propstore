@@ -24,10 +24,45 @@ module owns only the artifact's shape.
 
 from __future__ import annotations
 
-from typing import Annotated
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Annotated
 
 import msgspec
+from quire.artifacts import BranchPlacement, FlatYamlPlacement
 from quire.charter_class import CharterDoc, charter, charter_field
+from quire.refs import single_field_ref_type
+
+# The proposal branch for concept-alignment artifacts. Alignment is a
+# heuristic-layer reconciliation *proposal* (CLAUDE.md layer 3); it lives on a
+# dedicated proposal branch and never on the canonical corpus until an explicit
+# accept+promote writes a source concept.
+CONCEPT_ALIGNMENT_BRANCH = BranchPlacement(
+    policy="fixed", fixed_branch="proposal/concepts"
+)
+"""Place every concept-alignment proposal on ``proposal/concepts``."""
+
+
+if TYPE_CHECKING:
+
+    @dataclass(frozen=True)
+    class ConceptAlignmentRef:
+        slug: str
+
+else:
+    ConceptAlignmentRef = single_field_ref_type(
+        "ConceptAlignmentRef", "slug", module=__name__
+    )
+
+
+CONCEPT_ALIGNMENT_PLACEMENT: FlatYamlPlacement[object, ConceptAlignmentRef] = (
+    FlatYamlPlacement(
+        "merge/concepts",
+        ConceptAlignmentRef,
+        ref_field="slug",
+        branch=CONCEPT_ALIGNMENT_BRANCH,
+    )
+)
+"""Store each alignment proposal at ``merge/concepts/<slug>.yaml`` on its branch."""
 
 
 def _empty_operator_scores() -> dict[str, dict[str, int]]:
@@ -88,9 +123,9 @@ class AlignmentDecision(msgspec.Struct, frozen=True, forbid_unknown_fields=True)
     key="concept_alignment",
     name="concept_alignment_framework",
     contract_version="2026.06.29",
-    placement="concept_alignment",
+    placement=CONCEPT_ALIGNMENT_PLACEMENT,
+    accessor="concept_alignments",
     identity_field="alignment_id",
-    semantic="propstore.concept_alignment",
 )
 class ConceptAlignmentArtifact(CharterDoc):
     """A PAF-backed vocabulary-reconciliation proposal over rival concept names.

@@ -13,6 +13,14 @@ may also import the submodules directly.
 
 from __future__ import annotations
 
+from .alignment import (
+    align_sources,
+    build_alignment_artifact,
+    classify_relation,
+    concept_proposal_branch,
+    decide_alignment,
+    promote_alignment,
+)
 from .common import (
     init_source_branch,
     initial_source_document,
@@ -52,6 +60,12 @@ from .status import (
 
 __all__ = [
     "PromotionResult",
+    "align_sources",
+    "build_alignment_artifact",
+    "classify_relation",
+    "concept_proposal_branch",
+    "decide_alignment",
+    "promote_alignment",
     "SourceConceptPromotionResolution",
     "SourcePromotionPlan",
     "SourceStatusReport",

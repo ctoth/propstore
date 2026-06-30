@@ -33,6 +33,7 @@ from argumentation.frameworks.partial_af import (
     credulously_accepted_arguments,
     skeptically_accepted_arguments,
 )
+import msgspec
 from doxa import Opinion
 
 from propstore.core.lemon import (
@@ -48,7 +49,17 @@ from propstore.families.alignment import (
     AlignmentDecision,
     AlignmentFramework,
     AlignmentQueries,
+    CONCEPT_ALIGNMENT_BRANCH,
     ConceptAlignmentArtifact,
+    ConceptAlignmentRef,
+)
+from propstore.families.concepts import Concept, ConceptStatus
+from propstore.families.identity.concepts import derive_concept_artifact_id
+from propstore.repository import Repository
+from propstore.source.common import (
+    load_source_concepts_document,
+    load_source_document,
+    normalize_source_slug,
 )
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri
 from propstore.uri_authority import TaggingAuthority
@@ -305,3 +316,208 @@ def load_alignment_artifact(path: Path) -> ConceptAlignmentArtifact:
     return codec.decode(
         path.read_bytes(), ConceptAlignmentArtifact, source=str(path)
     )
+
+
+# ---------------------------------------------------------------------------
+# Repository-bound alignment lifecycle (propose / decide / promote)
+# ---------------------------------------------------------------------------
+#
+# This is the propose→decide→promote workflow of CLAUDE.md layer 3. None of these
+# functions mutate the canonical corpus by *proposing*: ``align_sources`` records a
+# proposal artifact on the ``proposal/concepts`` branch only; ``decide_alignment``
+# records an accept/reject decision on that same artifact. The single point where a
+# heuristic output becomes (proposed) canonical source content is
+# ``promote_alignment`` — and only for an explicitly accepted alternative.
+
+
+def concept_proposal_branch(repo: Repository | None = None) -> str:
+    """Return the branch every concept-alignment proposal is stored on.
+
+    ``repo`` is accepted (and ignored) so callers can pass their repository
+    uniformly; the branch is fixed by the alignment family placement, not by repo
+    state. Raises if the placement is somehow not fixed-branch.
+    """
+
+    branch = CONCEPT_ALIGNMENT_BRANCH.fixed_branch
+    if branch is None:
+        raise ValueError("concept alignment branch placement must be fixed")
+    return branch
+
+
+def _alignment_slug(cluster_id: str) -> str:
+    """Reduce a ``align:<slug>`` cluster id to its storage slug."""
+
+    return cluster_id.split(":", 1)[1] if ":" in cluster_id else cluster_id
+
+
+def _form_exists(repo: Repository, form: str | None) -> bool:
+    """Whether *form* names a form already on the canonical (master) corpus."""
+
+    if not form:
+        return False
+    return any(str(ref) == form for ref in repo.families.form.iter())
+
+
+def _load_repo_alignment(
+    repo: Repository, cluster_id: str
+) -> tuple[str, ConceptAlignmentArtifact]:
+    """Load a stored alignment proposal by cluster id; raise if absent."""
+
+    slug = _alignment_slug(cluster_id)
+    artifact = repo.families.concept_alignments.load(ConceptAlignmentRef(slug))
+    if artifact is None:
+        raise FileNotFoundError(cluster_id)
+    if not isinstance(artifact, ConceptAlignmentArtifact):  # pragma: no cover - typing
+        raise TypeError(f"alignment {cluster_id!r} is not a ConceptAlignmentArtifact")
+    return slug, artifact
+
+
+def align_sources(
+    repo: Repository, source_branches: list[str]
+) -> ConceptAlignmentArtifact:
+    """Propose a concept alignment across several source branches.
+
+    Reads each source branch's proposed concepts, classifies every candidate pair
+    by lemon identity (:func:`build_alignment_artifact`), and records the resulting
+    proposal artifact on the proposal branch. No source concept is written; the
+    artifact holds every rival candidate with its skeptical/credulous verdicts.
+    """
+
+    proposals: list[Mapping[str, object]] = []
+    for branch in source_branches:
+        name = branch.split("/", 1)[1] if "/" in branch else branch
+        concepts_doc = load_source_concepts_document(repo, name)
+        source_doc = load_source_document(repo, name)
+        source_uri = str(source_doc.id or name)
+        entries = () if concepts_doc is None else concepts_doc.concepts
+        for entry in entries:
+            proposals.append(
+                {
+                    "source": source_uri,
+                    "local_handle": str(
+                        entry.local_name or entry.proposed_name or "concept"
+                    ),
+                    "proposed_name": str(
+                        entry.proposed_name or entry.local_name or "concept"
+                    ),
+                    "definition": str(entry.definition or ""),
+                    "form": str(entry.form or "structural"),
+                }
+            )
+
+    artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
+    git = repo.require_git()
+    proposal_branch = concept_proposal_branch(repo)
+    if git.branch_sha(proposal_branch) is None:
+        git.create_branch(proposal_branch)
+    slug = _alignment_slug(artifact.alignment_id)
+    repo.families.concept_alignments.save(
+        ConceptAlignmentRef(slug),
+        artifact,
+        message=f"Align concepts for {slug}",
+    )
+    return artifact
+
+
+def decide_alignment(
+    repo: Repository,
+    cluster_id: str,
+    *,
+    accept: list[str],
+    reject: list[str],
+) -> ConceptAlignmentArtifact:
+    """Record an accept/reject decision over an alignment proposal.
+
+    A decision is itself a non-committal annotation: it marks which alternatives a
+    later promotion is allowed to canonicalize, without writing any source concept.
+    """
+
+    slug, artifact = _load_repo_alignment(repo, cluster_id)
+    decided = msgspec.structs.replace(
+        artifact,
+        decision=AlignmentDecision(
+            status="decided",
+            accepted=tuple(accept),
+            rejected=tuple(reject),
+            promoted_concept=artifact.decision.promoted_concept,
+        ),
+    )
+    repo.families.concept_alignments.save(
+        ConceptAlignmentRef(slug),
+        decided,
+        message=f"Decide concept alignment {cluster_id}",
+    )
+    return decided
+
+
+def promote_alignment(repo: Repository, cluster_id: str) -> ConceptAlignmentArtifact:
+    """Promote an accepted alignment alternative into a canonical concept.
+
+    This is the one proposal→source boundary for alignment: the first accepted
+    alternative becomes a canonical :class:`~propstore.families.concepts.Concept`
+    authored to the primary branch, and the artifact's decision is stamped
+    ``promoted`` with the resulting concept URI. Raises if nothing was accepted.
+    """
+
+    slug, artifact = _load_repo_alignment(repo, cluster_id)
+    accepted = list(artifact.decision.accepted)
+    if not accepted:
+        raise ValueError(f"No accepted alternatives recorded for {cluster_id}")
+    accepted_id = accepted[0]
+    selected = next(
+        (argument for argument in artifact.arguments if argument.id == accepted_id),
+        None,
+    )
+    if selected is None:
+        raise ValueError(f"Accepted alternative {accepted_id!r} not found")
+
+    canonical_name = selected.proposed_name
+    handle = normalize_source_slug(canonical_name)
+    concept_id = derive_concept_artifact_id(handle)
+    # Only carry the dimensional form onto the canonical concept when it already
+    # resolves to a master form. A proposed form that has no canonical counterpart
+    # is left absent (None) rather than written as a dangling foreign key — honest
+    # absence over a fabricated reference (CLAUDE.md non-commitment + the FK gate).
+    proposed_form = selected.form or None
+    form = proposed_form if _form_exists(repo, proposed_form) else None
+    concept = Concept(
+        concept_id=concept_id,
+        canonical_name=canonical_name,
+        status=ConceptStatus.AUTHORED,
+        definition=selected.definition or None,
+        lexical_entry=LexicalEntry(
+            identifier=handle,
+            canonical_form=LexicalForm(written_rep=canonical_name, language="und"),
+            senses=(
+                LexicalSense(
+                    reference=OntologyReference(
+                        uri=concept_tag_uri(
+                            canonical_name, authority=repo.uri_authority
+                        )
+                    )
+                ),
+            ),
+            physical_dimension_form=form,
+        ),
+    )
+    repo.families.concept.save(
+        concept_id,
+        concept,
+        message=f"Promote concept alignment {cluster_id}",
+    )
+
+    promoted = msgspec.structs.replace(
+        artifact,
+        decision=AlignmentDecision(
+            status="promoted",
+            accepted=artifact.decision.accepted,
+            rejected=artifact.decision.rejected,
+            promoted_concept=concept_tag_uri(handle, authority=repo.uri_authority),
+        ),
+    )
+    repo.families.concept_alignments.save(
+        ConceptAlignmentRef(slug),
+        promoted,
+        message=f"Record concept promotion {cluster_id}",
+    )
+    return promoted

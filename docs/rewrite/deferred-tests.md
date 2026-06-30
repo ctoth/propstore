@@ -110,8 +110,13 @@ covered by tests/test_relations_charter.py
 (test_stance_summary_counts_attacks_without_pruning).
 
 Deferred to Phase 8 (source subsystem: Repository / source branches / CLI):
-- test_concept_alignment_cli.py -> 8 (alignment CLI over a Repository)
-- test_source_promotion_alignment.py -> 8 (align_sources/decide/promote_alignment)
+- test_concept_alignment_cli.py -> 10 (alignment CLI over a Repository; owner-layer
+  align/decide/promote landed in 8-4, only the Click surface remains)
+- test_source_promotion_alignment.py -> LANDED in 8-4 as
+  tests/test_concept_alignment_promotion.py (align_sources/decide_alignment/
+  promote_alignment over the Repository facade); the source-promote half of that
+  reference file is covered by tests/test_source_promote_p83b.py, and its CLI
+  assertions are Phase 10.
 - test_source_relations.py -> 8 (already listed above; source-relation projection)
 
 ## Phase 7a-world-B2 (BoundWorld + ATMS engine; commit f8ad6fe1 + follow-up)
