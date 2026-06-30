@@ -401,3 +401,36 @@ PORTed partially (in-memory capture only) in 7b-4:
 Still deferred past 7b-4:
 - test_worldline_revision_merge_parent_evidence.py -> 8/9 (real git merge DAG via
   `propstore.repository.Repository`).
+
+## Phase 8-0 — Repository facade + charter-derived family registry
+
+Landed (rewrite): the charter-derived `PROPSTORE_FAMILY_REGISTRY` + foreign-key
+graph (quire `registry_from_charters`; FK specs live only on charter fields), the
+`Repository` facade (`git` / `require_git` / `families` / `snapshot` /
+`derived_stores` / `config` / `uri_authority` / `tree` / `mutation_guard` /
+`find` / `init` / `is_propstore_repo`), `storage/` package (git policy +
+`RepositorySnapshot` + the concept sidecar builder), `canonical_namespaces`, and
+the `micropublication` + `justification` family charters. The PLAN.md §12.6
+charter→FK spike is proven on both hardest families: lemon (`concept` →
+`form`) and `micropublication` (→ `context`, `claim`). Tests written:
+`test_semantic_family_registry`, `test_repository`, `test_canonical_namespaces`,
+`test_git_policy`, plus quire `test_registry_from_charters`.
+
+Deferred to later slices (charters/logic land WITH their owning slice):
+- The source-branch family charters (`source_documents`, `source_concepts`,
+  `source_claims`, `source_micropubs`, `source_justifications`, `source_stances`,
+  `source_notes`, `source_metadata`, `source_finalize_reports`) and the canonical
+  `source` family, plus the proposal families (`proposal_stances`,
+  `proposal_predicates`, `proposal_rules`, `concept_alignments`) and
+  `merge_manifests` → authored alongside the **8-2 / 8-3 / Phase-9** logic that
+  uses them (e.g. the ~40-field source-claim document is source-authoring shape).
+- `artifact_codes` (`stamp_source_artifact_codes`, `claim_artifact_code`, …) →
+  **8-3**: it depends on the claim/concept identity canonicalizers
+  (`canonicalize_claim_for_version`, `derive_*_artifact_id`,
+  `compute_*_version_id`) which do not exist in the rewrite yet (the rewrite uses
+  the `identity_field` value directly as the store key). Those identity
+  canonicalizers are **8-1 / 8-3** work.
+- The transactional multi-family write path is available now as quire
+  `GitStore.head_bound_transaction(branch).families_transact(repo.families,
+  message=...)` → `txn.<family>.save(ref, doc)` → `txn.commit_sha`; source
+  finalize/promote (8-3) consume it directly (no propstore wrapper needed).

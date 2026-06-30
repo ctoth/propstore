@@ -9,6 +9,9 @@ import pytest
 from quire.git_store import GitStore
 
 from propstore.families.concepts import Concept
+from propstore.families.contexts import Context
+from propstore.families.claims import Claim
+from propstore.families.micropublications import Micropublication, MicropublicationEvidence
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.repository import (
     PROPSTORE_REPOSITORY_FORMAT_VERSION,
@@ -74,6 +77,25 @@ def test_concept_round_trips_through_repo_families(tmp_path: Path) -> None:
     repo.families.concept.save("concept:mass", concept, message="author mass")
     loaded = repo.families.concept.load("concept:mass")
     assert loaded == concept
+
+
+def test_micropublication_round_trips_with_resolved_references(tmp_path: Path) -> None:
+    # A multi-family round-trip: a json-blob-heavy micropublication whose context
+    # and claim references resolve saves and loads through one bound store, and
+    # the registry's foreign-key validation accepts the resolved references.
+    repo = Repository.init(tmp_path)
+    repo.families.context.save("ctx1", Context(context_id="ctx1", name="C"), message="m")
+    repo.families.claim.save("cl1", Claim(claim_id="cl1"), message="m")
+    micropub = Micropublication(
+        artifact_id="mp1",
+        context_id="ctx1",
+        claims=("cl1",),
+        evidence=(MicropublicationEvidence(kind="figure", reference="fig1"),),
+        assumptions=("a1",),
+    )
+    repo.families.micropublication.save("mp1", micropub, message="author mp")
+    loaded = repo.families.micropublication.load("mp1")
+    assert loaded == micropub
 
 
 def test_uri_authority_defaults_without_config(tmp_path: Path) -> None:

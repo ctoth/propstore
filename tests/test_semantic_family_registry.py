@@ -66,6 +66,23 @@ def test_claim_foreign_keys_point_at_concept_and_context() -> None:
     assert claim_fks["claim_concepts"].many is True
 
 
+def test_micropublication_foreign_keys_are_derived() -> None:
+    # PLAN.md §12.6 names micropublications as one of the two hardest families the
+    # charter->FK derivation must cover (lemon/concept being the other).
+    fks = {
+        spec.name: spec
+        for spec in PROPSTORE_FAMILY_REGISTRY.by_name("micropublication").foreign_keys
+    }
+    assert fks["micropublication_context"].target_family == "context"
+    assert fks["micropublication_claims"].target_family == "claim"
+    assert fks["micropublication_claims"].source_field == "claims[]"
+    assert fks["micropublication_claims"].many is True
+    # Derivation, not a literal table: the lift equals the charter field FKs.
+    assert PROPSTORE_FAMILY_REGISTRY.by_name(
+        "micropublication"
+    ).foreign_keys == _charter_field_foreign_keys("micropublication")
+
+
 def test_every_foreign_key_target_is_a_registered_family() -> None:
     names = set(PROPSTORE_FAMILY_REGISTRY.names())
     for family in PROPSTORE_FAMILY_REGISTRY.families:

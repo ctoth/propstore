@@ -28,6 +28,8 @@ from propstore.families.claims import Claim
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context, LiftingMaterialization, LiftingRule
 from propstore.families.forms import FormDefinition
+from propstore.families.justifications import Justification
+from propstore.families.micropublications import Micropublication
 from propstore.families.predicates import Predicate
 from propstore.families.relations import Stance
 from propstore.families.rules import DefeasibleRule, RuleSuperiority
@@ -54,6 +56,8 @@ _CHARTER_MODELS = (
     RuleSuperiority,
     SameAs,
     ConceptAlignmentArtifact,
+    Justification,
+    Micropublication,
 )
 
 _CHARTERS: tuple[FamilyCharter, ...] = tuple(
