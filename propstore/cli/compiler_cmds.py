@@ -7,9 +7,12 @@ lives here (CLAUDE.md "CLI adapter discipline").
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 
-from propstore.cli.helpers import EXIT_VALIDATION, CliContext, exit_with_code, require_repo
+from propstore.app.aliases import export_concept_aliases
+from propstore.app.world import WorldSidecarMissingError, open_app_world_model
+from propstore.cli.helpers import EXIT_VALIDATION, CliContext, exit_with_code, fail, require_repo
 from propstore.cli.output import emit, emit_error, emit_success
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.compiler.workflows import build_repository, validate_repository
@@ -135,3 +138,22 @@ def build(
             f"{handle.projection_id} {handle.source_commit} "
             f"{handle.cache_key} {handle.path}"
         )
+
+
+@click.command("export-aliases")
+@click.pass_obj
+def export_aliases(obj: CliContext) -> None:
+    """Export every concept's lemon other-form aliases as a JSON map.
+
+    Thin adapter over :func:`propstore.app.aliases.export_concept_aliases`: opens
+    the world sidecar, projects each alias to its canonical concept identity, and
+    prints an ``alias -> {logical_id, name}`` JSON object.
+    """
+    repo = require_repo(obj)
+    try:
+        with open_app_world_model(repo) as world_query:
+            aliases = export_concept_aliases(world_query)
+    except WorldSidecarMissingError as exc:
+        fail(str(exc))
+    payload = {name: entry.to_dict() for name, entry in sorted(aliases.items())}
+    emit(json.dumps(payload, indent=2))
