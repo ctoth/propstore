@@ -323,6 +323,17 @@ class OverlayWorld(BeliefSpace):
             active_graph=active_graph,
         )
 
+    @property
+    def store(self) -> WorldStore:
+        """The overlaid in-memory :class:`WorldStore` (base + synthetic claims).
+
+        Mirrors :attr:`BoundWorld.store`; an argumentation framework over the
+        hypothetical world is built from *this* store so synthetic claims (absent
+        from the base store) participate.
+        """
+
+        return self._overlay_store
+
     # -- belief-space surface ----------------------------------------------
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
