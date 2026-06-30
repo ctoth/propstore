@@ -120,12 +120,13 @@ def emit_report_json(report: JsonReportMixin) -> None:
 
 # Import the command modules last so they can attach their commands to the
 # ``concept`` group; re-exported via ``__all__``.
-from propstore.cli.concept import alignment, display  # noqa: E402
+from propstore.cli.concept import alignment, display, embedding  # noqa: E402
 
 __all__ = [
     "alignment",
     "concept",
     "display",
+    "embedding",
     "emit_report_json",
     "format_option",
     "lifecycle_options",

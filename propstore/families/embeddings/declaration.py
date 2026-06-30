@@ -451,6 +451,38 @@ def find_similar_claims_disagree(
     )
 
 
+def embed_claims_at(
+    path: Path,
+    claims: Sequence[Claim],
+    model_name: str,
+    claim_ids: Sequence[str] | None = None,
+    batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict[str, int]:
+    """Open a writable vec connection to ``path`` and embed claims into it."""
+
+    with embedding_connection(path, readonly=False) as conn:
+        ensure_embedding_tables(conn)
+        return embed_claims(conn, claims, model_name, claim_ids, batch_size, on_progress)
+
+
+def embed_concepts_at(
+    path: Path,
+    concepts: Sequence[Concept],
+    model_name: str,
+    concept_ids: Sequence[str] | None = None,
+    batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict[str, int]:
+    """Open a writable vec connection to ``path`` and embed concepts into it."""
+
+    with embedding_connection(path, readonly=False) as conn:
+        ensure_embedding_tables(conn)
+        return embed_concepts(
+            conn, concepts, model_name, concept_ids, batch_size, on_progress
+        )
+
+
 def _resolve_model_name(conn: Connection, model_name: str | None) -> str | None:
     if model_name is not None:
         return model_name
@@ -505,7 +537,9 @@ __all__ = [
     "SidecarClaimEmbeddingStore",
     "SidecarConceptEmbeddingStore",
     "embed_claims",
+    "embed_claims_at",
     "embed_concepts",
+    "embed_concepts_at",
     "embedding_connection",
     "ensure_embedding_tables",
     "find_similar_claims",

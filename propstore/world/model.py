@@ -485,6 +485,16 @@ class WorldQuery(WorldStore):
     def __exit__(self, *exc: object) -> None:
         self.close()
 
+    @property
+    def sidecar_path(self) -> Path:
+        """The materialized world-sidecar sqlite file backing this reader.
+
+        Exposed so an embedding writer (a separate vec-enabled connection) can
+        target the same content-addressed sidecar file this reader reads.
+        """
+
+        return self._path
+
     def close(self) -> None:
         """Close the held read session."""
 

@@ -1324,6 +1324,11 @@ CLOSED here (embeddings + similarity — optional `[embeddings]` extra, skip-gat
 - `WorldQuery.similar_claims` / `similar_concepts` now back onto the vector index
   (the `tests/test_world_query.py` honest-empty cases stay green — no index, no
   registered model, or no extra all resolve to `[]`, never a fabricated distance).
+- `pks claim embed` / `pks claim similar` and `pks concept embed` / `pks concept
+  similar` (`tests/test_cli_embed.py`, skip-gated): thin Click adapters over
+  `families.embeddings.declaration.embed_*_at` and `WorldQuery.similar_*`. An
+  absent `[embeddings]` extra surfaces as a clean CLI failure; an empty
+  similarity result is reported honestly.
 
 CLOSED here (graph export — core, graphviz, not embed-gated):
 - `world export-graph` / `propstore.graph_export`

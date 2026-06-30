@@ -120,11 +120,12 @@ def emit_report_json(report: JsonReportMixin) -> None:
 # Import the command module last so it can attach its commands to the ``claim``
 # group; re-exported via ``__all__`` so the side-effect import reads as the
 # package's public command surface rather than an unused import.
-from propstore.cli.claim import display  # noqa: E402
+from propstore.cli.claim import display, embedding  # noqa: E402
 
 __all__ = [
     "claim",
     "display",
+    "embedding",
     "emit_report_json",
     "format_option",
     "lifecycle_options",
