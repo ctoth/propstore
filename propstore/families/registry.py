@@ -34,6 +34,19 @@ from propstore.families.predicates import Predicate
 from propstore.families.relations import Stance
 from propstore.families.rules import DefeasibleRule, RuleSuperiority
 from propstore.families.sameas import SameAs
+from propstore.families.sources import (
+    SourceClaimsDocument,
+    SourceConceptsDocument,
+    SourceDocument,
+    SourceJustificationsDocument,
+    SourceStancesDocument,
+)
+
+# Re-exported here so the source subsystem can use ``propstore.families.registry``
+# as the one import site for source-branch refs and placement (matching the
+# canonical-source/claim/etc. refs that also live with the registry).
+from propstore.families.sources import SOURCE_BRANCH as SOURCE_BRANCH
+from propstore.families.sources import SourceRef as SourceRef
 
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId(
     "2026.06.29", allow_placeholder=False
@@ -58,6 +71,11 @@ _CHARTER_MODELS = (
     ConceptAlignmentArtifact,
     Justification,
     Micropublication,
+    SourceDocument,
+    SourceConceptsDocument,
+    SourceClaimsDocument,
+    SourceStancesDocument,
+    SourceJustificationsDocument,
 )
 
 _CHARTERS: tuple[FamilyCharter, ...] = tuple(
