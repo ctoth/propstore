@@ -2,14 +2,38 @@
 root_package = propstore
 include_external_packages = True
 
-[importlinter:contract:propstore-six-layers]
-name = propstore six-layer architecture
+# One-way layer dependencies (CLAUDE.md "Architectural Layers"): a layer may
+# import the layers below it, never above. Render/app/web are Phase-10 surfaces
+# and are not yet present, so the top of the realised stack is the CLI adapter.
+[importlinter:contract:propstore-layers]
+name = propstore one-way layer dependencies
 type = layers
 layers =
-    web : cli
-    app
-    argumentation : aspic_bridge : world
+    cli
+    world
+    aspic_bridge : praf
     heuristic
     source
     storage
 containers = propstore
+
+# Substrate-boundary rule: the source-of-truth storage layer and the semantic
+# core never reach UP into the argumentation / world / presentation layers.
+# The one ``ignore_imports`` exception is the tracked, pre-existing
+# core.analyzers -> praf entanglement (docs/gaps.md): core.analyzers and
+# praf.projection import each other, so relocating the PrAF projection out of
+# core is a separate refactor. The rule still catches any NEW substrate->upward
+# import; only this one edge is grandfathered.
+[importlinter:contract:substrate-never-imports-upward]
+name = storage and core never import the argumentation / world / cli layers
+type = forbidden
+source_modules =
+    propstore.storage
+    propstore.core
+forbidden_modules =
+    propstore.world
+    propstore.aspic_bridge
+    propstore.praf
+    propstore.cli
+ignore_imports =
+    propstore.core.analyzers -> propstore.praf

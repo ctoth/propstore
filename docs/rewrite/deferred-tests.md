@@ -587,10 +587,20 @@ Deferred:
   `find/list/inspect_micropub_lift` + the `micropub list/show/lift` CLI).
 - `test_micropub_identity_dedupe_shape.py`,
   `test_micropublications_phase4.py`,
-  `test_micropub_identity_consumes_wscm.py` -> **9** (sidecar projection:
-  `families/micropublications/declaration.py` — `create_micropublication_tables`
-  / `populate_micropublications` / `MicropublicationProjectionRow` + WS-CM
-  payload-identity dedupe over a sqlite store).
+  `test_micropub_identity_consumes_wscm.py` -> **CLOSED 9-5** (sidecar
+  projection). In the rewrite the per-family `populate_micropublications` /
+  `MicropublicationProjectionRow` mass VANISHES into the generic charter
+  projection; the WS-CM payload-identity dedupe folds into
+  `propstore.derived_build._project_documents` (first-writer-wins on the charter
+  identity field — a micropub's `artifact_id` is the `ni:` content URI). Covered
+  by `tests/test_micropub_sidecar_dedupe.py`
+  (`test_identical_payload_micropubs_dedupe_to_one_row`, driven end-to-end through
+  `build_repository`). The trusty-URI + `verify_ni_uri` content-id consumption
+  that `test_micropub_identity_consumes_wscm` asserted is already covered by the
+  8-3a `tests/test_source_finalize_p83a.py` micropub identity cases. The
+  `test_micropublications_phase4` CLI/source-promote/ATMS-node parts remain
+  Phase-10 (render/app + `pks` adapters); the empty-bundle validation is the
+  charter's required-`claims` field.
 - The `merge/finalize` per-source report *path* and the CLI-driven
   `source finalize` invocation -> **9** (CLI adapter); 8-3a writes the report to
   the fixed-file `finalize-report.yaml` placement on the source branch and is
@@ -1021,3 +1031,53 @@ Still deferred:
   (CLI/presentation; composes `plan_repository_import` / `commit_repository_import`).
 - `pks log` / `pks diff` / `pks show` / `pks checkout` Click surfaces -> **Phase 10**
   (compose the `propstore.history` owner cores).
+
+## Phase 9-5 — contract manifest + micropub projection + discipline gates (DONE) — PHASE 9 COMPLETE
+
+9-5 closes §A6 (the micropub sidecar projection contract) and the §B4 contract
+manifest, and wires the standing discipline gates. It is the final Phase-9 slice.
+
+**Contract manifest / drift** (`propstore/contracts.py`,
+`propstore/_resources/contract_manifests/semantic-contracts.yaml`):
+`build_propstore_contract_manifest()` assembles the manifest from quire's
+`ContractManifest` / `ContractEntry` / `VersionId`. Per the charter-derivation
+thesis (PLAN.md §12.6) the hand-authored `document_schema` / `artifact_family` /
+`foreign_key` bodies DROP — they fold into the registry's charter-derived
+`family-registry` / `family` entries (the FK graph and identity field live inside
+each `family` body). What this module composes by hand is the part the charter
+does not own: the per-type `claim_type_contract` entries and the `semantic_pass` /
+`semantic_stage` pipeline entries (derived from the registered passes, so a stage
+cannot drift from a pass). The committed manifest is the drift baseline:
+`tests/test_contract_manifest.py` asserts the checked-in YAML equals the derived
+one and runs quire's `check_contract_manifest` against `HEAD` (a body change
+without a version bump fails). Reference `test_contract_manifest.py` /
+`test_doc_drift_clean.py` are retargeted to the charter shape.
+
+**Micropublication WS-CM dedupe** — see the §A6 / Phase-8-3a closure above:
+folded into `derived_build._project_documents` first-writer-wins dedupe; covered
+by `tests/test_micropub_sidecar_dedupe.py`.
+
+**Standing discipline gates**:
+- Import-linter layer contract (`.importlinter`, run by
+  `tests/architecture/test_import_boundaries.py`): a one-way layer stack
+  (`cli > world > aspic_bridge:praf > heuristic > source > storage`) plus a
+  substrate-boundary `forbidden` contract (storage/core never import
+  world/aspic_bridge/praf/cli). Both KEPT. The one pre-existing
+  `core.analyzers -> praf` entanglement is grandfathered via `ignore_imports` and
+  recorded in `docs/gaps.md` (the gate still catches any new substrate→upward
+  import). The stale committed config (which referenced the not-yet-built
+  `argumentation`/`web`/`app` layers) was replaced with the realised stack.
+- Z1 quarantine-not-reject standing gates already landed in 9-0 and stay green:
+  `tests/test_sidecar_quarantine_z1.py` (schema advisory FK) and
+  `tests/test_sidecar_build_z1.py` (build-level: a blocked claim or dangling
+  stance/justification/micropub reference quarantines, the build proceeds).
+
+Closed: §A6 (micropub projection contract + the contract manifest), the standing
+import-linter + Z1 discipline gates. **This completes Phase 9.**
+
+Still deferred (Phase 10, presentation only):
+- `test_micropubs.py` render/app surface (`find/list/inspect_micropub_lift`) and
+  the `micropub list/show/lift` CLI.
+- The `test_micropublications_phase4.py` CLI source-promote / ATMS-node cases
+  (owner cores exist; only the `pks` adapters remain).
+- `pks contract-manifest` Click surface (composes `build_propstore_contract_manifest`).
