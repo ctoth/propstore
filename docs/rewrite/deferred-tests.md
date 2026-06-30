@@ -472,3 +472,51 @@ Deferred:
   `families/documents/sources`, `families/identity/*`) that are 8-2/8-3
   source-authoring surfaces — not the pure identity layer 8-1 owns. The genuinely
   pure identity primitives (ni-URI byte carrier + trusty) landed here.
+
+## Phase 8-2 — source-branch authoring (commits 8-2a / 8-2b)
+
+Landed the source-branch authoring subsystem over the 8-0 Repository facade:
+`families/sources.py` (the five source family charters — `SourceDocument`,
+`SourceConceptsDocument`, `SourceClaimsDocument` with the ~40-field
+`SourceClaimDocument`, `SourceStancesDocument`, `SourceJustificationsDocument` —
+plus their nested structs, the `SOURCE_BRANCH` placement and `SourceRef`),
+`families/identity/{logical_ids,claims}.py` (the CLAIM-side identity primitives
+pulled forward to their canonical home: `derive_claim_artifact_id`,
+`compute_claim_version_id`, `canonicalize_claim_for_version`,
+`normalize_logical_value`), and `source/{common,concepts,claims,relations,
+reference_indexes,claim_concepts,stages}.py`. Reference lowering (source-local
+handle → canonical claim id) goes through quire's `FamilyReferenceIndex`, not
+string munging; the reserved-namespace guard and the CEL (condition_ir) +
+value-bound (form registry) guards run at the authoring edge.
+
+Tests ported (now green) in `tests/test_source_authoring_p82.py` (owner-API over
+`Repository.init`, translated from the CLI-driven reference suites
+`test_source_propose` / `test_source_claims` / `test_source_relations` /
+`test_source_cannot_mint_canonical_ids` / `test_source_claim_concept_rewrite` /
+`test_local_handle_collision_blocks_commit`): init + manifest, concept proposal +
+form validation + master linking, claim identity stamping, reserved-namespace
+guard, unknown-concept guard, value-bound guard, stance/justification reference
+lowering + validation, `resolve_source_or_primary_claim_id`, local-handle
+collision (AmbiguousReferenceError), and `rewrite_claim_concept_refs`.
+
+Deferred:
+- `SourcePromotionPlan` (source/stages.py) and the import/promote claim
+  normalizers (`normalize_imported_claim_artifact` /
+  `normalize_promoted_source_claim_artifact`, formerly in claim_concepts.py) →
+  **8-3 / 8-5**: they build the *canonical* `ClaimDocument`/`ConceptDocument`
+  charters that do not exist yet. The pure source-local concept rewrite
+  (`rewrite_claim_concept_refs`) landed here.
+- The opinion-typed source fields (`SourceTrustDocument.prior_base_rate`,
+  `ResolutionDocument.opinion`) → **8-3**: `doxa.Opinion` is the only Opinion and
+  is not a msgspec struct, so these are added with promote-time trust calibration
+  rather than mirrored into a second Opinion spelling. Source authoring only sets
+  `trust.status = DEFAULTED`.
+- `source/finalize.py`, `source/promote.py`, `source/registry.py`,
+  `source/status.py`, `source/passes.py`, and the `source_micropubs` /
+  `source_finalize_reports` families → **8-3 / 8-5** (finalize / promote /
+  micropublications / import). The CLI-status reference tests
+  (`test_cli_source_status`, `test_source_list_and_context`) need those surfaces.
+- The CEL/value-bound negative cases that require the full Phase-9 compilation
+  context (`build_compilation_context_from_repo`) — the 8-2 guards reimplement the
+  concept-kind registry directly from the repo's concept + form families, which
+  covers the authoring-edge cases; the compiler-backed paths remain Phase 9.
