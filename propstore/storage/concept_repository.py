@@ -1,19 +1,23 @@
-"""Source-of-truth storage for concepts — Phase 1 walking skeleton.
+"""Concept authoring + sidecar projection (Phase 1 walking skeleton).
 
-This is the bottom architectural layer: git-backed authoring of the raw concept
-document plus the content-addressed SQL sidecar projection. It composes quire
-directly — ``DocumentFamilyStore`` over a ``GitStore`` backend for the canonical
-form, and ``build_sqlalchemy_schema`` + the sqlalchemy store for the sidecar.
-There is no propstore-side mirror of any quire type and no coercion across the
-boundary: we author and read the one ``Concept`` charter document, and the
-sidecar columns are exactly the charter's fields.
+This composes quire directly: ``DocumentFamilyStore`` over a ``GitStore`` backend
+for the canonical concept document, and ``build_sqlalchemy_schema`` + the
+sqlalchemy store for the content-addressed SQL sidecar. There is no propstore
+mirror of any quire type and no coercion across the boundary — we author and read
+the one ``Concept`` charter document, and the sidecar columns are exactly the
+charter's fields.
 
-NON-COMMITMENT (PLAN.md §12, the point of the skeleton): :meth:`build_sidecar`
-NEVER filters, aborts, or drops. EVERY authored concept becomes a sidecar row,
-regardless of status. Deciding which concepts are *visible* is the render layer's
-job (``propstore.render``), applied at render time over the full row set — never
-baked into the build. Storage holds the RAW authored form; no normalization is
-applied on write.
+This is the *sidecar build* surface for concepts (``build_sidecar``); the
+canonical multi-family source-of-truth storage surface is
+:class:`propstore.repository.Repository` (``repo.families.concepts``). The two
+share the same charter and store; ``ConceptRepository`` exists for the
+content-addressed sidecar projection that the render layer queries.
+
+NON-COMMITMENT (PLAN.md §12): :meth:`build_sidecar` NEVER filters, aborts, or
+drops. EVERY authored concept becomes a sidecar row, regardless of status.
+Deciding which concepts are *visible* is the render layer's job, applied at
+render time over the full row set — never baked into the build. Storage holds the
+RAW authored form; no normalization is applied on write.
 """
 
 from __future__ import annotations
@@ -23,8 +27,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quire.charters import charter_catalog
-from quire.git_store import GitStore
 from quire.family_store import DocumentFamilyStore
+from quire.git_store import GitStore
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.sqlalchemy_store import create_sqlalchemy_store, writable_session
 

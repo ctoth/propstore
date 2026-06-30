@@ -2129,7 +2129,7 @@ requires-dist = [
     { name = "pint", specifier = ">=0.25.3" },
     { name = "provenance-semiring", git = "https://github.com/ctoth/provenance-semiring.git?rev=64ecbb919d86cb3cef3fcfbb153cd4b6432c53a8" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "quire", git = "https://github.com/ctoth/quire?rev=fc8d2e13a8c3b40496f905192d3a4ed0ddb06256" },
+    { name = "quire", git = "https://github.com/ctoth/quire?rev=73ef7a57eca84d337da321f0b07af4386d124baf" },
     { name = "rfc8785", specifier = ">=0.1.4" },
     { name = "rich", specifier = ">=13.7" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
@@ -2540,7 +2540,7 @@ wheels = [
 [[package]]
 name = "quire"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/quire?rev=fc8d2e13a8c3b40496f905192d3a4ed0ddb06256#fc8d2e13a8c3b40496f905192d3a4ed0ddb06256" }
+source = { git = "https://github.com/ctoth/quire?rev=73ef7a57eca84d337da321f0b07af4386d124baf#73ef7a57eca84d337da321f0b07af4386d124baf" }
 dependencies = [
     { name = "dulwich" },
     { name = "msgspec" },
