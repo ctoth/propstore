@@ -44,13 +44,12 @@ from propstore.derived_schema import (
     WORLD_SIDECAR_SCHEMA_VERSION,
     build_world_sidecar_schema,
 )
-from propstore.families.claims import Claim
-from propstore.families.concepts import Concept
-from propstore.families.predicates import Predicate
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, registered_charters
-from propstore.families.rules import DefeasibleRule, RuleSuperiority
-from propstore.grounding.facts import ConceptRelations
-from propstore.grounding.loading import GroundingRepo, build_grounded_bundle
+from propstore.grounding.loading import (
+    GroundingRepo,
+    build_grounded_bundle,
+    load_grounding_repo,
+)
 from propstore.grounding.sidecar import create_grounded_fact_table, populate_grounded_facts
 from propstore.semantic_passes.registry import PipelineRegistry
 
@@ -314,30 +313,7 @@ def _project_authored_families(
 
 
 def _load_grounding_repo(repo: Repository, commit: str | None) -> GroundingRepo:
-    def _documents(family_name: str) -> tuple[object, ...]:
-        return tuple(
-            handle.document
-            for handle in repo.families.by_name(family_name).iter_handles(commit=commit)
-        )
-
-    predicates = tuple(d for d in _documents("predicate") if isinstance(d, Predicate))
-    rules = tuple(d for d in _documents("defeasible_rule") if isinstance(d, DefeasibleRule))
-    superiority = tuple(
-        d for d in _documents("rule_superiority") if isinstance(d, RuleSuperiority)
-    )
-    claims = tuple(d for d in _documents("claim") if isinstance(d, Claim))
-    concepts = tuple(
-        ConceptRelations(concept_id=d.concept_id, canonical_name=d.canonical_name)
-        for d in _documents("concept")
-        if isinstance(d, Concept)
-    )
-    return GroundingRepo(
-        predicates=predicates,
-        rules=rules,
-        rule_superiority=superiority,
-        concepts=concepts,
-        claims=claims,
-    )
+    return load_grounding_repo(repo, commit=commit)
 
 
 def _blocked_source_diagnostics(repo: Repository) -> tuple[object, ...]:
