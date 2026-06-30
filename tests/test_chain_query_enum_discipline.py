@@ -23,22 +23,23 @@ def test_chain_query_status_comparisons_use_enum_identity() -> None:
         for node in ast.walk(tree)
         if isinstance(node, ast.FunctionDef) and node.name == "chain_query"
     ]
-    assert len(chain_query_nodes) == 1, (
-        f"expected exactly one chain_query definition, found {len(chain_query_nodes)}"
-    )
-    chain_query = chain_query_nodes[0]
+    # The free function carries the resolution logic; the repo-backed reader's
+    # ``WorldQuery.chain_query`` method delegates to it. The enum-identity
+    # discipline applies to every ``chain_query`` definition.
+    assert chain_query_nodes, "no chain_query definition found in world.model"
 
     offenders: list[tuple[int, str]] = []
-    for node in ast.walk(chain_query):
-        if not isinstance(node, ast.Compare):
-            continue
-        if not isinstance(node.left, ast.Attribute) or node.left.attr != "status":
-            continue
-        for comparator in node.comparators:
-            if isinstance(comparator, ast.Constant) and isinstance(
-                comparator.value, str
-            ):
-                offenders.append((node.lineno, comparator.value))
+    for chain_query in chain_query_nodes:
+        for node in ast.walk(chain_query):
+            if not isinstance(node, ast.Compare):
+                continue
+            if not isinstance(node.left, ast.Attribute) or node.left.attr != "status":
+                continue
+            for comparator in node.comparators:
+                if isinstance(comparator, ast.Constant) and isinstance(
+                    comparator.value, str
+                ):
+                    offenders.append((node.lineno, comparator.value))
 
     assert offenders == [], (
         f"chain_query compares .status against bare strings: {offenders}. "

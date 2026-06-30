@@ -39,6 +39,7 @@ from causal_models import (
 from propstore.world.bound import BoundWorld
 from propstore.world.causal import from_compiled_graph
 from propstore.world.model import (
+    WorldQuery,
     active_graph,
     bind,
     chain_query,
@@ -89,6 +90,7 @@ __all__ = [
     "SyntheticClaim",
     "ValueResult",
     "ValueStatus",
+    "WorldQuery",
     "active_graph",
     "actual_cause",
     "bind",
