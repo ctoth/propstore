@@ -18,8 +18,10 @@ build-fresh + no-Document-mirror):
 - test_relation_concept_identity.py -> 6/10 (relation+concept alignment graph — 5b reconfirmed)
 - test_source_relations.py -> 8 (source subsystem)
 - test_trust_calibration_runs_at_promote.py -> 8 (source promote lifecycle)
-- test_sidecar_relation_edge_projection.py -> 9 (projection_catalog relation_edge schema)
-- test_sidecar_calibration_counts_projection.py -> 9/10 (families.calibration sidecar; calibration extract)
+- test_sidecar_relation_edge_projection.py -> SUPERSEDED in 9-3 (no concept-to-concept
+  relation_edge family in the charter rewrite; relation edges derive from stances —
+  the reference relation_edge projection VANISHES; see the Phase 9-3 section)
+- test_sidecar_calibration_counts_projection.py -> 10 (families.calibration sidecar; calibration extract)
 - test_opinion_schema.py -> 9/10 (opinion sidecar/schema projection)
 - test_render_policy_opinions.py -> 10 (render policy)
 - test_prior_base_rate_is_opinion.py -> 7 (base-rate resolution against a store)
@@ -904,3 +906,68 @@ Still deferred:
   projection; the world-sidecar lifting materialization needs the reader-side lift
   policy). The lifting system already feeds cross-context conflict detection here.
 - All `pks build` / `pks validate` Click surfaces -> **Phase 10**.
+
+## Phase 9-3 — blocked-claim sidecar mirror + source-status reader + verify recompute (DONE)
+
+9-3 closes the §A4 source-status derived-store reader + blocked-claim sidecar
+mirror, the §A8 artifact-code recompute (with its backward-layer-dep resolved),
+and the 8-3b deferred full CEL re-validation in promote.
+
+New surfaces:
+- `source/promote.py` — `PromotionBlockedProjectionRows` +
+  `compile_source_promotion_blocked_projection_rows` /
+  `compile_all_source_promotion_blocked_projection_rows`: each source branch's
+  per-item block reasons (the same quarantine `promote_source_branch` applies) are
+  lowered to `promotion_blocked` `BuildDiagnostic` rows (`source_ref=
+  "<source-branch>:<artifact-id>"`, `claim_id`, structured `reason_kind` in
+  `detail_json`). The world `claim` charter is the master projection only (no
+  per-row `branch` column — see the 9-1 `test_world_model_branch_column_required`
+  supersession), so the branch-scoped blocked state rides on diagnostic rows.
+- `derived_build._build_sidecar_file` — mirrors every source branch's blocked
+  state into the sidecar `build_diagnostic` table (present, filtered at render via
+  `policy.show_quarantined` — never dropped, Z1).
+- `source/status.py` — `read_sidecar_source_status(handle, name)` surfaces one
+  source branch's blocked claims from the sidecar through the source subsystem's
+  own sqlite read (it does NOT import the world layer).
+- `source/promote.py` — `_validate_promoted_claims` runs the full claim
+  CEL/contract/context pipeline (`run_claim_pipeline`) over the about-to-promote
+  immutable claim rebuilds; a semantically invalid promoted claim is QUARANTINED
+  (added to the blocked set, `reason_kind="claim_validation"`), not aborted (Z1).
+- `verify.py` — `verify_source_artifact_codes` recomputes each source artifact's
+  content code (reusing `stamp_source_artifact_codes`) and verifies the origin
+  ni-URI; world-free.
+- `world/model.py` — `serialize_claim_atms_label` is the world-layer half of the
+  verify surface (the bound belief space + ATMS label).
+
+**A8 backward-layer-dep RESOLUTION (option b).** The reference
+`artifact_verification.py` imported `world.WorldQuery` + `core.labels` (storage
+reaching UP — forbidden). The pure artifact-code recompute + origin ni-URI needs
+only claim/source content + `artifact_codes` + `uri`, so it stays in the
+storage-layer `verify.py` with NO `from propstore.world` import (asserted by
+`test_verify_recompute_p93::test_verify_module_has_no_world_import`). The
+ATMS-label walk, which genuinely needs the bound world, lives in the world layer
+(`serialize_claim_atms_label`). The CLI/audit surface (Phase 10) composes the two.
+
+Tests written (rewrite-native over `Repository.init` -> author -> finalize ->
+build/promote): `test_sidecar_source_status_p93.py` (mirror present + reader
+surfaces blocked + honest-empty), `test_verify_recompute_p93.py` (recompute
+ok/tamper-mismatch, origin match, world-layer ATMS label, the A8 no-upward-import
+gate, promote-time CEL quarantine).
+
+Closed: §A4 (`test_sidecar_source_projection` / `test_cli_source_status` reader
+half), §A8 (verify recompute + ATMS-label parts of `test_verify_cli`), the 8-3b
+`_validate_promoted_claims_before_commit` row.
+
+Superseded / not ported:
+- `test_sidecar_relation_edge_projection.py` (5a -> 9): the charter rewrite stores
+  no concept-to-concept `relation_edge` family (`WorldQuery.all_relationships` is
+  honest-empty; relation edges derive from stances), so the reference relation_edge
+  projection VANISHES like the other reference `*_PROJECTION` mass.
+
+Still deferred:
+- `test_cli_source_status` / `pks verify tree` Click surfaces -> **Phase 10**
+  (CLI/presentation; the owner readers `read_sidecar_source_status` /
+  `verify_source_artifact_codes` / `serialize_claim_atms_label` are the entries
+  those adapters will call).
+- `test_sidecar_calibration_counts_projection.py` / `test_opinion_schema.py`
+  (calibration extract + opinion render projection) -> **Phase 10**.

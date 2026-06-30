@@ -46,6 +46,7 @@ from propstore.world.model import (
     compiled_graph,
     intervene,
     observe,
+    serialize_claim_atms_label,
 )
 from propstore.world.overlay import OverlayWorld
 from propstore.world.resolution import resolve
@@ -100,4 +101,5 @@ __all__ = [
     "intervene",
     "observe",
     "resolve",
+    "serialize_claim_atms_label",
 ]

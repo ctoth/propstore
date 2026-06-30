@@ -17,12 +17,23 @@ authoring status — present in storage but hidden by default render policy) is 
 a hard failure: its unresolved references are reported under ``quarantined``,
 because quarantine is a valid present-but-filtered state, not corruption. The
 report is the deliverable; whether any state is "bad" is a downstream policy call.
+
+:func:`verify_source_artifact_codes` is the second auditor: it recomputes each
+source artifact's content code from its current content (reusing
+:func:`propstore.artifact_codes.stamp_source_artifact_codes`) and compares it to
+the stored code, and verifies the source's ``origin`` ni-URI against the retained
+content file. This is the artifact-code *recompute* half of ``pks verify``; it is
+deliberately world-free (storage layer reaches only down). The ATMS-label half of
+the verify surface needs the bound belief space and therefore lives in the world
+layer (:func:`propstore.world.serialize_claim_atms_label`); the CLI/audit surface
+composes the two (PLAN.md §12.6 — no storage→world upward import).
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from quire.references import (
@@ -32,10 +43,19 @@ from quire.references import (
     validate_foreign_key,
 )
 
+from propstore.artifact_codes import stamp_source_artifact_codes
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY,
     semantic_foreign_keys,
 )
+from propstore.source.common import (
+    load_source_claims_document,
+    load_source_document,
+    load_source_justifications_document,
+    load_source_stances_document,
+    source_paper_slug,
+)
+from propstore.uri import verify_ni_uri
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -225,4 +245,157 @@ def verify_claim_tree(
         dangling=tuple(dangling),
         quarantined=tuple(quarantined),
         malformed_identity=tuple(malformed_identity),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Source artifact-code recompute + origin verification
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class ArtifactCodeMatch:
+    """The recompute outcome for one source artifact's content code.
+
+    ``expected`` is the stored ``artifact_code`` (``None`` when the artifact was
+    never stamped); ``actual`` is the code recomputed from current content.
+    """
+
+    artifact_kind: str
+    artifact_id: str
+    expected: str | None
+    actual: str
+
+    @property
+    def status(self) -> str:
+        if not self.expected:
+            return "unstamped"
+        return "ok" if self.expected == self.actual else "mismatch"
+
+
+@dataclass(frozen=True)
+class OriginVerification:
+    """Whether a source's retained content file matches its ``origin`` ni-URI."""
+
+    status: str
+    content_ref: str | None
+    path: str | None
+
+
+@dataclass(frozen=True)
+class SourceArtifactVerificationReport:
+    """Recompute report for one source branch's artifact codes plus its origin."""
+
+    source_name: str
+    matches: tuple[ArtifactCodeMatch, ...]
+    origin: OriginVerification
+
+    @property
+    def ok(self) -> bool:
+        """True when no recomputed code mismatches and the origin does not mismatch.
+
+        An ``unstamped`` artifact (never finalized) or an ``unavailable`` origin
+        (the content file is not retained locally) is not a failure — only an
+        actual ``mismatch`` is.
+        """
+
+        return (
+            all(match.status != "mismatch" for match in self.matches)
+            and self.origin.status != "mismatch"
+        )
+
+
+def _verify_source_origin(
+    repo: Repository, source_name: str, content_ref: str | None, origin_value: str
+) -> OriginVerification:
+    """Verify a source's ``origin`` ni-URI against its retained content file."""
+
+    if not content_ref:
+        return OriginVerification("unavailable", content_ref, None)
+    papers_dir = repo.root.parent / "papers" / source_paper_slug(source_name)
+    candidates: list[Path] = []
+    if origin_value:
+        value_path = Path(origin_value)
+        if value_path.is_absolute():
+            candidates.append(value_path)
+        candidates.append(papers_dir / value_path.name)
+    candidates.append(papers_dir / "paper.pdf")
+    for candidate in candidates:
+        if candidate.is_file():
+            matched = verify_ni_uri(content_ref, candidate.read_bytes())
+            return OriginVerification(
+                "matched" if matched else "mismatch", content_ref, str(candidate)
+            )
+    return OriginVerification("unavailable", content_ref, None)
+
+
+def verify_source_artifact_codes(
+    repo: Repository, source_name: str
+) -> SourceArtifactVerificationReport:
+    """Recompute a source branch's artifact codes and verify its origin ni-URI.
+
+    Recomputes the source manifest / claim / justification / stance codes from
+    their current content (reusing the one canonical
+    :func:`~propstore.artifact_codes.stamp_source_artifact_codes`, so finalize and
+    verify compute the *same* code) and compares each to the stored code; a
+    content edit since finalize surfaces as a ``mismatch`` (and cascades into the
+    claim codes that fold in the source code). Read-only — it reports, never
+    rewrites (CLAUDE.md non-commitment).
+    """
+
+    source_doc = load_source_document(repo, source_name)
+    claims_doc = load_source_claims_document(repo, source_name)
+    justifications_doc = load_source_justifications_document(repo, source_name)
+    stances_doc = load_source_stances_document(repo, source_name)
+
+    rec_source, rec_claims, rec_justifications, rec_stances = stamp_source_artifact_codes(
+        source_doc, claims_doc, justifications_doc, stances_doc
+    )
+
+    matches: list[ArtifactCodeMatch] = [
+        ArtifactCodeMatch(
+            artifact_kind="source",
+            artifact_id=source_doc.id,
+            expected=source_doc.artifact_code,
+            actual=rec_source.artifact_code or "",
+        )
+    ]
+    if claims_doc is not None and rec_claims is not None:
+        for original, recomputed in zip(claims_doc.claims, rec_claims.claims):
+            matches.append(
+                ArtifactCodeMatch(
+                    artifact_kind="claim",
+                    artifact_id=original.artifact_id or original.id or "?",
+                    expected=original.artifact_code,
+                    actual=recomputed.artifact_code or "",
+                )
+            )
+    if justifications_doc is not None and rec_justifications is not None:
+        for original, recomputed in zip(
+            justifications_doc.justifications, rec_justifications.justifications
+        ):
+            matches.append(
+                ArtifactCodeMatch(
+                    artifact_kind="justification",
+                    artifact_id=original.id or "?",
+                    expected=original.artifact_code,
+                    actual=recomputed.artifact_code or "",
+                )
+            )
+    if stances_doc is not None and rec_stances is not None:
+        for original, recomputed in zip(stances_doc.stances, rec_stances.stances):
+            matches.append(
+                ArtifactCodeMatch(
+                    artifact_kind="stance",
+                    artifact_id=f"{original.source_claim}->{original.target}",
+                    expected=original.artifact_code,
+                    actual=recomputed.artifact_code or "",
+                )
+            )
+
+    origin = _verify_source_origin(
+        repo, source_name, source_doc.origin.content_ref, source_doc.origin.value
+    )
+    return SourceArtifactVerificationReport(
+        source_name=source_name, matches=tuple(matches), origin=origin
     )

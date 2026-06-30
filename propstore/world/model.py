@@ -58,7 +58,10 @@ from propstore.core.graph_types import (
     RelationEdge,
 )
 from propstore.core.id_types import to_concept_id
-from propstore.core.labels import compile_environment_assumptions
+from propstore.core.labels import (
+    compile_environment_assumptions,
+    environment_assumption_ids,
+)
 from propstore.core.micropublications import ActiveMicropublication
 from propstore.core.store_results import (
     ClaimSimilarityHit,
@@ -368,6 +371,28 @@ _compiled_graph = compiled_graph
 _intervene = intervene
 _observe = observe
 _chain_query = chain_query
+
+
+def serialize_claim_atms_label(
+    world: WorldQuery, claim_id: str
+) -> tuple[tuple[str, ...], ...] | None:
+    """Serialize a claim's ATMS label as its environments' assumption-id tuples.
+
+    This is the world-layer half of ``pks verify``'s recompute (A8, PLAN.md §12.6):
+    the artifact-code recompute itself is storage-layer and world-free
+    (:func:`propstore.verify.verify_source_artifact_codes`), while the ATMS-label
+    walk needs the bound belief space, so it lives here and the audit/CLI surface
+    composes the two. Returns ``None`` when the claim has no label; a supported
+    claim under no assumptions serializes as ``((),)``.
+    """
+
+    label = world.bind(Environment()).atms_engine().claim_label(claim_id)
+    if label is None:
+        return None
+    return tuple(
+        tuple(str(assumption_id) for assumption_id in environment_assumption_ids(environment))
+        for environment in label.environments
+    )
 
 
 def _admits_claim(policy: RenderPolicy, claim: Claim) -> bool:

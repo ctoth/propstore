@@ -419,6 +419,87 @@ def compile_all_source_promotion_blocked_projection_rows(
     return PromotionBlockedProjectionRows(tuple(diagnostics))
 
 
+def _revalidate_promoted_claims(
+    repo: Repository,
+    *,
+    valid_claims: list[SourceClaimDocument],
+    concept_map: dict[str, str],
+    promoted_concepts: dict[str, Concept],
+    master_commit: str | None,
+) -> dict[str, str]:
+    """Run the full claim CEL/contract pipeline over the about-to-promote claims.
+
+    The registry's commit-time foreign-key gate already enforces canonical
+    reference integrity; this adds the semantic claim check (type contract, CEL
+    condition type-checking, context resolution) the source-promote path deferred
+    in 8-3b. It composes the shared compiler (a downward call from the promote
+    orchestrator) over the immutable promoted-claim rebuilds, with the master
+    concept/form/context state plus the about-to-mint promoted concepts in scope so
+    a claim's lowered references resolve. Returns ``{claim_id: message}`` for each
+    semantically invalid claim. Per the Z1 split, a semantically invalid claim is
+    *quarantined* by the caller (added to the blocked set) — not aborted; only a
+    schema-undecodable document aborts, and the promoted claims here are already
+    decoded source claims.
+    """
+
+    from propstore.compiler.context import build_compilation_context_from_loaded
+    from propstore.compiler.ir import ClaimCheckedBundle
+    from propstore.families.claims_passes import (
+        ClaimFiles,
+        LoadedClaim,
+        run_claim_pipeline,
+    )
+    from propstore.families.concepts_passes import LoadedConcept
+    from propstore.families.forms import FormDefinition
+
+    promoted: dict[str, Claim] = {}
+    unresolved: set[str] = set()
+    for claim in valid_claims:
+        artifact_id = claim.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            continue
+        promoted[artifact_id] = build_promoted_claim(
+            claim, concept_map=concept_map, unresolved=unresolved
+        )
+    if not promoted:
+        return {}
+
+    master_concepts = [
+        handle.document
+        for handle in repo.families.concept.iter_handles(commit=master_commit)
+        if isinstance(handle.document, Concept)
+    ]
+    concepts = [*master_concepts, *promoted_concepts.values()]
+    form_registry = {
+        handle.document.name: handle.document
+        for handle in repo.families.by_name("form").iter_handles(commit=master_commit)
+        if isinstance(handle.document, FormDefinition)
+    }
+    compilation_context = build_compilation_context_from_loaded(
+        [LoadedConcept(concept=concept) for concept in concepts],
+        form_registry=form_registry,
+        claims=tuple(promoted.values()),
+        context_ids=master_context_ids(repo),
+    )
+    result = run_claim_pipeline(
+        ClaimFiles.from_sequence(
+            [LoadedClaim(claim=claim) for claim in promoted.values()],
+            compilation_context,
+        )
+    )
+    bundle = result.output
+    if not isinstance(bundle, ClaimCheckedBundle):
+        return {}
+    errors: dict[str, str] = {}
+    for checked in bundle.claims:
+        if checked.blocked:
+            errors[checked.claim.claim_id] = (
+                "; ".join(diagnostic.message for diagnostic in checked.diagnostics)
+                or "claim failed semantic validation"
+            )
+    return errors
+
+
 def _assemble_source_promotion_plan(
     repo: Repository,
     *,
@@ -639,6 +720,32 @@ def promote_source_branch(
         if isinstance(claim.artifact_id, str)
         and claim.artifact_id not in blocked_artifact_ids
     ]
+
+    cel_errors = _revalidate_promoted_claims(
+        repo,
+        valid_claims=valid_claims,
+        concept_map=concept_resolution.concept_map,
+        promoted_concepts=concept_resolution.promoted_concept_documents,
+        master_commit=git.branch_sha(git.primary_branch_name()),
+    )
+    if cel_errors:
+        for claim_id, message in cel_errors.items():
+            blocked_artifact_ids.add(claim_id)
+            blocked_reasons.setdefault(claim_id, []).append(
+                ("claim_validation", message)
+            )
+        blocked_claims = [
+            claim
+            for claim in all_claims
+            if isinstance(claim.artifact_id, str)
+            and claim.artifact_id in blocked_artifact_ids
+        ]
+        valid_claims = [
+            claim
+            for claim in all_claims
+            if isinstance(claim.artifact_id, str)
+            and claim.artifact_id not in blocked_artifact_ids
+        ]
 
     if not valid_claims and blocked_claims:
         details = sorted(
