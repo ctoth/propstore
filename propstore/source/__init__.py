@@ -40,8 +40,11 @@ from .common import (
 )
 from .finalize import finalize_source_branch
 from .promote import (
+    PromotionBlockedProjectionRows,
     PromotionResult,
     SourceConceptPromotionResolution,
+    compile_all_source_promotion_blocked_projection_rows,
+    compile_source_promotion_blocked_projection_rows,
     load_finalize_report,
     promote_source_branch,
     resolve_source_concept_promotions,
@@ -56,16 +59,21 @@ from .status import (
     SourceStatusReport,
     SourceStatusState,
     inspect_source_status,
+    read_sidecar_source_status,
 )
 
 __all__ = [
+    "PromotionBlockedProjectionRows",
     "PromotionResult",
     "align_sources",
     "build_alignment_artifact",
     "classify_relation",
+    "compile_all_source_promotion_blocked_projection_rows",
+    "compile_source_promotion_blocked_projection_rows",
     "concept_proposal_branch",
     "decide_alignment",
     "promote_alignment",
+    "read_sidecar_source_status",
     "SourceConceptPromotionResolution",
     "SourcePromotionPlan",
     "SourceStatusReport",

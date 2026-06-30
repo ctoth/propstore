@@ -26,6 +26,7 @@ provenance rides on a git note (``refs/notes/provenance``), never in identity.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -35,6 +36,7 @@ from quire.references import FamilyReferenceIndex
 
 from propstore.families.claims import Claim
 from propstore.families.concepts import Concept, ConceptStatus
+from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.identity.justifications import (
     derive_justification_artifact_id,
@@ -97,6 +99,26 @@ class SourceConceptPromotionResolution:
     concept_map: dict[str, str]
     promoted_concept_documents: dict[str, Concept]
     blocked_concept_refs: dict[str, str]
+
+
+@dataclass(frozen=True)
+class PromotionBlockedProjectionRows:
+    """The world-sidecar mirror of a source branch's blocked-promotion state.
+
+    The quarantine *invariant* is met without this (blocked claims stay on the
+    source branch and are surfaced in :class:`PromotionResult`); this is the
+    derived-store *projection* of that same state so a render/audit surface can
+    read it back. In the charter rewrite the reference's ``CLAIM_CORE_PROJECTION``
+    blocked rows collapse onto the world ``claim`` charter (which is the master
+    projection only — no per-row ``branch`` column), so the branch-scoped blocked
+    state rides entirely on :class:`~propstore.families.diagnostics.BuildDiagnostic`
+    rows: each carries ``diagnostic_kind='promotion_blocked'`` and a
+    ``source_ref`` of ``"<source-branch>:<artifact-id>"``. They are *present* in
+    the sidecar (filtered at render via ``policy.show_quarantined``), never
+    dropped (CLAUDE.md non-commitment).
+    """
+
+    diagnostics: tuple[BuildDiagnostic, ...]
 
 
 @dataclass(frozen=True)
@@ -304,6 +326,97 @@ def compute_blocked_claim_artifact_ids(
                 )
 
     return blocked, reasons
+
+
+def _blocked_diagnostic_rows(
+    branch: str, reasons: dict[str, list[tuple[str, str]]]
+) -> tuple[BuildDiagnostic, ...]:
+    """Lower per-claim block reasons to ``promotion_blocked`` diagnostic rows.
+
+    One row per ``(claim, reason)`` pair: ``source_ref`` encodes the branch so the
+    reader can scope by source branch (the world ``claim`` charter has no branch
+    column), ``claim_id`` carries the blocked artifact id, and ``detail_json``
+    keeps the structured ``reason_kind`` alongside the human message.
+    """
+
+    rows: list[BuildDiagnostic] = []
+    for artifact_id in sorted(reasons):
+        source_ref = f"{branch}:{artifact_id}"
+        for index, (kind, detail) in enumerate(reasons[artifact_id]):
+            rows.append(
+                BuildDiagnostic(
+                    diagnostic_id=f"diag:promotion_blocked:{source_ref}:{index}",
+                    source_kind="claim",
+                    diagnostic_kind="promotion_blocked",
+                    severity="error",
+                    blocking=1,
+                    message=detail,
+                    claim_id=artifact_id,
+                    source_ref=source_ref,
+                    detail_json=json.dumps(
+                        {"reason_kind": kind, "source_branch": branch},
+                        sort_keys=True,
+                    ),
+                )
+            )
+    return tuple(rows)
+
+
+def compile_source_promotion_blocked_projection_rows(
+    repo: Repository, source_name: str
+) -> PromotionBlockedProjectionRows:
+    """Project one source branch's blocked-promotion state for the sidecar.
+
+    Recomputes the same per-item quarantine :func:`promote_source_branch` would
+    apply (unresolved concept mapping, off-master context, dangling justification
+    reference) and lowers each blocked claim's reasons to ``promotion_blocked``
+    diagnostic rows. A branch with no finalize report, no claims, or no blocked
+    claims projects nothing.
+    """
+
+    claims_doc = load_source_claims_document(repo, source_name)
+    if claims_doc is None or not claims_doc.claims:
+        return PromotionBlockedProjectionRows(())
+    if load_finalize_report(repo, source_name) is None:
+        return PromotionBlockedProjectionRows(())
+
+    concept_resolution = resolve_source_concept_promotions(repo, source_name)
+    source_index = build_source_claim_index(repo, source_name)
+    _, reasons = compute_blocked_claim_artifact_ids(
+        claims_doc=claims_doc,
+        justifications_doc=load_source_justifications_document(repo, source_name),
+        source_claim_index_exists=source_index.exists,
+        concept_map=concept_resolution.concept_map,
+        blocked_concept_refs=concept_resolution.blocked_concept_refs,
+        master_context_ids=master_context_ids(repo),
+    )
+    if not reasons:
+        return PromotionBlockedProjectionRows(())
+    branch = source_branch_name(source_name)
+    return PromotionBlockedProjectionRows(_blocked_diagnostic_rows(branch, reasons))
+
+
+def compile_all_source_promotion_blocked_projection_rows(
+    repo: Repository,
+) -> PromotionBlockedProjectionRows:
+    """Project the blocked-promotion state of *every* source branch for the build.
+
+    Scanned at build time (the source branches are independent refs, current as of
+    their own tips), so the world sidecar mirrors whatever each source branch's
+    quarantine state is — present, never collapsed.
+    """
+
+    git = repo.git
+    if git is None:
+        return PromotionBlockedProjectionRows(())
+    diagnostics: list[BuildDiagnostic] = []
+    for branch in repo.snapshot.iter_branches():
+        if branch.kind != "source":
+            continue
+        source_name = branch.name.removeprefix("source/")
+        rows = compile_source_promotion_blocked_projection_rows(repo, source_name)
+        diagnostics.extend(rows.diagnostics)
+    return PromotionBlockedProjectionRows(tuple(diagnostics))
 
 
 def _assemble_source_promotion_plan(

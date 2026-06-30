@@ -327,6 +327,23 @@ def _load_grounding_repo(repo: Repository, commit: str | None) -> GroundingRepo:
     )
 
 
+def _blocked_source_diagnostics(repo: Repository) -> tuple[object, ...]:
+    """The blocked-promotion mirror rows for every source branch (Phase 9-3).
+
+    A source branch's blocked claims stay on that branch (quarantine, not drop);
+    this projects their reasons into the world sidecar as ``promotion_blocked``
+    :class:`~propstore.families.diagnostics.BuildDiagnostic` rows so a source-status
+    reader can surface them. Imported lazily to keep the build spine free of a
+    source-subsystem import at module load.
+    """
+
+    from propstore.source.promote import (
+        compile_all_source_promotion_blocked_projection_rows,
+    )
+
+    return compile_all_source_promotion_blocked_projection_rows(repo).diagnostics
+
+
 def _record_build_exception(
     path: Path, schema: SqlAlchemySchema, exc: BaseException
 ) -> None:
@@ -382,6 +399,9 @@ def _build_sidecar_file(
             if plan is not None:
                 _project_documents(session, schema, "conflict", plan.conflicts)
                 _project_documents(session, schema, "build_diagnostic", plan.diagnostics)
+            _project_documents(
+                session, schema, "build_diagnostic", _blocked_source_diagnostics(repo)
+            )
             session.commit()
 
         conn = connect_sqlite_store(path)
