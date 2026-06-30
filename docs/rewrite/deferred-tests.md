@@ -149,6 +149,65 @@ Phase 8-4 predicate proposals (landed) and their deferred edges:
 - test_cli_promote_rules_*.py / test_cli_propose_rules_*.py /
   test_concept_alignment_cli.py -> 10 (Click surface only).
 
+## Phase 10-4 (LLM heuristic: propose / classify / relate + rule proposals) — LANDED
+
+The heuristic LLM layer (CLAUDE.md layer 3 — proposals only, honest ignorance)
+now exists; the rows above that pointed forward to it are closed. The reference
+classify/relate code carried opinions with embedded provenance via the stale
+`propstore.opinion`; the rewrite carries `doxa.Opinion` plus a separate
+`propstore.provenance.Provenance` (serialized into the stance payload), and the
+LLM-asserted provenance status is `stated`, never `measured`/fabricated.
+
+- test_propose_predicates_lifecycle.py -> LANDED (tests/test_propose_predicates_lifecycle.py):
+  `heuristic.predicate_extraction.propose_predicates_for_paper` (+ `_llm_call`
+  fixture, dry-run) records a `PredicateProposal` through the
+  `proposals_predicates.propose_predicates` owner; canonical corpus untouched.
+- test_proposal_rules_family.py / test_propose_rules_lifecycle.py /
+  test_promote_rules_proposals.py -> LANDED (same filenames in tests/): a new
+  `proposal_rules` family (`families.rules.RuleProposal`, path
+  `rules/<paper>/<rule_id>.yaml`), `heuristic.rule_extraction.propose_rules_for_paper`
+  (undeclared-predicate rules rejected vacuous, never recorded), and
+  `proposals_rules.plan/promote_rule_proposal_promotion` (undeclared predicate at
+  promote -> `RuleWorkflowError` before any write; idempotent via
+  `promoted_from_sha`). Canonical rule keyed by `rule_id` (no RuleRef); promoted
+  rule carries `source = <paper>` (the reference's structured `source.paper` is a
+  flat string in the rewrite charter).
+- test_classify.py / test_classify_no_silent_fallback.py /
+  test_classify_forward_reverse_independent.py -> LANDED (ported verbatim — their
+  imports all exist in the rewrite): two independent directional LLM calls,
+  honest-ignorance vacuous opinion on failure/abstain/unresolved base rate,
+  enrichment context, corpus-calibration uncertainty reduction. litellm mocked.
+- test_relate_dedup.py -> LANDED (verbatim). test_relate_perspective_isolation.py
+  -> LANDED (rewritten self-contained: the reference's
+  `families.claims.declaration.select_*` sidecar helpers do not exist in the
+  rewrite; an in-memory store stands in). test_relate_wbf.py -> LANDED (translated
+  to `doxa` — `Opinion.fuse`/`Opinion.wbf` methods; the doxa-internal
+  fuse-with-vacuous edge cases were dropped as they assert doxa semantics, not
+  heuristic behaviour, and doxa's WBF differs from the stale `propstore.opinion`).
+- test_cli_propose_rules_dry_run/with_mocked_llm/help.py and
+  test_cli_promote_rules_selective/unknown_id.py -> LANDED (tests/, via
+  tests/ws_k2_cli_helpers.py + tests/fixtures/ws_k2/): `pks proposal propose-rules`
+  (`--paper`/`--model`/`--dry-run`/`--mock-llm-fixture`) and `promote-rules`
+  (`--paper`/`--rule-id`*) thin Click adapters over the owners.
+
+SKIPPED / DROPPED (not ported):
+- test_classify_pair_no_concept_fallthrough.py -> DROP: it exercises
+  `propstore.merge.merge_classifier`, a stack deleted from the rewrite.
+- test_relate_opinions.py -> DROP (stale halves): its sidecar/YAML round-trip
+  cases bind `families.documents.stances.StanceDocument`,
+  `families.relations.declaration.RELATION_EDGE_TABLE`, `populate_stances`, and
+  `proposals.build_stance_document`/`dump_yaml_bytes` — none of which the rewrite
+  spells this way. Its `categorical_to_opinion` cases are already covered by
+  tests/test_calibrate.py and the classify opinion-payload behaviour by
+  test_classify.py.
+- test_relate_async.py / test_relate_bulk.py -> DROP (row-shape / orchestration
+  duplicate): the orchestration contract is covered by
+  test_relate_perspective_isolation.py over `relate_all_async`.
+- heuristic/source_trust.py and test_source_trust*.py -> not a Phase 10-4
+  deliverable; the reference `test_source_trust.py` actually exercises
+  `praf.p_arg_from_claim`, unrelated to the one-line `derive_source_trust`
+  consensus helper.
+
 ## Phase 7a-world-B2 (BoundWorld + ATMS engine; commit f8ad6fe1 + follow-up)
 
 B2 ported `world/bound.py` (BoundWorld) + `world/atms.py` (ATMSEngine) onto the
@@ -1221,8 +1280,8 @@ NOT closed in 10-1 (owner/phase prerequisites):
   Phase-9/app-layer prerequisite, already deferred above as `test_worldline.py`
   → 9). The registry keeps a lazy `worldline` entry; it errors only if invoked.
 - `pks proposal propose-rules` / `promote-rules` and `test_cli_propose_rules_*` /
-  `test_cli_promote_rules_*` / `test_promote_rules_proposals` → need
-  `heuristic.rule_extraction` + a rule-proposals family (Phase 10-4).
+  `test_cli_promote_rules_*` / `test_promote_rules_proposals` → CLOSED in Phase
+  10-4 (see the Phase 10-4 LANDED section above).
 - `pks micropub lift` and the `test_micropubs` lift cases → need a Phase-10
   `inspect_micropub_lift` owner facade (not built).
 - `pks web` → 10-2. `world export-graph` + embedding-backed `claim/concept

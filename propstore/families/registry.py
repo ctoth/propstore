@@ -37,7 +37,7 @@ from propstore.families.merge_manifests import MergeManifest
 from propstore.families.micropublications import Micropublication
 from propstore.families.predicates import Predicate, PredicateProposal
 from propstore.families.relations import Stance, StanceProposal
-from propstore.families.rules import DefeasibleRule, RuleSuperiority
+from propstore.families.rules import DefeasibleRule, RuleProposal, RuleSuperiority
 from propstore.families.sameas import SameAs
 from propstore.families.sources import (
     SourceClaimsDocument,
@@ -55,8 +55,13 @@ from propstore.families.sources import (
 from propstore.families.sources import SOURCE_BRANCH as SOURCE_BRANCH
 from propstore.families.sources import SourceRef as SourceRef
 
+# Re-exported so the proposal subsystem and tests can use
+# ``propstore.families.registry`` as the one import site for proposal refs.
+from propstore.families.predicates import PredicateProposalRef as PredicateProposalRef
+from propstore.families.rules import RuleProposalRef as RuleProposalRef
+
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId(
-    "2026.06.29", allow_placeholder=False
+    "2026.06.30", allow_placeholder=False
 )
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
@@ -77,6 +82,7 @@ _CHARTER_MODELS = (
     SameAs,
     ConceptAlignmentArtifact,
     PredicateProposal,
+    RuleProposal,
     StanceProposal,
     Justification,
     Micropublication,
@@ -131,6 +137,7 @@ class PropstoreFamily(StrEnum):
     SAME_AS_ASSERTION = "same_as_assertion"
     CONCEPT_ALIGNMENT_FRAMEWORK = "concept_alignment_framework"
     PROPOSAL_PREDICATES = "proposal_predicates"
+    PROPOSAL_RULES = "proposal_rules"
     PROPOSAL_STANCES = "proposal_stances"
     JUSTIFICATION = "justification"
     MICROPUBLICATION = "micropublication"

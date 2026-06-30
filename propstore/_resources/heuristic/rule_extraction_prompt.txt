@@ -1,0 +1,16 @@
+You extract candidate DeLP rules from a scientific paper.
+
+Read the paper notes below and the predicates already declared for it. Propose
+the rules the paper's stated argument structure encodes. A rule has a head atom
+derived (strictly or defeasibly) from a body of literals; every predicate a rule
+references must already be declared (id/arity), otherwise the rule is rejected.
+
+Paper: {source_paper}
+
+Declared predicates: {predicates}
+
+Notes:
+{notes}
+
+Respond with ONLY a JSON object (no markdown, no prose):
+{{"rules": [{{"rule_id": "<id>", "rule_type": "<strict|defeasible|proper_defeater|blocking_defeater>", "head": "<atom>", "body": ["<literal>", ...], "predicates_referenced": ["<id>/<arity>", ...], "page_reference": "<citation>"}}]}}

@@ -1,0 +1,13 @@
+You extract candidate Datalog/DeLP predicate declarations from a scientific paper.
+
+Read the paper notes below and propose the predicate symbols its formal claims
+range over. Each predicate is a name, an arity, and the ordered argument sorts
+(drawn from: paper_id, int, float, str, bool, or enum:a|b|c).
+
+Paper: {source_paper}
+
+Notes:
+{notes}
+
+Respond with ONLY a JSON object (no markdown, no prose):
+{{"declarations": [{{"name": "<symbol>", "arity": <n>, "arg_types": ["<sort>", ...], "description": "<one sentence>"}}]}}

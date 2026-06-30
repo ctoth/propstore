@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.06.29
+  contract_version: 2026.06.30
   body:
     families:
     - contract_version: 2026.06.28
@@ -176,6 +176,9 @@ contracts:
     - contract_version: 2026.06.29
       key: proposal_predicates
       name: proposal_predicates
+    - contract_version: 2026.06.29
+      key: proposal_rules
+      name: proposal_rules
     - contract_version: 2026.06.29
       key: proposal_stances
       name: proposal_stances
@@ -572,6 +575,29 @@ contracts:
     identity_field: source_paper
     key: proposal_predicates
 - kind: family
+  name: proposal_rules
+  contract_version: 2026.06.29
+  body:
+    accessor: proposal_rules
+    artifact_family: proposal_rules
+    artifact_family_contract:
+      doc_type: propstore.families.rules.RuleProposalModel
+      placement:
+        branch:
+          fixed_branch: proposal/rules
+          policy: fixed
+        dir_codec: identity
+        dir_ref_field: source_paper
+        extension: .yaml
+        kind: nested-flat-yaml
+        namespace: rules
+        stem_codec: stem
+        stem_ref_field: rule_id
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: rule_id
+    key: proposal_rules
+- kind: family
   name: proposal_stances
   contract_version: 2026.06.29
   body:
@@ -926,4 +952,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.06.29
+  contract_version: 2026.06.30

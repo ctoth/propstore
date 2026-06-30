@@ -27,9 +27,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Literal, Protocol
+from typing import TYPE_CHECKING, Annotated, Literal, Protocol
 
 import msgspec
+from quire.artifacts import BranchPlacement, NestedFlatYamlPlacement
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
@@ -303,3 +304,115 @@ class RuleRepository:
         with readonly_session(path, schema) as session:
             rows = list(session.scalars(select(model)))
         return [_row_to_superiority(row) for row in rows]
+
+
+# ---------------------------------------------------------------------------
+# Rule proposal artifact (heuristic layer 3)
+# ---------------------------------------------------------------------------
+#
+# A *rule proposal* is a heuristic-layer candidate DeLP rule for one source paper
+# (CLAUDE.md layer 3): the rule a heuristic/LLM extracted, the predicate ids it
+# references, and the provenance of that extraction. It lives on the
+# ``proposal/rules`` branch — one file per ``rules/<source_paper>/<rule_id>.yaml``
+# — and is never canonical until an explicit promotion writes a
+# :class:`DefeasibleRule`.
+
+
+class ProposedRule(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+    """The structured rule body of a proposal (mirrors :class:`DefeasibleRule`).
+
+    A separate struct rather than a :class:`DefeasibleRule` because a proposal is
+    a heuristic candidate carried as a charter ``json`` field, not a canonical
+    document. It is lowered to the one canonical :class:`DefeasibleRule` at
+    promotion time — never mirrored back.
+    """
+
+    id: str
+    kind: RuleKind
+    head: Atom
+    body: tuple[BodyLiteral, ...] = ()
+
+
+class RuleExtractionProvenance(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+    """Prompt/source provenance for one proposed rule."""
+
+    operations: tuple[str, ...]
+    agent: str
+    model: str
+    prompt_sha: str
+    notes_sha: str
+    predicates_sha: str
+    status: str
+
+
+RULE_PROPOSAL_BRANCH = BranchPlacement(policy="fixed", fixed_branch="proposal/rules")
+"""Place every rule proposal on ``proposal/rules``."""
+
+
+def rule_proposal_branch() -> str:
+    """Return the branch every rule proposal is recorded on."""
+
+    branch = RULE_PROPOSAL_BRANCH.fixed_branch
+    if branch is None:
+        raise ValueError("rule proposal branch placement must be fixed")
+    return branch
+
+
+if TYPE_CHECKING:
+
+    @dataclass(frozen=True)
+    class RuleProposalRef:
+        source_paper: str
+        rule_id: str
+
+else:
+
+    @dataclass(frozen=True)
+    class RuleProposalRef:
+        """Two-field reference to a rule proposal (``source_paper`` + ``rule_id``)."""
+
+        source_paper: str
+        rule_id: str
+
+
+_RULE_PROPOSAL_PLACEMENT: NestedFlatYamlPlacement[object, RuleProposalRef] = (
+    NestedFlatYamlPlacement(
+        namespace="rules",
+        ref_factory=RuleProposalRef,
+        dir_ref_field="source_paper",
+        stem_ref_field="rule_id",
+        extension=".yaml",
+        branch=RULE_PROPOSAL_BRANCH,
+    )
+)
+
+
+@charter(
+    key="proposal_rules",
+    name="proposal_rules",
+    contract_version="2026.06.29",
+    placement=_RULE_PROPOSAL_PLACEMENT,
+    accessor="proposal_rules",
+    identity_field="rule_id",
+)
+class RuleProposal(CharterDoc):
+    """A paper's proposed DeLP rule, with extraction provenance.
+
+    The class *is* the document: ``rule_id`` is the identity, ``source_paper`` the
+    proposing paper, and the proposed rule / referenced predicates / provenance
+    project to JSON columns. ``promoted_from_sha`` records the proposal commit a
+    promotion consumed.
+    """
+
+    rule_id: Annotated[str, charter_field(primary_key=True)]
+    source_paper: str
+    proposed_rule: Annotated[ProposedRule | None, charter_field(json=True)] = None
+    predicates_referenced: Annotated[
+        tuple[str, ...], charter_field(json=True)
+    ] = ()
+    extraction_provenance: Annotated[
+        RuleExtractionProvenance | None, charter_field(json=True)
+    ] = None
+    extraction_date: str | None = None
+    page_reference: str | None = None
+    promoted_from_sha: str | None = None
