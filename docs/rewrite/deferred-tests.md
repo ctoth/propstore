@@ -780,3 +780,62 @@ Deferred (the build_repository terminal sink + readers are not in this tree yet)
   projection -> **9-0-rest-B** (`build_repository` accepts `strict_authoring` as a
   documented seam; no lint source exists yet so there is nothing to upgrade).
 - All `pks build` / `pks validate` Click surfaces -> **Phase 10** (CLI/presentation).
+
+
+## Phase 9-0-rest-B — derived_build materialize + diagnostics + grounded facts (DONE)
+
+9-0-rest-B fills the `build_repository` materialize seam left by 9-0-rest-A. The
+build now writes the content-addressed world sidecar and summarises the conflict /
+phi compute from the build plan; it is still ONE pass framework (PLAN.md §12.6) —
+build only adds the materialize sink downstream of the shared `_compile_repository`.
+
+New surfaces:
+- `derived_build.py` — `world_sidecar_hash_inputs` / `world_sidecar_hash` (cache key:
+  source revision, sorted source-branch tips, semantic-pass versions, family contract
+  versions, `PROPSTORE_SIDECAR_CACHE_BUST`, a digest over the **charter-derived**
+  schema [`schema.catalog_hash`, replacing the deleted `schema/generated` dir], and
+  dependency pins for argumentation/ast-equiv/bridgman/gunray/quire), and
+  `materialize_world_sidecar` / `_build_sidecar_file`. quire OWNS rebuild-on-change
+  (`materialize_with_report` returns `built=False` on a cache hit); propstore only
+  supplies the hash + builder.
+- `derived_build_plan.py` — `RepositoryCheckedBundle` (assembled from the shared
+  compile output), `SidecarBuildPlan`, `compile_sidecar_build_plan` (conflict rows +
+  the `BuildDiagnostic` rows; quarantine-then-insert for dangling stance / justification
+  / micropublication refs).
+- `families/diagnostics.py` (`BuildDiagnostic` charter), `families/conflicts.py`
+  (`ConflictProjection` charter) — derived-only projection families (no `semantic`
+  tag, FK-free, like `LiftingMaterialization`); added to `_CHARTER_MODELS` + the
+  `PropstoreFamily` enum. `build_diagnostics.py` — authoring lints + diagnostic lowering.
+- Grounded facts: `derived_build` adapts the repo to a `GroundingRepo` and writes the
+  raw `grounded_fact` table via the existing `grounding.sidecar`; the rule-authoring
+  surface (`families.rules`) exists, so the non-empty grounded path works.
+
+The projection MASS vanished: every authored family is projected directly from its
+charter (`session.add_family(name, {charter fields})`) under advisory foreign keys
+(`enforce_foreign_keys=False`) — no per-family `compile_*_sidecar_rows` / `ProjectionRow`.
+
+Closed (rewrite-native tests over `Repository.init` + authored charters):
+- `test_build_sidecar.py` (+`TestRebuildSkipping`) / `test_codex5_sidecar_cache...` ->
+  `test_derived_build.py` (first-build/rebuild-skip, force, source-change invalidation,
+  `PROPSTORE_SIDECAR_CACHE_BUST`, charter-family projection).
+- `test_sidecar_grounded_facts.py` (build wiring) -> `test_world_sidecar_grounded.py`.
+- `test_required_schema_completeness.py` (charter-derived schema shape) -> asserted via
+  `test_derived_build.py` + the existing `test_sidecar_quarantine_z1.py`.
+- Authoring lints / `strict_authoring` -> `test_build_diagnostics.py`.
+- `test_compiler_workflows.py::test_build_materializes_sidecar` (the former
+  `test_build_reports_sidecar_missing_honestly`, now that the seam is filled).
+- **Z1 §12.1 standing gate** (`T2_2b/2g/2h`, `test_T7_5f_sidecar_build_duplicate_claim`
+  analog) -> `test_sidecar_build_z1.py`: a build over a blocked claim or a dangling
+  stance / justification / micropublication reference PROCEEDS, projects the offending
+  rows, and records a blocking `build_diagnostic` for each.
+
+Still deferred:
+- `test_world_query.py`, `test_worldline*.py`, `test_sidecar_alias_projection.py`, and
+  the sidecar-read stats (similar / historical) in the build report -> **9-1**
+  (`WorldQuery` reader). The conflict / phi summary in the build report is taken from
+  the plan, not the reader.
+- `lifting_materialization` rows in the *world* sidecar -> **9-1** (the standalone
+  `ContextRepository.build_sidecar` path + `test_sidecar_contexts.py` already cover the
+  projection; the world-sidecar lifting materialization needs the reader-side lift
+  policy). The lifting system already feeds cross-context conflict detection here.
+- All `pks build` / `pks validate` Click surfaces -> **Phase 10**.
