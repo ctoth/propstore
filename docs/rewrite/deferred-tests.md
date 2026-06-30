@@ -694,3 +694,35 @@ Deferred:
 - `import-repository` CLI (`test_import_repo_cli_*`) -> **10** (CLI/presentation).
 - `EquivalenceWitnessStore` composition is the non-commitment equivalence surface
   (`test_import_machinery` covers it); any sidecar projection of witnesses -> **9**.
+
+## Phase 8-6 — verify_claim_tree (canonical claim-tree integrity; DONE)
+
+8-6 closes the PLAN §8 mandate "WRITE test for verify_claim_tree if still
+unwired". `propstore/verify.py` adds `verify_claim_tree(repo, *, commit=None)` —
+the read-only, post-hoc counterpart of the commit-time foreign-key gate
+(`quire.families._validate_registry_post_state`). Where that gate *raises* on the
+first dangling reference at write time, verify walks the same charter-derived
+foreign-key graph (`semantic_foreign_keys()` + `repo.families.by_name(...)
+.reference_index()` + quire `validate_foreign_key`) over an arbitrary committed
+repository state and returns a typed `ClaimTreeIntegrityReport`
+(`resolved` / `dangling` / `quarantined` / `malformed_identity`) — it surfaces
+problems, it never drops or collapses anything (non-commitment). A `BLOCKED`
+(quarantined) record's unresolved references are reported under `quarantined`,
+not counted as a hard failure: quarantine is a valid present-but-filtered state.
+
+Test written (rewrite-native, over `Repository.init`):
+`test_verify_claim_tree.py` — clean tree verifies OK; an authored dangling
+reference is reported (and the broken row remains present); a quarantined/blocked
+row with the same unresolved reference is reported as quarantined and keeps the
+tree `ok`; authored vs quarantined references bucket separately; verify is
+read-only (master head unchanged). The reference `verify_claim_tree`
+(`artifact_verification.py`) is 0.2.0-shaped (`dict[str, Any]`, artifact-code
+recomputation, `.to_payload()`, `*Document`, `WorldQuery`); it was rebuilt over
+charters rather than ported, per the WRITE mandate.
+
+Deferred:
+- `test_verify_cli.py` (the `pks verify tree` CLI surface, recursive artifact-code
+  recomputation, origin ni-URI match, and ATMS-label serialization) -> **10**
+  (CLI/presentation) and **9** (the artifact-code + WorldQuery recompute path).
+  The 8-6 charter-derived FK-integrity audit is the owner-layer entry point those
+  presentation surfaces will call.
