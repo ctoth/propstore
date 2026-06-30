@@ -28,7 +28,9 @@ from quire.versions import VersionId
 from propstore.families.alignment import ConceptAlignmentArtifact
 from propstore.families.claims import Claim
 from propstore.families.concepts import Concept
+from propstore.families.conflicts import ConflictProjection
 from propstore.families.contexts import Context, LiftingMaterialization, LiftingRule
+from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
 from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
@@ -84,6 +86,9 @@ _CHARTER_MODELS = (
     SourceJustificationsDocument,
     SourceMicropublicationsDocument,
     SourceFinalizeReportDocument,
+    # Derived-only projection families (never authored; populated by the build).
+    ConflictProjection,
+    BuildDiagnostic,
 )
 
 _CHARTERS: tuple[FamilyCharter, ...] = tuple(
@@ -133,6 +138,8 @@ class PropstoreFamily(StrEnum):
     SOURCE_JUSTIFICATIONS = "source_justifications"
     SOURCE_MICROPUBS = "source_micropubs"
     SOURCE_FINALIZE_REPORTS = "source_finalize_reports"
+    CONFLICT = "conflict"
+    BUILD_DIAGNOSTIC = "build_diagnostic"
 
 
 def registered_family_names() -> tuple[str, ...]:

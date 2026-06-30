@@ -29,8 +29,14 @@ from propstore.compiler.context import (
     CompilationContext,
     build_compilation_context_from_loaded,
 )
+from propstore.build_diagnostics import collect_authoring_lints, upgrade_lints_to_errors
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.compiler.ir import ClaimCheckedBundle
+from propstore.derived_build import materialize_world_sidecar
+from propstore.derived_build_plan import (
+    RepositoryCheckedBundle,
+    compile_sidecar_build_plan,
+)
 from propstore.families.claims import Claim
 from propstore.families.claims_passes import (
     ClaimFiles,
@@ -39,6 +45,7 @@ from propstore.families.claims_passes import (
     run_claim_pipeline,
 )
 from propstore.families.concepts import Concept
+from propstore.families.conflicts import ConflictProjection
 from propstore.families.concepts_passes import (
     ConceptCheckedRegistry,
     ConceptPipelineContext,
@@ -62,6 +69,7 @@ from propstore.families.forms_passes import (
     run_form_pipeline,
 )
 from propstore.families.registry import PropstoreFamily
+from propstore.families.relations import Stance
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic, StageId
 
@@ -158,6 +166,8 @@ class _CompiledRepository:
     concepts: tuple[Concept, ...]
     form_registry: Mapping[str, FormDefinition]
     context_ids: frozenset[str]
+    loaded_contexts: tuple[Context, ...]
+    loaded_lifting_rules: tuple[LiftingRule, ...]
     claim_bundle: ClaimCheckedBundle
     compilation_context: CompilationContext
     messages: tuple[PassDiagnostic, ...]
@@ -315,6 +325,8 @@ def _compile_repository(
             concepts=(),
             form_registry={},
             context_ids=frozenset(),
+            loaded_contexts=(),
+            loaded_lifting_rules=(),
             claim_bundle=ClaimCheckedBundle(),
             compilation_context=empty_context,
             messages=(),
@@ -423,11 +435,39 @@ def _compile_repository(
         concepts=tuple(loaded.concept for loaded in loaded_concepts),
         form_registry=form_registry,
         context_ids=context_ids,
+        loaded_contexts=tuple(loaded.context for loaded in loaded_contexts),
+        loaded_lifting_rules=tuple(loaded.rule for loaded in loaded_rules),
         claim_bundle=claim_bundle,
         compilation_context=compilation_context,
         messages=tuple(messages),
         concept_count=len(loaded_concepts),
         claim_count=len(loaded_claims),
+    )
+
+
+def compile_repository_checked_bundle(
+    repo: Repository, *, commit: str | None
+) -> RepositoryCheckedBundle | None:
+    """Run the shared compiler and package the checked state for the sidecar build.
+
+    Returns ``None`` when the repository has no concepts (nothing to project). This
+    is the one bridge from the shared pass output to ``derived_build``; ``pks build``
+    and ``pks validate`` still run the very same ``_compile_repository`` (PLAN.md
+    §12.6), build only adding the materialize sink downstream of it.
+    """
+
+    compiled = _compile_repository(repo, commit=commit)
+    if compiled.no_concepts:
+        return None
+    return RepositoryCheckedBundle(
+        concepts=compiled.concepts,
+        form_registry=compiled.form_registry,
+        context_ids=compiled.context_ids,
+        loaded_contexts=compiled.loaded_contexts,
+        loaded_lifting_rules=compiled.loaded_lifting_rules,
+        claim_bundle=compiled.claim_bundle,
+        compilation_context=compiled.compilation_context,
+        messages=compiled.messages,
     )
 
 
@@ -451,6 +491,34 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     )
 
 
+_PHI_WARNING_CLASSES = frozenset({"PHI_NODE", "CONTEXT_PHI_NODE"})
+
+
+def _stances(repo: Repository, commit: str | None) -> tuple[Stance, ...]:
+    return tuple(
+        handle.document
+        for handle in repo.families.by_name("stance").iter_handles(commit=commit)
+        if isinstance(handle.document, Stance)
+    )
+
+
+def _phi_groups(plan_conflicts: Sequence[object]) -> tuple[BuildPhiGroup, ...]:
+    grouped: dict[str, list[str]] = {}
+    for conflict in plan_conflicts:
+        if not isinstance(conflict, ConflictProjection):
+            continue
+        if conflict.warning_class not in _PHI_WARNING_CLASSES:
+            continue
+        members = grouped.setdefault(conflict.concept_id, [])
+        for claim_id in (conflict.claim_a_id, conflict.claim_b_id):
+            if claim_id not in members:
+                members.append(claim_id)
+    return tuple(
+        BuildPhiGroup(key=concept_id, claim_ids=tuple(sorted(members)))
+        for concept_id, members in sorted(grouped.items())
+    )
+
+
 def build_repository(
     repo: Repository,
     *,
@@ -460,35 +528,61 @@ def build_repository(
     """Run the shared check set, then materialise the world sidecar.
 
     The pipelines, the abort class, and the quarantine class are identical to
-    :func:`validate_repository`; only the terminal sink differs. The sidecar
-    materialisation and the WorldQuery-backed conflict/phi summary are filled in
-    later slices (the ``derived_build`` materialize path in 9-0-rest-B; the
-    ``WorldQuery`` reader in 9-1). Until then this honestly reports
-    ``sidecar_missing`` and a claim count taken from the checked bundle — it
-    never fabricates a sidecar or a conflict summary.
+    :func:`validate_repository`; only the terminal sink differs (PLAN.md §12.6).
+    After the shared compile, this materialises the content-addressed world sidecar
+    (``derived_build.materialize_world_sidecar``) and summarises the conflict / phi
+    compute from the build plan. The detailed sidecar-read stats (similar / history)
+    remain a 9-1 ``WorldQuery`` seam; the conflict / phi summary here is taken from
+    the plan, not fabricated.
     """
 
-    commit = repo.require_git().head_sha()
-    compiled = _compile_repository(repo, commit=commit)
-    if compiled.no_concepts:
+    commit = str(repo.require_git().head_sha())
+    checked = compile_repository_checked_bundle(repo, commit=commit)
+    if checked is None:
         return RepositoryBuildReport(
             concept_count=0, claim_count=0, no_concepts=True
         )
 
-    messages = list(compiled.messages)
-    # SEAM (9-0-rest-B / 9-1): materialize_world_sidecar(...) then open
-    # WorldQuery for stats / conflicts / phi-node summary. Neither exists yet in
-    # this tree, so the build reports sidecar_missing honestly and leaves the
-    # conflict / phi summary empty. `strict_authoring` upgrades authoring lints
-    # to errors; the authoring-lint surface also lands in 9-0-rest-B, so there is
-    # nothing to upgrade here yet.
-    _ = (force, strict_authoring)
+    authoring_lints = collect_authoring_lints(
+        claims=checked.claims, stances=_stances(repo, commit)
+    )
+    if strict_authoring and authoring_lints:
+        raise CompilerWorkflowError(
+            f"Build aborted: {len(authoring_lints)} authoring error(s)",
+            upgrade_lints_to_errors(authoring_lints),
+        )
+
+    plan = compile_sidecar_build_plan(repo, checked, commit=commit)
+    handle, built = materialize_world_sidecar(
+        repo, force=force, checked=checked, plan=plan, commit=commit
+    )
+
+    messages = (*checked.messages, *authoring_lints)
     warning_count = sum(1 for message in messages if message.is_warning)
+    conflicts = tuple(
+        BuildConflictLine(
+            warning_class=conflict.warning_class,
+            concept_id=conflict.concept_id,
+            claim_a_id=conflict.claim_a_id,
+            claim_b_id=conflict.claim_b_id,
+        )
+        for conflict in plan.conflicts
+    )
     return RepositoryBuildReport(
-        concept_count=compiled.concept_count,
-        claim_count=compiled.claim_count,
+        concept_count=len(checked.concepts),
+        claim_count=len(checked.claims),
+        conflict_count=plan.conflict_count,
+        phi_node_count=plan.phi_node_count,
         warning_count=warning_count,
-        rebuilt=False,
-        messages=tuple(messages),
-        sidecar_missing=True,
+        rebuilt=built,
+        conflicts=conflicts,
+        phi_groups=_phi_groups(plan.conflicts),
+        derived_store=BuildDerivedStoreHandle(
+            projection_id=handle.projection_id,
+            source_commit=handle.source_commit,
+            cache_key=handle.cache_key,
+            path=str(handle.path),
+        ),
+        messages=messages,
+        sidecar_missing=False,
     )

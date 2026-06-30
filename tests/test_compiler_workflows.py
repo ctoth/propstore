@@ -73,7 +73,9 @@ def test_validate_clean_repo_is_ok(tmp_path: Path) -> None:
     assert summary.claim_count == 1
 
 
-def test_build_reports_sidecar_missing_honestly(tmp_path: Path) -> None:
+def test_build_materializes_sidecar(tmp_path: Path) -> None:
+    # 9-0-rest-B filled the materialize seam: build now writes the content-addressed
+    # world sidecar and reports it honestly (no longer ``sidecar_missing``).
     repo = _repo(tmp_path)
     repo.families.claim.save(
         "c1",
@@ -81,11 +83,15 @@ def test_build_reports_sidecar_missing_honestly(tmp_path: Path) -> None:
         message="m",
     )
     report = build_repository(repo)
-    assert report.sidecar_missing is True
-    assert report.rebuilt is False
+    assert report.sidecar_missing is False
+    assert report.rebuilt is True
     assert report.concept_count == 1
     assert report.claim_count == 1
     assert report.conflicts == ()
+    assert report.derived_store is not None
+    assert Path(report.derived_store.path).is_file()
+    # quire owns rebuild-on-change: an unchanged repo is not rebuilt.
+    assert build_repository(repo).rebuilt is False
 
 
 def test_empty_repo_reports_no_concepts(tmp_path: Path) -> None:
