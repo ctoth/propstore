@@ -26,6 +26,7 @@ from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
 from propstore.families.alignment import ConceptAlignmentArtifact
+from propstore.families.calibration import CalibrationCount
 from propstore.families.claims import Claim
 from propstore.families.concepts import Concept
 from propstore.families.conflicts import ConflictProjection
@@ -61,7 +62,7 @@ from propstore.families.predicates import PredicateProposalRef as PredicatePropo
 from propstore.families.rules import RuleProposalRef as RuleProposalRef
 
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId(
-    "2026.06.30", allow_placeholder=False
+    "2026.07.01", allow_placeholder=False
 )
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
@@ -96,6 +97,7 @@ _CHARTER_MODELS = (
     # Derived-only projection families (never authored; populated by the build).
     ConflictProjection,
     BuildDiagnostic,
+    CalibrationCount,
     # Merge record family (written by the two-parent storage merge commit).
     MergeManifest,
 )
@@ -150,6 +152,7 @@ class PropstoreFamily(StrEnum):
     SOURCE_FINALIZE_REPORTS = "source_finalize_reports"
     CONFLICT = "conflict"
     BUILD_DIAGNOSTIC = "build_diagnostic"
+    CALIBRATION_COUNTS = "calibration_counts"
     MERGE_MANIFEST = "merge_manifest"
 
 

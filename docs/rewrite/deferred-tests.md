@@ -21,9 +21,19 @@ build-fresh + no-Document-mirror):
 - test_sidecar_relation_edge_projection.py -> SUPERSEDED in 9-3 (no concept-to-concept
   relation_edge family in the charter rewrite; relation edges derive from stances —
   the reference relation_edge projection VANISHES; see the Phase 9-3 section)
-- test_sidecar_calibration_counts_projection.py -> 10 (families.calibration sidecar; calibration extract)
-- test_opinion_schema.py -> 9/10 (opinion sidecar/schema projection)
-- test_render_policy_opinions.py -> 10 (render policy)
+- test_sidecar_calibration_counts_projection.py -> CLOSED in 10-5 (families.calibration
+  CalibrationCount derived-only charter projects into the charter-derived world sidecar;
+  load_calibration_counts reader closes the loop into categorical_to_opinion. Calibration
+  metrics carved into the standalone `calibration` package; the propstore opinion glue
+  imports the package metrics directly — pure refactor, test_calibrate* unchanged.)
+- test_opinion_schema.py -> CLOSED in 10-5 (the four Jøsang opinion_* columns ride on the
+  charter-derived `stance` projection as nullable columns; base rate carries no schema
+  default; doxa.Opinion roundtrips. Rewrite-native — `stance`, not the reference
+  `relation_edge`; doxa.Opinion, not a propstore re-spelling.)
+- test_render_policy_opinions.py -> CLOSED in 10-5 (apply_decision_criterion over the
+  stored Jøsang tuple; pignistic BetP default, projected_probability/bounds/Hurwicz;
+  DecisionValueSource tags OPINION vs NO_DATA so a partial/absent tuple is never raw
+  confidence — honest ignorance.)
 - test_prior_base_rate_is_opinion.py -> 7 (base-rate resolution against a store)
 - test_claim_and_stance_document_enums.py -> 9/10 (families.documents surface — 5b reconfirmed)
 

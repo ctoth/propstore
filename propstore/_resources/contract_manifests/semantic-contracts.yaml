@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.06.30
+  contract_version: 2026.07.01
   body:
     families:
     - contract_version: 2026.06.28
@@ -216,6 +216,9 @@ contracts:
       key: build_diagnostic
       name: build_diagnostic
     - contract_version: 2026.06.29
+      key: calibration_counts
+      name: calibration_counts
+    - contract_version: 2026.06.29
       key: merge_manifest
       name: merge_manifest
 - kind: family
@@ -238,6 +241,26 @@ contracts:
     foreign_keys: []
     identity_field: diagnostic_id
     key: build_diagnostic
+- kind: family
+  name: calibration_counts
+  contract_version: 2026.06.29
+  body:
+    accessor: calibration_counts
+    artifact_family: calibration_counts
+    artifact_family_contract:
+      doc_type: propstore.families.calibration.CalibrationCountModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: calibration_counts
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: calibration_id
+    key: calibration_counts
 - kind: family
   name: claim
   contract_version: 2026.06.29
@@ -952,4 +975,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.06.30
+  contract_version: 2026.07.01

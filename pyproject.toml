@@ -32,6 +32,7 @@ dependencies = [
     "provenance-semiring @ git+https://github.com/ctoth/provenance-semiring.git@64ecbb919d86cb3cef3fcfbb153cd4b6432c53a8",
     "condition-ir @ git+https://github.com/ctoth/condition-ir.git@d12de46849fd9465cf26bdf7b18cd9d2ee4c00aa",
     "causal-models @ git+https://github.com/ctoth/causal-models@21d6b1e341c42ae4db57309bab48f1994a9d734f",
+    "calibration @ git+https://github.com/ctoth/calibration@aa8e0625d41108cec245eead06cfbba847cc0458",
     "rfc8785>=0.1.4",
     "jinja2>=3.1",
 ]

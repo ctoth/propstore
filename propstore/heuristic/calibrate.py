@@ -1,11 +1,15 @@
 """Calibration — bridge raw model outputs to the subjective-logic opinion algebra.
 
-Implements temperature scaling (Guo et al. 2017), corpus CDF calibration,
-categorical-to-opinion mapping, and calibration-quality metrics (ECE, Brier,
-log-loss). Every probability produced here becomes a ``doxa.Opinion`` — the one
+Corpus CDF calibration, categorical-to-opinion mapping, and calibrated-probability
+mapping. Every probability produced here becomes a ``doxa.Opinion`` — the one
 canonical opinion type (CLAUDE.md substrate-boundary rule) — and absence of
 calibration data becomes a vacuous opinion (Jøsang 2001, p.8) or an explicit
 :class:`~propstore.core.base_rates.BaseRateUnresolved`, never a fabricated number.
+
+The generic calibration-quality metrics and temperature scaling (Guo et al. 2017)
+live in the standalone ``calibration`` substrate package; this module imports and
+re-exports them directly (no propstore re-spelling) so the propstore-specific
+opinion glue and the package metrics share one canonical surface.
 
 Opinions returned here are provenance-free ``doxa`` values; their typed provenance
 is attached at the call site that stores them (the pairing-beside-opinion
@@ -20,6 +24,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 
+from calibration import (
+    TemperatureScaler as TemperatureScaler,
+)
+from calibration import (
+    brier_score as brier_score,
+)
+from calibration import (
+    expected_calibration_error as expected_calibration_error,
+)
+from calibration import (
+    log_loss as log_loss,
+)
 from doxa import Opinion
 
 from propstore.core.base_rates import BaseRateUnresolved
@@ -28,87 +44,7 @@ from propstore.provenance import Provenance
 
 
 # ---------------------------------------------------------------------------
-# 1. Temperature Scaling
-# ---------------------------------------------------------------------------
-
-
-def _softmax(logits: list[float]) -> list[float]:
-    """Numerically stable softmax."""
-
-    max_z = max(logits)
-    exps = [math.exp(z - max_z) for z in logits]
-    total = sum(exps)
-    return [e / total for e in exps]
-
-
-@dataclass
-class TemperatureScaler:
-    """Post-hoc calibration via temperature scaling (Guo et al. 2017, p.5).
-
-    ``T > 1`` softens (reduces overconfidence), ``T < 1`` sharpens. ``T = 1`` is
-    identity and does not change the argmax (Guo 2017, p.5).
-    """
-
-    temperature: float = 1.0
-
-    def __post_init__(self) -> None:
-        if self.temperature <= 0:
-            raise ValueError(f"Temperature must be > 0, got {self.temperature}")
-
-    def calibrate_logits(self, logits: list[float]) -> list[float]:
-        """Apply temperature scaling to logits, return calibrated probabilities.
-
-        ``softmax(z / T)`` per Guo et al. 2017, p.5, Eq. ``q_i = max_k
-        softmax(z_i / T)_k``.
-        """
-
-        scaled = [z / self.temperature for z in logits]
-        return _softmax(scaled)
-
-    @staticmethod
-    def fit(logits_list: list[list[float]], labels: list[int]) -> TemperatureScaler:
-        """Find optimal ``T`` by minimizing NLL on validation data.
-
-        Per Guo et al. 2017, p.5: ``min_T -sum_i log(pi(y_i | z_i, T))``. This is
-        1D convex optimization, solved here by golden-section line search.
-        """
-
-        if len(logits_list) != len(labels):
-            raise ValueError("logits_list and labels must have same length")
-        if len(logits_list) == 0:
-            raise ValueError("Need at least one sample to fit")
-
-        def nll(t: float) -> float:
-            total = 0.0
-            for logits, label in zip(logits_list, labels):
-                probs = _softmax([z / t for z in logits])
-                p = probs[label]
-                total -= math.log(max(p, 1e-15))
-            return total
-
-        a, b = 0.01, 10.0
-        gr = (math.sqrt(5) + 1) / 2
-        tol = 1e-5
-
-        c = b - (b - a) / gr
-        d = a + (b - a) / gr
-
-        for _ in range(100):
-            if abs(b - a) < tol:
-                break
-            if nll(c) < nll(d):
-                b = d
-            else:
-                a = c
-            c = b - (b - a) / gr
-            d = a + (b - a) / gr
-
-        best_t = (a + b) / 2
-        return TemperatureScaler(temperature=best_t)
-
-
-# ---------------------------------------------------------------------------
-# 2. Corpus CDF Calibration
+# Corpus CDF Calibration
 # ---------------------------------------------------------------------------
 
 
@@ -348,95 +284,3 @@ def calibrated_probability_to_opinion(
             f"effective_sample_size={effective_sample_size} must be >= 0"
         )
     return Opinion.from_probability(probability, effective_sample_size, base_rate)
-
-
-# ---------------------------------------------------------------------------
-# 5. Calibration-quality metrics
-# ---------------------------------------------------------------------------
-
-
-def _validate_binary_calibration_inputs(
-    confidences: list[float],
-    correct: list[bool],
-) -> None:
-    if len(confidences) != len(correct):
-        raise ValueError("confidences and correct must have same length")
-    for confidence in confidences:
-        if confidence < 0.0 or confidence > 1.0:
-            raise ValueError("confidences must be in [0, 1]")
-
-
-def brier_score(confidences: list[float], correct: list[bool]) -> float:
-    """Mean squared probability error.
-
-    Guo et al. 2017 report the Brier score alongside ECE and negative
-    log-likelihood as standard calibration metrics.
-    """
-
-    _validate_binary_calibration_inputs(confidences, correct)
-    if not confidences:
-        return 0.0
-    total = 0.0
-    for confidence, is_correct in zip(confidences, correct):
-        target = 1.0 if is_correct else 0.0
-        total += (confidence - target) ** 2
-    return total / len(confidences)
-
-
-def log_loss(
-    confidences: list[float],
-    correct: list[bool],
-    *,
-    epsilon: float = 1e-15,
-) -> float:
-    """Binary negative log-likelihood with clipping.
-
-    Guo et al. 2017 use NLL/log-loss as the optimization target for temperature
-    scaling and as a calibration-quality metric.
-    """
-
-    _validate_binary_calibration_inputs(confidences, correct)
-    if not confidences:
-        return 0.0
-    if epsilon <= 0.0 or epsilon >= 0.5:
-        raise ValueError("epsilon must be in (0, 0.5)")
-    total = 0.0
-    for confidence, is_correct in zip(confidences, correct):
-        clipped = min(1.0 - epsilon, max(epsilon, confidence))
-        total -= math.log(clipped if is_correct else 1.0 - clipped)
-    return total / len(confidences)
-
-
-def expected_calibration_error(
-    confidences: list[float],
-    correct: list[bool],
-    n_bins: int = 15,
-) -> float:
-    """Compute Expected Calibration Error.
-
-    Per Guo et al. 2017 (p.1): ``ECE = sum_m (|B_m|/n) * |acc(B_m) - conf(B_m)|``
-    where ``B_m`` is the set of samples in bin ``m``.
-    """
-
-    _validate_binary_calibration_inputs(confidences, correct)
-    n = len(confidences)
-    if n == 0:
-        return 0.0
-
-    bin_correct: list[list[bool]] = [[] for _ in range(n_bins)]
-    bin_confs: list[list[float]] = [[] for _ in range(n_bins)]
-
-    for conf, cor in zip(confidences, correct):
-        idx = min(int(conf * n_bins), n_bins - 1)
-        bin_correct[idx].append(cor)
-        bin_confs[idx].append(conf)
-
-    ece = 0.0
-    for bc, bf in zip(bin_correct, bin_confs):
-        if len(bc) == 0:
-            continue
-        acc = sum(1 for c in bc if c) / len(bc)
-        avg_conf = sum(bf) / len(bf)
-        ece += (len(bc) / n) * abs(acc - avg_conf)
-
-    return ece
