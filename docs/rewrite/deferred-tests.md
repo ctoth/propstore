@@ -563,3 +563,70 @@ Deferred:
 - `parameterization_group_merges` on the finalize report is left empty in 8-3a;
   `preview_source_parameterization_group_merges` (`source/registry.py`) lands in
   **8-3b** with promote.
+
+## Phase 8-3b — source-branch promote + trust calibration (DONE)
+
+8-3b built `source/promote.py` (`promote_source_branch`: load finalize report →
+resolve source concepts to canonical FKs → immutable canonical-claim rebuild →
+per-item quarantine of unpromotable claims → atomic `master` commit via
+`git.head_bound_transaction(primary).families_transact` over the
+claim/concept/justification/stance/micropublication families → promotion
+provenance git note → promote-time trust calibration stamp; plus
+`resolve_source_concept_promotions`, `compute_blocked_claim_artifact_ids`,
+`PromotionResult`, `sync_source_branch`, `load_finalize_report`), the immutable
+claim rebuild (`source/claim_concepts.build_promoted_claim`), the concept /
+justification / stance identity derivers (`families/identity/{concepts,
+justifications,stances}.py`), `SourcePromotionPlan` (`source/stages.py`),
+`source/registry.py` (`load_primary_branch_concepts`,
+`primary_branch_concept_id_by_name`, `primary_branch_concept_match`),
+`source/status.py` (families-only `inspect_source_status`), the
+`SourceTrustPriorDocument` / `SourceTrustDocument.prior_base_rate` charter field,
+and the repository-bound `source_trust_argumentation.calibrate_source_trust`
+wiring over the pure `project_source_trust` projection.
+
+The two load-bearing non-commitment invariants are enforced and tested in
+`tests/test_source_promote_p83b.py`:
+- **quarantine, never drop** — a claim that cannot promote cleanly (unresolved
+  concept mapping, unresolved context, dangling justification reference) stays on
+  the source branch (present), is surfaced in `PromotionResult.blocked_claims` /
+  `blocked_diagnostics`, and never reaches `master`; promotion only aborts when
+  *every* claim is blocked.
+- **calibration stamps, never gates** — a low-trust (or vacuous/defaulted) source
+  still promotes its claims, carrying its honest calibrated prior-trust
+  provenance stamped onto the source manifest; calibration never rejects a claim.
+
+Tests ported (now green): `test_promote_atomicity`,
+`test_promote_claim_immutability`, `test_promote_writes_provenance_note`,
+`test_source_promote_dangling_refs` (→ quarantine), `test_source_trust` /
+`test_trust_calibration_runs_at_promote`, `test_no_derive_source_document_trust`
+(→ defaulted-leaves-no-prior), plus the two written store-write-boundary
+invariant tests above.
+
+Deferred:
+- `compile_*_promotion_blocked_projection_rows` / `PromotionBlockedProjectionRows`
+  (the sidecar quarantine *mirror* rows over `quire.projections.ProjectionRow` +
+  `CLAIM_CORE_PROJECTION` / `BUILD_DIAGNOSTICS_PROJECTION`) -> **9**. The
+  quarantine invariant itself is met without them: blocked claims stay on the
+  source branch and are surfaced in `PromotionResult`; the derived-store mirror is
+  a Phase-9 projection of that same state. `test_sidecar_source_projection`,
+  `test_cli_source_status` (the derived-store reader) -> **9**.
+- `_validate_promoted_claims_before_commit`'s full CEL/`run_claim_pipeline`
+  re-validation (`propstore.compiler` + `families.claims.passes`) -> **9**;
+  the registry's commit-time foreign-key validation already enforces canonical
+  reference integrity for the promoted slice.
+- Canonical artifact-code stamping (`stamp_canonical_artifact_codes`): the flat
+  rewrite charters carry no `artifact_code` field, so only the source-side codes
+  (8-3a) exist; nothing to port.
+- A canonical *source* record family: the rewrite does not model one (the flat
+  `Claim` charter carries no source pointer), so promotion writes no master-side
+  source artifact; the reference `CanonicalSourceRef`/sources-family write is
+  dropped.
+- `source/registry.py` parameterization-group merge preview
+  (`projected_source_concepts`, `parameterization_group_merge_preview`,
+  `preview_source_parameterization_group_merges`, `test_param_group_merge_preview`)
+  -> later: it projects concept parameterization relationships that the flat
+  rewrite `Concept` charter does not yet model (the rewrite exposes
+  `build_parameterization_groups(edges)`, a different shape than the reference's
+  `build_groups(concept_payloads)`).
+- `source/passes.py` (the semantic-import normalization pipeline) -> **8-5**
+  (import); promote does not depend on it.

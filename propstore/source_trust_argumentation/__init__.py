@@ -25,12 +25,19 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib import metadata
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
+import yaml
 from argumentation.core.dung import ArgumentationFramework, grounded_extension
 from doxa import Opinion
 
 from propstore.provenance import ProvenanceStatus
+
+if TYPE_CHECKING:
+    from propstore.repository import Repository
+
+_Json: TypeAlias = "None | bool | int | float | str | list[_Json] | dict[str, _Json]"
+"""The value shape ``yaml.safe_load`` yields for a rule file (concrete, not Any)."""
 
 _DOGMATIC_TOL = 1e-9
 _DEFAULT_BASE_RATE = 0.5
@@ -178,9 +185,84 @@ def project_source_trust(
     )
 
 
+def _load_rules_from_repo(repo: Repository) -> tuple[Mapping[str, Any], ...]:
+    """Load source-trust rules from the repository's working-tree rule corpus.
+
+    Rules live as YAML under ``<root>/rules`` (or ``<root>/knowledge/rules``).
+    Each file is either a single rule mapping, a list of rule mappings, or a
+    ``{"rules": [...]}`` container. A rule is ``{id, effect, conditions, weight,
+    base_rate}`` — the shape :func:`project_source_trust` consumes directly.
+    """
+
+    rules_root = repo.root / "rules"
+    if not rules_root.exists():
+        rules_root = repo.root / "knowledge" / "rules"
+    if not rules_root.exists():
+        return ()
+
+    rules: list[Mapping[str, Any]] = []
+    for path in sorted(rules_root.rglob("*.yaml")):
+        loaded: _Json = yaml.safe_load(path.read_text(encoding="utf-8"))
+        mapping = _str_keyed(loaded)
+        if mapping is not None:
+            container = mapping.get("rules")
+            collected = _collect_rules(container)
+            rules.extend(collected if collected else (mapping,))
+            continue
+        rules.extend(_collect_rules(loaded))
+    return tuple(rules)
+
+
+def _str_keyed(value: _Json) -> dict[str, _Json] | None:
+    """Return *value* as a ``{str: value}`` mapping, or ``None`` if not a mapping."""
+
+    if not isinstance(value, dict):
+        return None
+    return {str(key): item for key, item in value.items()}
+
+
+def _collect_rules(value: _Json) -> list[Mapping[str, Any]]:
+    """Coerce a YAML list of rule mappings into ``[{str: value}, ...]``."""
+
+    if not isinstance(value, list):
+        return []
+    return [rule for item in value if (rule := _str_keyed(item)) is not None]
+
+
+def calibrate_source_trust(
+    repo: Repository,
+    source_name: str,
+    *,
+    rule_corpus: Sequence[Mapping[str, Any]] | None = None,
+    world_snapshot: object | None = None,
+) -> SourceTrustResult:
+    """Calibrate a source's prior trust from its rule corpus and metadata.
+
+    The repository-bound wiring around the pure :func:`project_source_trust`
+    projection: it loads the rule corpus (unless one is supplied) and the source
+    branch's stored metadata, then projects an honestly typed
+    :class:`SourceTrustResult`. This is a *stamp*, never a gate — a source whose
+    metadata fires no rule gets a ``DEFAULTED`` vacuous prior and still promotes;
+    calibration never rejects a claim.
+    """
+
+    from propstore.source.common import load_source_metadata
+
+    rules = tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
+    metadata_payload = load_source_metadata(repo, source_name) or {}
+    repo_head = repo.require_git().head_sha() if repo.git is not None else None
+    world_sha = str(world_snapshot if world_snapshot is not None else (repo_head or ""))
+    return project_source_trust(
+        rules,
+        metadata_payload,
+        world_snapshot_sha=world_sha,
+    )
+
+
 __all__ = [
     "RuleFiring",
     "SourceTrustResult",
+    "calibrate_source_trust",
     "kernel_version",
     "project_source_trust",
 ]

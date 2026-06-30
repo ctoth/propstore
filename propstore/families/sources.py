@@ -89,14 +89,26 @@ class SourceTrustQualityDocument(_Struct):
     a: float
 
 
+class SourceTrustPriorDocument(_Struct):
+    """The four Jøsang components of a calibrated prior-trust opinion.
+
+    Stored as the bare ``b``/``d``/``u``/``a`` mass of the ``doxa.Opinion``
+    ``calibrate_source_trust`` projects — never a second ``Opinion`` spelling.
+    Absent (``None``) until promote-time calibration stamps it; a defaulted
+    source trust carries no prior, so ignorance is honest, not a fabricated 0.5.
+    """
+
+    b: float
+    d: float
+    u: float
+    a: float
+
+
 class SourceTrustDocument(_Struct):
     status: ProvenanceStatus
     quality: SourceTrustQualityDocument | None = None
+    prior_base_rate: SourceTrustPriorDocument | None = None
     derived_from: tuple[str, ...] = ()
-    # NOTE (8-3): the opinion-typed ``prior_base_rate`` (a ``doxa.Opinion``) is
-    # added when promote-time trust calibration lands. Source authoring only
-    # ever sets ``status=DEFAULTED`` here, so it is absent rather than mirrored
-    # into a second Opinion spelling.
 
 
 class SourceMetadataDocument(_Struct):

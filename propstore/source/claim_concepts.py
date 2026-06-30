@@ -15,6 +15,7 @@ from collections.abc import Mapping
 
 import msgspec
 
+from propstore.families.claims import Claim, ClaimStatus
 from propstore.families.sources import SourceClaimDocument
 
 _CANONICAL_CONCEPT_PREFIXES = ("ps:concept:", "tag:")
@@ -70,4 +71,57 @@ def rewrite_claim_concept_refs(
             )
             for parameter in claim.parameters
         ),
+    )
+
+
+def build_promoted_claim(
+    claim: SourceClaimDocument,
+    *,
+    concept_map: Mapping[str, str],
+    unresolved: set[str],
+) -> Claim:
+    """Rebuild a source claim as the immutable canonical :class:`Claim`.
+
+    A promoted claim is a NEW immutable artifact — source-of-truth storage is
+    immutable except by explicit migration — rebuilt from the source claim with
+    every concept handle lowered to its canonical concept FK. The canonical
+    ``claim_id`` is the source claim's already-derived ``artifact_id`` (the
+    logical-handle identity stamped at authoring), so promotion does not mint a
+    new identity. Any concept handle that could not be lowered is recorded in
+    *unresolved* (never dropped); the caller quarantines such claims.
+
+    The flat canonical charter does not model variable/parameter bindings, so the
+    concept refs they carry are lowered for the resolvability check but are not
+    re-materialised onto the canonical claim.
+    """
+
+    artifact_id = claim.artifact_id
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise ValueError("promoted claim is missing artifact_id")
+    lowered = rewrite_claim_concept_refs(claim, concept_map, unresolved=unresolved)
+    return Claim(
+        claim_id=artifact_id,
+        context_id=lowered.context,
+        claim_type=lowered.type,
+        status=ClaimStatus.AUTHORED,
+        statement=lowered.statement,
+        name=lowered.name,
+        body=lowered.body,
+        expression=lowered.expression,
+        sympy=lowered.sympy,
+        measure=lowered.measure,
+        methodology=lowered.methodology,
+        notes=lowered.notes,
+        output_concept=lowered.concept,
+        target_concept=lowered.target_concept,
+        concepts=lowered.concepts,
+        equations=lowered.equations,
+        conditions=lowered.conditions,
+        value=lowered.value,
+        lower_bound=lowered.lower_bound,
+        upper_bound=lowered.upper_bound,
+        uncertainty=lowered.uncertainty,
+        uncertainty_type=lowered.uncertainty_type,
+        unit=lowered.unit,
+        sample_size=lowered.sample_size,
     )
