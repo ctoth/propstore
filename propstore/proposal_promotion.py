@@ -24,6 +24,31 @@ RefT = TypeVar("RefT")
 DocT = TypeVar("DocT")
 TransactionT = TypeVar("TransactionT")
 
+
+class UnknownProposalPath(ValueError):
+    """A promotion was asked for a proposal that is not on the proposal branch."""
+
+    def __init__(
+        self, requested_path: str, available: tuple[str, ...]
+    ) -> None:
+        self.requested_path = requested_path
+        self.available = available
+        rendered = ", ".join(available) if available else "<none>"
+        super().__init__(
+            f"Unknown proposal {requested_path!r}; available: {rendered}"
+        )
+
+
+class ProposalAlreadyPromoted(ValueError):
+    """A proposal was re-promoted after it already produced canonical content."""
+
+    def __init__(self, artifact_id: str, promoted_from_sha: str) -> None:
+        self.artifact_id = artifact_id
+        self.promoted_from_sha = promoted_from_sha
+        super().__init__(
+            f"Proposal {artifact_id!r} was already promoted from {promoted_from_sha}"
+        )
+
 RefT_contra = TypeVar("RefT_contra", contravariant=True)
 DocT_contra = TypeVar("DocT_contra", contravariant=True)
 
@@ -31,7 +56,7 @@ DocT_contra = TypeVar("DocT_contra", contravariant=True)
 class _ArtifactWriter(Protocol[RefT_contra, DocT_contra]):
     """Minimal writer surface a transaction family exposes for a save."""
 
-    def save(self, ref: RefT_contra, document: DocT_contra) -> object: ...
+    def save(self, ref: RefT_contra, document: DocT_contra, /) -> object: ...
 
 
 @dataclass(frozen=True)

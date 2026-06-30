@@ -22,15 +22,19 @@ Substrate boundary (CLAUDE.md, PLAN.md §12):
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Protocol
+from typing import TYPE_CHECKING, Annotated, Protocol
 
+import msgspec
+from quire.artifacts import BranchPlacement, SubdirFixedFilePlacement
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
+from quire.refs import single_field_ref_type
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from sqlalchemy import select
@@ -175,3 +179,125 @@ class PredicateRepository:
         with readonly_session(path, schema) as session:
             rows = list(session.scalars(select(model)))
         return [_row_to_predicate(row) for row in rows]
+
+
+# ---------------------------------------------------------------------------
+# Predicate proposal artifact (heuristic layer 3)
+# ---------------------------------------------------------------------------
+#
+# A *predicate proposal* is a heuristic-layer candidate vocabulary for one source
+# paper (CLAUDE.md layer 3): the declarations a heuristic/LLM extracted, plus the
+# provenance of that extraction. It lives on the ``proposal/predicates`` branch and
+# is never canonical until an explicit promotion writes a :class:`Predicate`.
+
+_BASE_PREDICATE_ARG_TYPES = frozenset({"paper_id", "int", "float", "str", "bool"})
+_ENUM_ARG_TYPE_RE = re.compile(r"^enum:[A-Za-z0-9_-]+(\|[A-Za-z0-9_-]+)+$")
+
+
+def validate_predicate_arg_type(arg_type: str) -> None:
+    """Accept a base sort or an ``enum:a|b|...`` tag; reject anything else.
+
+    The argument-type vocabulary is a closed set (Diller/Borg/Bex 2025 §3): the
+    grounder enumerates substitutions only over declared sorts, so an unknown tag
+    is a proposal error, not a free-form string.
+    """
+
+    if arg_type in _BASE_PREDICATE_ARG_TYPES:
+        return
+    if _ENUM_ARG_TYPE_RE.match(arg_type):
+        return
+    raise ValueError(f"unsupported predicate arg type: {arg_type!r}")
+
+
+class PredicateDeclaration(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+    """One proposed predicate: a name, its arity, and the per-position sorts.
+
+    The invariants are Datalog/DeLP signature rules: ``arity >= 0`` and
+    ``len(arg_types) == arity`` (Garcia & Simari 2004 §3), and every argument type
+    is drawn from the closed sort vocabulary (:func:`validate_predicate_arg_type`).
+    """
+
+    name: str
+    arity: int
+    description: str
+    arg_types: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.arity < 0:
+            raise ValueError("predicate arity must be >= 0")
+        if len(self.arg_types) != self.arity:
+            raise ValueError(
+                f"predicate {self.name!r}: arg_types length {len(self.arg_types)} "
+                f"does not match arity {self.arity}"
+            )
+        for arg_type in self.arg_types:
+            validate_predicate_arg_type(arg_type)
+
+
+class PredicateExtractionProvenance(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True
+):
+    """Prompt/source provenance for a batch of proposed predicate declarations."""
+
+    operations: tuple[str, ...]
+    agent: str
+    model: str
+    prompt_sha: str
+    notes_sha: str
+    status: str
+
+
+PREDICATE_PROPOSAL_BRANCH = BranchPlacement(
+    policy="fixed", fixed_branch="proposal/predicates"
+)
+"""Place every predicate proposal on ``proposal/predicates``."""
+
+
+if TYPE_CHECKING:
+
+    @dataclass(frozen=True)
+    class PredicateProposalRef:
+        source_paper: str
+
+else:
+    PredicateProposalRef = single_field_ref_type(
+        "PredicateProposalRef", "source_paper", module=__name__
+    )
+
+
+_PREDICATE_PROPOSAL_PLACEMENT: SubdirFixedFilePlacement[object, PredicateProposalRef] = (
+    SubdirFixedFilePlacement(
+        namespace="predicates",
+        filename="declarations.yaml",
+        ref_factory=PredicateProposalRef,
+        ref_field="source_paper",
+        branch=PREDICATE_PROPOSAL_BRANCH,
+    )
+)
+
+
+@charter(
+    key="proposal_predicates",
+    name="proposal_predicates",
+    contract_version="2026.06.29",
+    placement=_PREDICATE_PROPOSAL_PLACEMENT,
+    accessor="proposal_predicates",
+    identity_field="source_paper",
+)
+class PredicateProposal(CharterDoc):
+    """A paper's proposed predicate vocabulary, with extraction provenance.
+
+    The class *is* the document: ``source_paper`` is the identity (one proposal
+    batch per paper); the declarations and provenance project to JSON columns.
+    ``promoted_from_sha`` records the proposal commit a promotion consumed.
+    """
+
+    source_paper: Annotated[str, charter_field(primary_key=True)]
+    proposed_declarations: Annotated[
+        tuple[PredicateDeclaration, ...], charter_field(json=True)
+    ] = ()
+    extraction_provenance: Annotated[
+        PredicateExtractionProvenance | None, charter_field(json=True)
+    ] = None
+    extraction_date: str | None = None
+    promoted_from_sha: str | None = None

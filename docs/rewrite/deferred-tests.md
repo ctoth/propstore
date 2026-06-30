@@ -119,6 +119,28 @@ Deferred to Phase 8 (source subsystem: Repository / source branches / CLI):
   assertions are Phase 10.
 - test_source_relations.py -> 8 (already listed above; source-relation projection)
 
+Phase 8-4 predicate proposals (landed) and their deferred edges:
+- test_proposal_predicates_family.py -> LANDED-equivalent in
+  tests/test_predicate_proposals.py (charter registration + address path +
+  PredicateDeclaration arg-type/arity validation, over the rewrite charter rather
+  than a families/documents/predicates DocumentStruct).
+- test_promote_predicates_proposals.py -> owner-layer promote/plan/idempotency/
+  conflict landed in tests/test_predicate_proposals.py, seeding via
+  propose_predicates (the recorder). The LLM-seeded variant
+  (propstore.heuristic.predicate_extraction._llm_call / propose_predicates_for_paper)
+  and the app conflict layer (app.predicates.PredicateWorkflowError) stay deferred
+  to the heuristic (Phase 6) and app/CLI (Phase 10) phases.
+- test_propose_predicates_lifecycle.py -> 6 (LLM extraction heuristic + dry-run).
+- test_promote_rules_proposals.py / test_proposal_rules_family.py /
+  test_propose_rules_lifecycle.py -> 8-4 (rule proposals, sibling of predicates) or
+  later; rule-proposal promotion not yet built.
+- test_proposal_promotion.py / test_promote_stance_proposals_idempotency.py /
+  test_plan_stance_proposal_promotion_typo_path.py -> 8-4 stance proposals (the
+  rewrite Stance charter diverges from the reference StanceDocument; the stance
+  proposal charter + workflow are not yet built).
+- test_cli_promote_rules_*.py / test_cli_propose_rules_*.py /
+  test_concept_alignment_cli.py -> 10 (Click surface only).
+
 ## Phase 7a-world-B2 (BoundWorld + ATMS engine; commit f8ad6fe1 + follow-up)
 
 B2 ported `world/bound.py` (BoundWorld) + `world/atms.py` (ATMSEngine) onto the

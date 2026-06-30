@@ -30,7 +30,7 @@ from propstore.families.contexts import Context, LiftingMaterialization, Lifting
 from propstore.families.forms import FormDefinition
 from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
-from propstore.families.predicates import Predicate
+from propstore.families.predicates import Predicate, PredicateProposal
 from propstore.families.relations import Stance
 from propstore.families.rules import DefeasibleRule, RuleSuperiority
 from propstore.families.sameas import SameAs
@@ -71,6 +71,7 @@ _CHARTER_MODELS = (
     RuleSuperiority,
     SameAs,
     ConceptAlignmentArtifact,
+    PredicateProposal,
     Justification,
     Micropublication,
     SourceDocument,
