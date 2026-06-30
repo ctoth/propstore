@@ -33,6 +33,7 @@ from propstore.families.contexts import Context, LiftingMaterialization, Lifting
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
 from propstore.families.justifications import Justification
+from propstore.families.merge_manifests import MergeManifest
 from propstore.families.micropublications import Micropublication
 from propstore.families.predicates import Predicate, PredicateProposal
 from propstore.families.relations import Stance, StanceProposal
@@ -89,6 +90,8 @@ _CHARTER_MODELS = (
     # Derived-only projection families (never authored; populated by the build).
     ConflictProjection,
     BuildDiagnostic,
+    # Merge record family (written by the two-parent storage merge commit).
+    MergeManifest,
 )
 
 _CHARTERS: tuple[FamilyCharter, ...] = tuple(
@@ -140,6 +143,7 @@ class PropstoreFamily(StrEnum):
     SOURCE_FINALIZE_REPORTS = "source_finalize_reports"
     CONFLICT = "conflict"
     BUILD_DIAGNOSTIC = "build_diagnostic"
+    MERGE_MANIFEST = "merge_manifest"
 
 
 def registered_family_names() -> tuple[str, ...]:

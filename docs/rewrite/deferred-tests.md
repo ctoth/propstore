@@ -31,15 +31,18 @@ merge math builds over plain claim inputs in 6c; the two-parent storage commit +
 Repository/family-registry materialization need the Phase-9 Repository/snapshot
 facade (quire GitStore has commit_flat_tree but no propstore Repository binds
 git+families yet):
-- test_repo_merge_object.py -> 9 (two-parent merge_commit + Repository)
-- test_merge_cli.py -> 9/10 (merge CLI over Repository)
-- test_merge_symmetry_non_claim_files.py -> 9 (non-claim-file merge over git trees)
+- test_repo_merge_object.py -> CLOSED in 9-2 (two-parent create_merge_commit +
+  build_repository_merge_framework over Repository; charter-native translation —
+  rivals materialized under distinct assertion ids, MergeManifest charter)
+- test_merge_cli.py -> 10 (merge CLI over Repository; still deferred — CLI adapter)
+- test_merge_symmetry_non_claim_files.py -> CLOSED in 9-2 (non-claim-file merge over
+  git trees; NonClaimMergeConflict surfaced symmetrically over concept documents)
 
 belief-set / worldline IC-merge (model-theoretic IC merge, layer 4 — distinct
 from the merge-side IntegrityConstraint built in 6c):
-- test_ic_postulate_coverage.py -> 8/9 (propstore.merge merge-framework over a
-  git-backed knowledge store + tests.git_store_helpers / tests.ws_l_merge_helpers;
-  this is the merge-side IntegrityConstraint, not support_revision)
+- test_ic_postulate_coverage.py -> CLOSED in 9-2 (propstore.merge merge-framework
+  IntegrityConstraint over a real Repository-backed merge — forbidden pruning,
+  required-survival, violation; merge-side IC, NOT belief_set.ic_merge / support_revision)
 - test_assignment_selection_merge.py -> 7 (world.assignment_selection_merge)
 - test_worldline_ic_merge*.py -> 7b-4 (belief_set IC merge over a captured
   worldline epistemic state). test_revision_merge_uses_ic_merge.py PORTed in 7b-1.
@@ -262,11 +265,11 @@ Closed in 7b-4 (see "## Phase 7b-4" below):
   test_worldline_revision_snapshot_boundary.py, test_worldline_ic_merge.py,
   test_worldline_ic_merge_properties.py, test_worldline_ic_merge_realization.py.
 
-Still deferred past 7b-4 (need a concrete repo-backed git scope):
-- test_worldline_revision_merge_parent_evidence.py -> 8/9 (needs
-  `propstore.repository.Repository` + a real git merge DAG to populate
-  `RevisionScope.merge_parent_commits`; the in-memory feed degrades scope to
-  `None`/`()`).
+Closed in 9-2 (now that the two-parent merge DAG exists):
+- test_worldline_revision_merge_parent_evidence.py -> CLOSED in 9-2
+  (`create_merge_commit` produces the real two-parent merge DAG;
+  `project_belief_base` threads `commit_parent_shas` into
+  `RevisionScope.merge_parent_commits`).
 
 Deferred to Phase 9 (need a concrete repo-backed WorldStore beyond the
 in-memory feed; the reference fakes are pre-charter dict-shaped):
@@ -428,9 +431,9 @@ PORTed partially (in-memory capture only) in 7b-4:
   `at_journal_step` case (Phase 8) are NOT ported — those surfaces are not in the
   rewrite yet.
 
-Still deferred past 7b-4:
-- test_worldline_revision_merge_parent_evidence.py -> 8/9 (real git merge DAG via
-  `propstore.repository.Repository`).
+Closed in 9-2:
+- test_worldline_revision_merge_parent_evidence.py -> CLOSED in 9-2 (real git merge
+  DAG via `create_merge_commit`; `RevisionScope.merge_parent_commits` populated).
 
 ## Phase 8-0 — Repository facade + charter-derived family registry
 
