@@ -37,6 +37,7 @@ from quire.refs import single_field_ref_type
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.source_types import SourceKind
 from propstore.families.claims import ClaimType
+from propstore.families.micropublications import MicropublicationEvidence
 from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType
 
@@ -303,6 +304,43 @@ class SourceStanceEntryDocument(_Struct):
     artifact_code: str | None = None
 
 
+class SourceMicropublicationDocument(_Struct):
+    """A Clark micropublication bundle composed on a source branch (8-3a).
+
+    The source-branch counterpart of the canonical
+    :class:`~propstore.families.micropublications.Micropublication`: it bundles a
+    source claim with its evidence, assumptions (the claim's conditions), stance,
+    bibliographic provenance, and source identity. It is **foreign-key free** —
+    ``context_id`` and ``claims`` hold the claim-side handles as authored, lowered
+    to canonical FKs only when the source branch is promoted. ``artifact_id`` /
+    ``version_id`` are the content identity stamped by
+    :mod:`propstore.families.identity.micropubs` (an ``ni:`` trusty URI over the
+    canonical payload), not a logical handle.
+    """
+
+    artifact_id: str
+    context_id: str
+    claims: tuple[str, ...]
+    version_id: str | None = None
+    evidence: tuple[MicropublicationEvidence, ...] = ()
+    assumptions: tuple[str, ...] = ()
+    stance: StanceType | None = None
+    provenance: SourceProvenanceDocument | None = None
+    source: str | None = None
+
+
+class SourceParameterizationGroupMergeDocument(_Struct):
+    merged_group: tuple[str, ...]
+    previous_groups: tuple[tuple[str, ...], ...]
+    introduced_by: tuple[str, ...]
+
+
+class SourceFinalizeCalibrationDocument(_Struct):
+    prior_base_rate_status: str
+    source_quality_status: str
+    fallback_to_default_base_rate: bool
+
+
 # ---------------------------------------------------------------------------
 # Family charters (one fixed file per source branch)
 # ---------------------------------------------------------------------------
@@ -395,3 +433,64 @@ class SourceJustificationsDocument(CharterDoc):
     produced_by: Annotated[
         ExtractionProvenanceDocument | None, charter_field(json=True)
     ] = None
+
+
+@charter(
+    key="source_micropubs",
+    name="source_micropubs",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=FixedFilePlacement("micropublications.yaml", branch=SOURCE_BRANCH),
+)
+class SourceMicropublicationsDocument(CharterDoc):
+    """The Clark micropublication bundles composed for a source branch.
+
+    Written by :func:`propstore.source.finalize.finalize_source_branch` once
+    every source claim is micropublication-coverable. FK-free on the source
+    branch (the lowering to canonical claim/context FKs is a promote-time
+    concern); each bundle carries its own content identity.
+    """
+
+    micropubs: Annotated[
+        tuple[SourceMicropublicationDocument, ...], charter_field(json=True)
+    ] = ()
+    source: Annotated[ClaimSourceDocument | None, charter_field(json=True)] = None
+
+
+@charter(
+    key="source_finalize_reports",
+    name="source_finalize_reports",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=FixedFilePlacement("finalize-report.yaml", branch=SOURCE_BRANCH),
+)
+class SourceFinalizeReportDocument(CharterDoc):
+    """The finalize-time precondition report for a source branch.
+
+    Records whether the branch is promotable (``status="ready"``) or what is
+    missing (``status="blocked"`` plus the per-kind reference/coverage errors).
+    This is a workflow precondition recorded on the source branch — it never
+    collapses or drops a rival claim (that would violate the non-commitment
+    discipline); it only states whether the finalize completed.
+    """
+
+    kind: str
+    source: str
+    status: str
+    artifact_code_status: str
+    calibration: Annotated[SourceFinalizeCalibrationDocument, charter_field(json=True)]
+    micropub_status: str = "not_composed"
+    claim_reference_errors: Annotated[tuple[str, ...], charter_field(json=True)] = ()
+    micropub_coverage_errors: Annotated[
+        tuple[str, ...], charter_field(json=True)
+    ] = ()
+    justification_reference_errors: Annotated[
+        tuple[str, ...], charter_field(json=True)
+    ] = ()
+    stance_reference_errors: Annotated[
+        tuple[str, ...], charter_field(json=True)
+    ] = ()
+    concept_alignment_candidates: Annotated[
+        tuple[str, ...], charter_field(json=True)
+    ] = ()
+    parameterization_group_merges: Annotated[
+        tuple[SourceParameterizationGroupMergeDocument, ...], charter_field(json=True)
+    ] = ()

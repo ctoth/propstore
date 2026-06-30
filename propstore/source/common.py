@@ -26,8 +26,10 @@ from propstore.families.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceDocument,
+    SourceFinalizeReportDocument,
     SourceJustificationsDocument,
     SourceMetadataDocument,
+    SourceMicropublicationsDocument,
     SourceOriginDocument,
     SourceStancesDocument,
     SourceTrustDocument,
@@ -274,6 +276,18 @@ def load_source_justifications_document(
     return repo.families.source_justifications.load(SourceRef(name))
 
 
+def load_source_micropubs_document(
+    repo: Repository, name: str
+) -> SourceMicropublicationsDocument | None:
+    return repo.families.source_micropubs.load(SourceRef(name))
+
+
+def load_source_finalize_report(
+    repo: Repository, name: str
+) -> SourceFinalizeReportDocument | None:
+    return repo.families.source_finalize_reports.load(SourceRef(name))
+
+
 # Re-export so ``ClaimSourceDocument`` (used by source/claims.py and
 # source/relations.py to stamp the per-batch ``source.paper``) has one import
 # site alongside the other source loaders.
@@ -288,8 +302,10 @@ __all__ = [
     "load_source_claims_document",
     "load_source_concepts_document",
     "load_source_document",
+    "load_source_finalize_report",
     "load_source_justifications_document",
     "load_source_metadata",
+    "load_source_micropubs_document",
     "load_source_notes",
     "load_source_stances_document",
     "normalize_source_slug",

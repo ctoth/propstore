@@ -520,3 +520,46 @@ Deferred:
   context (`build_compilation_context_from_repo`) — the 8-2 guards reimplement the
   concept-kind registry directly from the repo's concept + form families, which
   covers the authoring-edge cases; the compiler-backed paths remain Phase 9.
+
+## Phase 8-3a (finalize + micropublication compose + artifact codes)
+
+8-3a built `propstore/artifact_codes.py` (`stamp_source_artifact_codes` and the
+source/justification/stance/claim content-code helpers), the `source_micropubs`
++ `source_finalize_reports` family charters (`SourceMicropublicationsDocument`,
+`SourceFinalizeReportDocument`, plus the `SourceMicropublicationDocument` bundle
+struct — FK-free on the source branch, reusing the canonical
+`MicropublicationEvidence`), `families/identity/micropubs.py` (the `ni:` trusty
+URI + content-version identity over a micropub bundle), and `source/finalize.py`
+(`finalize_source_branch`: micropub-coverage + reference-integrity preconditions,
+artifact-code stamping, Clark micropublication composition, and the
+`SourceFinalizeReportDocument`, all written atomically via
+`git.head_bound_transaction(branch).families_transact`).
+
+Tests ported (now green) in `tests/test_source_finalize_p83a.py` (owner-API over
+`Repository.init`, translated from the CLI-/`*Document`-driven reference suites
+`test_finalize_micropub_required`, `test_micropub_identity_trusty_uri`,
+`test_micropub_identity_not_logical_handle`, `test_micropub_trusty_verification`,
+`test_artifact_identity_policy`): finalize blocks an uncontexted claim and writes
+no micropub file; ready finalize stamps codes + composes bundles with `ni:`
+identity; empty-claim finalize is ready/empty; calibration fallback without
+derived priors; reference-integrity blocks (dangling justification premise,
+unresolved stance target); micropub trusty-URI determinism + claim-order
+insensitivity + byte-exact `verify_ni_uri`; artifact-code determinism,
+content-sensitivity, recursive-field exclusion, and relation-code folding.
+
+Deferred:
+- `test_micropubs.py` -> **9** (render/app surface: `propstore.app.micropubs`
+  `find/list/inspect_micropub_lift` + the `micropub list/show/lift` CLI).
+- `test_micropub_identity_dedupe_shape.py`,
+  `test_micropublications_phase4.py`,
+  `test_micropub_identity_consumes_wscm.py` -> **9** (sidecar projection:
+  `families/micropublications/declaration.py` — `create_micropublication_tables`
+  / `populate_micropublications` / `MicropublicationProjectionRow` + WS-CM
+  payload-identity dedupe over a sqlite store).
+- The `merge/finalize` per-source report *path* and the CLI-driven
+  `source finalize` invocation -> **9** (CLI adapter); 8-3a writes the report to
+  the fixed-file `finalize-report.yaml` placement on the source branch and is
+  driven through the owner function.
+- `parameterization_group_merges` on the finalize report is left empty in 8-3a;
+  `preview_source_parameterization_group_merges` (`source/registry.py`) lands in
+  **8-3b** with promote.

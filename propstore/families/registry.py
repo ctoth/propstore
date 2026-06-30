@@ -38,7 +38,9 @@ from propstore.families.sources import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceDocument,
+    SourceFinalizeReportDocument,
     SourceJustificationsDocument,
+    SourceMicropublicationsDocument,
     SourceStancesDocument,
 )
 
@@ -76,6 +78,8 @@ _CHARTER_MODELS = (
     SourceClaimsDocument,
     SourceStancesDocument,
     SourceJustificationsDocument,
+    SourceMicropublicationsDocument,
+    SourceFinalizeReportDocument,
 )
 
 _CHARTERS: tuple[FamilyCharter, ...] = tuple(
