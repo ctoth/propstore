@@ -688,14 +688,12 @@ no privileged identity).
 Deferred:
 - `test_import_repo.py`, `test_repository_import_provenance_attached.py`,
   `test_concept_import_status_proposed.py` (the reference *committed-snapshot
-  repo-to-repo* import: `plan_repository_import` / `commit_repository_import`
-  writing canonical `*Document`s directly onto an `import/<name>` branch) -> **9**.
-  They depend on (a) the 0.2.0 `*Document` identity model + `.to_payload()` +
-  `make_claim_identity`/`normalize_concept_payloads` conftest helpers, (b) a
-  generic `semantic_passes` pass-runner framework, and (c) a committed-snapshot
-  materialize/convergence + ref-rewrite/delete path — all Phase-9-owned. The 8-5
-  import discipline (defeasible + honest provenance + no canonical write + source
-  lifecycle) is met via the source-authoring path instead of a direct branch write.
+  repo-to-repo* import: `plan_repository_import` / `commit_repository_import`) ->
+  **CLOSED in Phase 9-4** (rebuilt rewrite-native, see the Phase 9-4 section). The
+  reference cases assumed the 0.2.0 `*Document` identity model (`logical_ids` /
+  `version_id` / `.to_payload()` + `make_claim_identity` conftest helpers); the
+  rewrite's thin charters key by `concept_id` / `claim_id` alone, so the behavior
+  was ported over `Repository.init` source repos in `test_repository_import.py`.
 - `import-repository` CLI (`test_import_repo_cli_*`) -> **10** (CLI/presentation).
 - `EquivalenceWitnessStore` composition is the non-commitment equivalence surface
   (`test_import_machinery` covers it); any sidecar projection of witnesses -> **9**.
@@ -971,3 +969,55 @@ Still deferred:
   those adapters will call).
 - `test_sidecar_calibration_counts_projection.py` / `test_opinion_schema.py`
   (calibration extract + opinion render projection) -> **Phase 10**.
+
+## Phase 9-4 — repo-to-repo committed-snapshot import + history owner cores (DONE)
+
+9-4 closes §A5 (the committed-snapshot repo-to-repo import deferred at 8-5) and
+the §B6 history owner cores. Both are owner-layer surfaces; the Click adapters are
+Phase 10.
+
+**Committed-snapshot import** (`importing/repository_import.py`
+`plan_repository_import` / `commit_repository_import`, normalization in
+`importing/snapshot_passes.py`, `families/registry.semantic_import_roots`): reads
+another propstore repository's *committed* canonical semantic tree (HEAD, never
+the worktree) restricted to `semantic_import_roots()`, runs it through the generic
+`semantic_passes` runner, and lands the result on an `import/<name>` branch as
+defeasible claims. Normalization reconciles identity into the importing repository
+(concepts dedup by canonical name; claims re-keyed into the repository namespace),
+rewrites cross-family references (concept refs on claims via the reconciled map;
+stance source/target via quire's `FamilyReferenceIndex` — not string munging), and
+passes every other semantic family through verbatim. Identity is content-derived
+and provenance-free, so a repeated import of the same commit yields an identical
+tree (convergence), and the plan's `deletes` prune import-branch paths the latest
+snapshot dropped. A `stated` import provenance note (`operations =
+("repository-import",)`, `derived_from = (source_commit,)`) is attached to the
+commit — honest provenance that never enters identity and never launders the
+import into measured/calibrated; no source row is privileged. The import branch
+then follows the normal finalize/promote lifecycle.
+
+**History owner cores** (`propstore/history/reports.py`): `build_log_report` /
+`build_diff_report` / `build_commit_show_report` / `checkout_commit` /
+`classify_log_operation` over quire git log/diff/show and the build pipeline's
+rebuild-from-commit (`materialize_world_sidecar(commit=...)`). Typed reports only
+(`LogReport` / `LogRecord` / `MergeLogSummary` / `FileChangeReport` /
+`CommitShowReport` / `CheckoutReport`) and typed errors (`BranchNotFoundError` /
+`CommitNotFoundError` / `CommitHasNoConceptsError`); no Click, stdout, or
+`sys.exit`. A merge commit's log record carries a `MergeLogSummary` loaded from the
+merge manifest authored at that commit, preserving the surviving rival argument
+counts without collapsing them.
+
+Tests written (rewrite-native, over `Repository.init`, authoring canonical charter
+docs via the families API): `test_repository_import.py` (git-backed guard,
+committed-head snapshot, default `import/<name>` branch, semantic-tree-only,
+concept-ref + stance-ref rewrite, target-master without worktree materialization,
+deletes/convergence, `stated` provenance note, importing-surface exports) and
+`test_history_reports.py` (diff/show/log + operation classification, show-files
+change sets, merge-summary enrichment, checkout rebuild, missing-commit errors).
+
+Closed: §A5 (committed-snapshot import), the §B6 history owner cores.
+
+Still deferred:
+- `import-repository` CLI (`test_import_repo_cli_*`) -> **Phase 10**
+  (CLI/presentation; composes `plan_repository_import` / `commit_repository_import`).
+- `pks log` / `pks diff` / `pks show` / `pks checkout` Click surfaces -> **Phase 10**
+  (compose the `propstore.history` owner cores).

@@ -247,6 +247,21 @@ def semantic_import_families() -> (
     return tuple(charter.family for charter in _foreign_key_topo_order(importable))
 
 
+def semantic_import_roots() -> tuple[str, ...]:
+    """Storage roots a committed-snapshot import reads from a source repository.
+
+    Exactly the storage roots of the importable semantic families (in foreign-key
+    dependency order). A repo-to-repo import restricts its tree walk to these
+    roots, so a source repository's sidecar, git internals, and non-semantic
+    files are never imported.
+    """
+
+    roots: list[str] = []
+    for family in semantic_import_families():
+        roots.append(family.storage_root())
+    return tuple(dict.fromkeys(roots))
+
+
 def _foreign_key_topo_order(charters: list[FamilyCharter]) -> list[FamilyCharter]:
     by_name = {charter.family.name: charter for charter in charters}
     names = set(by_name)

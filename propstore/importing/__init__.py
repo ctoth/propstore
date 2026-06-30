@@ -29,7 +29,13 @@ from propstore.importing.machinery import (
     ImportMetadata,
     SurfaceRoleBinding,
 )
-from propstore.importing.repository_import import import_manifest
+from propstore.importing.repository_import import (
+    RepositoryImportPlan,
+    RepositoryImportResult,
+    commit_repository_import,
+    import_manifest,
+    plan_repository_import,
+)
 
 __all__ = [
     "AuthoredAssertionForm",
@@ -46,6 +52,10 @@ __all__ = [
     "ImportMetadata",
     "ImportResult",
     "ImportStanceRow",
+    "RepositoryImportPlan",
+    "RepositoryImportResult",
     "SurfaceRoleBinding",
+    "commit_repository_import",
     "import_manifest",
+    "plan_repository_import",
 ]

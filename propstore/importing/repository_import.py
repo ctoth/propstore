@@ -17,16 +17,32 @@ and the contract refuses to let an import launder a row into ``measured`` /
 
 from __future__ import annotations
 
+import hashlib
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
 import msgspec
 
-from propstore.families.registry import SourceRef
+from propstore.families.registry import (
+    PROPSTORE_FAMILY_REGISTRY,
+    SourceRef,
+    semantic_import_roots,
+)
 from propstore.importing.contract import ImportManifest, ImportResult
+from propstore.importing.snapshot_passes import run_source_import_pipeline
 from propstore.provenance import (
     Provenance,
+    ProvenanceStatus,
     ProvenanceWitness,
     write_provenance_note,
 )
-from propstore.repository import Repository
+from propstore.provenance.records import (
+    ImportRunProvenanceRecord,
+    LicenseProvenanceRecord,
+    SourceVersionProvenanceRecord,
+)
+from propstore.repository import Repository, RepositoryNotFound
 from propstore.source.common import (
     current_source_branch_head,
     init_source_branch,
@@ -37,6 +53,11 @@ from propstore.source.common import (
     utc_now,
 )
 from propstore.source.passes import run_import_pipeline
+from propstore.source.stages import (
+    PlannedSemanticWrite,
+    SourceImportAuthoredWrites,
+    SourceImportNormalizedWrites,
+)
 
 
 def import_manifest(repo: Repository, manifest: ImportManifest) -> ImportResult:
@@ -118,4 +139,230 @@ def _attach_import_provenance(
             ),
             operations=("import",),
         ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Committed-snapshot repo-to-repo import (the canonical-snapshot path)
+# ---------------------------------------------------------------------------
+
+
+def _empty_str_list() -> list[str]:
+    return []
+
+
+@dataclass(frozen=True)
+class RepositoryImportPlan:
+    """A planned committed-snapshot import between knowledge repositories.
+
+    ``writes`` are the normalized, identity-reconciled, reference-rewritten
+    artifacts to land on ``target_branch``; ``deletes`` are the import-branch
+    paths the latest source snapshot no longer contains (so the import converges
+    onto the source rather than accreting). ``warnings`` are non-fatal
+    ambiguities surfaced by normalization — never silently dropped.
+    """
+
+    source_repository: str
+    source_commit: str
+    target_branch: str
+    repository_name: str
+    writes: dict[str, PlannedSemanticWrite]
+    deletes: list[str]
+    touched_paths: list[str]
+    import_run: ImportRunProvenanceRecord
+    warnings: list[str] = field(default_factory=_empty_str_list)
+
+
+@dataclass(frozen=True)
+class RepositoryImportResult:
+    """The committed outcome of a repo-to-repo import."""
+
+    surface: str
+    source_repository: str
+    source_commit: str
+    target_branch: str
+    commit_sha: str
+    touched_paths: list[str]
+    deleted_paths: list[str]
+
+
+def _infer_repository_name(repository: Repository) -> str:
+    root = repository.root
+    if root.name == "knowledge" and root.parent.name:
+        return root.parent.name
+    return root.name
+
+
+def _iter_semantic_paths(repository: Repository, *, commit: str) -> dict[str, bytes]:
+    return {
+        tree_file.relpath: tree_file.content
+        for tree_file in repository.require_git().iter_tree_files(
+            commit=commit,
+            roots=semantic_import_roots(),
+        )
+    }
+
+
+def _import_run_record(
+    *,
+    source_repository: str,
+    source_commit: str,
+) -> ImportRunProvenanceRecord:
+    source_digest = hashlib.sha256(source_repository.encode("utf-8")).hexdigest()
+    source = SourceVersionProvenanceRecord(
+        source_id=f"urn:propstore:repository:{source_digest}",
+        version_id=source_commit,
+        content_hash=f"git:{source_commit}",
+    )
+    license_record = LicenseProvenanceRecord(
+        license_id="urn:propstore:license:unspecified",
+        label="Unspecified",
+    )
+    return ImportRunProvenanceRecord(
+        run_id=f"urn:propstore:repository-import:{source_commit}",
+        importer_id="urn:propstore:agent:repository-import",
+        imported_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        source=source,
+        license=license_record,
+    )
+
+
+def plan_repository_import(
+    destination_repository: Repository,
+    source_repository_path: Path,
+    *,
+    target_branch: str | None = None,
+) -> RepositoryImportPlan:
+    """Plan a committed-snapshot import from one knowledge repository into another.
+
+    Reads the source repository's *committed* canonical semantic tree (its HEAD,
+    never the working tree), normalizes it into the importing repository's
+    namespace, and computes the writes/deletes that make the ``import/<name>``
+    branch converge onto that snapshot. Plans only — nothing is committed and no
+    source row is privileged ([[feedback_imports_are_opinions]]).
+    """
+
+    try:
+        source_repository = Repository.find(source_repository_path.resolve())
+    except RepositoryNotFound as exc:
+        raise ValueError("Source repository must be git-backed") from exc
+
+    source_commit = source_repository.require_git().head_sha()
+    if source_commit is None:
+        raise ValueError("Source repository has no committed HEAD")
+
+    repository_name = _infer_repository_name(source_repository)
+    selected_branch = target_branch or f"import/{repository_name}"
+
+    pipeline = run_source_import_pipeline(
+        SourceImportAuthoredWrites(
+            store=destination_repository.families.store,
+            writes=_iter_semantic_paths(source_repository, commit=source_commit),
+            repository_name=repository_name,
+        )
+    )
+    normalized = pipeline.output
+    if not isinstance(normalized, SourceImportNormalizedWrites):
+        errors = ", ".join(error.render() for error in pipeline.errors)
+        raise ValueError(f"Repository import normalization failed: {errors}")
+    writes = normalized.writes
+    warnings: list[str] = list(normalized.warnings)
+
+    existing_paths: set[str] = set()
+    existing_branch_sha = destination_repository.require_git().branch_sha(selected_branch)
+    if existing_branch_sha is not None:
+        existing_paths = set(
+            _iter_semantic_paths(destination_repository, commit=existing_branch_sha)
+        )
+    deletes = sorted(existing_paths - set(writes))
+    touched_paths = sorted(set(writes) | set(deletes))
+
+    return RepositoryImportPlan(
+        source_repository=str(source_repository.root),
+        source_commit=source_commit,
+        target_branch=selected_branch,
+        repository_name=repository_name,
+        writes=writes,
+        deletes=deletes,
+        touched_paths=touched_paths,
+        import_run=_import_run_record(
+            source_repository=str(source_repository.root),
+            source_commit=source_commit,
+        ),
+        warnings=warnings,
+    )
+
+
+def commit_repository_import(
+    repository: Repository,
+    plan: RepositoryImportPlan,
+    *,
+    message: str | None = None,
+) -> RepositoryImportResult:
+    """Commit a planned committed-snapshot import onto its target branch.
+
+    Writes the normalized artifacts and prunes the planned deletes in one
+    two-parent-free commit on ``plan.target_branch`` (created if absent), then
+    attaches a ``stated`` import provenance note carrying the source commit as
+    ``derived_from`` — honest provenance that never launders the import into a
+    measured/calibrated origin, and never enters artifact identity (it lives on
+    the git note, not the document).
+    """
+
+    if plan.warnings:
+        raise ValueError("; ".join(plan.warnings))
+
+    git = repository.require_git()
+    primary_branch = git.primary_branch_name()
+    if git.branch_sha(plan.target_branch) is None and plan.target_branch != primary_branch:
+        git.create_branch(plan.target_branch)
+
+    commit_sha: str | None = None
+    with git.head_bound_transaction(plan.target_branch) as head_txn:
+        with head_txn.families_transact(
+            repository.families,
+            message=message
+            or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
+        ) as transaction:
+            for planned_write in plan.writes.values():
+                transaction.by_artifact_family(planned_write.family).save(
+                    planned_write.ref, planned_write.document
+                )
+            for path in plan.deletes:
+                family = PROPSTORE_FAMILY_REGISTRY.family_for_path(path)
+                ref = repository.families.by_artifact_family(
+                    family.artifact_family
+                ).ref_from_path(path)
+                transaction.by_artifact_family(family.artifact_family).delete(ref)
+        commit_sha = head_txn.commit_sha
+    if commit_sha is None:
+        raise ValueError("repository import transaction did not produce a commit")
+
+    write_provenance_note(
+        git.raw_repo,
+        commit_sha,
+        Provenance(
+            status=ProvenanceStatus.STATED,
+            graph_name=f"urn:propstore:repository-import:{commit_sha}",
+            witnesses=(
+                ProvenanceWitness(
+                    asserter=plan.import_run.importer_id,
+                    timestamp=plan.import_run.imported_at,
+                    source_artifact_code=plan.source_repository,
+                    method="repository-import",
+                ),
+            ),
+            derived_from=(plan.source_commit,),
+            operations=("repository-import",),
+        ),
+    )
+
+    return RepositoryImportResult(
+        surface="repository_import_commit",
+        source_repository=plan.source_repository,
+        source_commit=plan.source_commit,
+        target_branch=plan.target_branch,
+        commit_sha=commit_sha,
+        touched_paths=list(plan.touched_paths),
+        deleted_paths=list(plan.deletes),
     )
