@@ -1329,6 +1329,10 @@ CLOSED here (embeddings + similarity — optional `[embeddings]` extra, skip-gat
   `families.embeddings.declaration.embed_*_at` and `WorldQuery.similar_*`. An
   absent `[embeddings]` extra surfaces as a clean CLI failure; an empty
   similarity result is reported honestly.
+- Embedding-backed web search routes (`tests/test_web_similar.py`, skip-gated):
+  `/claim/{id}/similar.json` and `/concept/{id}/similar.json` over
+  `WorldQuery.similar_*`, closing the 10-2 embedding-backed-search deferral. Hits
+  carry their distance; no index returns an honest empty hit list.
 
 CLOSED here (graph export — core, graphviz, not embed-gated):
 - `world export-graph` / `propstore.graph_export`

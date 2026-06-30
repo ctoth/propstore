@@ -10,6 +10,8 @@ domain logic; expected owner/parse failures map to HTTP 400/404/409.
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 
@@ -121,6 +123,12 @@ def register_routes(app: FastAPI) -> None:
     )
     app.add_api_route(
         "/claim/{claim_id}/neighborhood", neighborhood_html, methods=["GET"]
+    )
+    app.add_api_route(
+        "/claim/{claim_id}/similar.json", claim_similar_json, methods=["GET"]
+    )
+    app.add_api_route(
+        "/concept/{concept_id}/similar.json", concept_similar_json, methods=["GET"]
     )
     app.add_api_route("/claim/{claim_id}", claim_html, methods=["GET"])
 
@@ -254,6 +262,22 @@ def claim_html(claim_id: str, request: Request) -> Response:
     return HTMLResponse(render_claim_page(report))
 
 
+def claim_similar_json(claim_id: str, request: Request) -> Response:
+    try:
+        payload = _similar_claims_payload(claim_id, request)
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _error_response(exc, wants_json=True)
+    return JSONResponse(json_ready(payload))
+
+
+def concept_similar_json(concept_id: str, request: Request) -> Response:
+    try:
+        payload = _similar_concepts_payload(concept_id, request)
+    except _EXPECTED_WEB_ERRORS as exc:
+        return _error_response(exc, wants_json=True)
+    return JSONResponse(json_ready(payload))
+
+
 # ── report builders (open world, call owner view-builder) ────────────────────
 
 
@@ -307,6 +331,45 @@ def _neighborhood_report(
         return build_semantic_neighborhood(
             world, "claim", claim_id, policy=policy, limit=limit
         )
+
+
+def _similar_claims_payload(claim_id: str, request: Request) -> dict[str, Any]:
+    model = _optional(request, "model")
+    top_k = _parse_limit(request.query_params.get("limit"))
+    with open_app_world_model(_repo(request)) as world:
+        hits = world.similar_claims(claim_id, model_name=model, top_k=top_k)
+    return {
+        "claim_id": claim_id,
+        "model": model,
+        "hits": [
+            {
+                "claim_id": str(hit.claim_id),
+                "distance": hit.distance,
+                "statement": hit.statement,
+                "concept_id": None if hit.concept_id is None else str(hit.concept_id),
+            }
+            for hit in hits
+        ],
+    }
+
+
+def _similar_concepts_payload(concept_id: str, request: Request) -> dict[str, Any]:
+    model = _optional(request, "model")
+    top_k = _parse_limit(request.query_params.get("limit"))
+    with open_app_world_model(_repo(request)) as world:
+        hits = world.similar_concepts(concept_id, model_name=model, top_k=top_k)
+    return {
+        "concept_id": concept_id,
+        "model": model,
+        "hits": [
+            {
+                "concept_id": str(hit.concept_id),
+                "distance": hit.distance,
+                "canonical_name": hit.canonical_name,
+            }
+            for hit in hits
+        ],
+    }
 
 
 # ── request parsing helpers ──────────────────────────────────────────────────
