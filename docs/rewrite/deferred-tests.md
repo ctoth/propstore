@@ -660,3 +660,37 @@ Deferred:
   `build_groups(concept_payloads)`).
 - `source/passes.py` (the semantic-import normalization pipeline) -> **8-5**
   (import); promote does not depend on it.
+
+## Phase 8-5 — import contract + repository import + source/passes.py (DONE)
+
+8-5 builds the import subsystem on the rewrite's charter identity model and the
+8-2 source-authoring path: `importing/machinery.py` (the per-row authored-import
+assertion compiler), `importing/contract.py` (the typed `ImportManifest` + honest
+provenance validation), `importing/repository_import.py` (`import_manifest`), and
+`source/passes.py` (the normalization pipeline: type coercion, dedup-to-handle,
+identity assignment, reference lowering). An imported row lands on a source
+branch as a defeasible claim carrying `stated`/`defaulted` provenance (never
+`measured`/`calibrated`), then follows the ordinary finalize → promote lifecycle.
+
+Tests ported (now green): `test_import_machinery` (the per-row contract; pure,
+ported verbatim). Tests written (rewrite-native, over `Repository.init`):
+`test_import_contract` (provenance honesty + row validation), `test_source_passes`
+(coercion / dedup / identity / stance-handle lowering), `test_import_defeasible`
+(the discipline proof: measured rejected; stated/defaulted stamped on source trust
++ git provenance note; rows on the source branch, master canonical families empty;
+no privileged identity).
+
+Deferred:
+- `test_import_repo.py`, `test_repository_import_provenance_attached.py`,
+  `test_concept_import_status_proposed.py` (the reference *committed-snapshot
+  repo-to-repo* import: `plan_repository_import` / `commit_repository_import`
+  writing canonical `*Document`s directly onto an `import/<name>` branch) -> **9**.
+  They depend on (a) the 0.2.0 `*Document` identity model + `.to_payload()` +
+  `make_claim_identity`/`normalize_concept_payloads` conftest helpers, (b) a
+  generic `semantic_passes` pass-runner framework, and (c) a committed-snapshot
+  materialize/convergence + ref-rewrite/delete path — all Phase-9-owned. The 8-5
+  import discipline (defeasible + honest provenance + no canonical write + source
+  lifecycle) is met via the source-authoring path instead of a direct branch write.
+- `import-repository` CLI (`test_import_repo_cli_*`) -> **10** (CLI/presentation).
+- `EquivalenceWitnessStore` composition is the non-commitment equivalence surface
+  (`test_import_machinery` covers it); any sidecar projection of witnesses -> **9**.
