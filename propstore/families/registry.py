@@ -18,6 +18,8 @@ into the registry automatically; nothing here enumerates fields or edges by hand
 
 from __future__ import annotations
 
+from enum import StrEnum
+
 from quire.charters import FamilyCharter, registry_from_charters
 from quire.families import FamilyDefinition, FamilyRegistry
 from quire.references import ForeignKeySpec
@@ -94,6 +96,49 @@ PROPSTORE_FAMILY_REGISTRY: FamilyRegistry[object, object] = registry_from_charte
     contract_version=PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
 )
 """The one charter-derived family registry. ``.bind(owner, store)`` for access."""
+
+
+class PropstoreFamily(StrEnum):
+    """Stable identity for each canonical family the build pipeline projects.
+
+    The members' *values* are exactly the quire family/table names derived from
+    the ``@charter`` classes (singular: ``concept``, ``claim``, …). This enum is
+    the typed handle the semantic-pass framework and diagnostics group work by;
+    it is not a second source of truth for the family set. A drift test
+    (``tests/test_semantic_passes.py``) asserts the member values equal the
+    registry's family names, so adding a charter without adding a member here
+    fails loudly rather than silently desyncing.
+    """
+
+    CONCEPT = "concept"
+    CLAIM = "claim"
+    CONTEXT = "context"
+    LIFTING_RULE = "lifting_rule"
+    LIFTING_MATERIALIZATION = "lifting_materialization"
+    FORM = "form"
+    PREDICATE = "predicate"
+    STANCE = "stance"
+    DEFEASIBLE_RULE = "defeasible_rule"
+    RULE_SUPERIORITY = "rule_superiority"
+    SAME_AS_ASSERTION = "same_as_assertion"
+    CONCEPT_ALIGNMENT_FRAMEWORK = "concept_alignment_framework"
+    PROPOSAL_PREDICATES = "proposal_predicates"
+    PROPOSAL_STANCES = "proposal_stances"
+    JUSTIFICATION = "justification"
+    MICROPUBLICATION = "micropublication"
+    SOURCE_DOCUMENTS = "source_documents"
+    SOURCE_CONCEPTS = "source_concepts"
+    SOURCE_CLAIMS = "source_claims"
+    SOURCE_STANCES = "source_stances"
+    SOURCE_JUSTIFICATIONS = "source_justifications"
+    SOURCE_MICROPUBS = "source_micropubs"
+    SOURCE_FINALIZE_REPORTS = "source_finalize_reports"
+
+
+def registered_family_names() -> tuple[str, ...]:
+    """Every family name in the assembled registry, in declaration order."""
+
+    return tuple(charter.family.name for charter in _CHARTERS)
 
 
 def registered_charters() -> tuple[FamilyCharter, ...]:
