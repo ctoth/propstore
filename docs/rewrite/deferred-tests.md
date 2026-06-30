@@ -1295,3 +1295,24 @@ NOT closed in 10-2 (later-slice prerequisites):
 - Embedding-backed web search (`similar_*`) → 10-3 (needs the sqlite-vec index;
   `WorldQuery.similar_*` is still honest-empty).
 - LLM-seeded web surfaces (stance/relate proposals over the web) → 10-4.
+
+## Phase 10-3 (embeddings + similarity + graph export)
+
+10-3 adds the embedding-derived index (over quire's vector adapter), the
+embedding-backed `WorldQuery.similar_*` readers, and the graph export surface.
+litellm + sqlite-vec are the optional `[embeddings]` extra: the core package and
+the `pks` CLI import and run without them; the lazy `_require_litellm` /
+`_require_sqlite_vec` guards raise an install hint only when an embedding feature
+is actually invoked. Similarity is a heuristic signal carrying its distance as a
+score (never truth); no hits returns empty, never a fabricated distance.
+
+CLOSED here (graph export — core, graphviz, not embed-gated):
+- `world export-graph` / `propstore.graph_export`
+  (`tests/test_graph_export.py`, `tests/test_cli_world.py` export-graph cases):
+  `build_knowledge_graph(world, bound=, group_id=)` -> `KnowledgeGraph` with
+  concept/claim nodes and parameterization/relationship/stance/claim_of edges,
+  `to_dot()` (stdlib-rendered valid DOT) / `to_json()`, an optional `BoundWorld`
+  filtering claims to the active set and marking conflicted claims, and
+  `group_id` parameterization-group scoping. The `pks world export-graph` adapter
+  parses bindings + `--group-id` + `--format dot|json`. Concept-to-concept
+  relationship edges stay honest-empty (no stored relation family in the rewrite).

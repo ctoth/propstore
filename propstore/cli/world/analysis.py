@@ -8,6 +8,8 @@ and fragility owners take a :class:`~propstore.core.environment.WorldStore`; a
 """
 from __future__ import annotations
 
+import json
+
 import click
 
 from propstore.cli.helpers import CliContext
@@ -21,11 +23,53 @@ from propstore.cli.world import (
     world_repo,
 )
 from propstore.fragility import FragilityRequest, query_fragility
+from propstore.graph_export import GraphExportRequest, export_knowledge_graph
 from propstore.sensitivity import SensitivityRequest, query_sensitivity
 from propstore.world.consistency import (
     WorldConsistencyRequest,
     check_world_consistency,
 )
+
+
+@world.command("export-graph")
+@click.argument("args", nargs=-1)
+@click.option(
+    "--group-id",
+    "group_id",
+    type=int,
+    default=None,
+    help="Scope to one parameterization group.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["dot", "json"]),
+    default="dot",
+    help="Output format.",
+)
+@click.pass_obj
+def world_export_graph(
+    obj: CliContext,
+    args: tuple[str, ...],
+    group_id: int | None,
+    fmt: str,
+) -> None:
+    """Export the concept/claim graph to Graphviz DOT or JSON.
+
+    Usage: ``pks world export-graph [key=value ...] [--group-id N] [--format dot|json]``.
+    """
+
+    repo = world_repo(obj)
+    bindings, _ = parse_world_binding_args(args)
+    with open_world(repo) as world_query:
+        report = export_knowledge_graph(
+            world_query,
+            GraphExportRequest(bindings=bindings, group_id=group_id),
+        )
+    if fmt == "json":
+        emit(json.dumps(report.graph.to_json(), indent=2))
+        return
+    emit(report.graph.to_dot())
 
 
 @world.command("sensitivity")

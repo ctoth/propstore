@@ -392,3 +392,37 @@ def test_revision_iterated_revise_shows_next_state(repo: Repository) -> None:
     assert "Operator: lexicographic" in result.output
     assert "Next state" in result.output
     assert "Ranking delta:" in result.output
+
+
+# ── export-graph family ──────────────────────────────────────────────────────────
+
+
+def test_export_graph_default_dot(repo: Repository) -> None:
+    result = _invoke(repo, ["export-graph"])
+    assert result.exit_code == 0, result.output
+    assert "digraph" in result.output
+    assert "->" in result.output
+    assert "A" in result.output
+
+
+def test_export_graph_json_shape(repo: Repository) -> None:
+    result = _invoke(repo, ["export-graph", "--format", "json"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert set(data) == {"nodes", "edges"}
+    concept_ids = {n["id"] for n in data["nodes"] if n["node_type"] == "concept"}
+    assert {"A", "B", "C"} <= concept_ids
+    # The equation claim zz_eq parameterizes C from (A, B).
+    param = {(e["source"], e["target"]) for e in data["edges"] if e["edge_type"] == "parameterization"}
+    assert ("A", "C") in param
+    assert ("B", "C") in param
+
+
+def test_export_graph_group_scoping(repo: Repository) -> None:
+    result = _invoke(repo, ["export-graph", "--group-id", "0", "--format", "json"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    concept_ids = {n["id"] for n in data["nodes"] if n["node_type"] == "concept"}
+    # The single parameterization group is the equation output {C}.
+    assert "C" in concept_ids
+    assert "D" not in concept_ids
