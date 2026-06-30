@@ -1179,3 +1179,56 @@ Value-layer note (pre-existing, not an owner-tier issue): `collect_known_values`
 reads the first claim of a determined concept, so an equation claim (value `None`)
 sorting before a parameter claim by id can make `derived_value` underspecified —
 visible only when authoring equation + parameter claims whose ids sort that way.
+
+## Phase 10-1 (the `pks` CLI adapter tree)
+
+10-1 built the lazy CLI families as thin Click adapters over the 0-9 + 10-0/10-0b
+owner layer. CLAUDE.md "CLI adapter discipline" holds throughout: families parse
+flags into typed requests, call owner functions, render typed results, and map
+typed failures to exit codes; no owner semantics live in `cli/`. The two class-B
+discipline gates are green (`tests/test_app_layer_no_cli_payloads.py`,
+`tests/test_no_cli_flags_in_owner_errors.py`).
+
+CLOSED here (the A1 CLI rows): the Click surfaces of
+- core-read: `pks init` / `build` / `validate` / `log` / `diff` / `show` /
+  `checkout` / `merge inspect` / `merge commit` / `verify tree` / `materialize` /
+  `contract-manifest` / `export-aliases` (`tests/test_init_cli.py`,
+  `test_log_cli.py`, `test_merge_cli.py`, `test_verify_cli.py`,
+  `test_materialize_cli.py`, `test_contract_manifest_cli.py`). Adds the owner
+  facade `app/merge.commit_merge` (reads the merge tree into a typed report).
+- world: `pks world status/query/bind/explain/algorithms/derive/resolve/chain/
+  hypothetical/sensitivity/check-consistency/fragility` + `world revision …` and
+  the synthetic root `status` (`tests/test_cli_world.py`). Closes the CLI half of
+  `test_revision_cli` / `test_revision_phase1_cli` / `test_cli_render_policy_flags`
+  (render-policy flags exercised through the world family's lifecycle options).
+- authoring read-views: `pks claim show/list/search/neighborhood/compare`,
+  `concept list/search/show` + `concept align/decide/promote`, `form show`,
+  `context list/show` (`tests/test_cli_claim.py`, `test_cli_concept_display.py`,
+  `test_concept_alignment_cli.py`, `test_cli_form.py`, `test_cli_context.py`).
+- source: `pks source init/finalize/promote/status/sync/write-*/add-*/propose-*`
+  (`tests/test_cli_source_p101.py`); closes `test_source_cli` / `test_cli_source_status`.
+- advanced: `pks import-repository`, `grounding status/show/query/arguments`,
+  `observatory run`, `predicate list/show/declare/promote`, `rule list/show`,
+  `proposal promote` + `proposal predicates promote`, `micropub list/show`
+  (`tests/test_cli_phase10_advanced.py`, `test_cli_phase10_1.py`). Extracted a
+  public `grounding.loading.load_grounding_repo` so the grounding adapter stays
+  thin (`derived_build` delegates to it — single canonical spelling).
+
+NOT closed in 10-1 (owner/phase prerequisites):
+- `pks worldline …` (show/list/diff/create/run/refresh/delete/build-journal/
+  at-step) and `test_capture_journal.py` CLI cases → the `propstore.app.worldlines`
+  owner + repo-backed worldline definition/result persistence do not exist (a
+  Phase-9/app-layer prerequisite, already deferred above as `test_worldline.py`
+  → 9). The registry keeps a lazy `worldline` entry; it errors only if invoked.
+- `pks proposal propose-rules` / `promote-rules` and `test_cli_propose_rules_*` /
+  `test_cli_promote_rules_*` / `test_promote_rules_proposals` → need
+  `heuristic.rule_extraction` + a rule-proposals family (Phase 10-4).
+- `pks micropub lift` and the `test_micropubs` lift cases → need a Phase-10
+  `inspect_micropub_lift` owner facade (not built).
+- `pks web` → 10-2. `world export-graph` + embedding-backed `claim/concept
+  embed/similar` and `claim relate` → 10-3/10-4.
+- `grounding explain`, `world atms …`, `world extensions`, `claim validate/
+  conflicts`, `concept categories`, direct `concept`/`context`/`form`/`predicate`/
+  `rule` mutation → no owner report-builder/mutation owner in the rewrite (the
+  conflict surface is already `pks world check-consistency`; mutation flows
+  through the `source` subsystem). Skipped, not reimplemented in the CLI.
