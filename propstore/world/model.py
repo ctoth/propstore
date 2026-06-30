@@ -705,20 +705,30 @@ class WorldQuery(WorldStore):
     def similar_claims(
         self, claim_id: str, model_name: str | None = None, top_k: int = 10
     ) -> list[ClaimSimilarityHit]:
-        """Embedding similarity is deferred to Phase 10 (no sqlite-vec index yet).
+        """Embedding-nearest claims, with each hit's vector distance as its score.
 
-        Honest empty rather than a fabricated distance: the sidecar carries no
-        embedding/vector cache in this slice, so there is no similarity to report.
+        A heuristic signal, not truth: an absent embedding index, an unknown
+        ``claim_id``, or a claim with no embedding yields ``[]`` — never a
+        fabricated distance. The embedding extra (``sqlite-vec``) being absent also
+        resolves to the honest-empty result.
         """
 
-        return []
+        from propstore.families.embeddings.declaration import world_similar_claims
+
+        return world_similar_claims(
+            self._path, self.claims_for(None), claim_id, model_name, top_k
+        )
 
     def similar_concepts(
         self, concept_id: str, model_name: str | None = None, top_k: int = 10
     ) -> list[ConceptSimilarityHit]:
-        """Embedding similarity is deferred to Phase 10 (see :meth:`similar_claims`)."""
+        """Embedding-nearest concepts (heuristic; honest-empty — see ``similar_claims``)."""
 
-        return []
+        from propstore.families.embeddings.declaration import world_similar_concepts
+
+        return world_similar_concepts(
+            self._path, self.all_concepts(), concept_id, model_name, top_k
+        )
 
     # ── condition solving ────────────────────────────────────────────────────
 

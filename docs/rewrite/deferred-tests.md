@@ -1306,6 +1306,25 @@ the `pks` CLI import and run without them; the lazy `_require_litellm` /
 is actually invoked. Similarity is a heuristic signal carrying its distance as a
 score (never truth); no hits returns empty, never a fabricated distance.
 
+CLOSED here (embeddings + similarity — optional `[embeddings]` extra, skip-gated):
+- Embedding model identity (`tests/test_embedding_identity.py`):
+  `heuristic.embedding_identity.EmbeddingModelIdentity` is lossless and injective
+  (punctuation-distinct names hash distinctly; no `model_key` sanitizer).
+- Generic embed layer (`tests/test_embed.py`): `heuristic.embed.embed_entities`
+  over a store protocol with a patched `require_litellm` (no extra needed) —
+  unchanged-hash skip, transient-API error counted, storage `OperationalError` /
+  provider `RuntimeError` propagate (no silent swallow).
+- Embedding index + similarity (`tests/test_embed_similar.py`, skip-gated on
+  `sqlite_vec`): `families.embeddings.declaration` over quire's
+  `SqlAlchemyVecEntityStore` (consumed directly) — embed claims/concepts into the
+  sidecar's lazy vector index, k-NN with honest distances and self-exclusion,
+  honest-empty for an unknown id, and the multi-model agree/disagree (E4) signal.
+  The embedding tables live *outside* the charter schema (a lazy, separate index)
+  so the core build/read path never loads `sqlite_vec`.
+- `WorldQuery.similar_claims` / `similar_concepts` now back onto the vector index
+  (the `tests/test_world_query.py` honest-empty cases stay green — no index, no
+  registered model, or no extra all resolve to `[]`, never a fabricated distance).
+
 CLOSED here (graph export — core, graphviz, not embed-gated):
 - `world export-graph` / `propstore.graph_export`
   (`tests/test_graph_export.py`, `tests/test_cli_world.py` export-graph cases):
