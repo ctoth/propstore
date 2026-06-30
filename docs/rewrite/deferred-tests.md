@@ -726,3 +726,57 @@ Deferred:
   (CLI/presentation) and **9** (the artifact-code + WorldQuery recompute path).
   The 8-6 charter-derived FK-integrity audit is the owner-layer entry point those
   presentation surfaces will call.
+
+## Phase 9-0-rest-A — compiler workflows + per-family semantic passes (DONE)
+
+9-0-rest-A builds the AUTHORED -> CHECKED compiler half on top of the 9-0
+semantic-pass framework + the Z1 charter-derived schema: the per-family flat-tree
+passes/stages (`families/{forms,concepts,claims,contexts}_passes.py`), the CEL
+registry + validation (`cel_registry.py`, `cel_validation.py`), the compilation
+context (`compiler/context.py`), and the two terminal workflows
+(`compiler/workflows.py`). `validate_repository` and `build_repository` run ONE
+pass framework + ONE check set and differ only in terminal sink (PLAN.md §12.6).
+
+Flat-tree stage design (DESIGNED, not copied from the reference dir-families):
+`LoadedForm` / `LoadedConcept` / `LoadedContext` / `LoadedLiftingRule` /
+`LoadedClaim` wrap the one charter directly (the charter is the document — no
+`*Record` / `*Row` / `ClaimFileEntry` / `to_payload` mass); `*CheckedRegistry`
+(`FormCheckedRegistry`, `ConceptCheckedRegistry`, `ContextCheckedGraph`) and
+`ClaimCheckedBundle` (in `compiler/ir.py`) are the per-family checked outputs.
+
+Z1 abort-vs-quarantine split (honored + tested in `test_compiler_workflows.py`):
+form/concept/context validation failures and a structural concept in a CEL
+expression ABORT (both workflows, `CompilerWorkflowError`); a semantically
+invalid *claim* (contract failure, CEL type error, dangling context) is
+QUARANTINED as a blocked `CheckedClaim` and the build proceeds. The narrow
+structural-CEL pre-pass (`structural_concepts_in_expression`) aborts only on a
+`KindType.STRUCTURAL` concept, so ordinary claim CEL errors still quarantine.
+
+Tests written (rewrite-native over `Repository.init` + authored charters):
+`test_cel_validation.py`, `test_cel_registry.py`, `test_compilation_context.py`
+(PLAN WRITE mandate), `test_family_passes.py`, `test_compiler_workflows.py`.
+These translate the reference `test_validate_claims` / `test_cel_checker` /
+`test_claim_compiler` / `test_condition_architecture_boundaries` (compiler
+boundary) over the flat tree; the reference files are `*Document`/`*Row`-shaped
+and were rebuilt, not ported.
+
+Deferred (the build_repository terminal sink + readers are not in this tree yet):
+- `test_build_sidecar.py` (+`TestRebuildSkipping`),
+  `test_T1_7_build_repository_propagates_sidecar_errors.py`,
+  `test_codex5_sidecar_cache_derived_invalidation.py`, `test_sidecar_contexts.py`,
+  `test_sidecar_alias_projection.py`, `test_sidecar_grounded_facts.py` -> **9-0-rest-B**
+  (the `derived_build` materialize path: `materialize_world_sidecar` /
+  `_build_sidecar_file` / `derived_build_plan`). `build_repository` leaves the
+  materialize step a clearly-marked seam and honestly reports `sidecar_missing`;
+  it never fabricates a sidecar.
+- `test_world_query.py`, `test_worldline*.py`, the conflict/phi summary half of
+  the build report -> **9-1** (`WorldQuery` reader). `build_repository` reports
+  empty `conflicts` / `phi_groups` until the reader exists.
+- `test_generated_schema_freshness.py` / `test_fixture_schema_parity.py` /
+  `test_required_schema_completeness.py` -> **9-0-rest-B** (assert the
+  charter-derived `derived_schema.build_world_sidecar_schema` shape once the
+  materialize path consumes it).
+- Authoring lints / `strict_authoring` enforcement + `families/diagnostics`
+  projection -> **9-0-rest-B** (`build_repository` accepts `strict_authoring` as a
+  documented seam; no lint source exists yet so there is nothing to upgrade).
+- All `pks build` / `pks validate` Click surfaces -> **Phase 10** (CLI/presentation).
