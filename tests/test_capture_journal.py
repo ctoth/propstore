@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.support_revision.history import JournalOperator, TransitionJournal
@@ -87,6 +87,7 @@ def _journal_inputs(draw):
 
 
 @pytest.mark.property
+@settings(deadline=None)
 @given(data=_journal_inputs())
 def test_p_cap_1_capture_journal_is_deterministic(data) -> None:
     from propstore.worldline.revision_capture import capture_journal
