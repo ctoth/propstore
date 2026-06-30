@@ -1,0 +1,929 @@
+format_version: 1
+package:
+  name: propstore
+  version: 0.1.0
+contracts:
+- kind: claim_type_contract
+  name: algorithm
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: output_concept
+      role: output
+      source: scalar
+      target_family: concept
+    nonempty_fields: []
+    required_fields:
+    - body
+    - output_concept
+    semantic_checks:
+    - propstore.claim_contracts.AlgorithmParseCheck
+    - propstore.claim_contracts.AlgorithmUnboundNamesCheck
+- kind: claim_type_contract
+  name: comparison
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: concepts
+      role: about
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - statement
+    required_fields: []
+    semantic_checks: []
+- kind: claim_type_contract
+  name: equation
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: output_concept
+      role: output
+      source: scalar
+      target_family: concept
+    nonempty_fields: []
+    required_fields:
+    - expression
+    semantic_checks:
+    - propstore.claim_contracts.SympyGenerationCheck
+    - propstore.claim_contracts.DimensionalConsistencyCheck
+- kind: claim_type_contract
+  name: limitation
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: concepts
+      role: about
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - statement
+    required_fields: []
+    semantic_checks: []
+- kind: claim_type_contract
+  name: measurement
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: target_concept
+      role: target
+      source: scalar
+      target_family: concept
+    nonempty_fields: []
+    required_fields:
+    - target_concept
+    - measure
+    semantic_checks: []
+- kind: claim_type_contract
+  name: mechanism
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: concepts
+      role: about
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - statement
+    required_fields: []
+    semantic_checks: []
+- kind: claim_type_contract
+  name: model
+  contract_version: 2026.06.30
+  body:
+    concept_links: []
+    nonempty_fields: []
+    required_fields: []
+    semantic_checks: []
+- kind: claim_type_contract
+  name: observation
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: concepts
+      role: about
+      source: list
+      target_family: concept
+    nonempty_fields:
+    - statement
+    required_fields: []
+    semantic_checks: []
+- kind: claim_type_contract
+  name: parameter
+  contract_version: 2026.06.30
+  body:
+    concept_links:
+    - field: output_concept
+      role: output
+      source: scalar
+      target_family: concept
+    nonempty_fields: []
+    required_fields:
+    - output_concept
+    semantic_checks:
+    - propstore.claim_contracts.UnitFormCompatibilityCheck
+    unit_policy:
+      dimensionless_default_unit: '1'
+      form_concept_field: output_concept
+      required: true
+    value_group:
+      lower_bound_field: lower_bound
+      uncertainty_field: uncertainty
+      uncertainty_type_field: uncertainty_type
+      upper_bound_field: upper_bound
+      value_field: value
+- kind: family-registry
+  name: propstore
+  contract_version: 2026.06.29
+  body:
+    families:
+    - contract_version: 2026.06.28
+      key: concept
+      name: concept
+    - contract_version: 2026.06.29
+      key: claim
+      name: claim
+    - contract_version: 2026.06.29
+      key: context
+      name: context
+    - contract_version: 2026.06.29
+      key: lifting_rule
+      name: lifting_rule
+    - contract_version: 2026.06.29
+      key: lifting_materialization
+      name: lifting_materialization
+    - contract_version: 2026.06.28
+      key: form
+      name: form
+    - contract_version: 2026.06.29
+      key: predicate
+      name: predicate
+    - contract_version: 2026.06.29
+      key: stance
+      name: stance
+    - contract_version: 2026.06.29
+      key: defeasible_rule
+      name: defeasible_rule
+    - contract_version: 2026.06.29
+      key: rule_superiority
+      name: rule_superiority
+    - contract_version: 2026.06.29
+      key: same_as_assertion
+      name: same_as_assertion
+    - contract_version: 2026.06.29
+      key: concept_alignment
+      name: concept_alignment_framework
+    - contract_version: 2026.06.29
+      key: proposal_predicates
+      name: proposal_predicates
+    - contract_version: 2026.06.29
+      key: proposal_stances
+      name: proposal_stances
+    - contract_version: 2026.06.29
+      key: justification
+      name: justification
+    - contract_version: 2026.06.29
+      key: micropublication
+      name: micropublication
+    - contract_version: 2026.06.29
+      key: source_documents
+      name: source_documents
+    - contract_version: 2026.06.29
+      key: source_concepts
+      name: source_concepts
+    - contract_version: 2026.06.29
+      key: source_claims
+      name: source_claims
+    - contract_version: 2026.06.29
+      key: source_stances
+      name: source_stances
+    - contract_version: 2026.06.29
+      key: source_justifications
+      name: source_justifications
+    - contract_version: 2026.06.29
+      key: source_micropubs
+      name: source_micropubs
+    - contract_version: 2026.06.29
+      key: source_finalize_reports
+      name: source_finalize_reports
+    - contract_version: 2026.06.29
+      key: conflict
+      name: conflict
+    - contract_version: 2026.06.29
+      key: build_diagnostic
+      name: build_diagnostic
+    - contract_version: 2026.06.29
+      key: merge_manifest
+      name: merge_manifest
+- kind: family
+  name: build_diagnostic
+  contract_version: 2026.06.29
+  body:
+    accessor: build_diagnostic
+    artifact_family: build_diagnostic
+    artifact_family_contract:
+      doc_type: propstore.families.diagnostics.BuildDiagnosticModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: build_diagnostic
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: diagnostic_id
+    key: build_diagnostic
+- kind: family
+  name: claim
+  contract_version: 2026.06.29
+  body:
+    accessor: claim
+    artifact_family: claim
+    artifact_family_contract:
+      doc_type: propstore.families.claims.ClaimModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: claim
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: claim
+      source_field: context_id
+      target_family: context
+      target_field: context_id
+    - many: false
+      required: false
+      source_family: claim
+      source_field: output_concept
+      target_family: concept
+      target_field: concept_id
+    - many: false
+      required: false
+      source_family: claim
+      source_field: target_concept
+      target_family: concept
+      target_field: concept_id
+    - many: true
+      required: false
+      source_family: claim
+      source_field: concepts[]
+      target_family: concept
+      target_field: concept_id
+    identity_field: claim_id
+    key: claim
+- kind: family
+  name: concept
+  contract_version: 2026.06.28
+  body:
+    accessor: concept
+    artifact_family: concept
+    artifact_family_contract:
+      doc_type: propstore.families.concepts.ConceptModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: concept
+        ref_field: self
+    artifact_family_contract_version: 2026.06.28
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: concept
+      source_field: lexical_entry.physical_dimension_form
+      target_family: form
+      target_field: name
+    identity_field: concept_id
+    key: concept
+- kind: family
+  name: concept_alignment_framework
+  contract_version: 2026.06.29
+  body:
+    accessor: concept_alignments
+    artifact_family: concept_alignment_framework
+    artifact_family_contract:
+      doc_type: propstore.families.alignment.ConceptAlignmentArtifactModel
+      placement:
+        branch:
+          fixed_branch: proposal/concepts
+          policy: fixed
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: merge/concepts
+        ref_field: slug
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: alignment_id
+    key: concept_alignment
+- kind: family
+  name: conflict
+  contract_version: 2026.06.29
+  body:
+    accessor: conflict
+    artifact_family: conflict
+    artifact_family_contract:
+      doc_type: propstore.families.conflicts.ConflictProjectionModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: conflict
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: conflict_id
+    key: conflict
+- kind: family
+  name: context
+  contract_version: 2026.06.29
+  body:
+    accessor: context
+    artifact_family: context
+    artifact_family_contract:
+      doc_type: propstore.families.contexts.ContextModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: context
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: context_id
+    key: context
+- kind: family
+  name: defeasible_rule
+  contract_version: 2026.06.29
+  body:
+    accessor: defeasible_rule
+    artifact_family: defeasible_rule
+    artifact_family_contract:
+      doc_type: propstore.families.rules.DefeasibleRuleModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: defeasible_rule
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: rule_id
+    key: defeasible_rule
+- kind: family
+  name: form
+  contract_version: 2026.06.28
+  body:
+    accessor: form
+    artifact_family: form
+    artifact_family_contract:
+      doc_type: propstore.families.forms.FormDefinitionModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: form
+        ref_field: self
+    artifact_family_contract_version: 2026.06.28
+    foreign_keys: []
+    identity_field: name
+    key: form
+- kind: family
+  name: justification
+  contract_version: 2026.06.29
+  body:
+    accessor: justification
+    artifact_family: justification
+    artifact_family_contract:
+      doc_type: propstore.families.justifications.JustificationModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: justification
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: justification
+      source_field: conclusion
+      target_family: claim
+      target_field: claim_id
+    - many: true
+      required: false
+      source_family: justification
+      source_field: premises[]
+      target_family: claim
+      target_field: claim_id
+    identity_field: justification_id
+    key: justification
+- kind: family
+  name: lifting_materialization
+  contract_version: 2026.06.29
+  body:
+    accessor: lifting_materialization
+    artifact_family: lifting_materialization
+    artifact_family_contract:
+      doc_type: propstore.families.contexts.LiftingMaterializationModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: lifting_materialization
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: materialization_id
+    key: lifting_materialization
+- kind: family
+  name: lifting_rule
+  contract_version: 2026.06.29
+  body:
+    accessor: lifting_rule
+    artifact_family: lifting_rule
+    artifact_family_contract:
+      doc_type: propstore.families.contexts.LiftingRuleModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: lifting_rule
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: rule_id
+    key: lifting_rule
+- kind: family
+  name: merge_manifest
+  contract_version: 2026.06.29
+  body:
+    accessor: merge_manifest
+    artifact_family: merge_manifest
+    artifact_family_contract:
+      doc_type: propstore.families.merge_manifests.MergeManifestModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: merge_manifest
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: manifest_id
+    key: merge_manifest
+- kind: family
+  name: micropublication
+  contract_version: 2026.06.29
+  body:
+    accessor: micropublication
+    artifact_family: micropublication
+    artifact_family_contract:
+      doc_type: propstore.families.micropublications.MicropublicationModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: micropublication
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys:
+    - many: false
+      required: true
+      source_family: micropublication
+      source_field: context_id
+      target_family: context
+      target_field: context_id
+    - many: true
+      required: true
+      source_family: micropublication
+      source_field: claims[]
+      target_family: claim
+      target_field: claim_id
+    identity_field: artifact_id
+    key: micropublication
+- kind: family
+  name: predicate
+  contract_version: 2026.06.29
+  body:
+    accessor: predicate
+    artifact_family: predicate
+    artifact_family_contract:
+      doc_type: propstore.families.predicates.PredicateModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: predicate
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: predicate_id
+    key: predicate
+- kind: family
+  name: proposal_predicates
+  contract_version: 2026.06.29
+  body:
+    accessor: proposal_predicates
+    artifact_family: proposal_predicates
+    artifact_family_contract:
+      doc_type: propstore.families.predicates.PredicateProposalModel
+      placement:
+        branch:
+          fixed_branch: proposal/predicates
+          policy: fixed
+        codec: identity
+        filename: declarations.yaml
+        kind: subdir-fixed-file
+        namespace: predicates
+        ref_field: source_paper
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: source_paper
+    key: proposal_predicates
+- kind: family
+  name: proposal_stances
+  contract_version: 2026.06.29
+  body:
+    accessor: proposal_stances
+    artifact_family: proposal_stances
+    artifact_family_contract:
+      doc_type: propstore.families.relations.StanceProposalModel
+      placement:
+        branch:
+          fixed_branch: proposal/stances
+          policy: fixed
+        codec: colon_to_double_underscore
+        extension: .yaml
+        kind: flat-yaml
+        namespace: stances
+        ref_field: stance_id
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: stance_id
+    key: proposal_stances
+- kind: family
+  name: rule_superiority
+  contract_version: 2026.06.29
+  body:
+    accessor: rule_superiority
+    artifact_family: rule_superiority
+    artifact_family_contract:
+      doc_type: propstore.families.rules.RuleSuperiorityModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: rule_superiority
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys:
+    - many: false
+      required: true
+      source_family: rule_superiority
+      source_field: superior_rule_id
+      target_family: defeasible_rule
+      target_field: rule_id
+    - many: false
+      required: true
+      source_family: rule_superiority
+      source_field: inferior_rule_id
+      target_family: defeasible_rule
+      target_field: rule_id
+    identity_field: superiority_id
+    key: rule_superiority
+- kind: family
+  name: same_as_assertion
+  contract_version: 2026.06.29
+  body:
+    accessor: same_as_assertion
+    artifact_family: same_as_assertion
+    artifact_family_contract:
+      doc_type: propstore.families.sameas.SameAsModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: same_as_assertion
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: sameas_id
+    key: same_as_assertion
+- kind: family
+  name: source_claims
+  contract_version: 2026.06.29
+  body:
+    accessor: source_claims
+    artifact_family: source_claims
+    artifact_family_contract:
+      doc_type: propstore.families.sources.SourceClaimsDocumentModel
+      placement:
+        branch:
+          codec: safe_slug
+          collision_suffix: sha256
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: claims.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    key: source_claims
+- kind: family
+  name: source_concepts
+  contract_version: 2026.06.29
+  body:
+    accessor: source_concepts
+    artifact_family: source_concepts
+    artifact_family_contract:
+      doc_type: propstore.families.sources.SourceConceptsDocumentModel
+      placement:
+        branch:
+          codec: safe_slug
+          collision_suffix: sha256
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: concepts.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    key: source_concepts
+- kind: family
+  name: source_documents
+  contract_version: 2026.06.29
+  body:
+    accessor: source_documents
+    artifact_family: source_documents
+    artifact_family_contract:
+      doc_type: propstore.families.sources.SourceDocumentModel
+      placement:
+        branch:
+          codec: safe_slug
+          collision_suffix: sha256
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: source.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    key: source_documents
+- kind: family
+  name: source_finalize_reports
+  contract_version: 2026.06.29
+  body:
+    accessor: source_finalize_reports
+    artifact_family: source_finalize_reports
+    artifact_family_contract:
+      doc_type: propstore.families.sources.SourceFinalizeReportDocumentModel
+      placement:
+        branch:
+          codec: safe_slug
+          collision_suffix: sha256
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: finalize-report.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    key: source_finalize_reports
+- kind: family
+  name: source_justifications
+  contract_version: 2026.06.29
+  body:
+    accessor: source_justifications
+    artifact_family: source_justifications
+    artifact_family_contract:
+      doc_type: propstore.families.sources.SourceJustificationsDocumentModel
+      placement:
+        branch:
+          codec: safe_slug
+          collision_suffix: sha256
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: justifications.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    key: source_justifications
+- kind: family
+  name: source_micropubs
+  contract_version: 2026.06.29
+  body:
+    accessor: source_micropubs
+    artifact_family: source_micropubs
+    artifact_family_contract:
+      doc_type: propstore.families.sources.SourceMicropublicationsDocumentModel
+      placement:
+        branch:
+          codec: safe_slug
+          collision_suffix: sha256
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: micropublications.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    key: source_micropubs
+- kind: family
+  name: source_stances
+  contract_version: 2026.06.29
+  body:
+    accessor: source_stances
+    artifact_family: source_stances
+    artifact_family_contract:
+      doc_type: propstore.families.sources.SourceStancesDocumentModel
+      placement:
+        branch:
+          codec: safe_slug
+          collision_suffix: sha256
+          policy: template
+          ref_field: name
+          template: source/{stem}
+        filename: stances.yaml
+        kind: fixed-file
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    key: source_stances
+- kind: family
+  name: stance
+  contract_version: 2026.06.29
+  body:
+    accessor: stance
+    artifact_family: stance
+    artifact_family_contract:
+      doc_type: propstore.families.relations.StanceModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: stance
+        ref_field: self
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: stance
+      source_field: source_claim_id
+      target_family: claim
+      target_field: claim_id
+    - many: false
+      required: false
+      source_family: stance
+      source_field: target_claim_id
+      target_family: claim
+      target_field: claim_id
+    identity_field: stance_id
+    key: stance
+- kind: semantic_pass
+  name: claim.check
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.claims_passes.ClaimCheckPass
+    family: claim
+    input_stage: claim.authored
+    output_stage: claim.checked
+- kind: semantic_pass
+  name: concept.check
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.concepts_passes.ConceptCheckPass
+    family: concept
+    input_stage: concept.authored
+    output_stage: concept.checked
+- kind: semantic_pass
+  name: context.identity
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.contexts_passes.ContextIdentityPass
+    family: context
+    input_stage: context.authored
+    output_stage: context.normalized
+- kind: semantic_pass
+  name: context.lifting
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.contexts_passes.ContextLiftingPass
+    family: context
+    input_stage: context.normalized
+    output_stage: context.checked
+- kind: semantic_pass
+  name: form.dimension
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.forms_passes.FormDimensionPass
+    family: form
+    input_stage: form.normalized
+    output_stage: form.checked
+- kind: semantic_pass
+  name: form.normalize
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.forms_passes.FormNormalizePass
+    family: form
+    input_stage: form.authored
+    output_stage: form.normalized
+- kind: semantic_stage
+  name: claim.authored
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.claims_passes.ClaimStage
+    family: claim
+- kind: semantic_stage
+  name: claim.checked
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.claims_passes.ClaimStage
+    family: claim
+- kind: semantic_stage
+  name: concept.authored
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.concepts_passes.ConceptStage
+    family: concept
+- kind: semantic_stage
+  name: concept.checked
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.concepts_passes.ConceptStage
+    family: concept
+- kind: semantic_stage
+  name: context.authored
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.contexts_passes.ContextStage
+    family: context
+- kind: semantic_stage
+  name: context.checked
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.contexts_passes.ContextStage
+    family: context
+- kind: semantic_stage
+  name: context.normalized
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.contexts_passes.ContextStage
+    family: context
+- kind: semantic_stage
+  name: form.authored
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.forms_passes.FormStage
+    family: form
+- kind: semantic_stage
+  name: form.checked
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.forms_passes.FormStage
+    family: form
+- kind: semantic_stage
+  name: form.normalized
+  contract_version: 2026.06.30
+  body:
+    class: propstore.families.forms_passes.FormStage
+    family: form
+registry:
+  name: propstore
+  contract_version: 2026.06.29

@@ -258,16 +258,29 @@ def _project_documents(
     The values dict is exactly the charter's columns read off the document — the
     per-family ``compile_*_sidecar_rows`` / ``populate_*`` projection mass of the
     reference tree, gone.
+
+    WS-CM payload-identity dedupe: a family's identity field is derived from its
+    full canonical payload (a micropublication's ``artifact_id`` is the ``ni:``
+    content URI of its bundle), so two documents that share an identity carry
+    definitionally identical content. The projection is therefore first-writer-wins
+    on the identity field — projecting the same content twice yields one row, never
+    a primary-key collision that would abort the build.
     """
 
     field_names = [field.name for field in schema.schema_object(family_name).fields]
+    identity_field = schema.identity_field(family_name)
     add_family = getattr(session, "add_family")
+    seen_identities: set[object] = set()
     for document in documents:
         values = {
             name: getattr(document, name)
             for name in field_names
             if hasattr(document, name)
         }
+        identity = values.get(identity_field)
+        if identity in seen_identities:
+            continue
+        seen_identities.add(identity)
         add_family(family_name, values)
 
 
