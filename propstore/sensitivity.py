@@ -24,11 +24,15 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from propstore.core.graph_types import ParameterizationEdge
 from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.reporting import JsonReportMixin
 from propstore.world.types import DerivedResult, ValueStatus
+
+if TYPE_CHECKING:
+    from propstore.world import WorldQuery
 
 # Relative step floor for the central finite difference. The truncation error of a
 # central difference is O(h^2); for the linear/multiplicative parameterizations the
@@ -118,6 +122,48 @@ class GlobalSensitivityResult:
             str(concept_id): float(value)
             for concept_id, value in self.total.items()
         }
+
+
+@dataclass(frozen=True)
+class SensitivityRequest:
+    """A request to analyze the local sensitivity of one concept's value."""
+
+    concept_id: str
+    bindings: Mapping[str, str]
+
+
+@dataclass(frozen=True)
+class SensitivityReport(JsonReportMixin):
+    """The owner-layer report wrapping a :class:`SensitivityResult`.
+
+    ``result`` is ``None`` when no compatible parameterization exists or an input
+    could not be resolved — honest ignorance, never a fabricated sensitivity.
+    """
+
+    concept_id: str
+    result: SensitivityResult | None
+
+
+def query_sensitivity(
+    world: WorldQuery,
+    request: SensitivityRequest,
+) -> SensitivityReport:
+    """Bind ``world`` under the request bindings and analyze concept sensitivity.
+
+    The render-owner entry point the ``pks world sensitivity`` adapter calls: it
+    resolves the concept, binds the world, and runs :func:`analyze_sensitivity`
+    (finite-difference over ``BoundWorld.derived_value`` — no SymPy boundary in
+    propstore). A concept with no parameterization yields ``result=None``.
+    """
+
+    from propstore.core.environment import Environment
+
+    resolved = world.resolve_concept(request.concept_id) or request.concept_id
+    bound = world.bind(Environment(bindings=dict(request.bindings)))
+    return SensitivityReport(
+        concept_id=resolved,
+        result=analyze_sensitivity(world, resolved, bound),
+    )
 
 
 def _evaluate_output(
