@@ -434,3 +434,41 @@ Deferred to later slices (charters/logic land WITH their owning slice):
   `GitStore.head_bound_transaction(branch).families_transact(repo.families,
   message=...)` → `txn.<family>.save(ref, doc)` → `txn.commit_sha`; source
   finalize/promote (8-3) consume it directly (no propstore wrapper needed).
+
+## Phase 8-1 — provenance named-graph carrier + identity + PROV-O
+
+Landed (rewrite): `propstore/provenance.py` became the `propstore/provenance/`
+package. The one canonical `Provenance` struct gained `graph_name` +
+`derived_from`; `compose_provenance` is now variadic with status-max fusion
+(`_STATUS_RANK` keeps the weakest honest status visible after fusion) and causal
+operation-order preservation. New carrier: `encode_named_graph` /
+`decode_named_graph` (deterministic JSON-LD `NamedGraph`, Carroll 2005) +
+`write_provenance_note` / `read_provenance_note` over quire
+`refs/notes/provenance` (provenance is a git note keyed by object sha — never in
+the claim/artifact blob). New submodules `provenance/records.py` (the six typed
+records + `ExternalStatementAttitude`, the single `ProjectionFrameProvenanceRecord`
+spelling — the duplicate msgspec one was deleted), `provenance/prov_o.py` (PROV-O
+JSON-LD export), `provenance/trusty.py` (ni-URI re-export). `propstore/uri.py`
+gained the RFC 6920 ni-URI byte primitives (`compute_ni_uri` / `verify_ni_uri` /
+`ni_uri_for_bytes` / `ni_uri_for_file`) + `source_tag_uri` / `claim_tag_uri`.
+Tests ported (now green): `test_compose_provenance_causal_order` (the PLAN-level
+7a-causal deferral — closed), `test_provenance` (stamp), `test_provenance_records`,
+`test_prov_o_export`, `test_trusty_uri_verification`, `test_uri`,
+`test_uri_authority_validation`, and `test_named_graph` (the named-graph carrier
+subset of the reference `test_provenance_foundations`).
+
+Deferred:
+- The opinion-fusion + family-document cases of the reference
+  `test_provenance_foundations` (`propstore.opinion`,
+  `propstore.families.claims.documents`, `propstore.families.documents.sources`)
+  → their owning **opinion / families-document** slices; the provenance carrier
+  cases are ported in `test_named_graph`.
+- The claim/concept **identity canonicalizers** (`canonicalize_claim_for_version`,
+  `compute_claim_version_id`, `derive_claim_artifact_id`,
+  `derive_concept_artifact_id`, `compute_concept_version_id`) and
+  `artifact_codes.py` → **8-3**. The reference implementations operate on the
+  pre-charter dict payload shape and need the source-claim document shape +
+  promote-time immutable-rebuild semantics (`families/claims/documents`,
+  `families/documents/sources`, `families/identity/*`) that are 8-2/8-3
+  source-authoring surfaces — not the pure identity layer 8-1 owns. The genuinely
+  pure identity primitives (ni-URI byte carrier + trusty) landed here.
