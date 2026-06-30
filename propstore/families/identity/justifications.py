@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from quire.hashing import canonical_json_sha256
+from quire.canonical import canonical_json_sha256
 
 
 def derive_justification_artifact_id(

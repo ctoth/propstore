@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypeGuard
 
-from quire.hashing import canonical_json_bytes
+from quire.canonical import canonical_json_bytes
 
 from propstore.fragility import FragilityReport, FragilityRequest, query_fragility
 from propstore.policies import PolicyProfile

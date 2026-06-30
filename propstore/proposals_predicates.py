@@ -143,7 +143,7 @@ def plan_predicate_proposal_promotion(
 
     available = tuple(
         ref.source_paper
-        for ref in repo.families.proposal_predicates.iter(
+        for ref in repo.families.proposal_predicates.iter_refs(
             branch=branch, commit=proposal_tip
         )
     )

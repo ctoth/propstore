@@ -21,9 +21,9 @@ from __future__ import annotations
 from enum import StrEnum
 
 from quire.charters import FamilyCharter, registry_from_charters
+from quire.contracts import contract_version
 from quire.families import FamilyDefinition, FamilyRegistry
 from quire.references import ForeignKeySpec
-from quire.versions import VersionId
 
 from propstore.families.alignment import ConceptAlignmentArtifact
 from propstore.families.calibration import CalibrationCount
@@ -61,9 +61,7 @@ from propstore.families.sources import SourceRef as SourceRef
 from propstore.families.predicates import PredicateProposalRef as PredicateProposalRef
 from propstore.families.rules import RuleProposalRef as RuleProposalRef
 
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId(
-    "2026.07.01", allow_placeholder=False
-)
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.01")
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
 # The charter-bearing document classes, in authoring order. The registry's

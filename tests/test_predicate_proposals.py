@@ -219,7 +219,7 @@ def test_propose_predicates_writes_only_to_proposal_branch(tmp_path: Path) -> No
 
     assert sha == repo.require_git().branch_sha(predicate_proposal_branch())
     # Nothing canonical was written.
-    assert list(repo.families.predicate.iter()) == []
+    assert list(repo.families.predicate.iter_refs()) == []
     document = repo.families.proposal_predicates.require(
         PredicateProposalRef(PAPER), commit=sha
     )

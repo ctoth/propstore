@@ -78,7 +78,7 @@ def test_record_writes_only_to_proposal_branch(tmp_path: Path) -> None:
     stance_id = _record(repo)
 
     # Nothing canonical was written by proposing.
-    assert list(repo.families.stance.iter()) == []
+    assert list(repo.families.stance.iter_refs()) == []
     proposal_tip = repo.require_git().branch_sha(stance_proposal_branch())
     assert proposal_tip is not None
     document = repo.families.proposal_stances.require(

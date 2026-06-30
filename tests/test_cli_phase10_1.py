@@ -120,7 +120,7 @@ def test_predicate_declare_then_promote(tmp_path: Path) -> None:
     assert "statistical_power/2" in declared.output
     assert "proposal/predicates" in declared.output
     # Nothing canonical yet.
-    assert list(repo.families.predicate.iter()) == []
+    assert list(repo.families.predicate.iter_refs()) == []
 
     promoted = _invoke(repo, ["predicate", "promote", "--paper", PAPER])
     assert promoted.exit_code == 0, promoted.output

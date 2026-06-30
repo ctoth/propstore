@@ -145,7 +145,7 @@ def _revision_scope_from_bound(bound: BoundWorld) -> RevisionScope:
         branch = git.current_branch_name() or git.primary_branch_name()
         commit = None if branch is None else git.branch_sha(branch)
         if commit is not None:
-            merge_parent_commits = tuple(git.commit_parent_shas(commit))
+            merge_parent_commits = tuple(git.iter_commit_parent_shas(commit))
 
     return RevisionScope(
         bindings=dict(bound.environment.bindings),

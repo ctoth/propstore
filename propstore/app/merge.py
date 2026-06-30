@@ -77,7 +77,7 @@ def commit_merge(
     framework = build_repository_merge_framework(
         repo, request.branch_a, request.branch_b
     )
-    tree_paths = list(git.flat_tree_entries(commit_sha))
+    tree_paths = [path for path, _sha in git.iter_flat_tree_entries(commit_sha)]
     manifest_paths = _entries_under(tree_paths, _MANIFEST_ROOT)
     return MergeCommitReport(
         surface="storage_merge_commit",

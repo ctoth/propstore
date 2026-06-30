@@ -293,8 +293,8 @@ def test_import_is_convergent_under_repeated_commits(tmp_path: Path) -> None:
     )
 
     git = destination.require_git()
-    assert git.flat_tree_entries(first.commit_sha) == git.flat_tree_entries(
-        second.commit_sha
+    assert dict(git.iter_flat_tree_entries(first.commit_sha)) == dict(
+        git.iter_flat_tree_entries(second.commit_sha)
     )
 
 

@@ -100,7 +100,7 @@ def plan_rule_proposal_promotion(
 
     available = {
         (ref.source_paper, ref.rule_id)
-        for ref in repo.families.proposal_rules.iter(branch=branch, commit=proposal_tip)
+        for ref in repo.families.proposal_rules.iter_refs(branch=branch, commit=proposal_tip)
     }
     items: list[RuleProposalPromotionItem] = []
     for rule_id in rule_ids:

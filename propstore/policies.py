@@ -20,7 +20,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from quire.hashing import canonical_json_bytes
+from quire.canonical import canonical_json_bytes
 
 from propstore.core.assertions.refs import (
     ConditionRef,

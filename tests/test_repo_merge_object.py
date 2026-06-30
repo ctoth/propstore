@@ -131,7 +131,7 @@ def test_create_merge_commit_is_two_parent(tmp_path: Path) -> None:
 
     merge_sha = create_merge_commit(repo, "master", branch)
 
-    assert git.commit_parent_shas(merge_sha) == [left_sha, right_sha]
+    assert list(git.iter_commit_parent_shas(merge_sha)) == [left_sha, right_sha]
     # The merge advances the target branch (master by default).
     assert git.branch_sha("master") == merge_sha
 
@@ -155,4 +155,4 @@ def test_create_merge_commit_target_branch_override(tmp_path: Path) -> None:
     # The source branches are untouched.
     assert git.branch_sha("master") == master_before
     assert git.branch_sha(branch) == branch_before
-    assert git.commit_parent_shas(merge_sha) == [master_before, branch_before]
+    assert list(git.iter_commit_parent_shas(merge_sha)) == [master_before, branch_before]

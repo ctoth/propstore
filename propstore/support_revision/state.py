@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
 from condition_ir import to_cel_expr
-from quire.hashing import canonical_json_bytes
+from quire.canonical import canonical_json_bytes
 
 from propstore.core.active_claims import ActiveClaim, coerce_active_claim
 from propstore.core.assertions.situated import SituatedAssertion

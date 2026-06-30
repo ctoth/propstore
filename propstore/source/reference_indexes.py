@@ -23,7 +23,7 @@ from propstore.repository import Repository
 
 SOURCE_CLAIM_REFERENCE_KEYS = (
     ReferenceKey.field("source_local_id"),
-    ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+    ReferenceKey.field("logical_ids[].formatted"),
 )
 
 

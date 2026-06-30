@@ -285,7 +285,8 @@ def create_merge_commit(
     merge = build_repository_merge_framework(repo, branch_a, branch_b)
 
     merged_entries = _merge_non_claim_entries(
-        git.flat_tree_entries(left_sha), git.flat_tree_entries(right_sha)
+        dict(git.iter_flat_tree_entries(left_sha)),
+        dict(git.iter_flat_tree_entries(right_sha)),
     )
     _materialize_merge_arguments(repo, git, merge, merged_entries, target_branch)
 

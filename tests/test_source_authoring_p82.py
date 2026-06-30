@@ -196,7 +196,7 @@ def test_claim_proposal_replaces_same_handle(tmp_path: Path) -> None:
         concepts=("widget",),
     )
     index = source_claim_index(repo, _SOURCE)
-    assert len(index.ids()) == 1
+    assert len(index.records_by_id) == 1
 
 
 # ---------------------------------------------------------------------------

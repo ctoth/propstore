@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypeGuard
 
-from quire.hashing import canonical_json_bytes
+from quire.canonical import canonical_json_bytes
 
 
 _TRACE_VERSION = "propstore.semantic_trace.v1"

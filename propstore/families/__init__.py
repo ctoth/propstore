@@ -16,8 +16,8 @@ here so each family module shares the single canonical value.
 
 from __future__ import annotations
 
-from quire.versions import VersionId
+from quire.contracts import contract_version
 
-SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.06.29", allow_placeholder=False)
+SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = contract_version("2026.06.29")
 
 __all__ = ["SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION"]

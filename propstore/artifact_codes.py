@@ -24,7 +24,7 @@ from typing import TypeGuard
 
 import msgspec
 
-from quire.hashing import canonical_json_sha256
+from quire.canonical import canonical_json_sha256
 
 from propstore.families.identity.claims import canonicalize_claim_for_version
 from propstore.families.sources import (

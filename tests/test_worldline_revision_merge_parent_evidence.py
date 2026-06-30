@@ -51,7 +51,7 @@ def test_project_belief_base_threads_real_git_merge_parents(tmp_path: Path) -> N
     right = git.branch_sha(branch)
     merge = create_merge_commit(repo, "master", branch)
 
-    assert git.commit_parent_shas(merge) == [left, right]
+    assert list(git.iter_commit_parent_shas(merge)) == [left, right]
 
     base_projection = project_belief_base(_EmptyBoundWorld(repo))
 

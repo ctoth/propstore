@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping, Sequence
 
-from quire.hashing import canonical_json_bytes
+from quire.canonical import canonical_json_bytes
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineDependencies,

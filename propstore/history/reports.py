@@ -229,7 +229,7 @@ def build_log_report(
         branch = git.current_branch_name() or git.primary_branch_name()
     if git.branch_sha(branch) is None:
         raise BranchNotFoundError(f"Branch not found: {branch}")
-    entries = git.log(max_count=count, branch=branch)
+    entries = git.iter_log(max_count=count, branch=branch)
     return LogReport(
         branch=branch,
         entries=tuple(
@@ -276,7 +276,7 @@ def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
     except KeyError as exc:
         raise CommitNotFoundError(f"Commit not found: {commit}") from exc
 
-    if not any(repo.families.concept.iter(commit=commit)):
+    if not any(repo.families.concept.iter_refs(commit=commit)):
         raise CommitHasNoConceptsError("No concepts found at that commit.")
 
     _handle, rebuilt = materialize_world_sidecar(repo, force=True, commit=commit)

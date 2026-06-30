@@ -65,7 +65,7 @@ def test_align_records_proposal_without_touching_canonical(tmp_path: Path) -> No
     assert stored == artifact
     assert artifact.decision.status == "open"
     # Proposing never mutates the canonical corpus.
-    assert list(repo.families.concept.iter()) == []
+    assert list(repo.families.concept.iter_refs()) == []
 
 
 def test_decide_then_promote_writes_canonical_concept(tmp_path: Path) -> None:
@@ -83,7 +83,7 @@ def test_decide_then_promote_writes_canonical_concept(tmp_path: Path) -> None:
     )
     assert decided.decision.status == "decided"
     # Deciding still writes nothing canonical.
-    assert list(repo.families.concept.iter()) == []
+    assert list(repo.families.concept.iter_refs()) == []
 
     promoted = promote_alignment(repo, artifact.alignment_id)
     assert promoted.decision.status == "promoted"

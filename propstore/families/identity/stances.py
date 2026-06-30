@@ -8,7 +8,7 @@ same id, and two distinct edges never collide.
 
 from __future__ import annotations
 
-from quire.hashing import canonical_json_sha256
+from quire.canonical import canonical_json_sha256
 
 
 def derive_stance_artifact_id(

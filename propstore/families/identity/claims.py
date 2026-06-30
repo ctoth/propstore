@@ -14,7 +14,7 @@ import hashlib
 import json
 from typing import TypeGuard
 
-from quire.hashing import canonical_json_sha256
+from quire.canonical import canonical_json_sha256
 
 from propstore.families.identity import logical_ids
 

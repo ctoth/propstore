@@ -172,7 +172,7 @@ def ensure_embedding_tables(conn: Connection) -> None:
 def get_registered_models(conn: Connection) -> list[dict[str, Any]]:
     """Return every registered embedding model row."""
 
-    return SqlAlchemyVecRegistry(conn).get_registered_models()
+    return list(SqlAlchemyVecRegistry(conn).iter_registered_models())
 
 
 def _rowids(conn: Connection, family: str, id_field: str) -> dict[str, int]:
@@ -238,8 +238,10 @@ class _SidecarEntityStore:
     def _similar_rows(
         self, model_identity: EmbeddingModelIdentity, query_vector: bytes, k: int
     ) -> list[dict[str, Any]]:
-        return self._vectors.similar_entities(
-            model_identity=model_identity, query_vector=query_vector, k=k
+        return list(
+            self._vectors.iter_similar_entities(
+                model_identity=model_identity, query_vector=query_vector, k=k
+            )
         )
 
 

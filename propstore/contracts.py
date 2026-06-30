@@ -31,9 +31,8 @@ from pathlib import Path
 from typing import Any
 
 from quire.artifacts import ArtifactFamily
-from quire.contracts import ContractEntry, ContractManifest
+from quire.contracts import ContractEntry, ContractManifest, contract_version
 from quire.references import ForeignKeySpec
-from quire.versions import VersionId
 
 from propstore.claim_contracts import ClaimTypeContract, iter_claim_type_contracts
 from propstore.families.registry import (
@@ -50,10 +49,10 @@ alias lets contract consumers read the registry version from the manifest module
 without importing the registry directly.
 """
 
-CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.06.30", allow_placeholder=False)
+CLAIM_TYPE_CONTRACT_VERSION = contract_version("2026.06.30")
 """Wire-contract version stamped on every claim-type authoring contract entry."""
 
-SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.06.30", allow_placeholder=False)
+SEMANTIC_PASS_CONTRACT_VERSION = contract_version("2026.06.30")
 """Wire-contract version stamped on every semantic stage / pass entry."""
 
 CONTRACT_MANIFEST_PATH = (

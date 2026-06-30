@@ -355,7 +355,7 @@ def _form_exists(repo: Repository, form: str | None) -> bool:
 
     if not form:
         return False
-    return any(str(ref) == form for ref in repo.families.form.iter())
+    return any(str(ref) == form for ref in repo.families.form.iter_refs())
 
 
 def _load_repo_alignment(

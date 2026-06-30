@@ -22,7 +22,7 @@ from typing import TypeGuard
 
 import msgspec
 
-from quire.hashing import canonical_json_sha256
+from quire.canonical import canonical_json_sha256
 
 from propstore.families.sources import SourceMicropublicationDocument
 from propstore.uri import compute_ni_uri

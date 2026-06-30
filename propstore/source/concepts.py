@@ -35,7 +35,7 @@ from .common import (
 def get_valid_form_names(repo: Repository) -> list[str] | None:
     """Return the sorted master-branch form names, or ``None`` if none exist."""
 
-    names = sorted(str(ref) for ref in repo.families.form.iter())
+    names = sorted(str(ref) for ref in repo.families.form.iter_refs())
     return names if names else None
 
 
