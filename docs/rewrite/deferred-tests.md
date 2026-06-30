@@ -1081,3 +1081,57 @@ Still deferred (Phase 10, presentation only):
 - The `test_micropublications_phase4.py` CLI source-promote / ATMS-node cases
   (owner cores exist; only the `pks` adapters remain).
 - `pks contract-manifest` Click surface (composes `build_propstore_contract_manifest`).
+
+## Phase 10-0 (render view-builders — the owner-layer view tier)
+
+10-0 built the `propstore.app` owner-layer render view tier (CLAUDE.md layer 5):
+typed view-builders that take an already-open `WorldQuery` + a `RenderPolicy` and
+return JSON-ready report objects, which the `pks` CLI (10-1) and the web routes
+(10-2) consume. No Click, no FastAPI — the single flag→policy construction path is
+`propstore.app.rendering.build_render_policy`; owner modules accept the
+`RenderPolicy`, never reconstruct it from flags.
+
+Landed surfaces + their tests (rewrite-native, over `Repository.init` → author
+charters → `WorldQuery`):
+- `app/rendering.py` — `AppRenderPolicyRequest` / `build_render_policy` /
+  `summarize_render_policy` / `RenderPolicyValidationError`
+  (`tests/test_app_rendering.py`).
+- `app/view_state.py` — the view tier's single `ViewState` vocabulary with a
+  distinct `UNKNOWN` (PLAN.md §12.4) and the honest-ignorance routing
+  (`lifting_view_state` / `applicability_view_state` / `solver_view_state`):
+  context-lifting `LIFTED`, defeasible `EXCEPTED`, and a `condition_ir` solver
+  `UNKNOWN` all route to `ViewState.UNKNOWN`, which is provably `≠ BLOCKED`
+  (policy-hidden) and `≠ MISSING` (no data) — `tests/test_view_state_unknown.py`.
+- `app/claim_views.py` + `app/claims.py` — `build_claim_view` per-field state
+  machine + NL sentences, and the claim list/search summary rows
+  (`tests/test_claim_views.py`).
+- `app/concept_views.py` + `app/concepts/` — `build_concept_view` state machine,
+  concept list/search reports, `ConceptSearchSyntaxError`
+  (`tests/test_concept_views.py`).
+- `app/neighborhoods.py` — `build_semantic_neighborhood` (focus_kind=claim only;
+  other focuses raise `SemanticNeighborhoodUnsupportedFocusError`)
+  (`tests/test_neighborhoods.py`).
+- `app/repository_overview.py` — KB-stats / reasoning-inventory report over
+  `WorldQuery.stats()` (`tests/test_app_repository_overview.py`).
+- `description_generator.py` — `generate_description(claim, concept_registry)`
+  retyped onto the charter `Claim` (`tests/test_description_generator.py`).
+- Render-time non-commitment + JSON contracts: `tests/test_render_time_filtering.py`
+  (present-but-hidden rows filtered at render, never dropped) and
+  `tests/test_render_contracts.py` (every report is JSON-ready via `JsonReportMixin`).
+
+Charter-honesty consequences (the charter is thinner than the reference `*Row`):
+the claim charter is provenance-free, so the provenance field/section renders
+`MISSING` (provenance rides the git-notes sidecar, not the claim row); the
+charter has no SI projection, so no `value_si`/`canonical_unit` is fabricated; and
+the charter FK forbids dangling concept references, so `build_claim_view`'s
+concept-`UNKNOWN` branch is defensive (guards historical/cross-snapshot reads) and
+the §12.4 `unknown` contract is proven through the routing functions.
+
+Still deferred past 10-0 (need later 10-x slices, NOT closed here):
+- `test_render_policy_opinions.py` / `test_opinion_schema.py` — opinion render
+  projection over stance/opinion rows (needs the opinion render surface).
+- `test_claim_and_stance_document_enums.py` — families.documents render enum surface.
+- `test_world_query.py` embedding-similarity cases (still honest-empty until the
+  10-3 sqlite-vec index).
+- The CLI render-flag adapter (`test_cli_render_policy_flags`) → 10-1; all
+  `test_web_*` route tests → 10-2 (both consume these 10-0 builders).
