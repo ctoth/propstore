@@ -1232,3 +1232,66 @@ NOT closed in 10-1 (owner/phase prerequisites):
   `rule` mutation → no owner report-builder/mutation owner in the rewrite (the
   conflict surface is already `pks world check-consistency`; mutation flows
   through the `source` subsystem). Skipped, not reimplemented in the CLI.
+
+## Phase 10-2 (the FastAPI web adapter)
+
+10-2 built `propstore.web` (the read-only knowledge browser) as the top
+presentation layer over the 10-0/10-0b owner view-builders, alongside the
+`pks web` launcher. CLAUDE.md "CLI adapter discipline" holds for the web routes
+exactly as for the CLI: each route parses query params into a typed app request
+(render policy via `app.rendering.build_render_policy`), opens the world through
+`app.world.open_app_world_model`, calls the owner view-builder, and renders the
+returned typed report as JSON (`reporting.json_ready`) or accessible HTML. No
+owner semantics live in `propstore.web`; the owner `app/*` view-builders stay
+FastAPI-free (only `propstore.web` and the `pks web` launcher import FastAPI).
+The import-linter gate adds a `web-is-top-presentation` forbidden contract (no
+owner layer imports `propstore.web`; the CLI launcher is the sole entry point).
+
+The reference tests were stale (`*Row`/`*Document` shapes and reference report
+fields that do not exist in the charter reports — `logical_id`, `repository_state`,
+`handle`, `domain`, `source_pointers`, …), so behaviour was ported onto the
+charter report shapes with fresh tests over a built demo `Repository` driven
+through a FastAPI `TestClient`.
+
+CLOSED here (the A2 web rows):
+- App skeleton + request/serialization (`tests/test_web_skeleton.py`):
+  `create_app`, `/healthz`, static `/static/web.css`, `parse_render_policy_request`.
+- Repository overview route (`tests/test_web_index_route.py`): `/`, `/index.json`.
+- Single-claim view routes (`tests/test_web_claim_routes.py`): `/claim/{id}` +
+  `.json`, honest 404 for unknown and policy-hidden (BLOCKED) claims, blocked
+  claim re-surfaced under `include_blocked`.
+- Claim list/search index (`tests/test_web_claim_index_routes.py`): `/claims` +
+  `.json`, concept scoping, search, out-of-range `limit` → 400.
+- Single-concept view routes (`tests/test_web_concept_routes.py`): `/concept/{id}`
+  + `.json`, unknown → 404.
+- Concept list/search index (`tests/test_web_concept_index_routes.py`):
+  `/concepts` + `.json`, DRAFT concept hidden under default policy.
+- Semantic neighborhood routes (`tests/test_web_neighborhood_routes.py`):
+  `/claim/{id}/neighborhood` + `.json`, claim-focus only, 404 for unknown/blocked.
+- Read-only revision view (`tests/test_web_revision_readonly.py`,
+  closing `test_revision_app_contract` / `test_web_revision_readonly`):
+  `/world/revision/base.json` over `support_revision.workflows.revision_base` /
+  `revision_entrenchment`; GET-only.
+- Float query-parameter boundary handling (`tests/test_web_request_float_boundary.py`):
+  inclusive/exclusive bounds, non-finite and non-numeric rejection.
+- Accessibility / structured-output proof (`tests/test_web_accessibility.py`):
+  one `<main>`, single `<h1>`, `<h2>` section landmarks, tables with `<th>`
+  headers and non-empty `<td>` cells, descriptive link text, honest-ignorance
+  literals (`vacuous`/`blocked`/`missing`/`unavailable`) reaching the DOM, the
+  no-hover/no-pointer/focus-visible/print/responsive CSS contract, and the typed
+  `_link_table`/`LinkRow` misaligned-cell guard.
+- `pks web` launcher (`tests/test_cli_web.py`, `tests/test_pks_web_insecure_flag.py`):
+  serves the active repository, refuses a public bind without `--insecure`, warns
+  on an insecure public bind, and allows loopback binds silently.
+
+Charter-honesty consequences: the charter reports carry no `repository_view`
+(branch/rev), `logical_id`/`artifact_id`/`version_id`, `domain`/`kind_type`, or
+`source_pointers`, so the routes expose no branch/rev selection and the HTML
+renders only the fields the owner reports actually carry — absent data shows as
+`missing`/`vacuous`/`not applicable`, never fabricated. Web JSON uses the single
+`reporting.json_ready` serializer (no parallel web serializer / `json_types`).
+
+NOT closed in 10-2 (later-slice prerequisites):
+- Embedding-backed web search (`similar_*`) → 10-3 (needs the sqlite-vec index;
+  `WorldQuery.similar_*` is still honest-empty).
+- LLM-seeded web surfaces (stance/relate proposals over the web) → 10-4.

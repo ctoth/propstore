@@ -3,19 +3,38 @@ root_package = propstore
 include_external_packages = True
 
 # One-way layer dependencies (CLAUDE.md "Architectural Layers"): a layer may
-# import the layers below it, never above. Render/app/web are Phase-10 surfaces
-# and are not yet present, so the top of the realised stack is the CLI adapter.
+# import the layers below it, never above. The CLI and web presentation adapters
+# sit over the Phase-10-0 render owner layer (``app``), which sits over ``world``.
 [importlinter:contract:propstore-layers]
 name = propstore one-way layer dependencies
 type = layers
 layers =
     cli
+    app
     world
     aspic_bridge : praf
     heuristic
     source
     storage
 containers = propstore
+
+# The web package is the top of the presentation stack: nothing in the owner
+# layers imports it. The ``pks web`` launcher in the CLI is the sole entry point
+# that pulls it in, so ``cli`` is deliberately excluded from the sources below.
+[importlinter:contract:web-is-top-presentation]
+name = web presentation adapter is never imported by owner layers
+type = forbidden
+source_modules =
+    propstore.app
+    propstore.world
+    propstore.aspic_bridge
+    propstore.praf
+    propstore.heuristic
+    propstore.source
+    propstore.storage
+    propstore.core
+forbidden_modules =
+    propstore.web
 
 # Substrate-boundary rule: the source-of-truth storage layer and the semantic
 # core never reach UP into the argumentation / world / presentation layers.
