@@ -43,3 +43,14 @@ def resource_exists(relative_path: str) -> bool:
     """Return whether ``propstore/_resources/<relative_path>`` is a file."""
 
     return _resource(relative_path).is_file()
+
+
+def iter_resource_files(relative_path: str) -> list[str]:
+    """Return the sorted file names directly under ``_resources/<relative_path>``.
+
+    Works in both source-tree (``Path``) and installed-wheel (``Traversable``)
+    modes; only immediate children that are files are returned.
+    """
+
+    base = _resource(relative_path)
+    return sorted(child.name for child in base.iterdir() if child.is_file())
