@@ -173,26 +173,3 @@ def test_merge_emits_exact_union_of_disjoint_branch_additions(
 
     merged_artifact_ids = {argument.artifact_id for argument in merge.arguments}
     assert merged_artifact_ids == set(left_ids) | set(right_ids)
-
-
-# --- Deferred to Phase 9 (Repository / two-parent storage merge commit) -------
-
-
-@pytest.mark.skip(reason="merge_commit + Repository facade land in Phase 9")
-def test_merge_commit_has_two_parents() -> None: ...
-
-
-@pytest.mark.skip(reason="merge_commit + Repository facade land in Phase 9")
-def test_merge_commit_preserves_both_disjoint_additions() -> None: ...
-
-
-@pytest.mark.skip(reason="merge_commit + Repository facade land in Phase 9")
-def test_merge_commit_valid_claims() -> None: ...
-
-
-@pytest.mark.skip(reason="merge_commit + Repository facade land in Phase 9")
-def test_merge_commit_preserves_branch_origin_provenance_in_manifest() -> None: ...
-
-
-@pytest.mark.skip(reason="merge_commit + Repository facade land in Phase 9")
-def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions() -> None: ...
