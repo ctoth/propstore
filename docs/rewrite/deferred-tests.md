@@ -1135,3 +1135,47 @@ Still deferred past 10-0 (need later 10-x slices, NOT closed here):
   10-3 sqlite-vec index).
 - The CLI render-flag adapter (`test_cli_render_policy_flags`) → 10-1; all
   `test_web_*` route tests → 10-2 (both consume these 10-0 builders).
+
+## Phase 10-0b — owner-layer reasoning-report tier (CLOSED)
+
+The OWNER report functions the CLI/web adapt — genuinely missing from the rewrite
+(the reference `world/queries.py` reasoning tier and `app/{project_init,forms,
+claims,materialize}` over stale `*Row`/`*Document` projections) — built here as
+owner-layer (no Click/FastAPI), retyped over the charter, with new charter-shaped
+tests (the reference tests were `*Row`-shaped, so behaviour was ported not files):
+
+- World reasoning tier `world/reasoning_reports.py` (alongside, not clobbering,
+  the 9-1 `select_*` readers in `world/queries.py`): `get_world_status`,
+  `query_world_concept`, `query_bound_world`, `explain_world_claim`,
+  `list_world_algorithms`, `derive_world_value`, `resolve_world_value`,
+  `query_world_chain`, `diff_hypothetical_world` + their `World*Request`/
+  `World*Report` types (`tests/test_world_reasoning_reports.py`). Closes the
+  owner half of the reference `test_world_query` O2/O3 resolve/derive/extensions/
+  explain cases.
+- `sensitivity.query_sensitivity` + `SensitivityRequest`/`SensitivityReport`
+  (`tests/test_sensitivity_query.py`) — over the existing finite-difference
+  `analyze_sensitivity` (human-to-sympy, no raw SymPy).
+- `app/project_init.initialize_project` (`tests/test_app_project_init.py`) —
+  seeds forms + base concepts mapped from the historical resource shape.
+- `app/forms.show_form` (`tests/test_app_forms.py`).
+- `app/claims.compare_algorithm_claims` + `ClaimCompareRequest`/
+  `ClaimComparisonError` (`tests/test_app_claims_compare.py`).
+- `app/aliases.export_concept_aliases` (`tests/test_app_aliases.py`) and
+  `app/materialize.materialize_repository` (`tests/test_app_materialize.py`).
+
+Charter-honesty consequences: `Stance` has no strength/note (uses `confidence`);
+`Claim` has no `algorithm_stage`/`value_si` (omitted, never fabricated); `Concept`
+has no top-level aliases (export reads lemon `other_forms`) and no `is_a` field
+(seed `is_a` links not stored); `WorldQuery` has no form-algebra projection
+(`show_form` omits decomposition/use views until it lands).
+
+Remaining reference cases deferred past 10-0b (NOT closed here):
+- The CLI adapter cases of these surfaces (`pks world …`, `pks init`, `pks form
+  show`, `pks claim compare`, `pks export-aliases`, `pks materialize`) → 10-1.
+- The web routes over the same builders → 10-2.
+- `world export-graph` / graph_export + embedding-backed `similar_*` → 10-3.
+
+Value-layer note (pre-existing, not an owner-tier issue): `collect_known_values`
+reads the first claim of a determined concept, so an equation claim (value `None`)
+sorting before a parameter claim by id can make `derived_value` underspecified —
+visible only when authoring equation + parameter claims whose ids sort that way.
