@@ -782,6 +782,68 @@ Deferred (the build_repository terminal sink + readers are not in this tree yet)
 - All `pks build` / `pks validate` Click surfaces -> **Phase 10** (CLI/presentation).
 
 
+## Phase 9-1 — concrete repo-backed WorldQuery reader (DONE)
+
+9-1 built `world/model.py::WorldQuery(WorldStore)` (the concrete reader over the
+materialized content-addressed world sidecar) + `world/queries.py` (the `select_*`
+SQL reads + query-error types). The reader opens the sidecar through quire's
+charter-derived SQLAlchemy schema (`readonly_session` over
+`derived_schema.build_world_sidecar_schema`) and rebuilds the ONE canonical
+charter / value type per row via the charter's own msgspec field set — no `*Row`
+second spelling. It satisfies the 28-method `WorldStore` protocol (declared as a
+subclass so pyright verifies it) and DELEGATES the render-time glue (`bind` /
+`active_graph` / `compiled_graph` / `intervene` / `observe` / `chain_query`) to the
+C3 free functions in `world/model.py` (bound as private aliases, passing `self`),
+re-using the glue unchanged. `from_path` / `historical_query` (rebuild a temp
+sidecar at a commit) / `close` / context-manager / `_validate_schema` (catalog
+hash + sidecar version, both with a rebuild hint).
+
+Non-commitment / honesty: storage methods return every row regardless of
+lifecycle status; `claims_with_policy` / `build_diagnostics` are the render-time
+views that hide draft/blocked/quarantine rows unless opted in; a missing sidecar
+raises `FileNotFoundError("run pks build")` rather than collapsing to empty;
+`similar_claims`/`similar_concepts` return honest-empty (embeddings deferred to
+Phase 10 — no sqlite-vec index in this slice). Parameterization edges are derived
+at read time from `EQUATION` claims rather than a duplicated projection.
+
+Closed (rewrite-native over `Repository.init` → author → `materialize_world_sidecar`
+→ `WorldQuery`):
+- `test_world_query.py` (42 cases): the §7a-world-C3 sidecar-build / historical /
+  build-diagnostics / schema-validation / parameterization / micropublication /
+  render-policy cases. Embedding/similar cases assert the honest-empty contract
+  (Phase 10).
+- `test_worldline_world_query.py`: the §7a-worldline rows that needed "a concrete
+  repo-backed store beyond the in-memory feed" — `test_worldline` /
+  `test_worldline_properties` / `test_worldline_praf` (run_worldline + build_praf
+  over a real `WorldQuery`), and the §7a-world-B2 `test_world_bound_conflicts_cache`
+  row (BoundWorld conflict resolution over the repo-backed reader). The reference
+  `FakeWorld` of pre-charter dicts is replaced by the charter-backed reader.
+
+Fixed latent bug surfaced by the concrete reader: `worldline/resolution.py` read
+`ActiveClaim.value` (the reference's claim shape); the rewrite's slim `ActiveClaim`
+carries the value in `attributes`, so it now reads `attribute_value("value")`.
+
+Superseded (NOT ported — they pin reference reader internals that vanished in the
+charter rewrite):
+- `test_world_model_resolve_cache.py` — the reference cached a per-instance
+  logical-id index over the sidecar; the charter reader resolves by id / canonical
+  name directly in SQL (`resolve_concept_id` / `resolve_claim_id`), so there is no
+  logical-id cache to pin.
+- `test_world_model_branch_column_required.py` — the reference sidecar carried a
+  per-row `branch` column; the charter-derived world schema is the single master
+  projection (source/proposal branches are not part of it — their sidecar mirror is
+  9-3), so there is no branch column.
+
+Still deferred:
+- `test_world_query_at_journal_step.py` / `test_world_query_at_journal_step_method.py`
+  -> **8** (the `at_journal_step` / `bind_for_view` / `_BoundView` / `ClaimView`
+  support_revision journal/worldline bridge is not on the rewrite reader; it is a
+  support_revision surface, not a sidecar read).
+- Embedding similarity (`similar_*` sqlite-vec backing), `pks build` / `pks
+  validate` / `pks log` Click surfaces, and the worldline CLI/document cases ->
+  **10** (CLI / embeddings).
+
+
 ## Phase 9-0-rest-B — derived_build materialize + diagnostics + grounded facts (DONE)
 
 9-0-rest-B fills the `build_repository` materialize seam left by 9-0-rest-A. The

@@ -399,7 +399,9 @@ def _resolve_chain_target(
             for input_cid, value in result.input_values.items()
         }
     else:
-        chain_value = result.claims[0].value if result.claims else None
+        chain_value = (
+            result.claims[0].attribute_value("value") if result.claims else None
+        )
 
     if chain_value is None or result.status not in ("derived", "determined"):
         return None
