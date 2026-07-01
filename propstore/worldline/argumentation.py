@@ -19,7 +19,6 @@ from propstore.world.types import (
     coerce_queryable_assumptions,
     validate_backend_semantics,
 )
-from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.interfaces import WorldlineBoundView, WorldlineStore
 from propstore.worldline.result_types import WorldlineArgumentationState
 
@@ -49,17 +48,17 @@ def _semantics_value(normalized_semantics: Any) -> str:
 def capture_argumentation_state(
     bound: WorldlineBoundView,
     world: WorldlineStore,
-    definition: WorldlineDefinition,
+    policy: RenderPolicy,
 ) -> tuple[WorldlineArgumentationState | None, list[str], set[ClaimId]]:
     from propstore.world.types import ReasoningBackend
 
     active = coerce_active_claims(bound.active_claims())
     active_ids = {claim.claim_id for claim in active}
     active_graph = bound.active_world_graph() if isinstance(bound, HasActiveGraph) else None
-    reasoning_backend = definition.policy.reasoning_backend
+    reasoning_backend = policy.reasoning_backend
     _, normalized_semantics = validate_backend_semantics(
         reasoning_backend,
-        definition.policy.semantics,
+        policy.semantics,
     )
 
     argumentation_state: WorldlineArgumentationState | None = None
@@ -68,7 +67,7 @@ def capture_argumentation_state(
             world,
             {to_claim_id(claim_id) for claim_id in active_ids},
             active_graph,
-            definition.policy,
+            policy,
             normalized_semantics,
         )
     elif reasoning_backend == ReasoningBackend.ASPIC:
@@ -78,17 +77,17 @@ def capture_argumentation_state(
             list(active),
             {to_claim_id(claim_id) for claim_id in active_ids},
             active_graph,
-            definition.policy,
+            policy,
             normalized_semantics,
         )
     elif reasoning_backend == ReasoningBackend.ATMS:
-        argumentation_state = _capture_atms(bound, definition.policy)
+        argumentation_state = _capture_atms(bound, policy)
     elif reasoning_backend == ReasoningBackend.PRAF:
         argumentation_state = _capture_praf(
             world,
             {to_claim_id(claim_id) for claim_id in active_ids},
             active_graph,
-            definition.policy,
+            policy,
             normalized_semantics,
         )
 

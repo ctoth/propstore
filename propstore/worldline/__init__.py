@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from propstore.worldline.definition import (
-    WorldlineDefinition,
+from propstore.worldline.definition import WorldlineDefinition
+from propstore.worldline.hashing import compute_worldline_content_hash
+from propstore.worldline.query import (
     WorldlineInputs,
     WorldlineResult,
     WorldlineRevisionQuery,
 )
-from propstore.worldline.hashing import compute_worldline_content_hash
-from propstore.worldline.runner import run_worldline
+from propstore.worldline.runner import run_worldline, worldline_is_stale
 
 __all__ = [
     "WorldlineDefinition",
@@ -18,4 +18,5 @@ __all__ = [
     "WorldlineRevisionQuery",
     "compute_worldline_content_hash",
     "run_worldline",
+    "worldline_is_stale",
 ]

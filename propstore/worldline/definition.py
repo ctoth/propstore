@@ -1,41 +1,52 @@
-"""Worldline definitions and materialized results.
+"""The worldline charter — the persisted ``worldlines`` family document.
 
-The document-codec (``from_document``/``to_document``) and ``journal`` paths
-live with the concrete repository/document surfaces (Phase 8/9); this module
-carries the mapping-based (``from_dict``/``to_dict``) shapes the in-memory
-materialization runner uses. The revision *capture* (``WorldlineRevisionState``
-population, transition journal) lands in Phase 7b.
+The worldline is a **single canonical charter type** (CLAUDE.md substrate
+discipline): :class:`WorldlineDefinition` IS the persisted ``worldlines`` family
+document. There is deliberately no ``WorldlineDefinitionDocument`` second
+spelling and no ``to_document``/``from_document`` mirror coercer — the git
+document, the sidecar columns, and the serialized contract all fall out of the
+charter field annotations, exactly as for the other charter families.
+
+This module is **storage-pure**: it imports nothing from ``propstore.world``,
+``propstore.worldline.runner``, or the argumentation layer. The charter-derived
+registry (``propstore.families.registry``) is imported by ``propstore.storage``,
+so any upward import here would drag storage into the world/argumentation layers
+and break the substrate import contracts.
+
+The world-shaped compute values a worldline carries — the render policy, the
+query environment, the revision query, and the materialized result — are stored
+as their **existing dict serialization** (``RenderPolicy.to_dict()`` etc.) in
+``policy`` / ``inputs`` / ``revision`` / ``results``. The compute forms are built
+ONE-WAY from those mappings at use time by the caller (``propstore.worldline.query``
+/ ``runner``) via ``RenderPolicy.from_dict(...)``, ``Environment.from_dict(...)``,
+``WorldlineRevisionQuery.from_dict(...)`` — a boundary crossing that is a call,
+not a conversion (CLAUDE.md substrate discipline point 3). These stored mappings
+are serialization of the one canonical compute type, not parallel spellings.
+
+The transition ``journal`` cannot be structurally decoded by msgspec — a captured
+:class:`~propstore.support_revision.history.TransitionJournal` nests an untagged
+``AssertionAtom | AssumptionAtom`` union — so it is stored as the journal's own
+canonical dict (``TransitionJournal.to_dict()``) and parsed back through the
+package-owned :meth:`TransitionJournal.from_mapping` via
+:meth:`WorldlineDefinition.transition_journal`.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
-from typing import Any, TypeGuard
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Annotated, Any, TypeGuard
 
-from propstore.world.types import Environment, RenderPolicy
-from propstore.worldline.result_types import (
-    WorldlineArgumentationState,
-    WorldlineDependencies,
-    WorldlineSensitivityReport,
-    WorldlineStep,
-    WorldlineTargetValue,
-    coerce_worldline_step,
-    coerce_worldline_target_value,
-)
-from propstore.worldline.revision_types import (
-    RevisionAtomRef,
-    RevisionConflictSelection,
-    WorldlineRevisionState,
-)
+import msgspec
+from quire.artifacts import BranchPlacement, FlatYamlPlacement
+from quire.charter_class import CharterDoc, charter, charter_field
+from quire.refs import single_field_ref_type
+
+from propstore.support_revision.history import TransitionJournal
 
 
 def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
     return isinstance(value, Mapping)
-
-
-def _is_sequence(value: object) -> TypeGuard[Sequence[Any]]:
-    return isinstance(value, (tuple, list))
 
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
@@ -50,7 +61,7 @@ class WorldlineRevisionTargetValidationError(ValueError):
     """Raised when a revision target cannot be resolved as an atom id."""
 
 
-def _validated_revision_target(operation: str, target: object) -> str | None:
+def validated_revision_target(operation: str, target: object) -> str | None:
     if target is None:
         return None
     target_id = str(target)
@@ -65,185 +76,77 @@ def _validated_revision_target(operation: str, target: object) -> str | None:
     return target_id
 
 
-@dataclass
-class WorldlineInputs:
-    """The input specification for a worldline query."""
+WORLDLINE_BRANCH = BranchPlacement(policy="current")
+"""Worldlines are mutable **current-branch** artifacts — not master-canonical.
 
-    environment: Environment = field(default_factory=Environment)
-    overrides: dict[str, float | str] = field(default_factory=dict[str, float | str])
-
-    @classmethod
-    def from_dict(cls, data: object) -> WorldlineInputs:
-        if data is None:
-            return cls()
-        payload = _optional_mapping(data, "inputs")
-        if not payload:
-            return cls()
-        return cls(
-            environment=Environment.from_dict(payload),
-            overrides=dict(_optional_mapping(payload.get("overrides"), "overrides")),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self.environment.to_dict()
-        if self.overrides:
-            data["overrides"] = dict(self.overrides)
-        return data
+Unlike the semantic charter families (which land on the primary branch), a
+worldline is authored/refreshed state that lives on whatever branch the caller
+is working on. ``BranchPlacement(policy="current")`` resolves to the owner's
+current branch (``GitStore.current_branch_name``), the same resolution every
+charter's default placement already uses; making it explicit records the intent.
+"""
 
 
-@dataclass
-class WorldlineRevisionQuery:
-    operation: str = ""
-    atom: RevisionAtomRef | None = None
-    target: str | None = None
-    conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
-    operator: str | None = None
-    profile_atom_ids: tuple[tuple[str, ...], ...] = ()
-    integrity_constraint: Mapping[str, Any] | None = None
-    merge_parent_commits: tuple[str, ...] = ()
-    max_alphabet_size: int | None = None
+if TYPE_CHECKING:
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> WorldlineRevisionQuery | None:
-        if not data:
-            return None
-        max_alphabet_size = data.get("max_alphabet_size")
-        return cls(
-            operation=str(data.get("operation", "")),
-            atom=RevisionAtomRef.from_mapping(data.get("atom")),
-            target=_validated_revision_target(str(data.get("operation", "")), data.get("target")),
-            conflicts=RevisionConflictSelection.from_mapping(data.get("conflicts")),
-            operator=data.get("merge_operator") or data.get("operator"),
-            profile_atom_ids=_revision_profile_atom_ids(data.get("profile_atom_ids") or ()),
-            integrity_constraint=(
-                None
-                if data.get("integrity_constraint") is None
-                else dict(_optional_mapping(data.get("integrity_constraint"), "integrity_constraint"))
-            ),
-            merge_parent_commits=tuple(str(commit) for commit in (data.get("merge_parent_commits") or ())),
-            max_alphabet_size=(
-                None
-                if max_alphabet_size is None
-                else int(max_alphabet_size)
-            ),
-        )
+    @dataclass(frozen=True)
+    class WorldlineRef:
+        name: str
 
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {"operation": self.operation}
-        if self.atom is not None:
-            data["atom"] = self.atom.to_dict()
-        if self.target is not None:
-            data["target"] = self.target
-        if self.conflicts.targets_by_atom_id:
-            data["conflicts"] = self.conflicts.to_dict()
-        if self.operator is not None:
-            data["operator"] = self.operator
-        if self.profile_atom_ids:
-            data["profile_atom_ids"] = [list(profile) for profile in self.profile_atom_ids]
-        if self.integrity_constraint is not None:
-            data["integrity_constraint"] = dict(self.integrity_constraint)
-        if self.merge_parent_commits:
-            data["merge_parent_commits"] = list(self.merge_parent_commits)
-        if self.max_alphabet_size is not None:
-            data["max_alphabet_size"] = self.max_alphabet_size
-        return data
+else:
+    WorldlineRef = single_field_ref_type("WorldlineRef", "name", module=__name__)
 
 
-def _revision_profile_atom_ids(value: object) -> tuple[tuple[str, ...], ...]:
-    if not _is_sequence(value):
-        raise ValueError("worldline revision profile_atom_ids must be a sequence")
-    profiles: list[tuple[str, ...]] = []
-    for profile in value:
-        if not _is_sequence(profile):
-            raise ValueError("worldline revision profile_atom_ids entries must be sequences")
-        profiles.append(tuple(str(atom_id) for atom_id in profile))
-    return tuple(profiles)
+WORLDLINE_PLACEMENT: FlatYamlPlacement[object, WorldlineRef] = FlatYamlPlacement(
+    "worldlines",
+    WorldlineRef,
+    ref_field="name",
+    branch=WORLDLINE_BRANCH,
+)
+"""Store each worldline at ``worldlines/<name>.yaml`` on the current branch."""
 
 
-@dataclass
-class WorldlineResult:
-    """The materialized results of a worldline query."""
+@charter(
+    key="worldlines",
+    name="worldlines",
+    contract_version="2026.06.29",
+    placement=WORLDLINE_PLACEMENT,
+    identity_field="name",
+)
+class WorldlineDefinition(CharterDoc):
+    """A worldline: question + optional materialized answer — the charter document.
 
-    computed: str = ""
-    content_hash: str = ""
-    values: dict[str, WorldlineTargetValue] = field(
-        default_factory=dict[str, WorldlineTargetValue]
-    )
-    steps: tuple[WorldlineStep, ...] = ()
-    dependencies: WorldlineDependencies = field(default_factory=WorldlineDependencies)
-    sensitivity: WorldlineSensitivityReport | None = None
-    argumentation: WorldlineArgumentationState | None = None
-    revision: WorldlineRevisionState | None = None
+    The class IS the ``worldlines`` family document (single canonical type). The
+    world-shaped values (``inputs`` / ``policy`` / ``revision`` / ``results``) ride
+    as their dict serialization so this module stays storage-pure; the compute
+    forms are reconstructed one-way at use time by ``propstore.worldline.query`` /
+    ``runner`` (``RenderPolicy.from_dict`` etc.). There is no
+    ``WorldlineDefinitionDocument`` mirror and no ``to_document``/``from_document``
+    coercer.
 
-    def __post_init__(self) -> None:
-        self.values = {
-            str(target_name): coerce_worldline_target_value(value)
-            for target_name, value in self.values.items()
-        }
-        self.steps = tuple(coerce_worldline_step(step) for step in self.steps)
+    ``journal`` cannot ride as its runtime type: a
+    :class:`~propstore.support_revision.history.TransitionJournal` nests an
+    untagged atom union msgspec cannot decode, so it is persisted as the journal's
+    own canonical dict (:meth:`TransitionJournal.to_dict`) and reconstructed on
+    demand by :meth:`transition_journal` via the package-owned
+    :meth:`TransitionJournal.from_mapping`.
+    """
 
-    @classmethod
-    def from_dict(cls, data: object) -> WorldlineResult | None:
-        if data is None:
-            return None
-        payload = _optional_mapping(data, "results")
-        if not payload:
-            return None
-        raw_values = _optional_mapping(payload.get("values"), "values")
-        values: dict[str, WorldlineTargetValue] = {}
-        for target_name, value in raw_values.items():
-            if not _is_mapping(value):
-                raise ValueError(f"worldline field 'values.{target_name}' must be a mapping")
-            values[str(target_name)] = WorldlineTargetValue.from_mapping(value)
-        return cls(
-            computed=payload.get("computed", ""),
-            content_hash=payload.get("content_hash", ""),
-            values=values,
-            steps=tuple(
-                WorldlineStep.from_mapping(step)
-                for step in (payload.get("steps") or ())
-                if _is_mapping(step)
-            ),
-            dependencies=WorldlineDependencies.from_mapping(payload.get("dependencies")),
-            sensitivity=WorldlineSensitivityReport.from_mapping(payload.get("sensitivity")),
-            argumentation=WorldlineArgumentationState.from_mapping(payload.get("argumentation")),
-            revision=WorldlineRevisionState.from_mapping(payload.get("revision")),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "computed": self.computed,
-            "content_hash": self.content_hash,
-            "values": {
-                target_name: target_value.to_dict()
-                for target_name, target_value in self.values.items()
-            },
-            "steps": [step.to_dict() for step in self.steps],
-            "dependencies": self.dependencies.to_dict(),
-        }
-        if self.sensitivity is not None:
-            data["sensitivity"] = self.sensitivity.to_dict()
-        if self.argumentation is not None:
-            data["argumentation"] = self.argumentation.to_dict()
-        if self.revision is not None:
-            data["revision"] = self.revision.to_dict()
-        return data
-
-
-@dataclass
-class WorldlineDefinition:
-    """A worldline: question + optional answer."""
-
-    id: str
-    name: str = ""
+    name: Annotated[str, charter_field(primary_key=True)] = ""
+    id: str = ""
     created: str = ""
-    inputs: WorldlineInputs = field(default_factory=WorldlineInputs)
-    policy: RenderPolicy = field(default_factory=RenderPolicy)
-    targets: list[str] = field(default_factory=list[str])
-    revision: WorldlineRevisionQuery | None = None
-    results: WorldlineResult | None = None
-    # 7b seam: the transition ``journal`` field (support_revision.history) attaches
-    # with revision capture in Phase 7b.
+    targets: Annotated[list[str], charter_field(json=True)] = msgspec.field(
+        default_factory=list[str]
+    )
+    inputs: Annotated[dict[str, Any], charter_field(json=True)] = msgspec.field(
+        default_factory=dict[str, Any]
+    )
+    policy: Annotated[dict[str, Any], charter_field(json=True)] = msgspec.field(
+        default_factory=dict[str, Any]
+    )
+    revision: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
+    results: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
+    journal: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WorldlineDefinition:
@@ -253,15 +156,38 @@ class WorldlineDefinition:
         if not targets:
             raise ValueError("Worldline definition requires 'targets'")
 
+        raw_revision = data.get("revision")
+        revision = None
+        if raw_revision is not None:
+            revision_map = _optional_mapping(raw_revision, "revision")
+            # Validate the revision target eagerly at parse time (raises on an
+            # unprefixed contract target); the stored form is the raw mapping.
+            validated_revision_target(
+                str(revision_map.get("operation", "")),
+                revision_map.get("target"),
+            )
+            revision = dict(revision_map)
+
+        raw_results = data.get("results")
+        raw_journal = data.get("journal")
         return cls(
             id=data["id"],
             name=data.get("name", ""),
             created=data.get("created", ""),
-            inputs=WorldlineInputs.from_dict(data.get("inputs")),
-            policy=RenderPolicy.from_dict(data.get("policy")),
+            inputs=dict(_optional_mapping(data.get("inputs"), "inputs")),
+            policy=dict(_optional_mapping(data.get("policy"), "policy")),
             targets=list(targets),
-            revision=WorldlineRevisionQuery.from_dict(data.get("revision")),
-            results=WorldlineResult.from_dict(data.get("results")),
+            revision=revision,
+            results=(
+                None
+                if raw_results is None
+                else dict(_optional_mapping(raw_results, "results"))
+            ),
+            journal=(
+                None
+                if raw_journal is None
+                else dict(_optional_mapping(raw_journal, "journal"))
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -270,32 +196,27 @@ class WorldlineDefinition:
             data["name"] = self.name
         if self.created:
             data["created"] = self.created
-
-        inputs = self.inputs.to_dict()
-        if inputs:
-            data["inputs"] = inputs
-
-        policy = self.policy.to_dict()
-        if policy:
-            data["policy"] = policy
-
+        if self.inputs:
+            data["inputs"] = dict(self.inputs)
+        if self.policy:
+            data["policy"] = dict(self.policy)
         data["targets"] = list(self.targets)
-
         if self.revision is not None:
-            data["revision"] = self.revision.to_dict()
+            data["revision"] = dict(self.revision)
         if self.results is not None:
-            data["results"] = self.results.to_dict()
+            data["results"] = dict(self.results)
+        if self.journal is not None:
+            data["journal"] = dict(self.journal)
         return data
 
-    def is_stale(self, world: Any) -> bool:
-        if self.results is None:
-            return False
+    def transition_journal(self) -> TransitionJournal | None:
+        """Reconstruct the captured journal as its canonical package type.
 
-        stored_hash = self.results.content_hash
-        if not stored_hash:
-            return True
+        The persisted ``journal`` field holds the journal's own serialized dict
+        (:meth:`TransitionJournal.to_dict`); this is the package-owned parse back
+        to the single canonical :class:`TransitionJournal` — never a mirror type.
+        """
 
-        from propstore.worldline.runner import run_worldline
-
-        current_results = run_worldline(self, world)
-        return current_results.content_hash != stored_hash
+        if self.journal is None:
+            return None
+        return TransitionJournal.from_mapping(self.journal)

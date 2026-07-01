@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from propstore.support_revision.history import EpistemicSnapshot
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.state import EpistemicState, RevisionResult
-from propstore.worldline.definition import WorldlineRevisionQuery
+from propstore.worldline.query import WorldlineRevisionQuery
 from propstore.worldline.revision_capture import capture_revision_state
 from propstore.worldline.revision_types import WorldlineRevisionState
 from tests.support_revision.formal_realization_helpers import revise_via_formal_decision

@@ -16,9 +16,10 @@ from typing import Any
 from propstore.core.id_types import ConceptId, ContextId, to_concept_id
 from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
-from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
+from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.interfaces import HasEnvironment, HasLiftingSystem, WorldlineStore
+from propstore.worldline.query import WorldlineInputs, WorldlineResult, WorldlineRevisionQuery
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineCaptureError,
@@ -47,13 +48,18 @@ def run_worldline(
     definition: WorldlineDefinition,
     world: WorldlineStore,
 ) -> WorldlineResult:
-    from propstore.world.types import ResolutionStrategy
+    from propstore.world.types import RenderPolicy, ResolutionStrategy
 
-    environment = definition.inputs.environment
+    # Compile the charter's stored dict serialization into the canonical compute
+    # forms one-way at use time (CLAUDE.md substrate discipline point 3): the
+    # charter stays storage-pure, the runner owns the world-shaped types.
+    inputs = WorldlineInputs.from_dict(definition.inputs)
+    environment = inputs.environment
     bindings = dict(environment.bindings)
     context_id = environment.context_id
-    overrides = dict(definition.inputs.overrides)
-    policy = definition.policy
+    overrides = dict(inputs.overrides)
+    policy = RenderPolicy.from_dict(definition.policy)
+    revision = WorldlineRevisionQuery.from_dict(definition.revision)
     strategy = policy.strategy
     bound = world.bind(environment, policy=policy)
 
@@ -117,7 +123,7 @@ def run_worldline(
             argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
                 bound,
                 world,
-                definition,
+                policy,
             )
             if argumentation_state is not None:
                 trace.dependency_claims.update(active_ids)
@@ -129,13 +135,13 @@ def run_worldline(
             )
 
     revision_state: WorldlineRevisionState | None = None
-    if definition.revision is not None:
+    if revision is not None:
         try:
-            revision_state = capture_revision_state(bound, definition.revision)
+            revision_state = capture_revision_state(bound, revision)
         except Exception:
             logger.warning("revision capture failed", exc_info=True)
             revision_state = WorldlineRevisionState(
-                operation=definition.revision.operation,
+                operation=revision.operation,
                 status="error",
                 error=WorldlineCaptureError.REVISION,
             )
@@ -152,7 +158,7 @@ def run_worldline(
         blocked_exceptions=tuple(blocked_exceptions),
     )
     content_hash = compute_worldline_content_hash(
-        policy=policy_profile_from_render_policy(definition.policy).to_dict(),
+        policy=policy_profile_from_render_policy(policy).to_dict(),
         values=values,
         steps=trace.steps,
         dependencies=dependencies,
@@ -171,6 +177,27 @@ def run_worldline(
         argumentation=argumentation_state,
         revision=revision_state,
     )
+
+
+def worldline_is_stale(definition: WorldlineDefinition, world: WorldlineStore) -> bool:
+    """Whether a worldline's stored result no longer matches a fresh render.
+
+    Lives in the execution layer (not on the storage-pure charter) because it
+    re-runs the worldline: a worldline with no stored result is never stale, one
+    whose stored ``content_hash`` is empty is always stale, and otherwise the
+    current render's content hash is compared against the stored one.
+    """
+
+    results = definition.results
+    if results is None:
+        return False
+
+    stored = WorldlineResult.from_dict(results)
+    stored_hash = "" if stored is None else stored.content_hash
+    if not stored_hash:
+        return True
+
+    return run_worldline(definition, world).content_hash != stored_hash
 
 
 def _capture_sensitivity(

@@ -48,13 +48,13 @@ class _FakeValueResult:
 def _argumentation_definition() -> WorldlineDefinition:
     return WorldlineDefinition(
         id="typed-argumentation-error",
-        inputs=WorldlineInputs(environment=Environment(), overrides={}),
+        inputs=WorldlineInputs(environment=Environment(), overrides={}).to_dict(),
         policy=RenderPolicy(
             strategy=ResolutionStrategy.ARGUMENTATION,
             reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
             semantics="grounded",
-        ),
-        targets=("target",),
+        ).to_dict(),
+        targets=["target"],
     )
 
 

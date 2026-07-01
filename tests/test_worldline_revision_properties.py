@@ -11,7 +11,7 @@ from propstore.support_revision.state import (
     RevisionEvent,
     SupportRevisionRealization,
 )
-from propstore.worldline.definition import WorldlineRevisionQuery
+from propstore.worldline.query import WorldlineRevisionQuery
 from propstore.worldline.revision_capture import capture_journal
 from tests.fixtures.journal import direct_dispatch, make_assertion_atom, make_state
 from tests.test_capture_journal import _JournalBound

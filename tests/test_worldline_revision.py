@@ -26,10 +26,16 @@ def test_worldline_definition_roundtrip_preserves_revision_query_block() -> None
         },
     })
 
+    # The charter stores the revision block as a mapping; the compute form is
+    # rebuilt one-way via ``WorldlineRevisionQuery.from_dict``.
+    from propstore.worldline.query import WorldlineRevisionQuery
+
     assert definition.revision is not None
-    assert definition.revision.operation == "revise"
-    assert definition.revision.atom is not None
-    assert definition.revision.atom.to_dict() == {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0}
+    query = WorldlineRevisionQuery.from_dict(definition.revision)
+    assert query is not None
+    assert query.operation == "revise"
+    assert query.atom is not None
+    assert query.atom.to_dict() == {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0}
     assert definition.to_dict()["revision"]["conflicts"] == {synthetic.atom_id: [legacy.atom_id]}
 
 

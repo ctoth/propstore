@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.01
+  contract_version: 2026.07.02
   body:
     families:
     - contract_version: 2026.06.28
@@ -221,6 +221,9 @@ contracts:
     - contract_version: 2026.06.29
       key: merge_manifest
       name: merge_manifest
+    - contract_version: 2026.06.29
+      key: worldlines
+      name: worldlines
 - kind: family
   name: build_diagnostic
   contract_version: 2026.06.29
@@ -865,6 +868,26 @@ contracts:
       target_field: claim_id
     identity_field: stance_id
     key: stance
+- kind: family
+  name: worldlines
+  contract_version: 2026.06.29
+  body:
+    accessor: worldlines
+    artifact_family: worldlines
+    artifact_family_contract:
+      doc_type: propstore.worldline.definition.WorldlineDefinitionModel
+      placement:
+        branch:
+          policy: current
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: worldlines
+        ref_field: name
+    artifact_family_contract_version: 2026.06.29
+    foreign_keys: []
+    identity_field: name
+    key: worldlines
 - kind: semantic_pass
   name: claim.check
   contract_version: 2026.06.30
@@ -975,4 +998,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.01
+  contract_version: 2026.07.02

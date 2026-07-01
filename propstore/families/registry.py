@@ -49,6 +49,7 @@ from propstore.families.sources import (
     SourceMicropublicationsDocument,
     SourceStancesDocument,
 )
+from propstore.worldline.definition import WorldlineDefinition
 
 # Re-exported here so the source subsystem can use ``propstore.families.registry``
 # as the one import site for source-branch refs and placement (matching the
@@ -61,7 +62,11 @@ from propstore.families.sources import SourceRef as SourceRef
 from propstore.families.predicates import PredicateProposalRef as PredicateProposalRef
 from propstore.families.rules import RuleProposalRef as RuleProposalRef
 
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.01")
+# Re-exported so the worldline owner/CLI subsystem can use
+# ``propstore.families.registry`` as the one import site for the worldline ref.
+from propstore.worldline.definition import WorldlineRef as WorldlineRef
+
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.02")
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
 # The charter-bearing document classes, in authoring order. The registry's
@@ -98,6 +103,8 @@ _CHARTER_MODELS = (
     CalibrationCount,
     # Merge record family (written by the two-parent storage merge commit).
     MergeManifest,
+    # Worldline family (mutable current-branch authored/materialized state).
+    WorldlineDefinition,
 )
 
 _CHARTERS: tuple[FamilyCharter, ...] = tuple(
@@ -152,6 +159,7 @@ class PropstoreFamily(StrEnum):
     BUILD_DIAGNOSTIC = "build_diagnostic"
     CALIBRATION_COUNTS = "calibration_counts"
     MERGE_MANIFEST = "merge_manifest"
+    WORLDLINES = "worldlines"
 
 
 def registered_family_names() -> tuple[str, ...]:

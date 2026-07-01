@@ -13,7 +13,7 @@ from propstore.support_revision.history import JournalOperator, TransitionJourna
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.realization import realize_ic_merge_decision
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionMergeRequiredFailure, RevisionScope
-from propstore.worldline.definition import WorldlineRevisionQuery
+from propstore.worldline.query import WorldlineRevisionQuery
 from tests.fixtures.journal import make_journal_entry
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 

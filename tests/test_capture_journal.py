@@ -1,24 +1,32 @@
 """Worldline journal-capture tests.
 
-The in-memory ``capture_journal`` surface plus the ``at_journal_step`` bridge over
-a captured journal are exercised here. The document-codec / CLI cases from the
-reference suite still ride on Phase-8/9 surfaces (``families.documents.worldlines``,
-``cli.worldline.journal``, ``Repository``-backed worldline persistence) that the
-rewrite has not landed yet; they remain listed in ``docs/rewrite/deferred-tests.md``.
+The in-memory ``capture_journal`` surface, the ``at_journal_step`` bridge over a
+captured journal, and the **document-codec round-trip** (a captured journal
+survives ``Repository``-backed worldline persist -> load with the journal intact)
+are exercised here. The document-codec cases land with slice W1: the worldline is
+a single canonical charter (:class:`WorldlineDefinition`), and the journal is
+persisted as its own canonical dict (``TransitionJournal.to_dict()``) and
+reconstructed through the package-owned ``TransitionJournal.from_mapping`` — there
+is no ``WorldlineDefinitionDocument`` mirror and no ``to_document`` coercer. The
+``cli.worldline`` cases still ride on the deferred CLI/owner surfaces.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.families.registry import WorldlineRef
+from propstore.repository import Repository
 from propstore.support_revision.history import JournalOperator, TransitionJournal
 from propstore.support_revision.state import EpistemicState
 from propstore.world.bridge import at_journal_step
-from propstore.worldline.definition import WorldlineRevisionQuery
+from propstore.worldline.definition import WorldlineDefinition
+from propstore.worldline.query import WorldlineRevisionQuery
 from tests.fixtures.journal import (
     direct_dispatch,
     make_assertion_atom,
@@ -221,3 +229,82 @@ def test_capture_journal_preserves_expand_as_expand_operator() -> None:
     assert journal.entries[0].operator is JournalOperator.EXPAND
     assert journal.replay().ok
     assert atom.atom_id in journal.entries[0].state_out.state.accepted_atom_ids
+
+
+def _capture_two_step_journal() -> TransitionJournal:
+    first = make_assertion_atom(
+        relation_local="doc_rel_1",
+        subject="doc_subject_1",
+        value="doc_value_1",
+        source_claim_local_ids=("doc_claim_1",),
+    )
+    second = make_assertion_atom(
+        relation_local="doc_rel_2",
+        subject="doc_subject_2",
+        value="doc_value_2",
+        source_claim_local_ids=("doc_claim_2",),
+    )
+    initial_state = make_state(atoms=(first, second), accepted_atom_ids=())
+    from propstore.worldline.revision_capture import capture_journal
+
+    return capture_journal(
+        _JournalBound(initial_state),
+        (_query_for(first.atom_id), _query_for(second.atom_id)),
+    )
+
+
+def test_worldline_charter_journal_survives_repository_round_trip(tmp_path: Path) -> None:
+    """A captured journal attached to a worldline survives persist -> load intact.
+
+    The single canonical charter carries the journal as its own canonical dict;
+    ``WorldlineDefinition.transition_journal`` reconstructs the package type via
+    ``TransitionJournal.from_mapping``. No mirror document, no ``to_document``.
+    """
+
+    journal = _capture_two_step_journal()
+    repo = Repository.init(tmp_path / "knowledge")
+    definition = WorldlineDefinition(
+        name="journalled",
+        id="journalled",
+        targets=["target"],
+        journal=journal.to_dict(),
+    )
+
+    repo.families.worldlines.save(
+        WorldlineRef("journalled"), definition, message="capture journal"
+    )
+    loaded = repo.families.worldlines.load(WorldlineRef("journalled"))
+
+    assert loaded is not None
+    reconstructed = loaded.transition_journal()
+    assert isinstance(reconstructed, TransitionJournal)
+    assert reconstructed == journal
+    assert tuple(entry.content_hash for entry in reconstructed.entries) == tuple(
+        entry.content_hash for entry in journal.entries
+    )
+
+
+def test_worldline_charter_journal_survives_mapping_codec() -> None:
+    """The human-authored mapping codec (``from_dict``/``to_dict``) preserves the
+    journal without ever spelling a second journal type."""
+
+    journal = _capture_two_step_journal()
+    definition = WorldlineDefinition(
+        name="mapped", id="mapped", targets=["target"], journal=journal.to_dict()
+    )
+
+    rebuilt = WorldlineDefinition.from_dict(definition.to_dict())
+
+    assert rebuilt.transition_journal() == journal
+
+
+def test_worldline_without_journal_reconstructs_to_none(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    definition = WorldlineDefinition(name="plain", id="plain", targets=["target"])
+
+    repo.families.worldlines.save(WorldlineRef("plain"), definition, message="no journal")
+    loaded = repo.families.worldlines.load(WorldlineRef("plain"))
+
+    assert loaded is not None
+    assert loaded.journal is None
+    assert loaded.transition_journal() is None
