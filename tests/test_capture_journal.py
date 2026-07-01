@@ -424,3 +424,60 @@ def test_owner_at_step_without_journal_is_a_validation_error(tmp_path: Path) -> 
     )
     with pytest.raises(WorldlineValidationError):
         worldline_at_step(repo, WorldlineAtStepRequest(name="wl", step=0))
+
+
+# ---------------------------------------------------------------------------
+# CLI journal cases: `pks worldline build-journal` / `at-step` drive the thin
+# propstore.cli.worldline adapter over the same owner surface (slice W3).
+
+
+def test_cli_build_journal_and_at_step_round_trip(tmp_path: Path) -> None:
+    from click.testing import CliRunner
+
+    from propstore.cli import cli
+
+    repo, atom_id = _repo_with_one_atom(tmp_path)
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "wl",
+            "name": "wl",
+            "targets": ["Speed"],
+            "revision": {
+                "operation": "revise",
+                "atom": {"kind": "assertion", "id": atom_id},
+                "conflicts": {},
+            },
+        }
+    )
+    repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
+
+    runner = CliRunner()
+    built = runner.invoke(
+        cli, ["-C", str(repo.root), "worldline", "build-journal", "wl"]
+    )
+    assert built.exit_code == 0, built.output
+    assert "1 steps" in built.output
+
+    at_step = runner.invoke(
+        cli, ["-C", str(repo.root), "worldline", "at-step", "wl", "0"]
+    )
+    assert at_step.exit_code == 0, at_step.output
+    assert "cl1" in at_step.output
+
+
+def test_cli_at_step_without_journal_is_nonzero(tmp_path: Path) -> None:
+    from click.testing import CliRunner
+
+    from propstore.cli import cli
+
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.families.worldlines.save(
+        WorldlineRef("wl"),
+        WorldlineDefinition(name="wl", id="wl", targets=["Speed"]),
+        message="no journal",
+    )
+    result = CliRunner().invoke(
+        cli, ["-C", str(repo.root), "worldline", "at-step", "wl", "0"]
+    )
+    assert result.exit_code != 0
+    assert "journal" in result.output.lower()
