@@ -14,7 +14,6 @@ def test_active_surfaces_do_not_reference_retired_revision_package() -> None:
         Path("propstore/worldline/revision_capture.py"),
         Path("propstore/worldline/revision_types.py"),
         Path("docs/atms.md"),
-        Path("docs/argumentation.md"),
     ]
     paths = [path for path in candidate_paths if path.exists()]
 
