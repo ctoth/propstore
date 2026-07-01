@@ -317,8 +317,9 @@ Deferred (reference surface not built in C3):
 - test_world_model_resolve_cache.py, test_world_model_branch_column_required.py
   -> 9 (sqlite reader caching / branch column).
 - test_world_query_at_journal_step.py, test_world_query_at_journal_step_method.py
-  -> 8 (`at_journal_step` / `bind_for_view` / `_BoundView` / `ClaimView` —
-  support_revision journal/worldline bridge).
+  -> CLOSED (worldline-layer build, slice W0, commit 707452de): `world/bridge.py`
+  + `world/journal_replay.py` + `WorldQuery.at_journal_step` / `bind_for_view` /
+  `_BoundView` + `ClaimView` (over the charter `Claim`, no `ClaimRow` mirror) landed.
 
 ## Deferred during Phase 7a-worldline
 
@@ -494,13 +495,14 @@ PORTed in 7b-4 (now green):
 PORTed partially (in-memory capture only) in 7b-4:
 - test_capture_journal.py — the `capture_journal` determinism / replay-vs-direct-
   dispatch / revise-revise-contract / expand-operator cases are ported and green.
-  The document-codec roundtrip cases (need
-  `families.documents.worldlines.WorldlineDefinitionDocument` +
-  `WorldlineDefinition.journal` / `to_document`), the
-  `worldline_build_journal` / `worldline_at_step` CLI cases (need
-  `propstore.cli.worldline.journal` + `propstore.app.worldlines`), and the
-  `at_journal_step` case (Phase 8) are NOT ported — those surfaces are not in the
-  rewrite yet.
+  CLOSED (worldline-layer build): the document-codec roundtrip cases land via the
+  single-canonical `WorldlineDefinition` charter's `journal` dict round-trip
+  (slice W1, 672be013) — deliberately NOT via a
+  `families.documents.worldlines.WorldlineDefinitionDocument` / `to_document`
+  mirror, which the single-canonical-type rule forbids; the
+  `worldline_build_journal` / `worldline_at_step` cases land via
+  `propstore.app.worldlines` (W2, 77fb4b4b) + `propstore.cli.worldline` (W3,
+  21097731); the `at_journal_step` case lands via the W0 bridge (707452de).
 
 Closed in 9-2:
 - test_worldline_revision_merge_parent_evidence.py -> CLOSED in 9-2 (real git merge
@@ -1283,12 +1285,13 @@ CLOSED here (the A1 CLI rows): the Click surfaces of
   public `grounding.loading.load_grounding_repo` so the grounding adapter stays
   thin (`derived_build` delegates to it — single canonical spelling).
 
-NOT closed in 10-1 (owner/phase prerequisites):
+Deferred at 10-1, CLOSED in the worldline-layer build:
 - `pks worldline …` (show/list/diff/create/run/refresh/delete/build-journal/
-  at-step) and `test_capture_journal.py` CLI cases → the `propstore.app.worldlines`
-  owner + repo-backed worldline definition/result persistence do not exist (a
-  Phase-9/app-layer prerequisite, already deferred above as `test_worldline.py`
-  → 9). The registry keeps a lazy `worldline` entry; it errors only if invoked.
+  at-step) and `test_capture_journal.py` CLI cases → CLOSED: repo-backed
+  worldline charter persistence (W1, 672be013) + `propstore.app.worldlines` owner
+  (W2, 77fb4b4b) + the `propstore.cli.worldline` package (W3, 21097731). `pks
+  worldline` now resolves and `--help` lists all 9 subcommands; the
+  previously-dangling lazy `worldline` registry entry no longer errors on invoke.
 - `pks proposal propose-rules` / `promote-rules` and `test_cli_propose_rules_*` /
   `test_cli_promote_rules_*` / `test_promote_rules_proposals` → CLOSED in Phase
   10-4 (see the Phase 10-4 LANDED section above).
