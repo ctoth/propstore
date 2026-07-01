@@ -6,7 +6,7 @@ Jøsang/Denoeux/Smets criteria), the value-status / resolution-strategy
 coercers, ``IntegrityConstraint`` (de)serialization, ``QueryableAssumption``
 coercion, and the substrate-boundary invariants (one canonical
 ``RenderPolicy``; ``MergeOperator`` owned by ``assignment_selection``; no
-mirror of the merge value types; ``ClaimView`` excluded until Phase 8).
+mirror of the merge value types; ``ClaimView`` landed by the journal-step bridge).
 """
 
 from __future__ import annotations
@@ -65,10 +65,20 @@ def test_world_types_does_not_redefine_merge_value_types() -> None:
         assert not hasattr(world_types, redefined), redefined
 
 
-def test_claim_view_is_excluded_until_phase_8() -> None:
-    import propstore.world.types as world_types
+def test_claim_view_is_landed_by_journal_step_bridge() -> None:
+    # The journal-step bridge (slice W0) lands ``ClaimView`` on the spine as the
+    # return type of ``at_journal_step``. It carries the canonical charter
+    # ``Claim`` — no ``ClaimRow`` mirror — plus a snapshot scope and optional
+    # heavy-path stances/conflicts.
+    from propstore.support_revision.state import RevisionScope
+    from propstore.world.types import ClaimView
 
-    assert not hasattr(world_types, "ClaimView")
+    fields = ClaimView.__dataclass_fields__
+    assert set(fields) == {"claims", "scope", "bound", "stances", "conflicts"}
+    empty = ClaimView(claims={}, scope=RevisionScope(bindings={}, context_id=None))
+    assert empty.claim_ids() == set()
+    assert empty.stances == ()
+    assert empty.conflicts == ()
 
 
 # --- RenderPolicy: round-trip + lifecycle admits ----------------------------

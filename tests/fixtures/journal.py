@@ -14,9 +14,11 @@ input shapes:
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.active_claims import coerce_active_claim
+from propstore.families.claims import Claim
 from propstore.core.assertions.refs import (
     ConditionRef,
     ContextReference,
@@ -62,11 +64,15 @@ def make_assertion_atom(
     subject: str,
     value: str,
     source_claim_local_ids: tuple[str, ...] = (),
+    source_claim_ids: tuple[str, ...] | None = None,
 ) -> AssertionAtom:
     """Return a real ``AssertionAtom`` whose source_claims are real ActiveClaims.
 
     The atom_id is derived from the assertion (relation + role bindings +
-    context + condition), as production demands.
+    context + condition), as production demands. ``source_claim_local_ids`` are
+    prefixed into the ``propstore:claim:test/…`` synthetic namespace;
+    ``source_claim_ids`` (when given) are used verbatim, so a caller can point an
+    atom at claim ids it authored into a real charter store.
     """
     assertion = SituatedAssertion(
         relation=RelationConceptRef(f"ps:relation:test:{relation_local}"),
@@ -82,15 +88,79 @@ def make_assertion_atom(
             f"urn:propstore:test-claim-prov:{relation_local}/{subject}/{value}"
         ),
     )
+    if source_claim_ids is None:
+        source_claim_ids = tuple(
+            f"propstore:claim:test/{local}" for local in source_claim_local_ids
+        )
     source_claims = tuple(
-        coerce_active_claim({"id": f"propstore:claim:test/{local}"})
-        for local in source_claim_local_ids
+        coerce_active_claim({"id": claim_id}) for claim_id in source_claim_ids
     )
     return AssertionAtom(
         atom_id=str(assertion.assertion_id),
         assertion=assertion,
         source_claims=source_claims,
     )
+
+
+# ---------------------------------------------------------------------------
+# Synthetic belief space — a *real* BeliefSpaceQuery, not a fake
+
+
+@dataclass(frozen=True)
+class SyntheticBoundView:
+    """Observable artifact of binding under a scope.
+
+    Carries the bound environment so tests can assert ``rebind=True`` actually
+    produced a different shape than ``rebind=False``.
+    """
+
+    bindings: Mapping[str, Any]
+    context_id: str | None
+    restricted_to: frozenset[str]
+
+
+@dataclass
+class SyntheticBeliefSpace:
+    """In-memory belief space satisfying the bridge's surface contract.
+
+    The bridge calls ``claims_by_ids`` and ``bind_for_view`` — both are real
+    here. No method silently no-ops; ``bind_for_view`` returns a real
+    ``SyntheticBoundView`` with all binding state observable. ``rows`` holds the
+    canonical charter :class:`~propstore.families.claims.Claim` — no ``ClaimRow``
+    second spelling.
+    """
+
+    rows: dict[str, Claim] = field(default_factory=dict[str, Claim])
+
+    def add_claim(self, claim_id: str) -> Claim:
+        row = Claim(claim_id=claim_id)
+        self.rows[claim_id] = row
+        return row
+
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
+        return {cid: self.rows[cid] for cid in claim_ids if cid in self.rows}
+
+    def bind_for_view(
+        self,
+        *,
+        bindings: Mapping[str, Any],
+        context_id: str | None,
+        restricted_to: frozenset[str],
+    ) -> SyntheticBoundView:
+        return SyntheticBoundView(
+            bindings=dict(bindings),
+            context_id=context_id,
+            restricted_to=restricted_to,
+        )
+
+
+def synthetic_belief_space_with(*atoms: AssertionAtom) -> SyntheticBeliefSpace:
+    """Build a belief space whose rows cover every source_claim of every atom."""
+    space = SyntheticBeliefSpace()
+    for atom in atoms:
+        for claim in atom.source_claims:
+            space.add_claim(str(claim.claim_id))
+    return space
 
 
 # ---------------------------------------------------------------------------

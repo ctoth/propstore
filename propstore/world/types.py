@@ -67,8 +67,10 @@ from propstore.families.concepts import ConceptStatus
 if TYPE_CHECKING:
     from propstore.conflict_detector.models import ConflictRecord
     from propstore.core.graph_types import ActiveWorldGraph
+    from propstore.families.claims import Claim
     from propstore.families.relations import Stance
     from propstore.grounding.bundle import GroundedRulesBundle
+    from propstore.support_revision.state import RevisionScope
 
 _T = TypeVar("_T")
 
@@ -733,6 +735,40 @@ class SyntheticClaim:
             self.confidence = float(self.confidence)
 
 
+@dataclass(frozen=True)
+class ClaimView:
+    """Bridge return type for :func:`propstore.world.bridge.at_journal_step`.
+
+    Carries the claim-id-keyed charter :class:`~propstore.families.claims.Claim`
+    rows projected from a journal step, the snapshot's ``RevisionScope`` (so
+    callers know what bindings/context the view is taken under), an optional
+    ``bound`` artifact (populated when ``rebind=True`` so the rebind path is
+    observably distinct from the flat view), plus optional tuples of stances and
+    conflicts populated only by the heavy variant.
+
+    Single canonical type (CLAUDE.md substrate boundary): ``claims`` holds the
+    charter ``Claim`` — there is no ``ClaimRow`` second spelling — and
+    ``stances`` / ``conflicts`` hold the charter ``Stance`` and the
+    ``conflict_detector`` ``ConflictRecord`` directly.
+    """
+
+    claims: Mapping[str, Claim]
+    scope: RevisionScope
+    bound: object | None = None
+    stances: tuple[Stance, ...] = field(default_factory=tuple)
+    conflicts: tuple[ConflictRecord, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "claims", dict(self.claims))
+        object.__setattr__(self, "stances", tuple(self.stances))
+        object.__setattr__(self, "conflicts", tuple(self.conflicts))
+
+    def claim_ids(self) -> set[str]:
+        """Return the set of claim id strings in this view."""
+
+        return {str(key) for key in self.claims}
+
+
 @dataclass
 class ChainStep:
     concept_id: str
@@ -1241,6 +1277,7 @@ __all__ = [
     "integrity_constraint_from_dict",
     "integrity_constraint_to_dict",
     "SyntheticClaim",
+    "ClaimView",
     "ChainStep",
     "ChainResult",
     "RenderPolicy",

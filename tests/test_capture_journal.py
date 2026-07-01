@@ -1,10 +1,10 @@
 """Worldline journal-capture tests.
 
-Only the in-memory ``capture_journal`` surface is exercised here. The
-document-codec / CLI / ``at_journal_step`` cases from the reference suite ride on
-Phase-8/9 surfaces (``families.documents.worldlines``, ``cli.worldline.journal``,
-``Repository``-backed ``WorldStore``) that the rewrite has not landed yet; they
-remain listed in ``docs/rewrite/deferred-tests.md``.
+The in-memory ``capture_journal`` surface plus the ``at_journal_step`` bridge over
+a captured journal are exercised here. The document-codec / CLI cases from the
+reference suite still ride on Phase-8/9 surfaces (``families.documents.worldlines``,
+``cli.worldline.journal``, ``Repository``-backed worldline persistence) that the
+rewrite has not landed yet; they remain listed in ``docs/rewrite/deferred-tests.md``.
 """
 
 from __future__ import annotations
@@ -17,11 +17,13 @@ from hypothesis import strategies as st
 
 from propstore.support_revision.history import JournalOperator, TransitionJournal
 from propstore.support_revision.state import EpistemicState
+from propstore.world.bridge import at_journal_step
 from propstore.worldline.definition import WorldlineRevisionQuery
 from tests.fixtures.journal import (
     direct_dispatch,
     make_assertion_atom,
     make_state,
+    synthetic_belief_space_with,
 )
 
 
@@ -158,6 +160,44 @@ def test_phase2_acceptance_captures_revise_revise_contract_journal() -> None:
     assert journal.replay().ok
     assert journal.entries[-1].normalized_state_out == direct.to_canonical_dict()
     assert first.atom_id not in journal.entries[-1].state_out.state.accepted_atom_ids
+
+
+def test_at_journal_step_matches_direct_dispatch_over_capture_journal() -> None:
+    """Dixon P5 over a captured journal: the bridge's projected claim ids equal
+    those of a real step-by-step re-dispatch (``direct_dispatch``), never a read
+    of ``state_out``.
+    """
+    from propstore.worldline.revision_capture import capture_journal
+
+    first = make_assertion_atom(
+        relation_local="ajs_rel_1",
+        subject="ajs_subject_1",
+        value="ajs_value_1",
+        source_claim_local_ids=("ajs_claim_1",),
+    )
+    second = make_assertion_atom(
+        relation_local="ajs_rel_2",
+        subject="ajs_subject_2",
+        value="ajs_value_2",
+        source_claim_local_ids=("ajs_claim_2",),
+    )
+    initial_state = make_state(atoms=(first, second), accepted_atom_ids=())
+    journal = capture_journal(
+        _JournalBound(initial_state),
+        (_query_for(first.atom_id), _query_for(second.atom_id)),
+    )
+    space = synthetic_belief_space_with(first, second)
+
+    for k in range(len(journal.entries)):
+        ground_state = direct_dispatch(journal, k)
+        accepted = set(ground_state.accepted_atom_ids)
+        expected = {
+            str(claim.claim_id)
+            for atom in ground_state.base.atoms
+            if atom.atom_id in accepted and hasattr(atom, "source_claims")
+            for claim in atom.source_claims
+        }
+        assert at_journal_step(space, journal, k).claim_ids() == expected
 
 
 def test_capture_journal_preserves_expand_as_expand_operator() -> None:

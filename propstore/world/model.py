@@ -35,8 +35,9 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from causal_models import InterventionWorld, ObservationWorld, Value
 from condition_ir import ConditionSolver, to_cel_exprs, with_standard_synthetic_bindings
@@ -57,7 +58,7 @@ from propstore.core.graph_types import (
     ParameterizationEdge,
     RelationEdge,
 )
-from propstore.core.id_types import to_concept_id
+from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import (
     compile_environment_assumptions,
     environment_assumption_ids,
@@ -104,6 +105,7 @@ from propstore.world.queries import (
 from propstore.world.types import (
     ChainResult,
     ChainStep,
+    ClaimView,
     DerivedResult,
     RenderPolicy,
     ResolutionStrategy,
@@ -118,6 +120,7 @@ if TYPE_CHECKING:
 
     from propstore.context_lifting import LiftingSystem
     from propstore.repository import Repository
+    from propstore.support_revision.history import TransitionJournal
 
 
 def compiled_graph(store: WorldStore) -> CompiledWorldGraph:
@@ -411,6 +414,21 @@ def _admits_claim(policy: RenderPolicy, claim: Claim) -> bool:
     return True
 
 
+@dataclass(frozen=True)
+class _BoundView:
+    """Observable artifact returned by ``WorldQuery.bind_for_view``.
+
+    Exists so ``at_journal_step(..., rebind=True)`` returns a
+    :class:`~propstore.world.types.ClaimView` whose ``bound`` field is observably
+    non-None and distinct from the flat ``rebind=False`` view. Carries the live
+    :class:`~propstore.world.bound.BoundWorld` plus the claim-id restriction set
+    the snapshot implies.
+    """
+
+    bound: BoundWorld
+    restricted_to: frozenset[str]
+
+
 class WorldQuery(WorldStore):
     """Concrete repo-backed reader over the materialized world sidecar.
 
@@ -608,6 +626,51 @@ class WorldQuery(WorldStore):
             for claim in select_claims(self._session)
             if claim.claim_id in resolved
         }
+
+    def at_journal_step(
+        self,
+        journal: TransitionJournal,
+        k: int,
+        *,
+        rebind: bool = False,
+        heavy: bool = False,
+    ) -> ClaimView:
+        """Project the claims accepted at step ``k`` of the journal.
+
+        Bridge surface defined in
+        ``quire/plans/worldline-journal-bridge-2026-05-02.md``. Per Bonanno
+        [2007, 2010] (branching-time AGM with PLS) and Dixon [1993] (ATMS into
+        AGM behavioural equivalence), this projection is behaviourally equivalent
+        to running the journal's operations against the live store, modulo the
+        lossy projection at the AGM boundary.
+
+        Delegates to :func:`propstore.world.bridge.at_journal_step`; the same
+        function is used by the property suite against a synthetic belief space,
+        so this method's behaviour has the same shape as the property tests.
+        """
+        from propstore.world.bridge import at_journal_step as _at_journal_step
+
+        return _at_journal_step(self, journal, k, rebind=rebind, heavy=heavy)
+
+    def bind_for_view(
+        self,
+        *,
+        bindings: Mapping[str, Any],
+        context_id: str | None,
+        restricted_to: frozenset[str],
+    ) -> _BoundView:
+        """Rebind under a snapshot's scope, restricted to a claim-id set.
+
+        Returns a real :class:`~propstore.world.bound.BoundWorld` so callers of
+        ``at_journal_step(..., rebind=True)`` see an observably-different view
+        than the flat ``rebind=False`` path. The ``restricted_to`` set is carried
+        on the returned view so the bridge tests can observe it.
+        """
+        environment = Environment(
+            bindings=dict(bindings),
+            context_id=None if context_id is None else to_context_id(context_id),
+        )
+        return _BoundView(bound=self.bind(environment), restricted_to=restricted_to)
 
     def claims_with_policy(
         self, concept_id: str | None, policy: RenderPolicy
