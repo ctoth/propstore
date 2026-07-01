@@ -308,3 +308,119 @@ def test_worldline_without_journal_reconstructs_to_none(tmp_path: Path) -> None:
     assert loaded is not None
     assert loaded.journal is None
     assert loaded.transition_journal() is None
+
+
+# ---------------------------------------------------------------------------
+# Owner-layer journal cases: build_worldline_journal + worldline_at_step drive
+# propstore.app.worldlines over a real Repository (not the CLI).
+
+
+def _repo_with_one_atom(tmp_path: Path) -> tuple[Repository, str]:
+    """A repo with one parameter claim; returns (repo, its projected atom id)."""
+    from propstore.core.environment import Environment
+    from propstore.families.claims import Claim, ClaimType
+    from propstore.families.concepts import Concept
+    from propstore.families.contexts import Context
+    from propstore.world import WorldQuery
+
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.families.concept.save(
+        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
+    )
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
+    repo.families.claim.save(
+        "cl1",
+        Claim(
+            claim_id="cl1",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="c1",
+            value=10.0,
+        ),
+        message="m",
+    )
+    world = WorldQuery(repo)
+    try:
+        atoms = world.bind(Environment()).epistemic_state().base.atoms
+    finally:
+        world.close()
+    assert atoms, "expected the single parameter claim to project to one atom"
+    return repo, atoms[0].atom_id
+
+
+def test_owner_build_worldline_journal_and_at_step_round_trip(tmp_path: Path) -> None:
+    from propstore.app.worldlines import (
+        WorldlineAtStepRequest,
+        WorldlineBuildJournalRequest,
+        build_worldline_journal,
+        worldline_at_step,
+    )
+
+    repo, atom_id = _repo_with_one_atom(tmp_path)
+    definition = WorldlineDefinition.from_dict(
+        {
+            "id": "wl",
+            "name": "wl",
+            "targets": ["Speed"],
+            "revision": {
+                "operation": "revise",
+                "atom": {"kind": "assertion", "id": atom_id},
+                "conflicts": {},
+            },
+        }
+    )
+    repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
+
+    journal_report = build_worldline_journal(
+        repo, WorldlineBuildJournalRequest(name="wl")
+    )
+    assert journal_report.step_count == 1
+
+    # The journal was persisted on the charter and reconstructs to the package type.
+    loaded = repo.families.worldlines.load(WorldlineRef("wl"))
+    assert loaded is not None
+    reconstructed = loaded.transition_journal()
+    assert isinstance(reconstructed, TransitionJournal)
+    assert len(reconstructed.entries) == 1
+
+    step_report = worldline_at_step(repo, WorldlineAtStepRequest(name="wl", step=0))
+    assert step_report.step == 0
+    assert "cl1" in step_report.claim_ids
+
+
+def test_owner_build_journal_without_revision_is_a_validation_error(
+    tmp_path: Path,
+) -> None:
+    from propstore.app.worldlines import (
+        WorldlineBuildJournalRequest,
+        WorldlineValidationError,
+        build_worldline_journal,
+    )
+
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.families.worldlines.save(
+        WorldlineRef("wl"),
+        WorldlineDefinition(name="wl", id="wl", targets=["Speed"]),
+        message="no revision",
+    )
+    with pytest.raises(WorldlineValidationError):
+        build_worldline_journal(repo, WorldlineBuildJournalRequest(name="wl"))
+
+
+def test_owner_at_step_without_journal_is_a_validation_error(tmp_path: Path) -> None:
+    from propstore.app.worldlines import (
+        WorldlineAtStepRequest,
+        WorldlineValidationError,
+        worldline_at_step,
+    )
+
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.families.worldlines.save(
+        WorldlineRef("wl"),
+        WorldlineDefinition(name="wl", id="wl", targets=["Speed"]),
+        message="no journal",
+    )
+    with pytest.raises(WorldlineValidationError):
+        worldline_at_step(repo, WorldlineAtStepRequest(name="wl", step=0))
