@@ -44,7 +44,7 @@ propstore now exposes a formal repository-merge layer instead of treating merge 
 - **Completion queries** answer skeptical and credulous acceptance before any storage merge is written
 - **Storage merge commits** are two-parent git commits produced from the formal merge object, not the merge semantics themselves
 
-See [Semantic Merge](docs/semantic-merge.md) for the full architecture and [Git Backend](docs/git-backend.md) for branch operations.
+See [Semantic Merge](docs/semantic-merge.md) for the full architecture; branch operations are documented in the `quire` package (the git backend propstore composes).
 
 ## What It Does Today
 
@@ -335,22 +335,15 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 ## Documentation
 
 - [Data Model](docs/data-model.md) — concepts, forms, claim types, conditions, stances, contexts
-- [Argumentation](docs/argumentation.md) — reasoning backends, conflict detection, ATMS overview
-- [Structured Argumentation (ASPIC+)](docs/structured-argumentation.md) — recursive argument construction, three-type attack, preference defeat
-- [Argumentation Package Boundary](docs/argumentation-package-boundary.md) — implemented split between the reusable `argumentation` kernel and propstore adapters
-- [Probabilistic Argumentation (PrAF)](docs/probabilistic-argumentation.md) — MC sampling, Agresti-Coull stopping, DF-QuAD gradual semantics
-- [Subjective Logic and Calibration](docs/subjective-logic.md) — Opinion algebra, temperature scaling, evidence-to-opinion mapping, decision criteria
+- Substrate docs live in their own package repositories, not here: argumentation (`argumentation`), subjective logic and the opinion algebra (`doxa`), the git backend (`quire`), typed CEL conditions (`condition-ir`), belief-set revision (`formal-belief-set`), and the provenance semiring (`provenance-semiring`).
 - [ATMS](docs/atms.md) — assumption-based truth maintenance, label propagation, bounded replay, interventions
 - [Revision](proposals/true-agm-revision-proposal.md) — operator-based one-shot and iterated AGM-style revision over derived belief state
-- [Bipolar Argumentation](docs/bipolar-argumentation.md) — Cayrol 2005, derived defeats, three admissibility variants
 - [Conflict Detection](docs/conflict-detection.md) — checked condition reasoning, regime splits, six conflict classes
 - [Parameterization and Sensitivity](docs/parameterization.md) — derivation chains, chain queries, elasticity analysis
-- [Algorithm Comparison](docs/algorithm-comparison.md) — ast-equiv four-tier equivalence ladder
 - [Fragility Analysis](docs/fragility.md) — parametric, epistemic, and conflict fragility with ROI ranking
 - [Worldlines](docs/worldlines.md) — materialized query artifacts, provenance tracking, staleness detection
 - [CLI Reference](docs/cli-reference.md) — command reference for the current `pks` surface, including merge inspection and merge commit commands
 - [Semantic Merge](docs/semantic-merge.md) — formal repository merge frameworks, completion queries, exact AF merge operators, branch reasoning
-- [Git Backend](docs/git-backend.md) — Dulwich-backed versioning, KnowledgeRepo, TreeReader, branch primitives
 - [Units and Forms](docs/units-and-forms.md) — dimensional type system, SI normalization, form algebra
 - [Python API](docs/python-api.md) — WorldQuery, BoundWorld, HypotheticalWorld, result types
 - [Integration](docs/integration.md) — how this fits with `research-papers-plugin`
