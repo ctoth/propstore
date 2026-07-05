@@ -21,3 +21,11 @@ main.py
 /notes/
 /notes-*.md
 /knowledge/
+/.claude/
+/logs/
+/scratchpad/
+/.tmp/
+/.tmp-*/
+*.stackdump
+.coverage
+.coverage.*
