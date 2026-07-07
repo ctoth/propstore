@@ -315,7 +315,7 @@ def _resolved_opinion(
             reference_distances, corpus_base_rate=opinion.a
         )
         corpus_opinion = corpus_cal.to_opinion(embedding_distance)
-        opinion = opinion.fuse(corpus_opinion)
+        opinion = Opinion.fuse(opinion, corpus_opinion)
 
     return opinion, None, provenance
 
