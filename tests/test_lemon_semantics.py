@@ -148,14 +148,14 @@ def test_proto_role_entailments_are_graded_and_provenance_bearing(value: float) 
 
     assert proto_agent_weight(bundle) == value
     with pytest.raises(TypeError):
-        GradedEntailment(property=ProtoPatientProperty.AFFECTED, value=value)  # type: ignore[call-arg]
+        GradedEntailment(property=ProtoPatientProperty.CAUSALLY_AFFECTED, value=value)  # type: ignore[call-arg]
 
 
 @pytest.mark.parametrize("bad_value", [-0.01, 1.01])
 def test_proto_role_entailment_value_bounds_are_enforced(bad_value: float) -> None:
     with pytest.raises(ValueError, match=r"\[0, 1\]"):
         GradedEntailment(
-            property=ProtoPatientProperty.AFFECTED,
+            property=ProtoPatientProperty.CAUSALLY_AFFECTED,
             value=bad_value,
             provenance=_provenance("dowty"),
         )
@@ -179,7 +179,7 @@ def test_dowty_argument_selection_prefers_highest_proto_agent_weight() -> None:
     observed = ProtoRoleBundle(
         proto_patient_entailments=(
             GradedEntailment(
-                property=ProtoPatientProperty.AFFECTED,
+                property=ProtoPatientProperty.CAUSALLY_AFFECTED,
                 value=0.8,
                 provenance=_provenance("dowty"),
             ),

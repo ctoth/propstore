@@ -22,23 +22,23 @@ from propstore.provenance import Provenance
 
 
 class ProtoAgentProperty(StrEnum):
-    """Dowty's contributing proto-agent properties."""
+    """Dowty's contributing proto-agent properties (1991, list 27, p.572)."""
 
     VOLITION = "volition"
     SENTIENCE = "sentience"
     CAUSATION = "causation"
     MOVEMENT = "movement"
-    CHANGE_OF_STATE = "change_of_state"
+    INDEPENDENT_EXISTENCE = "independent_existence"
 
 
 class ProtoPatientProperty(StrEnum):
-    """Dowty's contributing proto-patient properties."""
+    """Dowty's contributing proto-patient properties (1991, list 28, p.572)."""
 
-    AFFECTED = "affected"
-    INCREMENTAL_THEME = "incremental_theme"
-    STATIONARY = "stationary"
-    CAUSALLY_AFFECTED = "causally_affected"
     CHANGE_OF_STATE = "change_of_state"
+    INCREMENTAL_THEME = "incremental_theme"
+    CAUSALLY_AFFECTED = "causally_affected"
+    STATIONARY = "stationary"
+    NONEXISTENCE = "nonexistence"
 
 
 class GradedEntailment(msgspec.Struct, frozen=True, forbid_unknown_fields=True):

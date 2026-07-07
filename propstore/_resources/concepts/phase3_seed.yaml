@@ -200,7 +200,7 @@ concepts:
         - name: reactants
           type: ps:concept:reactant
           proto_patient:
-            affected: 0.8
+            causally_affected: 0.8
         - name: products
           type: ps:concept:product
         - name: conditions
