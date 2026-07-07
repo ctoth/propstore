@@ -570,7 +570,7 @@ wheels = [
 [[package]]
 name = "doxa"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/doxa.git?rev=9ad3c523e8c204c5df5af45c2a989f5babaa0de2#9ad3c523e8c204c5df5af45c2a989f5babaa0de2" }
+source = { git = "https://github.com/ctoth/doxa.git?rev=404bf384f5dbbb7a8025baf86b6e7eaf10fd471c#404bf384f5dbbb7a8025baf86b6e7eaf10fd471c" }
 
 [[package]]
 name = "dulwich"
@@ -2118,7 +2118,7 @@ requires-dist = [
     { name = "cel-parser", git = "https://github.com/ctoth/cel-parser.git?rev=96fc4808ef78257ea03549e6298629a9583865c8" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "condition-ir", git = "https://github.com/ctoth/condition-ir.git?rev=f24c42122e8a9ad39073db4801be78053d0ad55f" },
-    { name = "doxa", git = "https://github.com/ctoth/doxa.git?rev=9ad3c523e8c204c5df5af45c2a989f5babaa0de2" },
+    { name = "doxa", git = "https://github.com/ctoth/doxa.git?rev=404bf384f5dbbb7a8025baf86b6e7eaf10fd471c" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "eq-equiv", git = "https://github.com/ctoth/eq-equiv?rev=9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6" },
     { name = "fastapi", specifier = ">=0.136.0" },
