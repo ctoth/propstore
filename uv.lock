@@ -413,7 +413,7 @@ wheels = [
 [[package]]
 name = "condition-ir"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/condition-ir.git?rev=d12de46849fd9465cf26bdf7b18cd9d2ee4c00aa#d12de46849fd9465cf26bdf7b18cd9d2ee4c00aa" }
+source = { git = "https://github.com/ctoth/condition-ir.git?rev=f24c42122e8a9ad39073db4801be78053d0ad55f#f24c42122e8a9ad39073db4801be78053d0ad55f" }
 dependencies = [
     { name = "cel-parser" },
     { name = "z3-solver" },
@@ -570,7 +570,7 @@ wheels = [
 [[package]]
 name = "doxa"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/doxa.git?rev=8ba6968f3c40c963786fae504a1719b02b2d17d0#8ba6968f3c40c963786fae504a1719b02b2d17d0" }
+source = { git = "https://github.com/ctoth/doxa.git?rev=9ad3c523e8c204c5df5af45c2a989f5babaa0de2#9ad3c523e8c204c5df5af45c2a989f5babaa0de2" }
 
 [[package]]
 name = "dulwich"
@@ -750,12 +750,12 @@ wheels = [
 [[package]]
 name = "formal-argumentation"
 version = "0.3.0"
-source = { git = "https://github.com/ctoth/argumentation.git?rev=7bc7fb7ab8d7f49e9c835245ef14d7dd5278f0ef#7bc7fb7ab8d7f49e9c835245ef14d7dd5278f0ef" }
+source = { git = "https://github.com/ctoth/argumentation.git?rev=3ff70f3d824a27fc03eb50d3dc128e9c2dc14e05#3ff70f3d824a27fc03eb50d3dc128e9c2dc14e05" }
 
 [[package]]
 name = "formal-belief-set"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/belief-set?rev=2c7dd76dd88ecd39400a6b7380d68407e69f55e8#2c7dd76dd88ecd39400a6b7380d68407e69f55e8" }
+source = { git = "https://github.com/ctoth/belief-set?rev=c31e5b8bd3d5005b68134fcaaf7b0fb4608d5ed8#c31e5b8bd3d5005b68134fcaaf7b0fb4608d5ed8" }
 
 [[package]]
 name = "fqdn"
@@ -1042,7 +1042,7 @@ wheels = [
 [[package]]
 name = "gunray"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d#a06da9c06a8c20262edec56f8a1f55dc1901781d" }
+source = { git = "https://github.com/ctoth/gunray.git?rev=df4580e1f4c3671159e057ade6d1411512196808#df4580e1f4c3671159e057ade6d1411512196808" }
 
 [[package]]
 name = "h11"
@@ -2117,15 +2117,15 @@ requires-dist = [
     { name = "causal-models", git = "https://github.com/ctoth/causal-models?rev=21d6b1e341c42ae4db57309bab48f1994a9d734f" },
     { name = "cel-parser", git = "https://github.com/ctoth/cel-parser.git?rev=96fc4808ef78257ea03549e6298629a9583865c8" },
     { name = "click", specifier = ">=8.3.3" },
-    { name = "condition-ir", git = "https://github.com/ctoth/condition-ir.git?rev=d12de46849fd9465cf26bdf7b18cd9d2ee4c00aa" },
-    { name = "doxa", git = "https://github.com/ctoth/doxa.git?rev=8ba6968f3c40c963786fae504a1719b02b2d17d0" },
+    { name = "condition-ir", git = "https://github.com/ctoth/condition-ir.git?rev=f24c42122e8a9ad39073db4801be78053d0ad55f" },
+    { name = "doxa", git = "https://github.com/ctoth/doxa.git?rev=9ad3c523e8c204c5df5af45c2a989f5babaa0de2" },
     { name = "dulwich", specifier = ">=1.1.0" },
     { name = "eq-equiv", git = "https://github.com/ctoth/eq-equiv?rev=9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6" },
     { name = "fastapi", specifier = ">=0.136.0" },
-    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git?rev=7bc7fb7ab8d7f49e9c835245ef14d7dd5278f0ef" },
-    { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=2c7dd76dd88ecd39400a6b7380d68407e69f55e8" },
+    { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git?rev=3ff70f3d824a27fc03eb50d3dc128e9c2dc14e05" },
+    { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=c31e5b8bd3d5005b68134fcaaf7b0fb4608d5ed8" },
     { name = "graphviz", specifier = ">=0.20" },
-    { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d" },
+    { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=df4580e1f4c3671159e057ade6d1411512196808" },
     { name = "human-to-sympy", git = "https://github.com/ctoth/human-to-sympy?rev=f9d67dd54cb1e5e1c0ef9d67094606eb3497cfd7" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "lark", specifier = ">=1.2.2" },
@@ -2134,9 +2134,9 @@ requires-dist = [
     { name = "litellm", marker = "extra == 'embeddings'", specifier = ">=1.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "pint", specifier = ">=0.25.3" },
-    { name = "provenance-semiring", git = "https://github.com/ctoth/provenance-semiring.git?rev=64ecbb919d86cb3cef3fcfbb153cd4b6432c53a8" },
+    { name = "provenance-semiring", git = "https://github.com/ctoth/provenance-semiring.git?rev=5c8c1c86d9ccc531e809ca47b196e6cf7ebc97bb" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "quire", git = "https://github.com/ctoth/quire?rev=4a010b4e748529f52bd691a2486844c5b6fb0e42" },
+    { name = "quire", git = "https://github.com/ctoth/quire?rev=95a268c68556160b52fe065ae59f1de2b750f9e3" },
     { name = "rfc8785", specifier = ">=0.1.4" },
     { name = "rich", specifier = ">=13.7" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
@@ -2162,7 +2162,7 @@ dev = [
 [[package]]
 name = "provenance-semiring"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/provenance-semiring.git?rev=64ecbb919d86cb3cef3fcfbb153cd4b6432c53a8#64ecbb919d86cb3cef3fcfbb153cd4b6432c53a8" }
+source = { git = "https://github.com/ctoth/provenance-semiring.git?rev=5c8c1c86d9ccc531e809ca47b196e6cf7ebc97bb#5c8c1c86d9ccc531e809ca47b196e6cf7ebc97bb" }
 
 [[package]]
 name = "pydantic"
@@ -2547,7 +2547,7 @@ wheels = [
 [[package]]
 name = "quire"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/quire?rev=4a010b4e748529f52bd691a2486844c5b6fb0e42#4a010b4e748529f52bd691a2486844c5b6fb0e42" }
+source = { git = "https://github.com/ctoth/quire?rev=95a268c68556160b52fe065ae59f1de2b750f9e3#95a268c68556160b52fe065ae59f1de2b750f9e3" }
 dependencies = [
     { name = "dulwich" },
     { name = "msgspec" },

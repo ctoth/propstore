@@ -17,20 +17,20 @@ dependencies = [
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@b7423889daef74154193317099ae9992ecbcd958",
     "eq-equiv @ git+https://github.com/ctoth/eq-equiv@9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6",
     "human-to-sympy @ git+https://github.com/ctoth/human-to-sympy@f9d67dd54cb1e5e1c0ef9d67094606eb3497cfd7",
-    "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@7bc7fb7ab8d7f49e9c835245ef14d7dd5278f0ef",
+    "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@3ff70f3d824a27fc03eb50d3dc128e9c2dc14e05",
     "assignment-selection @ git+https://github.com/ctoth/assignment-selection.git@d8554962eee40b73dd8444f6361a72b9b9f95d86",
-    "doxa @ git+https://github.com/ctoth/doxa.git@8ba6968f3c40c963786fae504a1719b02b2d17d0",
+    "doxa @ git+https://github.com/ctoth/doxa.git@9ad3c523e8c204c5df5af45c2a989f5babaa0de2",
     "bridgman @ git+https://github.com/ctoth/bridgman@5eb6118bb2e346122aae6f7e3e9cd8581ec6c781",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
-    "gunray @ git+https://github.com/ctoth/gunray.git@a06da9c06a8c20262edec56f8a1f55dc1901781d",
+    "gunray @ git+https://github.com/ctoth/gunray.git@df4580e1f4c3671159e057ade6d1411512196808",
     "quire",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
-    "formal-belief-set @ git+https://github.com/ctoth/belief-set@2c7dd76dd88ecd39400a6b7380d68407e69f55e8",
-    "provenance-semiring @ git+https://github.com/ctoth/provenance-semiring.git@64ecbb919d86cb3cef3fcfbb153cd4b6432c53a8",
-    "condition-ir @ git+https://github.com/ctoth/condition-ir.git@d12de46849fd9465cf26bdf7b18cd9d2ee4c00aa",
+    "formal-belief-set @ git+https://github.com/ctoth/belief-set@c31e5b8bd3d5005b68134fcaaf7b0fb4608d5ed8",
+    "provenance-semiring @ git+https://github.com/ctoth/provenance-semiring.git@5c8c1c86d9ccc531e809ca47b196e6cf7ebc97bb",
+    "condition-ir @ git+https://github.com/ctoth/condition-ir.git@f24c42122e8a9ad39073db4801be78053d0ad55f",
     "causal-models @ git+https://github.com/ctoth/causal-models@21d6b1e341c42ae4db57309bab48f1994a9d734f",
     "calibration @ git+https://github.com/ctoth/calibration@aa8e0625d41108cec245eead06cfbba847cc0458",
     "rfc8785>=0.1.4",
@@ -75,7 +75,7 @@ markers = [
 ]
 
 [tool.uv.sources]
-quire = { git = "https://github.com/ctoth/quire", rev = "4a010b4e748529f52bd691a2486844c5b6fb0e42" }
+quire = { git = "https://github.com/ctoth/quire", rev = "95a268c68556160b52fe065ae59f1de2b750f9e3" }
 
 [dependency-groups]
 dev = [
