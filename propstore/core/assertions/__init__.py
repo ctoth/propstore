@@ -19,6 +19,8 @@ from propstore.core.assertions.claim_nodes import (
     claim_node_assertion_id,
     claim_node_content,
     claim_node_context_id,
+    content_digest,
+    semantic_content,
 )
 from propstore.core.assertions.codec import AssertionCanonicalRecord
 from propstore.core.assertions.conversion import (
@@ -45,5 +47,7 @@ __all__ = [
     "claim_node_assertion_id",
     "claim_node_content",
     "claim_node_context_id",
+    "content_digest",
     "derive_assertion_id",
+    "semantic_content",
 ]

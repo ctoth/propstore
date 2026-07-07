@@ -17,10 +17,9 @@ branch they were annotated with — get distinct assertion ids and stay rival.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass
 
+from propstore.core.assertions import content_digest, semantic_content
 from propstore.families.claims import Claim
 
 
@@ -94,7 +93,7 @@ class MergeClaim:
     def assertion_id(self) -> str:
         """Stable propositional identity over content + context + conditions + source."""
 
-        return f"ps:assertion:{_digest(self._assertion_key())}"
+        return f"ps:assertion:{content_digest(self._assertion_key())}"
 
     def _assertion_key(self) -> dict[str, object]:
         return {
@@ -123,37 +122,4 @@ class MergeClaim:
         return {"content": semantic_content(self.claim), "context_id": self.claim.context_id}
 
 
-def semantic_content(claim: Claim) -> dict[str, object]:
-    """The propositional content of a claim, excluding identity and lifecycle."""
-
-    return {
-        "claim_type": None if claim.claim_type is None else claim.claim_type.value,
-        "statement": claim.statement,
-        "name": claim.name,
-        "body": claim.body,
-        "expression": claim.expression,
-        "sympy": claim.sympy,
-        "measure": claim.measure,
-        "methodology": claim.methodology,
-        "notes": claim.notes,
-        "output_concept": claim.output_concept,
-        "target_concept": claim.target_concept,
-        "concepts": list(claim.concepts),
-        "equations": list(claim.equations),
-        "value": claim.value,
-        "lower_bound": claim.lower_bound,
-        "upper_bound": claim.upper_bound,
-        "uncertainty": claim.uncertainty,
-        "uncertainty_type": claim.uncertainty_type,
-        "confidence": claim.confidence,
-        "unit": claim.unit,
-        "sample_size": claim.sample_size,
-    }
-
-
-def _digest(value: object) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-
-__all__ = ["MergeClaim", "semantic_content"]
+__all__ = ["MergeClaim"]

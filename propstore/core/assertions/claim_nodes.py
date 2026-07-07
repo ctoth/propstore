@@ -8,9 +8,12 @@ the claim's propositional content, the context it is asserted in, and its
 conditions. The ATMS engine uses it as the claim node id so identical claim
 content materializes as one node with one label.
 
-This is the read-side, source-revision-free home of the assertion-identity scheme
-the merge boundary (:mod:`propstore.merge.merge_claims`) uses for the same
-purpose: one canonical content digest, no second spelling.
+This module is the single home of the assertion-identity scheme: one canonical
+content digest and one content-key schema, projected from the charter
+:class:`~propstore.families.claims.Claim` by :func:`semantic_content` and from
+the graph-lowered :class:`~propstore.core.graph_types.ClaimNode` by
+:func:`claim_node_content`. The merge boundary
+(:mod:`propstore.merge.merge_claims`) imports both — no second spelling.
 """
 
 from __future__ import annotations
@@ -22,19 +25,57 @@ from typing import Any
 
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ContextId, to_context_id
+from propstore.families.claims import Claim
 
 
-def _digest(value: object) -> str:
+def content_digest(value: object) -> str:
+    """Deterministic sha256 over the sorted-key JSON encoding of ``value``.
+
+    Persisted ``ps:assertion:`` ids are derived from these bytes; the encoding
+    (``sort_keys``, compact separators, ``default=str``) must not change
+    without an explicit identity migration.
+    """
+
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def semantic_content(claim: Claim) -> dict[str, object]:
+    """The propositional content of a charter claim, excluding identity and lifecycle."""
+
+    return {
+        "claim_type": None if claim.claim_type is None else claim.claim_type.value,
+        "statement": claim.statement,
+        "name": claim.name,
+        "body": claim.body,
+        "expression": claim.expression,
+        "sympy": claim.sympy,
+        "measure": claim.measure,
+        "methodology": claim.methodology,
+        "notes": claim.notes,
+        "output_concept": claim.output_concept,
+        "target_concept": claim.target_concept,
+        "concepts": list(claim.concepts),
+        "equations": list(claim.equations),
+        "value": claim.value,
+        "lower_bound": claim.lower_bound,
+        "upper_bound": claim.upper_bound,
+        "uncertainty": claim.uncertainty,
+        "uncertainty_type": claim.uncertainty_type,
+        "confidence": claim.confidence,
+        "unit": claim.unit,
+        "sample_size": claim.sample_size,
+    }
 
 
 def claim_node_content(claim: ClaimNode) -> dict[str, Any]:
     """The propositional content of a claim node, excluding identity/lifecycle.
 
-    Mirrors :func:`propstore.merge.merge_claims.semantic_content`, reconstructed
-    from the :class:`ClaimNode`'s typed fields plus the row-shaped attributes the
-    graph builder lowers onto it.
+    The node-side projection of the same content-key schema as
+    :func:`semantic_content`, reconstructed from the :class:`ClaimNode`'s typed
+    fields plus the row-shaped attributes the graph builder lowers onto it.
+    The two must stay key-for-key identical (pinned by
+    ``tests/test_assertion_content_parity.py``).
     """
 
     attributes: Mapping[str, Any] = claim.attribute_mapping()
@@ -100,11 +141,13 @@ def claim_node_assertion_id(
         "context_id": effective_context,
         "conditions": sorted(conditions),
     }
-    return f"ps:assertion:{_digest(key)}"
+    return f"ps:assertion:{content_digest(key)}"
 
 
 __all__ = [
     "claim_node_assertion_id",
     "claim_node_content",
     "claim_node_context_id",
+    "content_digest",
+    "semantic_content",
 ]
