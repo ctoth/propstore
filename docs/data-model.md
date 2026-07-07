@@ -338,7 +338,7 @@ Two values, corresponding to ASPIC+ rule types (Modgil & Prakken 2018, Def 2):
 
 ### ASPIC+ mapping
 
-Justifications translate directly to ASPIC+ rules via the bridge in `aspic_bridge.py`. `reported_claim` justifications become knowledge base premises (not rules). Justifications with premises become strict or defeasible rules depending on `rule_strength`. See the `argumentation` package's structured-argumentation doc for the full translation pipeline (T1–T7).
+Justifications translate directly to ASPIC+ rules via the `propstore.aspic_bridge` package. `reported_claim` justifications become knowledge base premises (not rules). Justifications with premises become strict or defeasible rules depending on `rule_strength`. See the `argumentation` package's structured-argumentation doc for the full translation pipeline (T1–T7).
 
 ### Targeted undercutting
 
