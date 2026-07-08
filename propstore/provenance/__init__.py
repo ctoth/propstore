@@ -58,16 +58,17 @@ PROVENANCE_NOTES_REF = b"refs/notes/provenance"
 PROVENANCE_NOTES = NotesRef("refs/notes/provenance")
 
 # Composition keeps the *weakest* honest status visible after fusion: a derived
-# value is no more trustworthy than its least-grounded input. Higher rank = more
-# fallback-shaped, so ``max`` surfaces a ``defaulted`` input rather than
-# laundering it into a ``measured``/``calibrated`` result (CLAUDE.md honest
-# ignorance; Jøsang 2001 on vacuous opinions).
+# value is no more trustworthy than its least-grounded input. Higher rank = less
+# grounded, so ``max`` surfaces a ``defaulted`` input rather than laundering it
+# into a ``measured``/``calibrated`` result — and a ``vacuous`` input (total
+# ignorance, the least-grounded input possible) survives composition with
+# anything (CLAUDE.md honest ignorance; Jøsang 2001 on vacuous opinions).
 _STATUS_RANK = {
-    "vacuous": 0,
     "stated": 1,
     "measured": 2,
     "calibrated": 3,
     "defaulted": 4,
+    "vacuous": 5,
 }
 
 

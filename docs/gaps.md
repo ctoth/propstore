@@ -63,7 +63,6 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 - **Citation-pattern drift across codebase.** `aspic.py`, `world/types.py` (Denoeux→Jøsang), and `wbf()` (WBF name, aCBF computation) cite papers for authority while implementing something different. (The `fragility_contributors.py` coefficient instance recorded 2026-07-07 is closed: all three `_coefficient_provenance_notes` citations now state explicitly that only the section names / counted structure come from the papers and the numeric coefficients are unsourced ranking heuristics.) Citation: axis-6 item 15; axis-9 cross-cutting. Plan: citation-as-claim CI lint (per disciplines.md rule 1) + workstream-specific closures.
 
-- **`compose_provenance` never lets total ignorance survive composition.** `propstore/provenance/__init__.py:193-234` ranks VACUOUS lowest, so composing a vacuous opinion's provenance with any graded one always discards the ignorance signal from the composed status. Defensible as a fusion identity, but it means a pipeline can launder "I don't know" out of a composed result's provenance status. Citation: 2026-07-07 concept-layer paper-fidelity audit. Plan: review whether composition should carry an ignorance marker alongside the ranked status — not yet scheduled.
 
 ## Closed gaps (reference only — kept for traceability)
 
