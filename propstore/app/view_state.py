@@ -50,8 +50,10 @@ def lifting_view_state(status: LiftingDecisionStatus) -> ViewState:
 
     A ``LIFTED`` value is not asserted directly in the viewing context — its
     truth here rode in through a lifting rule, so the conservative view state is
-    ``UNKNOWN`` rather than ``KNOWN``. ``UNKNOWN`` (gate undecided) is likewise
-    ``UNKNOWN``; only an explicit ``BLOCKED`` lift is ``BLOCKED``.
+    ``UNKNOWN`` rather than ``KNOWN``. ``UNKNOWN`` (gate undecided) and
+    ``EXCEPTED`` (exception authored; justification resolved in the
+    argumentation framework, Bozzato 2018) are likewise ``UNKNOWN``; only an
+    explicit ``BLOCKED`` lift (unsatisfiable gate) is ``BLOCKED``.
     """
 
     if status is LiftingDecisionStatus.BLOCKED:

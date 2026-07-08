@@ -4,9 +4,11 @@ This is the Phase 4 *non-ASPIC* half of contextual defeasibility (CLAUDE.md
 ``propstore.defeasibility``): it decides whether a contextual claim use
 ``ist(c, p)`` is *excepted* by an authored CKR-style justifiable exception, and
 it owns the provenance-semiring *support contract* that keeps an exception's
-liveness honest. The CKR-exception -> Dung-defeat injection at the ASPIC+
-boundary (``apply_exception_defeats_to_csaf``) lands in Phase 5 once the CSAF
-surface exists; it is deliberately absent here.
+liveness honest. It also owns the CKR-exception -> Dung-defeat injection at the
+ASPIC+ boundary: ``apply_exception_defeats_to_csaf`` for evaluated contextual
+claim results, and the shared ``inject_dung_defeats`` /
+``arguments_concluding`` helpers the lifting boundary
+(:func:`propstore.aspic_bridge.build.apply_lifting_exception_defeats`) reuses.
 
 Substrate boundary (CLAUDE.md):
 
@@ -509,7 +511,7 @@ def apply_exception_defeats_to_csaf(
     for result in results:
         if result.applicability is not ClaimApplicability.EXCEPTED:
             continue
-        target_arguments = _arguments_concluding(csaf, result.use.claim)
+        target_arguments = arguments_concluding(csaf, result.use.claim)
         if not target_arguments:
             raise ValueError(
                 "CKR exception result targets a claim with no ASPIC argument: "
@@ -518,7 +520,7 @@ def apply_exception_defeats_to_csaf(
         for exception in result.applied_exceptions:
             attacker_arguments: set[Argument] = set()
             for justification_claim in exception.justification_claims:
-                attacker_arguments.update(_arguments_concluding(csaf, justification_claim))
+                attacker_arguments.update(arguments_concluding(csaf, justification_claim))
             if not attacker_arguments:
                 warnings.warn(
                     "CKR exception has no ASPIC argument for its justification claims; "
@@ -532,12 +534,26 @@ def apply_exception_defeats_to_csaf(
                     if attacker != target:
                         extra_defeats.add((attacker, target))
 
-    if not extra_defeats:
+    return inject_dung_defeats(csaf, frozenset(extra_defeats))
+
+
+def inject_dung_defeats(
+    csaf: CSAF,
+    defeat_pairs: frozenset[tuple[Argument, Argument]],
+) -> CSAF:
+    """Return a CSAF whose Dung layer includes the extra argument-level defeats.
+
+    The shared tail of every CKR exception-defeat application: the structured
+    ASPIC+ state is untouched; only the argument-level ``defeats`` set and the
+    projected Dung framework gain edges.
+    """
+
+    if not defeat_pairs:
         return csaf
 
     defeat_ids = frozenset(
         (csaf.arg_to_id[attacker], csaf.arg_to_id[target])
-        for attacker, target in extra_defeats
+        for attacker, target in defeat_pairs
     )
     framework = ArgumentationFramework(
         arguments=csaf.framework.arguments,
@@ -546,12 +562,12 @@ def apply_exception_defeats_to_csaf(
     )
     return replace(
         csaf,
-        defeats=csaf.defeats | frozenset(extra_defeats),
+        defeats=csaf.defeats | defeat_pairs,
         framework=framework,
     )
 
 
-def _arguments_concluding(csaf: CSAF, claim_id: str) -> set[Argument]:
+def arguments_concluding(csaf: CSAF, claim_id: str) -> set[Argument]:
     return {
         argument
         for argument in csaf.arguments
@@ -592,8 +608,10 @@ __all__ = [
     "JustifiableException",
     "LiftingRuleSupport",
     "apply_exception_defeats_to_csaf",
+    "arguments_concluding",
     "build_exception_defeat",
     "evaluate_contextual_claim",
+    "inject_dung_defeats",
     "exception_defeat_is_live",
     "exception_is_applied",
     "exception_live_support",

@@ -4,11 +4,17 @@ McCarthy/Guha lifting (Phase 4): contexts are flat logical objects and a
 proposition crosses from one context to another ONLY through an authored
 :class:`~propstore.families.contexts.LiftingRule`. There is no ancestry-based
 default visibility. Each authored rule, evaluated for a proposition, yields a
-:class:`LiftingDecision` with a ``LIFTED`` / ``BLOCKED`` / ``UNKNOWN`` status:
+:class:`LiftingDecision` with a ``LIFTED`` / ``EXCEPTED`` / ``BLOCKED`` /
+``UNKNOWN`` status:
 
-* ``LIFTED`` — the rule's CEL gate holds (or is empty) and no exception defeats it.
-* ``BLOCKED`` — the gate is unsatisfiable, or an authored
-  :class:`LiftingException` clashes with the lift.
+* ``LIFTED`` — the rule's CEL gate holds (or is empty) and no exception targets it.
+* ``EXCEPTED`` — the gate holds but an authored :class:`LiftingException`
+  targets the lift. Per Bozzato 2018 (Def 12) an exception overrides only when
+  its clashing set is established, so the decision layer does not block: the
+  lift's defeasible rule is still projected into ASPIC+ and the exception
+  contributes defeats only from arguments concluding the clashing-set claims
+  (:func:`propstore.aspic_bridge.build.apply_lifting_exception_defeats`).
+* ``BLOCKED`` — the gate is unsatisfiable.
 * ``UNKNOWN`` — the gate cannot be decided (no solver, a solver ``UNKNOWN``, or an
   untranslatable condition). Honest ignorance, kept distinct from blocked.
 
@@ -318,7 +324,7 @@ class LiftingSystem:
             proposition_id=assertion.proposition_id,
             source_context=rule.source_context,
             target_context=rule.target_context,
-            status=LiftingDecisionStatus.BLOCKED,
+            status=LiftingDecisionStatus.EXCEPTED,
             mode=rule.mode,
             support=defeat.support,
             justification=exception.justification,

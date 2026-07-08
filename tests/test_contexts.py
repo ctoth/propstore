@@ -119,7 +119,7 @@ def test_lifting_decision_statuses_lifted_blocked_unknown() -> None:
     assert [d.status for d in unknown] == [LiftingDecisionStatus.UNKNOWN]
 
 
-def test_exception_blocks_an_otherwise_lifted_decision_with_provenance() -> None:
+def test_exception_marks_an_otherwise_lifted_decision_excepted_with_provenance() -> None:
     src = Context(context_id="ctx_src", name="src")
     tgt = Context(context_id="ctx_tgt", name="tgt")
     rule = LiftingRule(rule_id="r", source_context="ctx_src", target_context="ctx_tgt")
@@ -135,7 +135,7 @@ def test_exception_blocks_an_otherwise_lifted_decision_with_provenance() -> None
         contexts=(src, tgt), lifting_rules=(rule,), lifting_exceptions=(exception,)
     )
     (decision,) = system.lift_decisions_between("ctx_src", "ctx_tgt", "p")
-    assert decision.status is LiftingDecisionStatus.BLOCKED
+    assert decision.status is LiftingDecisionStatus.EXCEPTED
     assert decision.exception_id == "except-alpha"
     assert decision.clashing_set == ("claim-x",)
     assert decision.exception is not None

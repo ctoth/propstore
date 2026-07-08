@@ -2,8 +2,13 @@
 
 A ``LIFTED`` decision licenses carrying a proposition from its source context to
 a target context: a ``BRIDGE`` lift is a strict rule, other modes are defeasible.
-``BLOCKED`` / ``UNKNOWN`` decisions contribute no rule but are still recorded, so
-a blocked lift remains visible (CLAUDE.md non-commitment) rather than vanishing.
+An ``EXCEPTED`` decision also emits its rule — always defeasible, regardless of
+mode, because an exception-bearing lift is definitionally overridable (Bozzato
+2018) — and the exception's effect is resolved in the framework via
+:func:`propstore.aspic_bridge.build.apply_lifting_exception_defeats`, never by
+suppressing the rule here. ``BLOCKED`` / ``UNKNOWN`` decisions contribute no
+rule but are still recorded, so a blocked lift remains visible (CLAUDE.md
+non-commitment) rather than vanishing.
 """
 
 from __future__ import annotations
@@ -83,12 +88,19 @@ def project_lifting_decisions(
                 target_literal=target_literal,
             )
         )
-        if decision.status is not LiftingDecisionStatus.LIFTED:
+        if decision.status not in (
+            LiftingDecisionStatus.LIFTED,
+            LiftingDecisionStatus.EXCEPTED,
+        ):
             continue
+        is_strict = (
+            decision.status is LiftingDecisionStatus.LIFTED
+            and decision.mode is LiftingMode.BRIDGE
+        )
         rule = Rule(
             antecedents=(source_literal,),
             consequent=target_literal,
-            kind="strict" if decision.mode is LiftingMode.BRIDGE else "defeasible",
+            kind="strict" if is_strict else "defeasible",
             name=decision.rule_id,
         )
         if rule.kind == "strict":

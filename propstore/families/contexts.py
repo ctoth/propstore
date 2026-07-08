@@ -64,13 +64,19 @@ class LiftingDecisionStatus(StrEnum):
     """The outcome of evaluating a lifting rule for a proposition.
 
     ``LIFTED`` — the rule's CEL gate is satisfied (or has no conditions) and no
-    exception blocks it. ``BLOCKED`` — the gate is unsatisfiable, or an authored
-    exception defeats the lift. ``UNKNOWN`` — the gate could not be decided
-    (no solver available, a solver ``UNKNOWN``, or an untranslatable condition);
-    honest ignorance, distinct from blocked and from absent.
+    exception targets the lift. ``EXCEPTED`` — the gate holds but an authored
+    :class:`LiftingException` targets the lift; per Bozzato 2018 (Def 12) the
+    exception overrides only if its clashing set is established, so resolution
+    is deferred to the argumentation framework (the lift's defeasible rule is
+    still projected and the exception contributes defeats only from arguments
+    concluding the clashing-set claims). ``BLOCKED`` — the gate is
+    unsatisfiable. ``UNKNOWN`` — the gate could not be decided (no solver
+    available, a solver ``UNKNOWN``, or an untranslatable condition); honest
+    ignorance, distinct from blocked and from absent.
     """
 
     LIFTED = "lifted"
+    EXCEPTED = "excepted"
     BLOCKED = "blocked"
     UNKNOWN = "unknown"
 

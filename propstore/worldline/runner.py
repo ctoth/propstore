@@ -295,7 +295,7 @@ def _lifting_dependencies(
                 continue
             rule_ids.add(decision.rule_id)
             if (
-                decision.status is LiftingDecisionStatus.BLOCKED
+                decision.status is LiftingDecisionStatus.EXCEPTED
                 and decision.exception_id is not None
             ):
                 blocked_exception_ids.add(decision.exception_id)

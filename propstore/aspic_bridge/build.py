@@ -15,6 +15,7 @@ stronger target.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
@@ -50,8 +51,9 @@ from propstore.aspic_bridge.translate import (
     preference_sensitive_stance_pairs,
     stances_to_contrariness,
 )
-from propstore.context_lifting import LiftingDecision
+from propstore.context_lifting import LiftingDecision, LiftingDecisionStatus
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
+from propstore.defeasibility import arguments_concluding, inject_dung_defeats
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -236,6 +238,53 @@ def filter_preference_sensitive_stance_defeats(
     return frozenset(filtered)
 
 
+def apply_lifting_exception_defeats(
+    csaf: CSAF,
+    decisions: Sequence[LiftingDecision],
+) -> CSAF:
+    """Inject Dung defeats for ``EXCEPTED`` lifting decisions (Bozzato 2018).
+
+    An authored lifting exception overrides only when its clashing set is
+    *established* (Bozzato 2018, Def 12): every argument concluding one of the
+    exception's clashing-set claims defeats every argument concluding the
+    lifted assertion ``ist(target, p)`` — exactly, not the source assertion.
+    An exception with no argument for any clashing claim is unjustified: it is
+    surfaced with a warning and contributes no defeat, so the lift survives.
+    A lift whose rule never fired (no target argument) needs no defeat.
+    """
+
+    extra_defeats: set[tuple[Argument, Argument]] = set()
+    for decision in decisions:
+        if decision.status is not LiftingDecisionStatus.EXCEPTED:
+            continue
+        lifted_atom = GroundAtom(
+            "ist", (str(decision.target_context), str(decision.proposition_id))
+        )
+        target_arguments = {
+            argument for argument in csaf.arguments if conc(argument).atom == lifted_atom
+        }
+        if not target_arguments:
+            continue
+        attacker_arguments: set[Argument] = set()
+        for clashing_claim in decision.clashing_set:
+            attacker_arguments.update(arguments_concluding(csaf, clashing_claim))
+        if not attacker_arguments:
+            warnings.warn(
+                "lifting exception has no argument establishing its clashing set; "
+                "the exception is unjustified and contributes no defeat "
+                f"(exception {decision.exception_id!r}, lift {decision.rule_id!r})",
+                UserWarning,
+                stacklevel=2,
+            )
+            continue
+        for attacker in attacker_arguments:
+            for target in target_arguments:
+                if attacker != target:
+                    extra_defeats.add((attacker, target))
+
+    return inject_dung_defeats(csaf, frozenset(extra_defeats))
+
+
 def build_bridge_csaf(
     active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
@@ -300,7 +349,7 @@ def build_bridge_csaf(
         ),
     )
 
-    return CSAF(
+    csaf = CSAF(
         system=compiled.system,
         kb=compiled.kb,
         pref=compiled.pref,
@@ -311,10 +360,12 @@ def build_bridge_csaf(
         arg_to_id=arg_to_id,
         id_to_arg=id_to_arg,
     )
+    return apply_lifting_exception_defeats(csaf, lifting_decisions)
 
 
 __all__ = [
     "BridgeCompilation",
+    "apply_lifting_exception_defeats",
     "build_bridge_csaf",
     "compile_bridge_context",
     "filter_preference_sensitive_stance_attacks",
