@@ -471,8 +471,9 @@ def collect_ground_fact_interventions(
                                 "section_weight + 0.1 * min(antecedent_dependency_count, 3)"
                             ),
                             citation=(
-                                "Garcia-Simari 2004 Section 4 four-valued DeLP answer "
-                                "categories; uncalibrated runtime heuristic"
+                                "section names only from Garcia-Simari 2004 Section 4 "
+                                "four-valued DeLP answer categories; the numeric weights "
+                                "and dependency step are unsourced ranking heuristics"
                             ),
                         ),
                     ),
@@ -534,8 +535,9 @@ def collect_grounded_rule_interventions(
                 notes=_coefficient_provenance_notes(
                     formula="0.3 + 0.1 * antecedent_count + 0.25 * min(undercut_count, 2)",
                     citation=(
-                        "Modgil-Prakken 2018 ASPIC+ rule and undercut structure; "
-                        "uncalibrated runtime heuristic"
+                        "counted structure only from Modgil-Prakken 2018 ASPIC+ rule "
+                        "and undercut definitions; the numeric coefficients are "
+                        "unsourced ranking heuristics"
                     ),
                 ),
             ),
@@ -626,8 +628,9 @@ def collect_bridge_undercut_interventions(
                 notes=_coefficient_provenance_notes(
                     formula="0.3 + 0.25 * min(attack_count, 2) + 0.35 * min(defeat_count, 2)",
                     citation=(
-                        "Modgil-Prakken 2018 ASPIC+ attack/defeat distinction; "
-                        "uncalibrated runtime heuristic"
+                        "counted structure only from Modgil-Prakken 2018 ASPIC+ "
+                        "attack/defeat distinction; the numeric coefficients are "
+                        "unsourced ranking heuristics"
                     ),
                 ),
             ),
