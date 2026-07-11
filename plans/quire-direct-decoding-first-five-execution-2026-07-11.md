@@ -2,8 +2,8 @@
 
 Date: 2026-07-11
 
-Status: execution started 2026-07-11. No production code had been changed at
-the execution baseline (`dfcb160cd79d38af9d7462f4e10d2e5f13093390`).
+Status: complete 2026-07-11. No production code had been changed at the
+execution baseline (`dfcb160cd79d38af9d7462f4e10d2e5f13093390`).
 
 Active control surface: `protocols:cleanup-refactor`.
 
@@ -555,7 +555,40 @@ forbidden-surface search.
 - Type gate: `uv run pyright propstore` — 0 errors.
 - Commit: `4a14b077`.
 
-Each later entry must contain: baseline HEAD/status, exact deleted symbols,
-dependency-edge classifications and dispositions, focused/full gate commands
-and results, zero-surface search results, and the kept commit SHA or
-full-revert result.
+### Full-suite fallout correction: typed report presentation
+
+- Baseline: `b15b9191`; tracked files clean, unrelated untracked files
+  excluded.
+- Full logged suite exposed two edges after 1,662 passes:
+  `dataclasses.asdict(decision.report)` and the shared JSON presentation
+  boundary treating `BeliefBase` as an unknown value.
+- Classification and disposition: the test serializer was a **valid capability
+  with wrong representation** and now uses `msgspec.to_builtins` directly; the
+  web edge was an **already-owned capability that must use its true owner
+  directly**, so `reporting.json_ready` lowers `msgspec.Struct` values at the
+  existing presentation boundary.
+- No support-revision mapping method, report wrapper, DTO, adapter, or fallback
+  reader was introduced.
+- Focused gate: logged formal-decision and read-only web revision tests — 3
+  passed (`logs/test-runs/pytest-20260711-152022.log`).
+- Commit: `fcfa77a699cfe4e7fc92b83c7ec85cd72d3e1517`.
+
+### Final verification
+
+- Full logged suite, with the unrelated untracked Clark test explicitly
+  ignored: 1,664 passed, 6 skipped in 81.26 seconds
+  (`logs/test-runs/pytest-20260711-152103.log`).
+- Final type gate: `uv run pyright propstore` — 0 errors.
+- Combined zero-surface searches: no deleted assertion conversion/codec,
+  micropublication mirror, graph semantic mirror, environment/worldline input
+  mapping method, support-revision atom/snapshot conversion helper, or
+  reflective sidecar reconstruction symbol remains in tracked production and
+  test scope.
+- File gates: `core/assertions/codec.py`, `core/assertions/conversion.py`, and
+  `core/micropublications.py` are absent.
+- Diff gate: `git diff --check` clean. Tracked worktree clean before this final
+  record update; only the three explicitly excluded untracked user artifacts
+  remain.
+- Quire dependency: Propstore pins pushed Quire commit
+  `d5660c85761d5a005b61419b924d846ccc7d835a`; the generic owner tests and
+  Quire Pyright gate passed before Propstore resumed.
