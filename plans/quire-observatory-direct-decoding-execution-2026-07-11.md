@@ -2,7 +2,7 @@
 
 Date: 2026-07-11
 
-Status: execution started.
+Status: complete.
 
 Active control surface: `protocols:cleanup-refactor`.
 
@@ -23,7 +23,7 @@ Only A2 surface 6, `propstore/observatory.py`, plus its direct CLI and tests.
 
 - `SemanticTraceRecord`, `EvaluationScenario`, `ScenarioEvaluation`,
   `OperatorFamilySummary`, and `ObservatoryReport` remain the direct semantic
-  owners and become strict nested Quire `DocumentStruct` values in place.
+  owners and become strict frozen nested `msgspec.Struct` values in place.
 - Quire decodes fixture bytes and converts/lowers the complete typed graph.
 - Observatory owners retain schema-version invariants, deterministic ordering,
   semantic evaluation, and derived content hashes.
@@ -31,9 +31,17 @@ Only A2 surface 6, `propstore/observatory.py`, plus its direct CLI and tests.
   semantic collection and the direct persisted list shape; no dict-to-list
   transform survives.
 
-No new Quire capability is required. Existing `DocumentStruct`,
-`decode_document_bytes`, `convert_document_value`, `document_to_payload`, and
-canonical struct normalization cover the complete graph.
+The read-only subagent audit found that Quire's typed document byte decoder was
+YAML, while the observatory contract is JSON-only. Using it would silently have
+broadened accepted fixture syntax. Quire therefore gained the generic
+`decode_json_document_bytes` owner API in pushed commit
+`b3258064d84795eb8ae930cfe5c3fdd6cbe18a03`; Propstore pins that exact commit.
+`convert_document_value`, `document_to_payload`, and canonical struct
+normalization cover the rest of the graph.
+
+The owners remain direct frozen structs instead of inheriting Quire's mutable
+`DocumentStruct` convenience base. Quire's generic typed APIs accept the structs
+directly, so no second marker base or configuration-only interface was added.
 
 ## Forbidden surfaces
 
@@ -48,7 +56,8 @@ canonical struct normalization cover the complete graph.
 ## Ownership classifications and dispositions
 
 - Five observatory classes: **valid capability with wrong representation** ->
-  rewrite the existing owners in place as strict `DocumentStruct` values.
+  rewrite the existing owners in place as strict frozen typed structs decoded
+  directly by Quire.
 - Five `from_dict` / `to_dict` / `_content_payload` lifecycles and generic shape
   helpers: **deleted old surface** -> delete.
 - Schema-version checks, deterministic sorting, `passed`, content hashes, and
@@ -78,4 +87,27 @@ Runtime gates:
 
 ## Execution log
 
-Pending first deletion.
+- Deleted five `from_dict` / `to_dict` / `_content_payload` lifecycles and all
+  observatory mapping, sequence, coercion, and hash-carrier helpers.
+- Rewrote the five existing semantic owners as strict frozen typed structs.
+- Changed `operator_summaries` from a runtime dict/persisted list dual shape to
+  one sorted typed tuple.
+- CLI fixture loading now calls Quire's strict typed JSON decoder directly; CLI
+  JSON rendering lowers the typed report directly through Quire.
+- Direct typed lowering intentionally omits redundant computed `content_hash`
+  and `passed` wire keys. All five contracts were bumped from v1 to v2; v1
+  payloads fail hard and the public documentation records the new contract.
+- Quire owner gate: `uv run pytest tests/test_documents.py` — 15 passed;
+  `uv run pyright quire` — 0 errors. Quire commit pushed:
+  `b3258064d84795eb8ae930cfe5c3fdd6cbe18a03`.
+- Propstore focused gate: 19 passed
+  (`logs/test-runs/pytest-20260711-155547.log`).
+- Propstore type gate: `uv run pyright propstore` — 0 errors.
+- Ruff gate: all changed Python files clean.
+- Search gates: zero deleted mapping lifecycle/helper/caller symbols and zero
+  observatory codec/adapter/payload/DTO replacements.
+- Diff gate: `git diff --check` clean. The tracked CRLF observatory file required
+  the repository-local `cr-at-eol` Git whitespace setting; no whole-file
+  line-ending conversion was retained.
+- Propstore source commit:
+  `381b444ca614b7965dae062422e3f13950b450a9`.
