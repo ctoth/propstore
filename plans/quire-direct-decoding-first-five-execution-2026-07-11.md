@@ -490,7 +490,7 @@ forbidden-surface search.
 - Focused gate: logged environment/worldline/CLI/journal/revision selection —
   71 passed (`logs/test-runs/pytest-20260711-143233.log`).
 - Type gate: `uv run pyright propstore` — 0 errors.
-- Commit: pending slice commit.
+- Commit: `1e39a820`.
 
 ### Corrective slice: direct Quire-mapped sidecar objects
 
