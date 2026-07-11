@@ -553,7 +553,7 @@ forbidden-surface search.
   import, belief-atom conversion helper, snapshot mapping method, old-shape
   assertion parser, or assertion field-name parsing remains.
 - Type gate: `uv run pyright propstore` — 0 errors.
-- Commit: pending slice commit.
+- Commit: `4a14b077`.
 
 Each later entry must contain: baseline HEAD/status, exact deleted symbols,
 dependency-edge classifications and dispositions, focused/full gate commands
