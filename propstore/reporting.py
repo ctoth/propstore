@@ -1,10 +1,11 @@
-"""Shared JSON serialization for report dataclasses.
+"""Shared JSON serialization for typed reports.
 
 The fragility, revision, and observatory report types (later phases) mix in
 :class:`JsonReportMixin` so a deterministic, JSON-ready view falls out of their
 dataclass fields without a hand-written ``to_dict`` per type. :func:`json_ready`
 is the recursive lowering: enums become their value, paths become strings,
-dataclasses/mappings/sequences recurse, and anything else is stringified.
+dataclasses/msgspec structs/mappings/sequences recurse, and anything else is
+stringified.
 """
 
 from __future__ import annotations
@@ -14,6 +15,8 @@ from dataclasses import asdict, is_dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, TypeAlias, TypeGuard
+
+import msgspec
 
 JsonValue: TypeAlias = (
     "None | bool | int | float | str | list[JsonValue] | dict[str, JsonValue]"
@@ -47,6 +50,8 @@ def json_ready(value: object) -> JsonValue:
         return str(value.value)
     if isinstance(value, Path):
         return str(value)
+    if isinstance(value, msgspec.Struct):
+        return json_ready(msgspec.to_builtins(value))
     if is_dataclass(value) and not isinstance(value, type):
         return json_ready(asdict(value))
     if _is_mapping(value):
