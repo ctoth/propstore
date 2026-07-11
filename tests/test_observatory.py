@@ -10,6 +10,11 @@ from __future__ import annotations
 from hypothesis import given, settings
 from hypothesis import strategies as st
 import pytest
+from quire.documents import (
+    DocumentSchemaError,
+    convert_document_value,
+    document_to_payload,
+)
 
 
 def test_observatory_harness_exports_stable_traceable_reports() -> None:
@@ -47,14 +52,28 @@ def test_observatory_harness_exports_stable_traceable_reports() -> None:
 
     first = evaluate_scenarios(reversed(scenarios))
     second = evaluate_scenarios(scenarios)
-    restored = ObservatoryReport.from_dict(first.to_dict())
+    restored = convert_document_value(
+        document_to_payload(first),
+        ObservatoryReport,
+        source="observatory report",
+    )
 
     assert first == second
     assert restored == first
     assert restored.content_hash == first.content_hash
-    assert first.operator_summaries["citation-distortion"].falsification_count == 1
-    assert first.scenario_results[0].trace_records[0].source_artifact_id == "source:clark:figure-7"
-    assert first.scenario_results[0].trace_records[0].journal_entry_hash == "journal:def"
+    citation_summary = next(
+        summary
+        for summary in first.operator_summaries
+        if summary.operator_family == "citation-distortion"
+    )
+    assert citation_summary.falsification_count == 1
+    assert (
+        first.scenario_results[0].trace_records[0].source_artifact_id
+        == "source:clark:figure-7"
+    )
+    assert (
+        first.scenario_results[0].trace_records[0].journal_entry_hash == "journal:def"
+    )
 
 
 @pytest.mark.property
@@ -69,15 +88,78 @@ def test_observatory_report_roundtrips_generated_fixtures(
     policy_id: str,
     replay_hash: str,
 ) -> None:
-    from propstore.observatory import EvaluationScenario, ObservatoryReport, evaluate_scenarios
+    from propstore.observatory import (
+        EvaluationScenario,
+        ObservatoryReport,
+        evaluate_scenarios,
+    )
 
-    report = evaluate_scenarios((
-        EvaluationScenario(
-            scenario_id=scenario_id,
-            operator_family="generated",
-            policy_id=policy_id,
-            replay_result_hash=replay_hash,
-        ),
-    ))
+    report = evaluate_scenarios(
+        (
+            EvaluationScenario(
+                scenario_id=scenario_id,
+                operator_family="generated",
+                policy_id=policy_id,
+                replay_result_hash=replay_hash,
+            ),
+        )
+    )
 
-    assert ObservatoryReport.from_dict(report.to_dict()).to_dict() == report.to_dict()
+    payload = document_to_payload(report)
+    assert (
+        document_to_payload(
+            convert_document_value(
+                payload,
+                ObservatoryReport,
+                source="generated observatory report",
+            )
+        )
+        == payload
+    )
+
+
+def test_observatory_scenario_rejects_unknown_nested_trace_field() -> None:
+    from propstore.observatory import EvaluationScenario
+
+    with pytest.raises(DocumentSchemaError, match="unexpected"):
+        convert_document_value(
+            {
+                "scenario_id": "s1",
+                "operator_family": "family",
+                "policy_id": "policy",
+                "replay_result_hash": "replay",
+                "schema_version": "propstore.evaluation_scenario.v2",
+                "trace_records": [
+                    {
+                        "source_artifact_id": "source",
+                        "assertion_id": "assertion",
+                        "projection_id": "projection",
+                        "state_hash": "state",
+                        "journal_entry_hash": "journal",
+                        "schema_version": "propstore.semantic_trace.v2",
+                        "unexpected": True,
+                    }
+                ],
+            },
+            EvaluationScenario,
+            source="scenario fixture",
+        )
+
+
+def test_observatory_scenario_rejects_v1_shape() -> None:
+    from propstore.observatory import EvaluationScenario
+
+    with pytest.raises(
+        DocumentSchemaError, match="unsupported evaluation scenario version"
+    ):
+        convert_document_value(
+            {
+                "scenario_id": "s1",
+                "operator_family": "family",
+                "policy_id": "policy",
+                "replay_result_hash": "replay",
+                "schema_version": "propstore.evaluation_scenario.v1",
+            },
+            EvaluationScenario,
+            source="scenario fixture",
+        )

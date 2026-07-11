@@ -12,8 +12,8 @@ Every observatory scenario preserves this audit chain:
 source artifact -> assertion -> projection -> state -> journal
 ```
 
-The chain is represented by `SemanticTraceRecord` and exported with a stable
-content hash. A report can therefore be compared across policy choices,
+The chain is represented by `SemanticTraceRecord`, whose typed content has a
+stable derived hash. A report can therefore be compared across policy choices,
 operator families, replay runs, and known falsification fixtures without
 depending on file order or command-line rendering.
 
@@ -39,7 +39,9 @@ The Observatory compares deterministic semantic behavior. It accepts typed
 - per-scenario replay hashes and falsification identifiers;
 - per-operator summaries;
 - trace records tying each result back to source artifacts and journal entries;
-- stable export/import hashes for regression fixtures.
+- stable hashes derived from the complete typed document graph.
 
 The Python API can call the app-layer request directly. The CLI is a
-presentation adapter that reads fixture JSON and renders the same typed report.
+presentation adapter that strictly decodes schema-v2 fixture JSON through
+Quire and renders the same typed report. Derived `content_hash` and `passed`
+properties are not duplicated as persisted document fields.

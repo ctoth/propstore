@@ -6,6 +6,7 @@ These exercise the thin Click adapters (``import-repository``, ``grounding``,
 ``test_repository_import``, ``test_observatory``, and ``test_grounding_*``; here
 we only check the adapter wiring and rendering.
 """
+
 from __future__ import annotations
 
 import json
@@ -13,6 +14,7 @@ from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
+from quire.documents import document_to_payload
 
 from propstore.cli import cli
 from propstore.families.claims import Claim, ClaimType
@@ -53,7 +55,9 @@ def test_import_repository_cli_emits_result_yaml(tmp_path: Path) -> None:
     assert len(payload["commit_sha"]) == 40
     assert payload["deleted_paths"] == []
     # The import landed on the import branch, never on master.
-    assert destination.require_git().branch_sha("import/repo-b") == payload["commit_sha"]
+    assert (
+        destination.require_git().branch_sha("import/repo-b") == payload["commit_sha"]
+    )
 
 
 def test_import_repository_cli_target_branch_master(tmp_path: Path) -> None:
@@ -109,10 +113,14 @@ def _seed_grounding_repo(root: Path) -> Repository:
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.claim.save(
         "cl1",
-        Claim(claim_id="cl1", context_id="ctx1", claim_type=ClaimType.PARAMETER, value=1.0),
+        Claim(
+            claim_id="cl1", context_id="ctx1", claim_type=ClaimType.PARAMETER, value=1.0
+        ),
         message="m",
     )
     repo.families.predicate.save(
@@ -139,7 +147,9 @@ def _seed_grounding_repo(root: Path) -> Repository:
             body=(
                 BodyLiteral(
                     kind="positive",
-                    atom=Atom(predicate="has_value", terms=(Term(kind="var", name="X"),)),
+                    atom=Atom(
+                        predicate="has_value", terms=(Term(kind="var", name="X"),)
+                    ),
                 ),
             ),
         ),
@@ -228,7 +238,7 @@ def _write_fixture(path: Path, *, falsified: bool) -> Path:
         replay_result_hash="replay:r",
         falsification_ids=("f1",) if falsified else (),
     )
-    path.write_text(json.dumps(scenario.to_dict()), encoding="utf-8")
+    path.write_text(json.dumps(document_to_payload(scenario)), encoding="utf-8")
     return path
 
 
@@ -258,7 +268,26 @@ def test_observatory_run_rejects_invalid_json(tmp_path: Path) -> None:
     bad.write_text("{not valid", encoding="utf-8")
     result = CliRunner().invoke(cli, ["observatory", "run", "--fixture", str(bad)])
     assert result.exit_code != 0
-    assert "invalid JSON" in result.output
+    assert str(bad) in result.output
+
+
+def test_observatory_run_rejects_yaml_syntax_in_json_fixture(tmp_path: Path) -> None:
+    fixture = tmp_path / "scenario.json"
+    fixture.write_text(
+        "scenario_id: s1\n"
+        "operator_family: family\n"
+        "policy_id: policy\n"
+        "replay_result_hash: replay\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        ["observatory", "run", "--fixture", str(fixture)],
+    )
+
+    assert result.exit_code != 0
+    assert str(fixture) in result.output
 
 
 def test_observatory_registered_lazily() -> None:
