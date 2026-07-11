@@ -4,9 +4,7 @@ This package carries two cooperating surfaces:
 
 * the situated-assertion subsystem proper — :class:`SituatedAssertion` and its
   reference types (:class:`ContextReference`, :class:`ConditionRef`,
-  :class:`ProvenanceGraphRef`), the canonical serialization record
-  (:class:`AssertionCanonicalRecord`), and the structural source boundary
-  (:class:`AssertionSourceRecord`);
+  :class:`ProvenanceGraphRef`);
 * the claim-node assertion-identity helpers (:func:`claim_node_assertion_id` and
   friends) that the ATMS engine uses to collapse identical claim content to one
   node. These pre-date the package conversion and are re-exported unchanged so
@@ -23,10 +21,6 @@ from propstore.core.assertions.claim_nodes import (
     semantic_content,
 )
 from propstore.core.assertions.codec import AssertionCanonicalRecord
-from propstore.core.assertions.conversion import (
-    AssertionSourceRecord,
-    assertion_source_record_from_payload,
-)
 from propstore.core.assertions.refs import (
     UNCONDITIONAL_CONDITION_REF,
     ConditionRef,
@@ -38,12 +32,10 @@ from propstore.core.assertions.situated import SituatedAssertion, derive_asserti
 __all__ = [
     "UNCONDITIONAL_CONDITION_REF",
     "AssertionCanonicalRecord",
-    "AssertionSourceRecord",
     "ConditionRef",
     "ContextReference",
     "ProvenanceGraphRef",
     "SituatedAssertion",
-    "assertion_source_record_from_payload",
     "claim_node_assertion_id",
     "claim_node_content",
     "claim_node_context_id",

@@ -11,7 +11,13 @@ from propstore.core.assertions import (
     SituatedAssertion,
 )
 from propstore.core.id_types import ConceptId
-from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
+from propstore.core.relations import (
+    RelationConceptRef,
+    RoleBinding,
+    RoleBindingSet,
+    RoleDefinition,
+    RoleSignature,
+)
 
 
 def test_situated_assertion_identity_excludes_provenance_ref() -> None:
@@ -94,6 +100,25 @@ def test_rival_normalized_candidates_can_coexist_with_distinct_identities() -> N
     assert subtype_candidate.assertion_id != instance_candidate.assertion_id
 
 
+def test_role_signature_accepts_situated_assertion_bindings() -> None:
+    assertion = _published_in_assertion()
+
+    _published_in_signature().validate_bindings(assertion.role_bindings)
+
+
+def test_role_signature_rejects_unknown_situated_assertion_role() -> None:
+    assertion = _published_in_assertion(
+        role_bindings=RoleBindingSet((
+            RoleBinding("paper", "ps:concept:paper:clark-2014"),
+            RoleBinding("publisher", "ps:concept:publisher:w3c"),
+            RoleBinding("venue", "ps:concept:venue:j-biomed-semantics"),
+        ))
+    )
+
+    with pytest.raises(ValueError, match="unknown role"):
+        _published_in_signature().validate_bindings(assertion.role_bindings)
+
+
 def _published_in_assertion(
     *,
     role_bindings: RoleBindingSet | None = None,
@@ -112,4 +137,23 @@ def _published_in_assertion(
         condition=condition or ConditionRef.unconditional(),
         provenance_ref=provenance
         or ProvenanceGraphRef("urn:propstore:provenance:default"),
+    )
+
+
+def _published_in_signature() -> RoleSignature:
+    relation = RelationConceptRef(ConceptId("ps:concept:relation:published_in"))
+    return RoleSignature(
+        relation=relation,
+        role_definitions=(
+            RoleDefinition(
+                role="paper",
+                domain=ConceptId("ps:concept:class:publication_event"),
+                range=ConceptId("ps:concept:class:paper"),
+            ),
+            RoleDefinition(
+                role="venue",
+                domain=ConceptId("ps:concept:class:publication_event"),
+                range=ConceptId("ps:concept:class:venue"),
+            ),
+        ),
     )

@@ -379,7 +379,24 @@ forbidden-surface search.
 
 ## Execution log
 
-This section is intentionally empty until implementation begins. Each entry
-must contain: baseline HEAD/status, exact deleted symbols, dependency-edge
-classifications and dispositions, focused/full gate commands and results,
-zero-surface search results, and the kept commit SHA or full-revert result.
+### Slice 1: assertion source conversion
+
+- Baseline: `010e42be`; tracked files clean. Untracked
+  `pyghidra_mcp_projects/`, `reviews/2026-07-11-propstore-deep-review.md`, and
+  `tests/test_micropub_clark_charter.py` excluded.
+- Deleted old surface: `core/assertions/conversion.py`,
+  `AssertionSourceRecord`, `assertion_source_record_from_payload`, and the
+  package exports.
+- Deleted scaffold: `tests/test_structural_assertion_conversion.py`.
+- Retained owner behavior: role-signature acceptance and rejection now exercise
+  `RoleSignature.validate_bindings` directly in `test_situated_assertions.py`.
+- Zero-surface search: no deleted conversion symbols or imports under
+  `propstore` or `tests`.
+- Focused gate: logged `tests/test_situated_assertions.py` — 7 passed.
+- Type gate: `uv run pyright propstore` — 0 errors.
+- Commit: pending this slice commit.
+
+Each later entry must contain: baseline HEAD/status, exact deleted symbols,
+dependency-edge classifications and dispositions, focused/full gate commands
+and results, zero-surface search results, and the kept commit SHA or
+full-revert result.
