@@ -80,11 +80,7 @@ from propstore.core.labels import (
     make_environment_key,
     merge_labels,
 )
-from propstore.core.micropublications import (
-    ActiveMicropublication,
-    ActiveMicropublicationInput,
-    coerce_active_micropublication,
-)
+from propstore.families.micropublications import Micropublication
 from propstore.propagation import (
     ParameterizationEvaluationStatus,
     evaluate_parameterization,
@@ -141,7 +137,7 @@ class _ATMSRuntimeLike(Protocol):
     def all_parameterizations(self) -> Callable[[], list[ParameterizationEdge]]: ...
 
     @property
-    def all_micropublications(self) -> Callable[[], list[ActiveMicropublicationInput]]: ...
+    def all_micropublications(self) -> Callable[[], list[Micropublication]]: ...
 
     @property
     def active_claims(self) -> Callable[[], list[ClaimNode]]: ...
@@ -264,7 +260,7 @@ class ATMSClaimNode:
 @dataclass(frozen=True)
 class ATMSMicropublicationNode:
     node_id: str
-    micropublication: ActiveMicropublication
+    micropublication: Micropublication
     label: Label = field(default_factory=Label)
     justification_ids: tuple[str, ...] = field(default_factory=tuple)
 
@@ -278,7 +274,7 @@ class ATMSMicropublicationNode:
 
     @property
     def context_id(self) -> ContextId:
-        return self.micropublication.context_id
+        return to_context_id(self.micropublication.context_id)
 
 
 @dataclass(frozen=True)
@@ -335,7 +331,7 @@ class _ATMSRuntime:
     environment: Environment
     active_graph: ActiveWorldGraph
     all_parameterizations: Callable[[], list[ParameterizationEdge]]
-    all_micropublications: Callable[[], list[ActiveMicropublicationInput]]
+    all_micropublications: Callable[[], list[Micropublication]]
     active_claims: Callable[[], list[ClaimNode]]
     conflicts: Callable[[], list[ConflictWitness]]
     is_param_compatible: Callable[[ParameterizationEdge], bool]
@@ -491,7 +487,7 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
     def _all_parameterizations() -> list[ParameterizationEdge]:
         return list(bound_active_graph.compiled.parameterizations)
 
-    def _all_micropublications() -> list[ActiveMicropublicationInput]:
+    def _all_micropublications() -> list[Micropublication]:
         return list(store.all_micropublications())
 
     def _replay(queryable_set: tuple[QueryableAssumption, ...]) -> _ATMSRuntime:
@@ -1394,7 +1390,7 @@ class ATMSEngine:
 
     def _build_micropublication_nodes_and_justifications(self) -> None:
         for item in sorted(
-            self._runtime_micropublications(),
+            self._runtime.all_micropublications(),
             key=lambda micropub: micropub.artifact_id,
         ):
             node_id = f"micropub:{item.artifact_id}"
@@ -1404,11 +1400,11 @@ class ATMSEngine:
             )
             self._micropub_node_ids[item.artifact_id] = node_id
 
-            context_node_id = self._context_node_ids.get(item.context_id)
+            context_node_id = self._context_node_ids.get(to_context_id(item.context_id))
             if context_node_id is None:
                 continue
             claim_node_ids: list[str] = []
-            for claim_id in item.claim_ids:
+            for claim_id in item.claims:
                 claim_node_id = self._claim_node_ids.get(claim_id) or self._claim_artifact_node_ids.get(
                     claim_id
                 )
@@ -2020,12 +2016,6 @@ class ATMSEngine:
             context_ids=self._visible_context_ids(),
         )
 
-    def _runtime_micropublications(self) -> tuple[ActiveMicropublication, ...]:
-        return tuple(
-            coerce_active_micropublication(item)
-            for item in self._runtime.all_micropublications()
-        )
-
     def _visible_context_ids(self) -> tuple[ContextId, ...]:
         context_ids: set[ContextId] = set()
         if self._runtime.environment.context_id is not None:
@@ -2034,8 +2024,8 @@ class ATMSEngine:
             claim_context = claim_node_context_id(claim)
             if claim_context is not None:
                 context_ids.add(to_context_id(claim_context))
-        for micropub in self._runtime_micropublications():
-            context_ids.add(micropub.context_id)
+        for micropub in self._runtime.all_micropublications():
+            context_ids.add(to_context_id(micropub.context_id))
         return tuple(sorted(context_ids))
 
     def _coerce_queryables(

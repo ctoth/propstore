@@ -10,11 +10,9 @@ straight back to the authored charter (``Concept`` / ``Claim`` / ``Stance`` /
 (:func:`_reconstruct`). Crossing the boundary is a read plus a reconstruction of
 the canonical type, never a mirror.
 
-Two derived families have no authored charter spelling on the read surface and
-are reduced to their canonical value type instead: the ``conflict`` projection
-to :class:`~propstore.conflict_detector.models.ConflictRecord` and the
-``micropublication`` charter to
-:class:`~propstore.core.micropublications.ActiveMicropublication`.
+The derived ``conflict`` family has no authored charter spelling on the read
+surface and is reduced to its canonical
+:class:`~propstore.conflict_detector.models.ConflictRecord` value type instead.
 
 Parameterization edges are not a stored family in the charter rewrite; they are
 *derived* at read time from the authored ``EQUATION`` claims (an equation claim's
@@ -39,14 +37,14 @@ from propstore.conflict_detector.models import (
     coerce_conflict_class,
 )
 from propstore.core.graph_types import ParameterizationEdge
-from propstore.core.id_types import to_concept_id, to_concept_ids, to_context_id
-from propstore.core.micropublications import ActiveMicropublication
+from propstore.core.id_types import to_concept_id, to_concept_ids
 from propstore.core.store_results import ConceptSearchHit
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context, LiftingRule
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
+from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 
 if TYPE_CHECKING:
@@ -258,29 +256,14 @@ def select_forms(session: DerivedSession) -> list[FormDefinition]:
 
 def select_micropublications(
     session: DerivedSession,
-) -> list[ActiveMicropublication]:
-    """Micropublication bundles rebuilt as :class:`ActiveMicropublication`.
-
-    A bundle with no claims cannot form a valid active micropublication (its
-    meaning is the claims it bundles); such a bundle is already surfaced as a
-    quarantine ``build_diagnostic`` at build time, so it is not yielded here.
-    """
+) -> list[Micropublication]:
+    """Every micropublication rebuilt as its canonical charter."""
 
     model = session.schema.model("micropublication")
-    active: list[ActiveMicropublication] = []
-    for row in session.scalars(select(model)):
-        claim_ids = tuple(row.claims)
-        if not claim_ids:
-            continue
-        active.append(
-            ActiveMicropublication(
-                artifact_id=str(row.artifact_id),
-                context_id=to_context_id(str(row.context_id)),
-                claim_ids=claim_ids,
-                assumptions=tuple(row.assumptions),
-            )
-        )
-    return active
+    return [
+        _reconstruct(Micropublication, row)
+        for row in session.scalars(select(model))
+    ]
 
 
 # ── conflicts ────────────────────────────────────────────────────────────────

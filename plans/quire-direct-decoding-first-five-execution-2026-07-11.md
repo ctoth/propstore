@@ -394,6 +394,27 @@ forbidden-surface search.
   `propstore` or `tests`.
 - Focused gate: logged `tests/test_situated_assertions.py` — 7 passed.
 - Type gate: `uv run pyright propstore` — 0 errors.
+- Commit: `217c7d2151216b4b0bec490f8a93374254067564`.
+
+### Slice 2: canonical micropublications
+
+- Baseline: `217c7d21`; tracked files clean, unrelated untracked files excluded.
+- Deleted old surface: `core/micropublications.py`,
+  `ActiveMicropublication`, `ActiveMicropublicationInput`, mapping/JSON parsing,
+  and `coerce_active_micropublication`.
+- Rewritten direct edges: environment protocols, sidecar world query, overlay,
+  world model, ATMS runtime, and test feed now use the
+  `families.micropublications.Micropublication` charter directly.
+- Owner invariant: canonical `Micropublication` rejects empty artifact,
+  context, or claim collections.
+- Quire boundary: `select_micropublications` uses the existing generic
+  `_reconstruct(Micropublication, row)` path over the Quire-generated ORM row.
+- Zero-surface search: no deleted micropublication symbols or imports in
+  tracked `propstore`/`tests`; the explicitly excluded untracked user test was
+  not edited.
+- Focused gate: logged ATMS/world-query/keystone/repository selection —
+  104 passed.
+- Type gate: `uv run pyright propstore` — 0 errors.
 - Commit: pending this slice commit.
 
 Each later entry must contain: baseline HEAD/status, exact deleted symbols,

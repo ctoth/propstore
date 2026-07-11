@@ -52,10 +52,6 @@ from propstore.core.id_types import (
     to_concept_ids,
     to_queryable_ids,
 )
-from propstore.core.micropublications import (
-    ActiveMicropublication,
-    coerce_active_micropublication,
-)
 from propstore.core.store_results import (
     ClaimSimilarityHit,
     ConceptSearchHit,
@@ -64,6 +60,7 @@ from propstore.core.store_results import (
 )
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
+from propstore.families.micropublications import Micropublication
 from propstore.propagation import (
     ParameterizationEvaluationStatus,
     evaluate_parameterization,
@@ -284,18 +281,9 @@ def test_rewrite_parameterization_symbols_aliases() -> None:
 # --- micropublications ----------------------------------------------------
 
 
-def test_micropublication_coerce_from_mapping() -> None:
-    micropub = coerce_active_micropublication(
-        {"artifact_id": "m1", "context_id": "ctx", "claim_ids": ["k1", "k2"]}
-    )
-    assert isinstance(micropub, ActiveMicropublication)
-    assert micropub.claim_ids == ("k1", "k2")
-    assert coerce_active_micropublication(micropub) is micropub
-
-
 def test_micropublication_requires_claims() -> None:
     with pytest.raises(ValueError):
-        ActiveMicropublication(artifact_id="m1", context_id="ctx", claim_ids=())
+        Micropublication(artifact_id="m1", context_id="ctx", claims=())
 
 
 # --- store_results --------------------------------------------------------

@@ -63,7 +63,6 @@ from propstore.core.labels import (
     compile_environment_assumptions,
     environment_assumption_ids,
 )
-from propstore.core.micropublications import ActiveMicropublication
 from propstore.core.store_results import (
     ClaimSimilarityHit,
     ConceptSearchHit,
@@ -77,6 +76,7 @@ from propstore.derived_schema import (
 from propstore.families.claims import Claim, ClaimStatus
 from propstore.families.concepts import Concept
 from propstore.families.diagnostics import BuildDiagnostic
+from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.world.bound import BoundWorld
 from propstore.world.causal import from_compiled_graph
@@ -746,7 +746,7 @@ class WorldQuery(WorldStore):
 
     # ── micropublications + conflicts ────────────────────────────────────────
 
-    def all_micropublications(self) -> Sequence[ActiveMicropublication]:
+    def all_micropublications(self) -> Sequence[Micropublication]:
         return select_micropublications(self._session)
 
     def conflicts(self) -> Sequence[ConflictRecord]:

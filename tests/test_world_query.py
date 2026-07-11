@@ -21,7 +21,6 @@ from pathlib import Path
 import pytest
 
 from propstore.core.environment import Environment, WorldStore
-from propstore.core.micropublications import ActiveMicropublication
 from propstore.families.claims import Claim, ClaimStatus, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
@@ -378,8 +377,8 @@ def test_all_micropublications(tmp_path: Path) -> None:
     with WorldQuery(repo) as world:
         micropubs = world.all_micropublications()
         assert len(micropubs) == 1
-        assert isinstance(micropubs[0], ActiveMicropublication)
-        assert micropubs[0].claim_ids == ("cl1",)
+        assert isinstance(micropubs[0], Micropublication)
+        assert micropubs[0].claims == ("cl1",)
 
 
 # ── derived parameterization graph ───────────────────────────────────────────

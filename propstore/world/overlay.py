@@ -48,7 +48,6 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.core.micropublications import ActiveMicropublicationInput
     from propstore.core.graph_types import ParameterizationEdge, RelationEdge
     from propstore.core.store_results import (
         ClaimSimilarityHit,
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
         ConceptSimilarityHit,
         WorldStoreStats,
     )
+    from propstore.families.micropublications import Micropublication
 
 
 def _value_concept_id(claim: Claim) -> str | None:
@@ -180,7 +180,7 @@ class _GraphOverlayStore:
     def all_relationships(self) -> Sequence[RelationEdge]:
         return self._base.all_relationships()
 
-    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]:
+    def all_micropublications(self) -> Sequence[Micropublication]:
         return self._base.all_micropublications()
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:

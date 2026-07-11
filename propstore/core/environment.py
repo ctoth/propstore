@@ -40,7 +40,6 @@ if TYPE_CHECKING:
         RelationEdge,
     )
     from propstore.core.justifications import CanonicalJustification
-    from propstore.core.micropublications import ActiveMicropublicationInput
     from propstore.core.store_results import (
         ClaimSimilarityHit,
         ConceptSearchHit,
@@ -49,6 +48,7 @@ if TYPE_CHECKING:
     )
     from propstore.families.claims import Claim
     from propstore.families.concepts import Concept
+    from propstore.families.micropublications import Micropublication
     from propstore.families.relations import Stance
 
 
@@ -217,7 +217,7 @@ class ParameterizationCatalogStore(Protocol):
 
 @runtime_checkable
 class MicropublicationCatalogStore(Protocol):
-    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]: ...
+    def all_micropublications(self) -> Sequence[Micropublication]: ...
 
 
 @runtime_checkable
@@ -254,7 +254,7 @@ class WorldStore(Protocol):
     def all_parameterizations(self) -> Sequence[ParameterizationEdge]: ...
     def all_relationships(self) -> Sequence[RelationEdge]: ...
     def all_claim_stances(self) -> Sequence[Stance]: ...
-    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]: ...
+    def all_micropublications(self) -> Sequence[Micropublication]: ...
     def concept_ids_for_group(self, group_id: int) -> set[str]: ...
     def search(self, query: str) -> list[ConceptSearchHit]: ...
     def similar_claims(

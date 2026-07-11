@@ -2,8 +2,7 @@
 
 A micropublication (Clark, Ciccarese & Goble 2014) bundles a set of claims with
 the evidence, assumptions, stance, provenance, and source that situate them. This
-is the *document-identity* side of the bundle; the runtime ATMS support node is
-:class:`propstore.core.micropublications.ActiveMicropublication`.
+is the bundle used directly by authoring, sidecar reads, and runtime ATMS support.
 
 Substrate boundary: the class IS the document. Its ``context_id`` and ``claims``
 references are declared as :class:`~quire.references.ForeignKeySpec` annotations
@@ -91,3 +90,11 @@ class Micropublication(CharterDoc):
     stance: StanceType | None = None
     provenance: Annotated[Provenance | None, charter_field(json=True)] = None
     source: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.artifact_id:
+            raise ValueError("micropublication artifact_id is required")
+        if not self.context_id:
+            raise ValueError("micropublication context_id is required")
+        if not self.claims:
+            raise ValueError("micropublication claims must not be empty")

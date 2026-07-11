@@ -33,9 +33,9 @@ from propstore.core.environment import Environment
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import ParameterizationEdge, RelationEdge
 from propstore.core.labels import binding_condition_to_cel, compile_environment_assumptions
-from propstore.core.micropublications import ActiveMicropublication
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
+from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.world.bound import BoundWorld
 from propstore.world.types import ReasoningBackend, RenderPolicy
@@ -127,7 +127,7 @@ class InMemoryWorldStore:
     parameterizations: tuple[ParameterizationEdge, ...] = ()
     conflict_records: tuple[ConflictRecord, ...] = ()
     stances: tuple[Stance, ...] = ()
-    micropublications: tuple[ActiveMicropublication, ...] = ()
+    micropublications: tuple[Micropublication, ...] = ()
     solver: ConditionSolver = field(default_factory=lambda: ConditionSolver({}))
 
     def all_concepts(self) -> Sequence[Concept]:
@@ -205,7 +205,7 @@ class InMemoryWorldStore:
             if stance.source_claim_id in claim_ids and stance.target_claim_id in claim_ids
         ]
 
-    def all_micropublications(self) -> Sequence[ActiveMicropublication]:
+    def all_micropublications(self) -> Sequence[Micropublication]:
         return self.micropublications
 
     def explain(self, claim_id: str) -> Sequence[Stance]:
@@ -298,10 +298,10 @@ def build_bound(
     )
 
     micropub_objs = tuple(
-        ActiveMicropublication(
+        Micropublication(
             artifact_id=spec.artifact_id,
             context_id=spec.context_id,
-            claim_ids=tuple(spec.claim_ids),
+            claims=tuple(spec.claim_ids),
         )
         for spec in micropublications
     )
