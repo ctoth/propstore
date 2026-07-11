@@ -518,7 +518,7 @@ forbidden-surface search.
 - Propstore focused gate: logged sidecar/world-query/graph selection — 87
   passed (`logs/test-runs/pytest-20260711-144337.log`).
 - Type gate: `uv run pyright propstore` — 0 errors.
-- Commit: pending corrective-slice commit.
+- Commit: `6379b303`.
 
 Each later entry must contain: baseline HEAD/status, exact deleted symbols,
 dependency-edge classifications and dispositions, focused/full gate commands
