@@ -65,8 +65,8 @@ kept change or a complete tracked-file restore before the next slice starts.
 - Unknown fields, wrong tags, wrong member types, and old shapes fail at the
   Quire boundary. There is no compatibility reader.
 
-Current Quire already provides the required generic machinery at the pinned
-revision (`95a268c68556160b52fe065ae59f1de2b750f9e3`):
+Quire provides the required generic machinery at the current pinned revision
+(`d5660c85761d5a005b61419b924d846ccc7d835a`):
 
 - `quire.documents.schema.DocumentStruct`;
 - strict `decode_document_bytes`/document codecs;
@@ -74,14 +74,17 @@ revision (`95a268c68556160b52fe065ae59f1de2b750f9e3`):
 - nested typed document decoding;
 - tagged-union decoding, including the recursive shape covered by
   `quire/tests/test_charter_class_recursive.py` specifically for the
-  claims/worldlines migration.
+  claims/worldlines migration;
+- `FamilyCharter.document_from_model`, which derives the storage-to-document
+  boundary from charter metadata without consumer field lists.
 
-No Quire change is planned for these five files. If implementation proves a
-generic capability genuinely absent, stop the Propstore slice. Add the generic
-capability and a generic Quire test in Quire, commit and push Quire, update
-Propstore's immutable Quire pin, and only then resume. A Propstore custom codec,
-family codec override, fallback parser, or local normalization layer is not an
-allowed substitute.
+Implementation proved the generic family-model-to-document capability absent.
+The Propstore corrective slice stopped, Quire gained that capability plus a
+generic test in commits `53f479d3a590d02975484c83e0a1eb4840cfaf39` and
+`d5660c85761d5a005b61419b924d846ccc7d835a`, both commits were pushed, and
+Propstore's immutable pin was updated before resuming. No Propstore custom
+codec, family codec override, fallback parser, or local normalization layer was
+introduced.
 
 ## Forbidden replacement surfaces
 
@@ -494,8 +497,28 @@ forbidden-surface search.
 
 ### Corrective slice: direct Quire-mapped sidecar objects
 
-- Discovered while auditing completed slices 2 and 3: pending after slice 4 is
-  committed and its ledger SHA is recorded.
+- Baseline: `f65e736b`; tracked files clean, unrelated untracked files excluded.
+- Deleted old surface: `world/queries.py::_reconstruct`, `_StructT`, the
+  `msgspec.structs.fields` reflection loop, and its kwargs reconstruction.
+- Initial direct-row attempt failed three canonical-type assertions because
+  Quire returns generated `*Model` rows. The attempt was not kept as the final
+  disposition.
+- Generic owner repair: Quire `FamilyCharter.document_from_model` now derives
+  document fields and document names from charter metadata, ignores
+  storage-only columns, validates the expected document class, and decodes via
+  the charter codec. Quire commits `53f479d3` and `d5660c85` are pushed to
+  `origin/master`; Propstore pins the latter exact SHA.
+- Direct callers: concept, claim, stance, context, lifting-rule, form,
+  micropublication, and build-diagnostic selectors call their charter owner
+  directly. No Propstore wrapper, cast helper, field list, or kwargs builder
+  remains.
+- Quire gate: `tests/test_charter_class_fixes.py` plus
+  `tests/test_sqlalchemy_engine.py` — 28 passed; `uv run pyright quire` — 0
+  errors.
+- Propstore focused gate: logged sidecar/world-query/graph selection — 87
+  passed (`logs/test-runs/pytest-20260711-144337.log`).
+- Type gate: `uv run pyright propstore` — 0 errors.
+- Commit: pending corrective-slice commit.
 
 Each later entry must contain: baseline HEAD/status, exact deleted symbols,
 dependency-edge classifications and dispositions, focused/full gate commands

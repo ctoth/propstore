@@ -1,14 +1,9 @@
 """SQL read helpers and query-error types for the repo-backed ``WorldQuery``.
 
-The ``select_*`` functions read the materialized world sidecar through quire's
-SQLAlchemy charter schema (``quire.sqlalchemy_store.readonly_session`` over the
-:func:`propstore.derived_schema.build_world_sidecar_schema` schema) and rebuild
-the ONE canonical charter / value type for each row. There is **no** ``*Row`` /
-``*RowInput`` second spelling: quire's per-family generated ORM model is reduced
-straight back to the authored charter (``Concept`` / ``Claim`` / ``Stance`` /
-``Context`` / ``Micropublication``) via that charter's own msgspec field set
-(:func:`_reconstruct`). Crossing the boundary is a read plus a reconstruction of
-the canonical type, never a mirror.
+The ``select_*`` functions read the materialized world sidecar through Quire's
+SQLAlchemy charter schema. Quire maps each canonical charter class as the ORM
+model, so selected rows already are ``Concept`` / ``Claim`` / ``Stance`` /
+``Context`` / ``Micropublication`` objects. Propstore does not reconstruct them.
 
 The derived ``conflict`` family has no authored charter spelling on the read
 surface and is reduced to its canonical
@@ -25,9 +20,8 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar
+from typing import TYPE_CHECKING, Any, TypeGuard
 
-import msgspec
 from sqlalchemy import func, select
 
 from condition_ir import CheckedConditionSet, checked_condition_set_from_json
@@ -50,9 +44,6 @@ from propstore.families.relations import Stance
 if TYPE_CHECKING:
     from quire.sqlalchemy_store import DerivedSession
 
-_StructT = TypeVar("_StructT", bound=msgspec.Struct)
-
-
 class WorldQueryError(Exception):
     """Base class for expected world-query failures."""
 
@@ -71,20 +62,6 @@ class UnknownClaimError(WorldQueryError):
     def __init__(self, target: str) -> None:
         super().__init__(f"Unknown claim: {target}")
         self.target = target
-
-
-def _reconstruct(cls: type[_StructT], model: object) -> _StructT:
-    """Rebuild the ONE canonical charter ``cls`` from a sidecar ORM model row.
-
-    The sidecar model carries exactly the charter's fields (quire derived its
-    columns from them, and the ``json``/enum boundaries decode back to the
-    authored python types on read), so reading the charter's own field names off
-    the model and constructing the charter reproduces the authored document — it
-    is not a second spelling.
-    """
-
-    fields = {field.name: getattr(model, field.name) for field in msgspec.structs.fields(cls)}
-    return cls(**fields)
 
 
 def _is_str_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
@@ -106,10 +83,13 @@ def _checked_conditions(conditions_ir: str | None) -> CheckedConditionSet | None
 
 
 def select_concepts(session: DerivedSession) -> list[Concept]:
-    """Every authored concept in the sidecar, rebuilt as ``Concept``."""
+    """Every authored concept in the sidecar."""
 
     model = session.schema.model("concept")
-    return [_reconstruct(Concept, row) for row in session.scalars(select(model))]
+    return [
+        Concept.__charter__.document_from_model(row, Concept)
+        for row in session.scalars(select(model))
+    ]
 
 
 def select_concept(session: DerivedSession, concept_id: str) -> Concept | None:
@@ -119,7 +99,11 @@ def select_concept(session: DerivedSession, concept_id: str) -> Concept | None:
     row = session.scalars(
         select(model).where(model.concept_id == concept_id)
     ).first()
-    return None if row is None else _reconstruct(Concept, row)
+    return (
+        None
+        if row is None
+        else Concept.__charter__.document_from_model(row, Concept)
+    )
 
 
 def resolve_concept_id(session: DerivedSession, name: str) -> str | None:
@@ -157,10 +141,13 @@ def count_concepts(session: DerivedSession) -> int:
 
 
 def select_claims(session: DerivedSession) -> list[Claim]:
-    """Every authored claim in the sidecar, rebuilt as ``Claim``."""
+    """Every authored claim in the sidecar."""
 
     model = session.schema.model("claim")
-    return [_reconstruct(Claim, row) for row in session.scalars(select(model))]
+    return [
+        Claim.__charter__.document_from_model(row, Claim)
+        for row in session.scalars(select(model))
+    ]
 
 
 def select_claim(session: DerivedSession, claim_id: str) -> Claim | None:
@@ -168,7 +155,11 @@ def select_claim(session: DerivedSession, claim_id: str) -> Claim | None:
 
     model = session.schema.model("claim")
     row = session.scalars(select(model).where(model.claim_id == claim_id)).first()
-    return None if row is None else _reconstruct(Claim, row)
+    return (
+        None
+        if row is None
+        else Claim.__charter__.document_from_model(row, Claim)
+    )
 
 
 def resolve_claim_id(session: DerivedSession, name: str) -> str | None:
@@ -188,10 +179,13 @@ def count_claims(session: DerivedSession) -> int:
 
 
 def select_stances(session: DerivedSession) -> list[Stance]:
-    """Every authored stance in the sidecar, rebuilt as ``Stance``."""
+    """Every authored stance in the sidecar."""
 
     model = session.schema.model("stance")
-    return [_reconstruct(Stance, row) for row in session.scalars(select(model))]
+    return [
+        Stance.__charter__.document_from_model(row, Stance)
+        for row in session.scalars(select(model))
+    ]
 
 
 def select_stances_between(
@@ -207,7 +201,7 @@ def select_stances_between(
         .where(model.source_claim_id.in_(claim_ids))
         .where(model.target_claim_id.in_(claim_ids))
     )
-    return [_reconstruct(Stance, row) for row in rows]
+    return [Stance.__charter__.document_from_model(row, Stance) for row in rows]
 
 
 def select_incident_stances(session: DerivedSession, claim_id: str) -> list[Stance]:
@@ -221,34 +215,43 @@ def select_incident_stances(session: DerivedSession, claim_id: str) -> list[Stan
         )
         .order_by(model.stance_id)
     )
-    return [_reconstruct(Stance, row) for row in rows]
+    return [Stance.__charter__.document_from_model(row, Stance) for row in rows]
 
 
 # ── contexts + lifting rules ─────────────────────────────────────────────────
 
 
 def select_contexts(session: DerivedSession) -> list[Context]:
-    """Every authored context in the sidecar, rebuilt as ``Context``."""
+    """Every authored context in the sidecar."""
 
     model = session.schema.model("context")
-    return [_reconstruct(Context, row) for row in session.scalars(select(model))]
+    return [
+        Context.__charter__.document_from_model(row, Context)
+        for row in session.scalars(select(model))
+    ]
 
 
 def select_lifting_rules(session: DerivedSession) -> list[LiftingRule]:
-    """Every authored lifting rule in the sidecar, rebuilt as ``LiftingRule``."""
+    """Every authored lifting rule in the sidecar."""
 
     model = session.schema.model("lifting_rule")
-    return [_reconstruct(LiftingRule, row) for row in session.scalars(select(model))]
+    return [
+        LiftingRule.__charter__.document_from_model(row, LiftingRule)
+        for row in session.scalars(select(model))
+    ]
 
 
 # ── forms ────────────────────────────────────────────────────────────────────
 
 
 def select_forms(session: DerivedSession) -> list[FormDefinition]:
-    """Every authored form definition in the sidecar, rebuilt as ``FormDefinition``."""
+    """Every authored form definition in the sidecar."""
 
     model = session.schema.model("form")
-    return [_reconstruct(FormDefinition, row) for row in session.scalars(select(model))]
+    return [
+        FormDefinition.__charter__.document_from_model(row, FormDefinition)
+        for row in session.scalars(select(model))
+    ]
 
 
 # ── micropublications ────────────────────────────────────────────────────────
@@ -257,11 +260,11 @@ def select_forms(session: DerivedSession) -> list[FormDefinition]:
 def select_micropublications(
     session: DerivedSession,
 ) -> list[Micropublication]:
-    """Every micropublication rebuilt as its canonical charter."""
+    """Every canonical micropublication in the sidecar."""
 
     model = session.schema.model("micropublication")
     return [
-        _reconstruct(Micropublication, row)
+        Micropublication.__charter__.document_from_model(row, Micropublication)
         for row in session.scalars(select(model))
     ]
 
@@ -306,11 +309,12 @@ def count_conflicts(session: DerivedSession) -> int:
 
 
 def select_build_diagnostics(session: DerivedSession) -> list[BuildDiagnostic]:
-    """Every build diagnostic row, rebuilt as ``BuildDiagnostic``."""
+    """Every canonical build diagnostic in the sidecar."""
 
     model = session.schema.model("build_diagnostic")
     return [
-        _reconstruct(BuildDiagnostic, row) for row in session.scalars(select(model))
+        BuildDiagnostic.__charter__.document_from_model(row, BuildDiagnostic)
+        for row in session.scalars(select(model))
     ]
 
 
