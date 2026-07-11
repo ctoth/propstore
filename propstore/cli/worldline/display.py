@@ -29,7 +29,6 @@ from propstore.cli.worldline.rendering import (
     target_value_lines,
 )
 from propstore.worldline.query import (
-    WorldlineInputs,
     WorldlineResult,
     WorldlineRevisionQuery,
 )
@@ -50,7 +49,7 @@ def worldline_show(obj: CliContext, name: str, check: bool) -> None:
         fail(f"Worldline '{name}' not found")
 
     wl = report.definition
-    inputs = WorldlineInputs.from_dict(wl.inputs)
+    inputs = wl.inputs
     revision = WorldlineRevisionQuery.from_dict(wl.revision)
     results = WorldlineResult.from_dict(wl.results)
 

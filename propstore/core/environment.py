@@ -19,15 +19,15 @@ this module pulls in no charter, condition-ir solver, or graph module at runtime
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Protocol, TypeGuard, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from condition_ir import CelExpr, to_cel_expr, to_cel_exprs
+import msgspec
+from quire.documents import DocumentStruct
+
+from condition_ir import CelExpr
 from propstore.core.id_types import (
     AssumptionId,
     ContextId,
-    to_assumption_id,
-    to_context_id,
 )
 
 if TYPE_CHECKING:
@@ -52,24 +52,7 @@ if TYPE_CHECKING:
     from propstore.families.relations import Stance
 
 
-def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
-    return isinstance(value, Mapping)
-
-
-def _empty_bindings() -> dict[str, Any]:
-    return {}
-
-
-def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
-    if value is None:
-        return {}
-    if not _is_mapping(value):
-        raise ValueError(f"environment field '{field_name}' must be a mapping")
-    return value
-
-
-@dataclass(frozen=True)
-class AssumptionRef:
+class AssumptionRef(DocumentStruct):
     """A reference to one assumption carried by an :class:`Environment`.
 
     ``kind`` distinguishes a binding assumption from a context assumption;
@@ -82,80 +65,15 @@ class AssumptionRef:
     source: str
     cel: CelExpr
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "assumption_id", to_assumption_id(self.assumption_id))
-        object.__setattr__(self, "cel", to_cel_expr(self.cel))
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "assumption_id": self.assumption_id,
-            "kind": self.kind,
-            "source": self.source,
-            "cel": self.cel,
-        }
-
-
-@dataclass(frozen=True)
-class Environment:
+class Environment(DocumentStruct):
     """The assumption/binding/context frame a world query renders under."""
 
-    bindings: Mapping[str, Any] = field(default_factory=_empty_bindings)
+    bindings: dict[str, str | int | float | bool] = msgspec.field(
+        default_factory=dict[str, str | int | float | bool]
+    )
     context_id: ContextId | None = None
-    effective_assumptions: tuple[CelExpr, ...] = field(default_factory=tuple)
-    assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "bindings", dict(self.bindings))
-        object.__setattr__(
-            self, "effective_assumptions", to_cel_exprs(self.effective_assumptions)
-        )
-        object.__setattr__(self, "assumptions", tuple(self.assumptions))
-
-    @classmethod
-    def from_dict(cls, data: object) -> Environment:
-        if data is None:
-            return cls()
-        if not _is_mapping(data):
-            raise ValueError("environment must be a mapping")
-        if not data:
-            return cls()
-
-        raw_assumptions = data.get("assumptions") or ()
-        assumptions: list[AssumptionRef] = []
-        for entry in raw_assumptions:
-            if isinstance(entry, AssumptionRef):
-                assumptions.append(entry)
-                continue
-            if _is_mapping(entry):
-                assumptions.append(
-                    AssumptionRef(
-                        assumption_id=to_assumption_id(entry["assumption_id"]),
-                        kind=str(entry["kind"]),
-                        source=str(entry["source"]),
-                        cel=to_cel_expr(entry["cel"]),
-                    )
-                )
-
-        return cls(
-            bindings=dict(_optional_mapping(data.get("bindings"), "bindings")),
-            context_id=(
-                None if data.get("context_id") is None else to_context_id(data["context_id"])
-            ),
-            effective_assumptions=to_cel_exprs(data.get("effective_assumptions") or ()),
-            assumptions=tuple(assumptions),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {}
-        if self.bindings:
-            data["bindings"] = dict(self.bindings)
-        if self.context_id is not None:
-            data["context_id"] = self.context_id
-        if self.effective_assumptions:
-            data["effective_assumptions"] = list(self.effective_assumptions)
-        if self.assumptions:
-            data["assumptions"] = [assumption.to_dict() for assumption in self.assumptions]
-        return data
+    effective_assumptions: tuple[CelExpr, ...] = ()
+    assumptions: tuple[AssumptionRef, ...] = ()
 
 
 @runtime_checkable

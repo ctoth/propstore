@@ -24,18 +24,17 @@ from propstore.world.types import Environment, RenderPolicy, ResolutionStrategy
 from propstore.worldline.definition import (
     WORLDLINE_PLACEMENT,
     WorldlineDefinition,
+    WorldlineInputs,
 )
-from propstore.worldline.query import WorldlineInputs
 
 
 def _definition(name: str) -> WorldlineDefinition:
-    # Option B: the charter stores the render policy and environment as their
-    # existing dict serialization; the compute forms are rebuilt one-way via
-    # ``RenderPolicy.from_dict`` / ``Environment.from_dict`` at use time.
+    # Inputs are the typed nested document graph decoded by Quire. RenderPolicy
+    # remains a separate later representation family.
     return WorldlineDefinition(
         name=name,
         id=name,
-        inputs=WorldlineInputs(environment=Environment()).to_dict(),
+        inputs=WorldlineInputs(environment=Environment()),
         policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY).to_dict(),
         targets=["Speed"],
     )

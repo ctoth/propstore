@@ -142,7 +142,9 @@ class KnowledgeGraph:
 
 @dataclass(frozen=True)
 class GraphExportRequest:
-    bindings: Mapping[str, object] = field(default_factory=dict[str, object])
+    bindings: Mapping[str, str | int | float | bool] = field(
+        default_factory=dict[str, str | int | float | bool]
+    )
     group_id: int | None = None
 
 

@@ -19,7 +19,7 @@ from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.interfaces import HasEnvironment, HasLiftingSystem, WorldlineStore
-from propstore.worldline.query import WorldlineInputs, WorldlineResult, WorldlineRevisionQuery
+from propstore.worldline.query import WorldlineResult, WorldlineRevisionQuery
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineCaptureError,
@@ -53,7 +53,7 @@ def run_worldline(
     # Compile the charter's stored dict serialization into the canonical compute
     # forms one-way at use time (CLAUDE.md substrate discipline point 3): the
     # charter stays storage-pure, the runner owns the world-shaped types.
-    inputs = WorldlineInputs.from_dict(definition.inputs)
+    inputs = definition.inputs
     environment = inputs.environment
     bindings = dict(environment.bindings)
     context_id = environment.context_id

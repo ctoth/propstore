@@ -21,7 +21,6 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
-from propstore.world.types import Environment
 from propstore.worldline.definition import validated_revision_target
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
@@ -53,32 +52,6 @@ def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
     if not _is_mapping(value):
         raise ValueError(f"worldline field '{field_name}' must be a mapping")
     return value
-
-
-@dataclass
-class WorldlineInputs:
-    """The input specification for a worldline query."""
-
-    environment: Environment = field(default_factory=Environment)
-    overrides: dict[str, float | str] = field(default_factory=dict[str, float | str])
-
-    @classmethod
-    def from_dict(cls, data: object) -> WorldlineInputs:
-        if data is None:
-            return cls()
-        payload = _optional_mapping(data, "inputs")
-        if not payload:
-            return cls()
-        return cls(
-            environment=Environment.from_dict(payload),
-            overrides=dict(_optional_mapping(payload.get("overrides"), "overrides")),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        data = self.environment.to_dict()
-        if self.overrides:
-            data["overrides"] = dict(self.overrides)
-        return data
 
 
 @dataclass

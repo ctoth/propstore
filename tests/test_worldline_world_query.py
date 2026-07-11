@@ -24,8 +24,7 @@ from propstore.repository import Repository
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
 from propstore.world.types import ResolutionStrategy, ValueStatus
-from propstore.worldline import WorldlineDefinition, run_worldline
-from propstore.worldline.query import WorldlineInputs
+from propstore.worldline import WorldlineDefinition, WorldlineInputs, run_worldline
 from propstore.worldline.interfaces import WorldlineStore
 
 
@@ -98,7 +97,7 @@ def test_bound_world_reports_conflict_over_repo_backed_reader(
 def test_run_worldline_over_repo_backed_reader(world: WorldQuery) -> None:
     definition = WorldlineDefinition(
         id="w1",
-        inputs=WorldlineInputs(environment=Environment()).to_dict(),
+        inputs=WorldlineInputs(environment=Environment()),
         policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY).to_dict(),
         targets=["Speed"],
     )
@@ -112,7 +111,7 @@ def test_run_worldline_over_repo_backed_reader(world: WorldQuery) -> None:
 def test_run_worldline_argumentation_strategy(world: WorldQuery) -> None:
     definition = WorldlineDefinition(
         id="w1",
-        inputs=WorldlineInputs(environment=Environment()).to_dict(),
+        inputs=WorldlineInputs(environment=Environment()),
         policy=RenderPolicy(strategy=ResolutionStrategy.ARGUMENTATION).to_dict(),
         targets=["Speed"],
     )

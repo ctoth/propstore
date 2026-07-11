@@ -15,6 +15,7 @@ import ast
 from pathlib import Path
 
 import pytest
+from quire.documents import DocumentSchemaError, decode_document_bytes
 
 from propstore.core.anytime import BudgetExhausted, EnumerationExceeded
 from propstore.core.environment import (
@@ -154,26 +155,31 @@ def test_graph_delta_is_identity_and_then() -> None:
 # --- Environment ----------------------------------------------------------
 
 
-def test_environment_round_trip_with_assumptions() -> None:
-    env = Environment(
-        bindings={"setting": "lab"},
-        context_id="ctx1",
-        effective_assumptions=("setting == 'lab'",),
-        assumptions=(
-            AssumptionRef(
-                assumption_id="a1", kind="binding", source="user", cel="setting == 'lab'"
-            ),
+def test_environment_decodes_strictly_through_quire() -> None:
+    environment = decode_document_bytes(
+        b"""bindings:\n  setting: lab\ncontext_id: ctx1\neffective_assumptions:\n  - setting == 'lab'\nassumptions:\n  - assumption_id: a1\n    kind: binding\n    source: user\n    cel: setting == 'lab'\n""",
+        Environment,
+        source="environment.yaml",
+    )
+    assert environment.bindings == {"setting": "lab"}
+    assert environment.context_id == "ctx1"
+    assert environment.assumptions == (
+        AssumptionRef(
+            assumption_id="a1",
+            kind="binding",
+            source="user",
+            cel="setting == 'lab'",
         ),
     )
-    rebuilt = Environment.from_dict(env.to_dict())
-    assert rebuilt == env
 
 
-def test_environment_from_dict_handles_empty_and_none() -> None:
-    assert Environment.from_dict(None) == Environment()
-    assert Environment.from_dict({}) == Environment()
-    with pytest.raises(ValueError):
-        Environment.from_dict("not a mapping")
+def test_environment_rejects_invalid_nested_assumption_through_quire() -> None:
+    with pytest.raises(DocumentSchemaError):
+        decode_document_bytes(
+            b"assumptions:\n  - assumption_id: a1\n    kind: binding\n    source: user\n    cel: x\n    unknown: value\n",
+            Environment,
+            source="environment.yaml",
+        )
 
 
 def test_active_world_graph_sorts_claim_partitions() -> None:

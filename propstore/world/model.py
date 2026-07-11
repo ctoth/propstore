@@ -151,7 +151,7 @@ def bind(
     *,
     policy: RenderPolicy | None = None,
     lifting_system: LiftingSystem | None = None,
-    **conditions: object,
+    **conditions: str | int | float | bool,
 ) -> BoundWorld:
     """Bind ``store`` to an environment and return the live belief space.
 
@@ -239,7 +239,7 @@ def chain_query(
     strategy: ResolutionStrategy | None = None,
     *,
     lifting_system: LiftingSystem | None = None,
-    **bindings: object,
+    **bindings: str | int | float | bool,
 ) -> ChainResult:
     """Backward-chain over the parameter space to derive ``target_concept_id``.
 
@@ -862,7 +862,7 @@ class WorldQuery(WorldStore):
         environment: Environment | None = None,
         *,
         policy: RenderPolicy | None = None,
-        **conditions: object,
+        **conditions: str | int | float | bool,
     ) -> BoundWorld:
         return _bind(
             self,
@@ -892,7 +892,7 @@ class WorldQuery(WorldStore):
         self,
         target_concept_id: str,
         strategy: ResolutionStrategy | None = None,
-        **bindings: object,
+        **bindings: str | int | float | bool,
     ) -> ChainResult:
         return _chain_query(
             self,

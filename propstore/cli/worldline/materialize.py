@@ -95,13 +95,10 @@ def _coerce_override_values(overrides: tuple[str, ...]) -> dict[str, float | str
         if isinstance(value, int | float):
             override_dict[key] = float(value)
             continue
-        if isinstance(value, str):
-            try:
-                override_dict[key] = float(value)
-            except ValueError:
-                override_dict[key] = value
-            continue
-        override_dict[key] = str(value)
+        try:
+            override_dict[key] = float(value)
+        except ValueError:
+            override_dict[key] = value
     return override_dict
 
 

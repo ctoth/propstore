@@ -5,12 +5,12 @@ from __future__ import annotations
 import pytest
 
 from propstore.worldline import WorldlineDefinition
-from propstore.worldline.definition import WorldlineRevisionTargetValidationError
 
 
 def test_ws_j_worldline_revision_target_rejects_unprefixed_concept_names() -> None:
-    with pytest.raises(WorldlineRevisionTargetValidationError, match="some-concept-name"):
-        WorldlineDefinition.from_dict(
+    codec = WorldlineDefinition.__charter__.document_codec()
+    with pytest.raises(ValueError, match="some-concept-name"):
+        codec.convert(
             {
                 "id": "bad_revision_target",
                 "targets": ["target"],
@@ -18,5 +18,7 @@ def test_ws_j_worldline_revision_target_rejects_unprefixed_concept_names() -> No
                     "operation": "contract",
                     "target": "some-concept-name",
                 },
-            }
+            },
+            WorldlineDefinition,
+            source="test invalid worldline revision target",
         )

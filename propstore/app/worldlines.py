@@ -31,15 +31,20 @@ from propstore.app.world import WorldSidecarMissingError, open_app_world_model
 from propstore.families.registry import WorldlineRef
 from propstore.policies import policy_profile_from_render_policy
 from propstore.world.types import (
+    Environment,
     ReasoningBackend,
     RenderPolicy,
     cli_argumentation_semantics_values,
     normalize_argumentation_semantics,
     validate_backend_semantics,
 )
-from propstore.worldline.definition import WorldlineDefinition
-from propstore.worldline.query import (
+from propstore.core.id_types import to_context_id
+from propstore.worldline.definition import (
+    WorldlineDefinition,
     WorldlineInputs,
+    validated_revision_target,
+)
+from propstore.worldline.query import (
     WorldlineResult,
     WorldlineRevisionQuery,
 )
@@ -109,7 +114,9 @@ class WorldlineRevisionOptions:
 @dataclass(frozen=True)
 class WorldlineCreateRequest:
     name: str
-    bindings: Mapping[str, Any] = field(default_factory=dict[str, Any])
+    bindings: Mapping[str, str | int | float | bool] = field(
+        default_factory=dict[str, str | int | float | bool]
+    )
     overrides: Mapping[str, float | str] = field(
         default_factory=dict[str, float | str]
     )
@@ -122,7 +129,9 @@ class WorldlineCreateRequest:
 @dataclass(frozen=True)
 class WorldlineRunRequest:
     name: str
-    bindings: Mapping[str, Any] = field(default_factory=dict[str, Any])
+    bindings: Mapping[str, str | int | float | bool] = field(
+        default_factory=dict[str, str | int | float | bool]
+    )
     overrides: Mapping[str, float | str] = field(
         default_factory=dict[str, float | str]
     )
@@ -338,8 +347,8 @@ def diff_worldlines(
     if left_results is None or right_results is None:
         raise WorldlineValidationError("Both worldlines must be materialized first")
 
-    left_inputs = WorldlineInputs.from_dict(left.inputs)
-    right_inputs = WorldlineInputs.from_dict(right.inputs)
+    left_inputs = left.inputs
+    right_inputs = right.inputs
 
     input_differences: list[WorldlineInputDifference] = []
     left_bindings = dict(left_inputs.environment.bindings)
@@ -400,7 +409,7 @@ def build_worldline_journal(
     if revision_query is None:
         raise WorldlineValidationError("worldline has no revision query to capture")
 
-    inputs = WorldlineInputs.from_dict(definition.inputs)
+    inputs = definition.inputs
     policy = RenderPolicy.from_dict(definition.policy)
     with open_app_world_model(repo) as world:
         bound = world.bind(inputs.environment, policy=policy)
@@ -518,28 +527,30 @@ def build_worldline_revision_dict(
 def _definition_from_request(
     request: WorldlineCreateRequest | WorldlineRunRequest,
 ) -> WorldlineDefinition:
-    definition: dict[str, Any] = {
-        "id": request.name,
-        "name": request.name,
-        "targets": list(request.targets),
-    }
-
-    inputs: dict[str, Any] = {}
-    if request.bindings:
-        inputs["bindings"] = dict(request.bindings)
-    if request.overrides:
-        inputs["overrides"] = dict(request.overrides)
-    if request.context_id:
-        inputs["context_id"] = request.context_id
-    if inputs:
-        definition["inputs"] = inputs
-
+    if not request.targets:
+        raise ValueError("Worldline definition requires 'targets'")
     policy = build_worldline_policy_dict(request.policy)
-    if policy:
-        definition["policy"] = policy
-
     revision = build_worldline_revision_dict(request.revision)
     if revision:
-        definition["revision"] = revision
-
-    return WorldlineDefinition.from_dict(definition)
+        validated_revision_target(
+            str(revision.get("operation", "")),
+            revision.get("target"),
+        )
+    return WorldlineDefinition(
+        id=request.name,
+        name=request.name,
+        targets=list(request.targets),
+        inputs=WorldlineInputs(
+            environment=Environment(
+                bindings=dict(request.bindings),
+                context_id=(
+                    None
+                    if request.context_id is None
+                    else to_context_id(request.context_id)
+                ),
+            ),
+            overrides=dict(request.overrides),
+        ),
+        policy=policy or {},
+        revision=revision or None,
+    )

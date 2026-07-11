@@ -75,7 +75,7 @@ def coerce_worldline_cli_value(value: object) -> JsonValue:
     return str(value)
 
 
-def parse_kv_args(args: tuple[str, ...]) -> JsonObject:
+def parse_kv_args(args: tuple[str, ...]) -> dict[str, str | int | float | bool]:
     """Parse ``key=value`` arguments into a JSON-ready dict with scalar coercion."""
     from propstore.cli.helpers import parse_kv_pairs
 
@@ -83,7 +83,12 @@ def parse_kv_args(args: tuple[str, ...]) -> JsonObject:
     if remaining:
         bad = ", ".join(remaining)
         raise click.ClickException(f"expected key=value argument: {bad}")
-    return {key: coerce_worldline_cli_value(value) for key, value in parsed.items()}
+    bindings: dict[str, str | int | float | bool] = {}
+    for key, value in parsed.items():
+        if value is None or not isinstance(value, str | int | float | bool):
+            raise click.ClickException(f"binding {key!r} must be a scalar")
+        bindings[key] = value
+    return bindings
 
 
 def parse_worldline_revision_atom(raw: str | None) -> JsonObject | None:

@@ -42,7 +42,9 @@ Execution order should follow dependency risk rather than filename order:
 2. delete `core/micropublications.py` and use the charter directly;
 3. converge `core/graph_types.py` on canonical owners;
 4. make `Environment` and worldline inputs typed Quire documents;
-5. delete `assertions/codec.py` after the support-revision snapshot is typed.
+5. delete Propstore's reflective sidecar reconstruction helper and return the
+   canonical Quire-mapped charter objects directly;
+6. delete `assertions/codec.py` after the support-revision snapshot is typed.
 
 Each numbered item is one Git slice. A slice must end as either a committed
 kept change or a complete tracked-file restore before the next slice starts.
@@ -352,6 +354,31 @@ Slice gate:
 - focused assertion and support-revision tests pass through the logged wrapper;
 - `uv run pyright propstore` passes.
 
+### Corrective slice: delete `world/queries.py::_reconstruct`
+
+The slice-2 audit found that canonical micropublication reads had been moved
+onto the pre-existing `_reconstruct` helper. The helper reflects every charter
+field into a kwargs dictionary and reconstructs the same class that Quire has
+already mapped as the SQLAlchemy model. That is a repeated-field kwargs builder,
+not direct dependence on Quire.
+
+Disposition:
+
+- `_reconstruct`: **deleted old surface** -> delete;
+- `select_*` callers: **already-owned capability that must use its true owner
+  directly** -> select and return the canonical charter model that Quire mapped;
+- reconstruction prose and tests: **dead/test/scaffold surface** -> delete or
+  rewrite to assert canonical object identity directly.
+
+Slice gate:
+
+- zero `_reconstruct`, `msgspec.structs.fields`, `_StructT`, or reflective
+  charter kwargs reconstruction in `world/queries.py`;
+- world-query and sidecar tests return canonical `Concept`, `Claim`, `Stance`,
+  `Context`, `LiftingRule`, `FormDefinition`, `Micropublication`, and
+  `BuildDiagnostic` objects directly;
+- focused tests and `uv run pyright propstore` pass.
+
 ## Per-slice execution protocol
 
 For each of the five slices:
@@ -443,7 +470,32 @@ forbidden-surface search.
 - Full tracked gate: logged suite with the unrelated untracked Clark test
   explicitly ignored — 1,669 passed, 6 skipped.
 - Type gate: `uv run pyright propstore` — 0 errors.
-- Commit: pending this slice commit.
+- Commit: `82fa96018bf3fa66407e3a3221d62d839f4f2737`.
+
+### Slice 4: typed environment and worldline inputs
+
+- Baseline: `82fa9601`; tracked files clean, unrelated untracked files excluded.
+- Deleted old environment/input surfaces: `_is_mapping`, `_optional_mapping`,
+  `_empty_bindings`, `AssumptionRef.to_dict`, `Environment.from_dict` /
+  `to_dict`, and `WorldlineInputs.from_dict` / `to_dict`.
+- Direct Quire owners: `AssumptionRef`, `Environment`, and `WorldlineInputs` are
+  typed `DocumentStruct` graphs; `WorldlineDefinition.inputs` accepts only the
+  typed aggregate.
+- Corrected wrapper drift: deleted `WorldlineDefinition.from_dict` / `to_dict`
+  and their local calls to `convert_document_value` / `to_document_builtins`.
+  Repository IO and boundary tests use the existing Quire charter codec.
+- Semantic invariants: worldline id, targets, and revision-target validity stay
+  on `WorldlineDefinition.__post_init__`; Quire reports their failures at its
+  strict boundary.
+- Focused gate: logged environment/worldline/CLI/journal/revision selection —
+  71 passed (`logs/test-runs/pytest-20260711-143233.log`).
+- Type gate: `uv run pyright propstore` — 0 errors.
+- Commit: pending slice commit.
+
+### Corrective slice: direct Quire-mapped sidecar objects
+
+- Discovered while auditing completed slices 2 and 3: pending after slice 4 is
+  committed and its ledger SHA is recorded.
 
 Each later entry must contain: baseline HEAD/status, exact deleted symbols,
 dependency-edge classifications and dispositions, focused/full gate commands

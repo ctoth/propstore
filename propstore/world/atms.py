@@ -453,9 +453,9 @@ def _extend_environment(
         if parsed is not None:
             key, value = parsed
             future_bindings[key] = value
-    return replace(
-        environment,
+    return Environment(
         bindings=future_bindings,
+        context_id=environment.context_id,
         effective_assumptions=future_effective_assumptions,
         assumptions=future_assumptions,
     )

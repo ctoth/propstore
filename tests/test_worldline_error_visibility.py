@@ -39,7 +39,7 @@ def _make_definition(
     return WorldlineDefinition(
         id="test-err-visibility",
         name="error visibility test",
-        inputs=WorldlineInputs(environment=Environment(), overrides={}).to_dict(),
+        inputs=WorldlineInputs(environment=Environment(), overrides={}),
         policy=RenderPolicy(
             strategy=strategy,
             reasoning_backend=reasoning_backend,

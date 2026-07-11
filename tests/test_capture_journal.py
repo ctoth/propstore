@@ -284,16 +284,20 @@ def test_worldline_charter_journal_survives_repository_round_trip(tmp_path: Path
     )
 
 
-def test_worldline_charter_journal_survives_mapping_codec() -> None:
-    """The human-authored mapping codec (``from_dict``/``to_dict``) preserves the
-    journal without ever spelling a second journal type."""
+def test_worldline_charter_journal_survives_quire_codec() -> None:
+    """Quire's charter codec preserves the journal without a local codec."""
 
     journal = _capture_two_step_journal()
     definition = WorldlineDefinition(
         name="mapped", id="mapped", targets=["target"], journal=journal.to_dict()
     )
 
-    rebuilt = WorldlineDefinition.from_dict(definition.to_dict())
+    codec = WorldlineDefinition.__charter__.document_codec()
+    rebuilt = codec.decode(
+        codec.encode(definition),
+        WorldlineDefinition,
+        source="test worldline journal",
+    )
 
     assert rebuilt.transition_journal() == journal
 
@@ -359,17 +363,15 @@ def test_owner_build_worldline_journal_and_at_step_round_trip(tmp_path: Path) ->
     )
 
     repo, atom_id = _repo_with_one_atom(tmp_path)
-    definition = WorldlineDefinition.from_dict(
-        {
-            "id": "wl",
-            "name": "wl",
-            "targets": ["Speed"],
-            "revision": {
-                "operation": "revise",
-                "atom": {"kind": "assertion", "id": atom_id},
-                "conflicts": {},
-            },
-        }
+    definition = WorldlineDefinition(
+        id="wl",
+        name="wl",
+        targets=["Speed"],
+        revision={
+            "operation": "revise",
+            "atom": {"kind": "assertion", "id": atom_id},
+            "conflicts": {},
+        },
     )
     repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
 
@@ -437,17 +439,15 @@ def test_cli_build_journal_and_at_step_round_trip(tmp_path: Path) -> None:
     from propstore.cli import cli
 
     repo, atom_id = _repo_with_one_atom(tmp_path)
-    definition = WorldlineDefinition.from_dict(
-        {
-            "id": "wl",
-            "name": "wl",
-            "targets": ["Speed"],
-            "revision": {
-                "operation": "revise",
-                "atom": {"kind": "assertion", "id": atom_id},
-                "conflicts": {},
-            },
-        }
+    definition = WorldlineDefinition(
+        id="wl",
+        name="wl",
+        targets=["Speed"],
+        revision={
+            "operation": "revise",
+            "atom": {"kind": "assertion", "id": atom_id},
+            "conflicts": {},
+        },
     )
     repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
 
