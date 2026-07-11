@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
+import msgspec
+
 from propstore.core.id_types import AssumptionId, to_assumption_ids
 
 
@@ -19,8 +21,9 @@ def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
     return value
 
 
-@dataclass(frozen=True)
-class RevisionAtomDetail:
+class RevisionAtomDetail(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
     reason: str | None = None
     incision_set: tuple[str, ...] = ()
     support_sets: tuple[tuple[AssumptionId, ...], ...] = ()
@@ -73,8 +76,9 @@ def coerce_revision_atom_detail(detail: RevisionAtomDetailInput) -> RevisionAtom
     return RevisionAtomDetail.from_mapping(detail)
 
 
-@dataclass(frozen=True)
-class EntrenchmentReason:
+class EntrenchmentReason(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
     override_priority: int | str | None = None
     override_key: str | None = None
     support_count: int | None = None

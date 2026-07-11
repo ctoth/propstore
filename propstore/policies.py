@@ -426,7 +426,7 @@ def _policy_assertion(
     return SituatedAssertion(
         relation=RelationConceptRef(relation_id),
         role_bindings=RoleBindingSet(
-            tuple(RoleBinding(role, value) for role, value in roles.items())
+            tuple(RoleBinding(role, str(value)) for role, value in roles.items())
         ),
         context=context,
         condition=condition,

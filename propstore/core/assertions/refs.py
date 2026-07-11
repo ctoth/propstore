@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import msgspec
 
 from propstore.core.id_types import (
     ConditionId,
@@ -19,8 +19,7 @@ _UNCONDITIONAL_ID = ConditionId("ps:condition:unconditional")
 _UNCONDITIONAL_FINGERPRINT = "registry:unconditional"
 
 
-@dataclass(frozen=True, order=True)
-class ContextReference:
+class ContextReference(msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True):
     """Stable context identity reference for situated assertions."""
 
     id: ContextId | str
@@ -35,8 +34,7 @@ class ContextReference:
         return ("context", str(self.id))
 
 
-@dataclass(frozen=True, order=True)
-class ConditionRef:
+class ConditionRef(msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True):
     """Stable reference to a checked condition artifact.
 
     The situated-assertion substrate stores the reference and registry
@@ -68,8 +66,7 @@ class ConditionRef:
         return ("condition", str(self.id), self.registry_fingerprint)
 
 
-@dataclass(frozen=True, order=True)
-class ProvenanceGraphRef:
+class ProvenanceGraphRef(msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True):
     """Stable reference to a Carroll-style named graph.
 
     Carroll et al. 2005 define a named graph as a URIref naming a graph. The

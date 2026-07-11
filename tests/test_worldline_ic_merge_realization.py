@@ -6,6 +6,7 @@ import pytest
 
 from belief_set import Atom, TOP, disjunction
 
+from propstore.core.environment import AssumptionRef
 from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -409,8 +410,14 @@ def _merge_state():
             merge_parent_commits=("left", "right"),
         ),
         atoms=(
-            AssumptionAtom("assumption:support_a", {"assumption_id": "support_a"}),
-            AssumptionAtom("assumption:support_b", {"assumption_id": "support_b"}),
+            AssumptionAtom(
+                "assumption:support_a",
+                AssumptionRef(assumption_id="support_a", kind="test", source="test", cel="true"),
+            ),
+            AssumptionAtom(
+                "assumption:support_b",
+                AssumptionRef(assumption_id="support_b", kind="test", source="test", cel="true"),
+            ),
             atom_a,
             atom_b,
         ),

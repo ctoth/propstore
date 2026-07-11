@@ -520,6 +520,41 @@ forbidden-surface search.
 - Type gate: `uv run pyright propstore` — 0 errors.
 - Commit: `6379b303`.
 
+### Slice 5: typed assertion and support-revision snapshot graph
+
+- Baseline: `d07b1992`; tracked files clean, unrelated untracked files excluded.
+- Deleted old surface: `core/assertions/codec.py`,
+  `AssertionCanonicalRecord`, its package export, every assertion
+  `from_payload` / `to_payload` parser and emitter, and the codec-only test
+  scaffold.
+- Direct semantic owners: `SituatedAssertion`, its relation/role/reference
+  components, and `ActiveClaim` are strict msgspec-compatible semantic values.
+  No wire twins were introduced.
+- Tagged atoms: `AssertionAtom` and `AssumptionAtom` are the existing owners,
+  now a strict tagged union. Assertion atom construction validates `atom_id`
+  against the situated assertion identity; assumption atoms accept only typed
+  `AssumptionRef` values.
+- Typed snapshot graph: `RevisionScope`, `BeliefBase`, atom details,
+  entrenchment reasons, formal decision reports, realizations, revision events,
+  episode snapshots, and epistemic-state snapshots are strict typed structs.
+  Defaults are omitted canonically so journal hashes are stable before and
+  after Quire YAML storage.
+- Quire boundary: dispatch, capture, history, and tests call
+  `convert_document_value` / `to_document_builtins` directly. Deleted
+  `belief_atom_*_canonical_dict` and snapshot `from_mapping` / `to_dict`
+  wrappers were not replaced.
+- Broken old callers: mapping-built assumption atoms now construct
+  `AssumptionRef` directly; atom/base/event replacement uses
+  `msgspec.structs.replace`; semantic journal diffs read the direct tagged atom
+  shape.
+- Focused gate: logged assertion/snapshot/revision/journal selection — 108
+  passed (`logs/test-runs/pytest-20260711-151336.log`).
+- Zero-surface searches: no codec file/test, `AssertionCanonicalRecord`, codec
+  import, belief-atom conversion helper, snapshot mapping method, old-shape
+  assertion parser, or assertion field-name parsing remains.
+- Type gate: `uv run pyright propstore` — 0 errors.
+- Commit: pending slice commit.
+
 Each later entry must contain: baseline HEAD/status, exact deleted symbols,
 dependency-edge classifications and dispositions, focused/full gate commands
 and results, zero-surface search results, and the kept commit SHA or

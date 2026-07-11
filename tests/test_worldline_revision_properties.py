@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from msgspec.structs import replace
 
 import pytest
 from hypothesis import given, settings

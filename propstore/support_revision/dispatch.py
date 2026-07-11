@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, NoReturn, TypeGuard
 
+from quire.documents import convert_document_value
+
 from propstore.support_revision.belief_set_adapter import (
     DEFAULT_MAX_ALPHABET_SIZE,
     decide_contract,
@@ -19,9 +21,10 @@ from propstore.support_revision.realization import (
 )
 from propstore.support_revision.snapshot_types import (
     EpistemicStateSnapshot,
-    belief_atom_from_canonical_dict,
 )
 from propstore.support_revision.state import (
+    AssertionAtom,
+    AssumptionAtom,
     BeliefAtom,
     EpistemicState,
     FormalRevisionDecisionReport,
@@ -41,7 +44,11 @@ def dispatch(
     """Replay one support-revision journal operator from normalized inputs."""
 
     op = JournalOperator(operator)
-    state = EpistemicStateSnapshot.from_mapping(state_in).to_state()
+    state = convert_document_value(
+        state_in,
+        EpistemicStateSnapshot,
+        source="journal state_in",
+    ).to_state()
     payload = _required_mapping(operator_input, "operator_input")
     _required_policy_snapshot(policy)
     policy_snapshot = {str(key): str(value) for key, value in policy.items()}
@@ -219,7 +226,20 @@ def _formula_atom(payload: Mapping[str, Any]) -> BeliefAtom:
     formula = payload.get("formula")
     if not _is_mapping(formula):
         raise ValueError("journal operator_input.formula must be a normalized belief atom")
-    return belief_atom_from_canonical_dict(formula)
+    atom_type = formula.get("type")
+    if atom_type == "assertion":
+        return convert_document_value(
+            formula,
+            AssertionAtom,
+            source="journal assertion formula",
+        )
+    if atom_type == "assumption":
+        return convert_document_value(
+            formula,
+            AssumptionAtom,
+            source="journal assumption formula",
+        )
+    raise ValueError(f"unsupported journal formula type: {atom_type}")
 
 
 def _entrenchment_from_state(state: EpistemicState) -> EntrenchmentReport:
@@ -298,7 +318,7 @@ def _raise_realization_failure(
         target_atom_ids=target_atom_ids,
         decision=decision_report,
         realization=None,
-        policy_snapshot=policy_snapshot,
+        policy_snapshot=dict(policy_snapshot),
         replay_status="realization_failed",
         realization_failure=str(exc),
     )
@@ -326,7 +346,7 @@ def _raise_ic_merge_failure(
         target_atom_ids=tuple(atom_id for profile in profile_atom_ids for atom_id in profile),
         decision=decision_report,
         realization=None,
-        policy_snapshot=policy_snapshot,
+        policy_snapshot=dict(policy_snapshot),
         replay_status="realization_failed",
         realization_failure=exc.reason,
     )

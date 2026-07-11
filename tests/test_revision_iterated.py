@@ -6,6 +6,9 @@ import ast
 from dataclasses import replace
 from pathlib import Path
 
+from msgspec.structs import replace as replace_struct
+
+from propstore.core.environment import AssumptionRef
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionEpisode, RevisionScope
@@ -113,8 +116,14 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            AssumptionAtom("assumption:left_path", {"assumption_id": "left_path"}),
-            AssumptionAtom("assumption:right_path", {"assumption_id": "right_path"}),
+            AssumptionAtom(
+                "assumption:left_path",
+                AssumptionRef(assumption_id="left_path", kind="test", source="test", cel="true"),
+            ),
+            AssumptionAtom(
+                "assumption:right_path",
+                AssumptionRef(assumption_id="right_path", kind="test", source="test", cel="true"),
+            ),
             legacy,
             left_dependent,
             right_dependent,
@@ -275,7 +284,7 @@ def test_iterated_revise_refuses_merge_point_states() -> None:
 
     base, entrenchment, _, ids = _history_sensitive_base()
     new_atom = make_assertion_atom("new")
-    merge_base = replace(
+    merge_base = replace_struct(
         base,
         scope=RevisionScope(
             bindings=base.scope.bindings,

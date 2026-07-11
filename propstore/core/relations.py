@@ -26,6 +26,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+import msgspec
+
 from propstore.core.id_types import ConceptId, to_concept_id
 
 
@@ -48,8 +50,13 @@ BOOTSTRAP_RELATION_IDS: frozenset[str] = frozenset({
 })
 
 
-@dataclass(frozen=True, order=True)
-class RelationConceptRef:
+class RelationConceptRef(
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    omit_defaults=True,
+    order=True,
+):
     """Reference to a relation represented as a propstore concept.
 
     The stable identity is the concept id. Lexical-sense and description-kind
@@ -78,27 +85,23 @@ class RelationConceptRef:
         return ("relation_concept", str(self.concept_id))
 
 
-@dataclass(frozen=True, order=True)
-class RoleBinding:
+class RoleBinding(msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True):
     """Bind one role name in a relation signature to one value reference."""
 
     role: str
-    value: object
+    value: str
 
     def __post_init__(self) -> None:
         role = self.role.strip()
         if role == "":
             raise ValueError("role name must be non-empty")
         object.__setattr__(self, "role", role)
-        if self.value is None:
-            raise ValueError("role value must be present")
 
     def identity_payload(self) -> tuple[str, str]:
         return (self.role, str(self.value))
 
 
-@dataclass(frozen=True)
-class RoleBindingSet:
+class RoleBindingSet(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     """Canonical, duplicate-free role bindings for one relation assertion."""
 
     bindings: tuple[RoleBinding, ...]

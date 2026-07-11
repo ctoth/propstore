@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from propstore.core.environment import AssumptionRef
 from propstore.core.labels import EnvironmentKey, Label
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
@@ -28,9 +29,18 @@ def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport, dict[st
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            AssumptionAtom("assumption:a_strong", {"assumption_id": "a_strong"}),
-            AssumptionAtom("assumption:b_medium", {"assumption_id": "b_medium"}),
-            AssumptionAtom("assumption:shared_weak", {"assumption_id": "shared_weak"}),
+            AssumptionAtom(
+                "assumption:a_strong",
+                AssumptionRef(assumption_id="a_strong", kind="test", source="test", cel="true"),
+            ),
+            AssumptionAtom(
+                "assumption:b_medium",
+                AssumptionRef(assumption_id="b_medium", kind="test", source="test", cel="true"),
+            ),
+            AssumptionAtom(
+                "assumption:shared_weak",
+                AssumptionRef(assumption_id="shared_weak", kind="test", source="test", cel="true"),
+            ),
             legacy,
             dependent,
             independent,
@@ -92,12 +102,12 @@ def test_contract_uses_computed_entrenchment_order_for_equal_size_cuts() -> None
         atoms=(
             AssumptionAtom(
                 "assumption:a_weak",
-                {"assumption_id": "a_weak"},
+                AssumptionRef(assumption_id="a_weak", kind="test", source="test", cel="true"),
                 label=Label((EnvironmentKey(("a_weak",)),)),
             ),
             AssumptionAtom(
                 "assumption:z_strong",
-                {"assumption_id": "z_strong"},
+                AssumptionRef(assumption_id="z_strong", kind="test", source="test", cel="true"),
                 label=Label(
                     (
                         EnvironmentKey(("z_strong_primary",)),

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from msgspec.structs import replace as replace_struct
+
 from propstore.support_revision.history import EpistemicSnapshot
 from propstore.support_revision.iterated import epistemic_state_payload, make_epistemic_state
 from propstore.support_revision.state import RevisionScope
@@ -285,7 +287,7 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
 
     base, entrenchment, _, _ = _history_sensitive_base()
     merge_state = make_epistemic_state(
-        replace(
+        replace_struct(
             base,
             scope=RevisionScope(bindings={}, branch="topic", merge_parent_commits=("abc", "def")),
         ),

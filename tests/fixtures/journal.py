@@ -38,7 +38,6 @@ from propstore.support_revision.history import (
     TransitionJournalEntry,
     TransitionOperation,
 )
-from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
 from propstore.support_revision.state import (
     AssertionAtom,
     BeliefBase,
@@ -230,21 +229,19 @@ def single_chapter_journal(
     The journal is constructed by *running the operators*, not by stuffing
     the expected answer into ``state_out`` and reading it back.
     """
-    from propstore.support_revision.snapshot_types import (
-        belief_atom_to_canonical_dict,
-    )
+    from quire.documents import to_document_builtins
 
     state = initial_state
     entries: list[TransitionJournalEntry] = []
     for atom in revision_atoms:
         operator_input: dict[str, Any] = {
-            "formula": belief_atom_to_canonical_dict(atom),
+            "formula": to_document_builtins(atom),
             "max_candidates": 8,
             "conflicts": {},
         }
         next_state = dispatch(
             JournalOperator.REVISE,
-            state_in=EpistemicStateSnapshot.from_state(state).to_dict(),
+            state_in=state.to_canonical_dict(),
             operator_input=operator_input,
             policy=_DEFAULT_POLICY,
         )
@@ -293,6 +290,6 @@ def direct_dispatch(journal: TransitionJournal, k: int) -> EpistemicState:
             operator_input=entry.operator_input,
             policy=entry.version_policy_snapshot,
         )
-        state_in_payload = EpistemicStateSnapshot.from_state(last_state).to_dict()
+        state_in_payload = last_state.to_canonical_dict()
     assert last_state is not None
     return last_state

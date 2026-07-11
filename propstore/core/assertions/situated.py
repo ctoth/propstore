@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass, field
+
+import msgspec
 
 from propstore.core.assertions.refs import (
     ConditionRef,
@@ -15,8 +16,7 @@ from propstore.core.id_types import AssertionId
 from propstore.core.relations import RelationConceptRef, RoleBindingSet
 
 
-@dataclass(frozen=True)
-class SituatedAssertion:
+class SituatedAssertion(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     """A relation instance situated in context with applicability and audit ref.
 
     The identity follows the situated-assertion synthesis: the proposition-like
@@ -31,7 +31,7 @@ class SituatedAssertion:
     role_bindings: RoleBindingSet
     context: ContextReference
     condition: ConditionRef
-    provenance_ref: ProvenanceGraphRef = field(compare=False)
+    provenance_ref: ProvenanceGraphRef
 
     @property
     def assertion_id(self) -> AssertionId:

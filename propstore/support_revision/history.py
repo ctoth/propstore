@@ -7,6 +7,8 @@ from enum import Enum
 from typing import Any, TypeGuard
 
 from quire.canonical import canonical_json_bytes
+from quire.documents import convert_document_value, to_document_builtins
+from msgspec.structs import replace as replace_struct
 
 from propstore.support_revision.explanation_types import (
     RevisionAtomDetail,
@@ -106,7 +108,11 @@ class EpistemicSnapshot:
             raise ValueError(f"unsupported epistemic snapshot version: {schema_version}")
         state_payload = _required_mapping(payload.get("state"), "state")
         snapshot = cls(
-            state=EpistemicStateSnapshot.from_mapping(state_payload),
+            state=convert_document_value(
+                state_payload,
+                EpistemicStateSnapshot,
+                source="epistemic snapshot state",
+            ),
             schema_version=schema_version,
         )
         recorded_hash = payload.get("content_hash")
@@ -137,7 +143,12 @@ class EpistemicSnapshot:
     def _hash_payload(self) -> dict[str, Any]:
         return {
             "schema_version": self.schema_version,
-            "state": self.state.to_dict(),
+            "state": dict(
+                _required_mapping(
+                    to_document_builtins(self.state),
+                    "epistemic snapshot state",
+                )
+            ),
         }
 
 
@@ -343,7 +354,7 @@ def _state_with_journal_event_policy(
     event = latest.event
     if event.policy_snapshot == dict(version_policy_snapshot) and event.replay_status == "replayed":
         return state
-    updated_event = replace(
+    updated_event = replace_struct(
         event,
         policy_snapshot=version_policy_snapshot,
         replay_status="replayed",
@@ -527,8 +538,14 @@ def diff_epistemic_snapshots(
     source: EpistemicSnapshot,
     target: EpistemicSnapshot,
 ) -> EpistemicSemanticDiff:
-    source_state = source.state.to_dict()
-    target_state = target.state.to_dict()
+    source_state = _required_mapping(
+        to_document_builtins(source.state),
+        "source epistemic state",
+    )
+    target_state = _required_mapping(
+        to_document_builtins(target.state),
+        "target epistemic state",
+    )
     deltas: list[SemanticFieldDelta] = []
     deltas.extend(_mapping_deltas("assertion_acceptance", _accepted_assertions(source_state), _accepted_assertions(target_state)))
     deltas.extend(_mapping_deltas("warrant", source_state.get("entrenchment_reasons") or {}, target_state.get("entrenchment_reasons") or {}))
@@ -548,7 +565,12 @@ def apply_epistemic_diff(
 ) -> EpistemicSnapshot:
     if diff.source_hash != source.content_hash:
         raise ValueError("semantic diff source_hash does not match source snapshot")
-    state_payload = source.state.to_dict()
+    state_payload = dict(
+        _required_mapping(
+            to_document_builtins(source.state),
+            "source epistemic state",
+        )
+    )
     for delta in diff.deltas:
         _assert_current_value(state_payload, delta)
         if delta.surface == "assertion_acceptance":
@@ -600,12 +622,11 @@ def _assertion_provenance(state_payload: Mapping[str, Any]) -> dict[str, Any]:
     for atom in (_as_mapping(state_payload.get("base")).get("atoms") or ()):
         if not _is_mapping(atom):
             continue
-        if atom.get("kind") != "assertion":
+        if atom.get("type") != "assertion":
             continue
-        payload = atom.get("payload")
-        if not _is_mapping(payload):
-            continue
-        provenance[str(atom.get("atom_id"))] = _to_plain_data(payload.get("source_claims") or ())
+        provenance[str(atom.get("atom_id"))] = _to_plain_data(
+            atom.get("source_claims") or ()
+        )
     return provenance
 
 
@@ -674,9 +695,7 @@ def _set_atom_provenance(state_payload: dict[str, Any], atom_id: str, value: Any
             atoms.append(atom)
             continue
         updated_atom = dict(atom)
-        payload = dict(_as_mapping(updated_atom.get("payload")))
-        payload["source_claims"] = [] if value is None else value
-        updated_atom["payload"] = payload
+        updated_atom["source_claims"] = [] if value is None else value
         atoms.append(updated_atom)
     base["atoms"] = atoms
     state_payload["base"] = base

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import pytest
+from quire.documents import to_document_builtins
 
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import JournalOperator
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
-from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import RevisionMergeRequiredFailure, RevisionScope
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
@@ -61,7 +61,7 @@ def test_dispatch_iterated_revise_at_merge_point_raises_typed_merge_required_fai
             JournalOperator.ITERATED_REVISE,
             state_in=state.to_canonical_dict(),
             operator_input={
-                "formula": belief_atom_to_canonical_dict(atom),
+                "formula": to_document_builtins(atom),
                 "targets": (),
                 "revision_operator": "restrained",
                 "max_candidates": 8,

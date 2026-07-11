@@ -61,7 +61,7 @@ def advance_epistemic_state(
         target_atom_ids=tuple(target_atom_ids),
         decision=result.decision,
         realization=result.realization,
-        policy_snapshot={} if policy_snapshot is None else policy_snapshot,
+        policy_snapshot={} if policy_snapshot is None else dict(policy_snapshot),
         replay_status=replay_status,
         realization_failure=realization_failure,
     )
@@ -134,7 +134,7 @@ def iterated_revise(
             target_atom_ids=targets,
             decision=formal_decision.report,
             realization=None,
-            policy_snapshot={} if policy_snapshot is None else policy_snapshot,
+            policy_snapshot={} if policy_snapshot is None else dict(policy_snapshot),
             replay_status="realization_failed",
             realization_failure=str(exc),
         )

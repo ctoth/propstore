@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
 from itertools import combinations
 from typing import Any, TypeGuard
+
+from msgspec.structs import replace
 
 from propstore.core.anytime import EnumerationExceeded
 from propstore.core.id_types import AssumptionId

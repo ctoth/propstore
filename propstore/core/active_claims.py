@@ -11,8 +11,9 @@ normalizes with :func:`coerce_active_claims` — there is no row-model DTO and n
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
 from typing import Any, TypeAlias
+
+import msgspec
 
 _RESERVED_KEYS = frozenset(
     {
@@ -30,8 +31,9 @@ _RESERVED_KEYS = frozenset(
 )
 
 
-@dataclass(frozen=True)
-class ActiveClaim:
+class ActiveClaim(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
     """One claim as the ASPIC+ bridge sees it."""
 
     claim_id: str
@@ -43,7 +45,7 @@ class ActiveClaim:
     sample_size: float | None = None
     uncertainty: float | None = None
     confidence: float | None = None
-    attributes: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
+    attributes: tuple[tuple[str, Any], ...] = ()
 
     def attribute_value(self, key: str) -> Any:
         """Return an extra attribute by name, or ``None``."""

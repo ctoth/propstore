@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, TypeGuard
 
+from quire.documents import to_document_builtins
+
 from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR, DEFAULT_MAX_ALPHABET_SIZE
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
@@ -12,7 +14,6 @@ from propstore.support_revision.history import (
     TransitionOperation,
 )
 from propstore.support_revision.input_normalization import normalize_revision_input
-from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import BeliefAtom, EpistemicState, RevisionEvent
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
@@ -170,7 +171,7 @@ def _revision_event_payload(
         target_atom_ids=target_atom_ids,
         decision=getattr(result, "decision", None),
         realization=getattr(result, "realization", None),
-        policy_snapshot=_VERSION_POLICY_SNAPSHOT,
+        policy_snapshot=dict(_VERSION_POLICY_SNAPSHOT),
         replay_status="captured",
     )
 
@@ -225,7 +226,7 @@ def _journal_operator_input(
                 target_atom_ids=(),
             ),
             {
-                "formula": belief_atom_to_canonical_dict(atom),
+                "formula": to_document_builtins(atom),
                 "max_candidates": _MAX_CANDIDATES,
                 "conflicts": {},
             },
@@ -255,7 +256,7 @@ def _journal_operator_input(
                 target_atom_ids=tuple(conflicts.get(atom.atom_id, ())),
             ),
             {
-                "formula": belief_atom_to_canonical_dict(atom),
+                "formula": to_document_builtins(atom),
                 "max_candidates": _MAX_CANDIDATES,
                 "conflicts": conflicts,
             },
@@ -273,7 +274,7 @@ def _journal_operator_input(
                 parameters={"operator": operator},
             ),
             {
-                "formula": belief_atom_to_canonical_dict(atom),
+                "formula": to_document_builtins(atom),
                 "targets": targets,
                 "revision_operator": operator,
                 "max_candidates": _MAX_CANDIDATES,

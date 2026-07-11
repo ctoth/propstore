@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from quire.documents import to_document_builtins
+
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     JournalOperator,
@@ -10,7 +12,6 @@ from propstore.support_revision.history import (
     TransitionOperation,
 )
 from propstore.support_revision.iterated import make_epistemic_state
-from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from tests.support_revision.formal_realization_helpers import revise_via_formal_decision
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_operators import _base_with_shared_support
@@ -52,7 +53,7 @@ def test_dispatch_rejects_empty_policy_version_values() -> None:
             JournalOperator.REVISE,
             state_in=state.to_canonical_dict(),
             operator_input={
-                "formula": belief_atom_to_canonical_dict(atom),
+                "formula": to_document_builtins(atom),
                 "max_candidates": 8,
                 "conflicts": {},
             },
@@ -73,7 +74,7 @@ def test_replay_rejects_policy_version_mismatch_before_semantic_replay() -> None
     state_in = make_epistemic_state(base, entrenchment)
     atom = make_assertion_atom("policy_mismatch")
     operator_input = {
-        "formula": belief_atom_to_canonical_dict(atom),
+        "formula": to_document_builtins(atom),
         "max_candidates": 8,
         "conflicts": {},
     }

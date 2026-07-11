@@ -5,10 +5,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
+import msgspec
 from condition_ir import to_cel_expr
 from quire.canonical import canonical_json_bytes
 
-from propstore.core.active_claims import ActiveClaim, coerce_active_claim
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.environment import AssumptionRef
 from propstore.core.id_types import (
@@ -47,21 +48,22 @@ def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> Assumpt
     )
 
 
-@dataclass(frozen=True)
-class AssertionAtom:
+class AssertionAtom(
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    omit_defaults=True,
+    tag="assertion",
+):
     atom_id: str
     assertion: SituatedAssertion
-    source_claims: tuple[ActiveClaim, ...] = field(default_factory=tuple)
+    source_claims: tuple[ActiveClaim, ...] = ()
     label: Label | None = None
 
     def __post_init__(self) -> None:
-        assertion_id = self.assertion.assertion_id
-        object.__setattr__(self, "atom_id", str(assertion_id))
-        object.__setattr__(
-            self,
-            "source_claims",
-            tuple(coerce_active_claim(claim) for claim in self.source_claims),
-        )
+        expected_atom_id = str(self.assertion.assertion_id)
+        if self.atom_id != expected_atom_id:
+            raise ValueError("assertion atom id does not match situated assertion")
 
     @property
     def assertion_id(self) -> AssertionId:
@@ -72,14 +74,16 @@ class AssertionAtom:
         return self.source_claims[0] if self.source_claims else None
 
 
-@dataclass(frozen=True)
-class AssumptionAtom:
+class AssumptionAtom(
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    omit_defaults=True,
+    tag="assumption",
+):
     atom_id: str
     assumption: AssumptionRef
     label: Label | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "assumption", coerce_assumption_ref(self.assumption))
 
 
 BeliefAtom = AssertionAtom | AssumptionAtom
@@ -93,13 +97,14 @@ def is_assumption_atom(atom: BeliefAtom) -> TypeGuard[AssumptionAtom]:
     return isinstance(atom, AssumptionAtom)
 
 
-@dataclass(frozen=True)
-class RevisionScope:
-    bindings: Mapping[str, Any]
+class RevisionScope(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
+    bindings: dict[str, str | int | float | bool]
     context_id: ContextId | None = None
     branch: str | None = None
     commit: str | None = None
-    merge_parent_commits: tuple[str, ...] = field(default_factory=tuple)
+    merge_parent_commits: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -110,13 +115,18 @@ class RevisionScope:
         object.__setattr__(self, "merge_parent_commits", tuple(self.merge_parent_commits))
 
 
-@dataclass(frozen=True)
-class BeliefBase:
+class BeliefBase(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
     scope: RevisionScope
     atoms: tuple[BeliefAtom, ...]
-    assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
-    support_sets: Mapping[str, tuple[tuple[AssumptionId, ...], ...]] = field(default_factory=dict[str, tuple[tuple[AssumptionId, ...], ...]])
-    essential_support: Mapping[str, tuple[AssumptionId, ...]] = field(default_factory=dict[str, tuple[AssumptionId, ...]])
+    assumptions: tuple[AssumptionRef, ...] = ()
+    support_sets: dict[str, tuple[tuple[AssumptionId, ...], ...]] = msgspec.field(
+        default_factory=dict[str, tuple[tuple[AssumptionId, ...], ...]]
+    )
+    essential_support: dict[str, tuple[AssumptionId, ...]] = msgspec.field(
+        default_factory=dict[str, tuple[AssumptionId, ...]]
+    )
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "atoms", tuple(self.atoms))
@@ -139,8 +149,9 @@ class BeliefBase:
         )
 
 
-@dataclass(frozen=True)
-class FormalRevisionDecisionReport:
+class FormalRevisionDecisionReport(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
     operation: str
     policy: str
     input_formula_ids: tuple[str, ...] = ()
@@ -148,7 +159,7 @@ class FormalRevisionDecisionReport:
     rejected_formula_ids: tuple[str, ...] = ()
     epistemic_state_hash: str | None = None
     budget_failure: str | None = None
-    trace: Mapping[str, Any] = field(default_factory=dict[str, Any])
+    trace: dict[str, Any] = msgspec.field(default_factory=dict[str, Any])
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "input_formula_ids", tuple(str(item) for item in self.input_formula_ids))
@@ -193,15 +204,18 @@ class FormalRevisionDecisionReport:
         return data
 
 
-@dataclass(frozen=True)
-class SupportRevisionRealization:
+class SupportRevisionRealization(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
     accepted_atom_ids: tuple[str, ...]
     rejected_atom_ids: tuple[str, ...]
     incision_set: tuple[str, ...] = ()
     source_claim_ids: tuple[str, ...] = ()
-    reasons: Mapping[str, RevisionAtomDetail] = field(default_factory=dict[str, RevisionAtomDetail])
+    reasons: dict[str, RevisionAtomDetail] = msgspec.field(
+        default_factory=dict[str, RevisionAtomDetail]
+    )
     snapshot_hash: str | None = None
-    journal_metadata: Mapping[str, Any] = field(default_factory=dict[str, Any])
+    journal_metadata: dict[str, Any] = msgspec.field(default_factory=dict[str, Any])
     replay_status: str | None = None
 
     def __post_init__(self) -> None:
@@ -291,20 +305,21 @@ class RevisionResult:
                     accepted_atom_ids=self.accepted_atom_ids,
                     rejected_atom_ids=self.rejected_atom_ids,
                     incision_set=self.incision_set,
-                    reasons=self.explanation,
+                    reasons=dict(self.explanation),
                 ),
             )
 
 
-@dataclass(frozen=True)
-class RevisionEvent:
+class RevisionEvent(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
+):
     operation: str
     pre_state_hash: str
     input_atom_id: str | None = None
-    target_atom_ids: tuple[str, ...] = field(default_factory=tuple)
+    target_atom_ids: tuple[str, ...] = ()
     decision: FormalRevisionDecisionReport | None = None
     realization: SupportRevisionRealization | None = None
-    policy_snapshot: Mapping[str, str] = field(default_factory=dict[str, str])
+    policy_snapshot: dict[str, str] = msgspec.field(default_factory=dict[str, str])
     replay_status: str | None = None
     realization_failure: str | None = None
 
@@ -476,6 +491,11 @@ class EpistemicState:
         object.__setattr__(self, "history", tuple(self.history))
 
     def to_canonical_dict(self) -> dict[str, Any]:
+        from quire.documents import to_document_builtins
+
         from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
 
-        return EpistemicStateSnapshot.from_state(self).to_dict()
+        payload = to_document_builtins(EpistemicStateSnapshot.from_state(self))
+        if not _is_mapping(payload):
+            raise TypeError("epistemic state snapshot must encode as a mapping")
+        return dict(payload)

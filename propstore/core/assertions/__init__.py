@@ -16,7 +16,6 @@ from propstore.core.assertions.claim_identity import (
     content_digest,
     semantic_content,
 )
-from propstore.core.assertions.codec import AssertionCanonicalRecord
 from propstore.core.assertions.refs import (
     UNCONDITIONAL_CONDITION_REF,
     ConditionRef,
@@ -27,7 +26,6 @@ from propstore.core.assertions.situated import SituatedAssertion, derive_asserti
 
 __all__ = [
     "UNCONDITIONAL_CONDITION_REF",
-    "AssertionCanonicalRecord",
     "ConditionRef",
     "ContextReference",
     "ProvenanceGraphRef",

@@ -6,6 +6,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.core.environment import AssumptionRef
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.realization import stabilize_belief_base
@@ -30,7 +31,12 @@ def bounded_revision_bases(draw):
     assumptions = tuple(
         AssumptionAtom(
             atom_id=f"assumption:a{i}",
-            assumption={"assumption_id": f"a{i}"},
+            assumption=AssumptionRef(
+                assumption_id=f"a{i}",
+                kind="test",
+                source="test",
+                cel="true",
+            ),
         )
         for i in range(assumption_count)
     )

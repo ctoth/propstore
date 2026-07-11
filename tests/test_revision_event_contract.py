@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from quire.documents import convert_document_value, to_document_builtins
 
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import EpistemicSnapshot, JournalOperator
@@ -83,8 +84,13 @@ def test_revision_event_survives_epistemic_state_snapshot_roundtrip() -> None:
         replay_status="direct",
     )
 
-    payload = EpistemicStateSnapshot.from_state(next_state).to_dict()
-    restored = EpistemicStateSnapshot.from_mapping(payload).to_state()
+    payload = to_document_builtins(EpistemicStateSnapshot.from_state(next_state))
+    assert isinstance(payload, dict)
+    restored = convert_document_value(
+        payload,
+        EpistemicStateSnapshot,
+        source="test epistemic state snapshot",
+    ).to_state()
 
     assert payload["history"][0]["event"]["decision"]["operation"] == "contract"
     assert restored.history[-1].event == next_state.history[-1].event

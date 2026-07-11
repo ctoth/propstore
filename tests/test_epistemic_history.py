@@ -7,12 +7,13 @@ from dataclasses import replace
 
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from msgspec.structs import replace as replace_struct
+from quire.documents import to_document_builtins
 
 from propstore.core.active_claims import coerce_active_claim
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
-from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import BeliefBase, EpistemicState
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
@@ -65,7 +66,7 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
         policy_id="policy:revision/default",
         operator=JournalOperator.ITERATED_REVISE,
         operator_input={
-            "formula": belief_atom_to_canonical_dict(new_atom),
+            "formula": to_document_builtins(new_atom),
             "max_candidates": 8,
             "revision_operator": "restrained",
             "targets": [ids["legacy"]],
@@ -161,8 +162,8 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
                 "source_paper": "paper:updated",
             }
         )
-        changed_atoms.append(replace(atom, source_claims=(source_claim,)))
-    changed_base = replace(
+        changed_atoms.append(replace_struct(atom, source_claims=(source_claim,)))
+    changed_base = replace_struct(
         state.base,
         atoms=tuple(changed_atoms),
         support_sets={

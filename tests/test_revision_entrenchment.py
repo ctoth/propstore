@@ -45,11 +45,12 @@ def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
             alpha,
             AssumptionAtom(
                 atom_id="assumption:env:x_eq_1",
-                assumption={
-                    "assumption_id": "env:x_eq_1",
-                    "cel": "x == 1",
-                    "kind": "binding",
-                },
+                assumption=AssumptionRef(
+                    assumption_id="env:x_eq_1",
+                    cel="x == 1",
+                    kind="binding",
+                    source="binding",
+                ),
             ),
         ),
         assumptions=(

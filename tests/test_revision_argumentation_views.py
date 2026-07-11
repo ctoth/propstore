@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from msgspec.structs import replace as replace_struct
+
+from propstore.core.environment import AssumptionRef
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import JournalOperator
@@ -20,7 +23,7 @@ from tests.support_revision.revision_assertion_helpers import make_assertion_ato
 def test_argumentation_view_reports_accepted_assertions_without_source_claims_as_unmapped() -> None:
     from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
 
-    unmapped = replace(make_assertion_atom("unmapped"), source_claims=())
+    unmapped = replace_struct(make_assertion_atom("unmapped"), source_claims=())
     state = _state_for_atoms((unmapped,), accepted_atom_ids=(unmapped.atom_id,))
 
     view = project_epistemic_state_argumentation_view(object(), state)
@@ -32,7 +35,10 @@ def test_argumentation_view_reports_accepted_assertions_without_source_claims_as
 def test_argumentation_view_keeps_accepted_assumption_atoms_visible() -> None:
     from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
 
-    assumption = AssumptionAtom("assumption:accepted", {"assumption_id": "accepted"})
+    assumption = AssumptionAtom(
+        "assumption:accepted",
+        AssumptionRef(assumption_id="accepted", kind="test", source="test", cel="true"),
+    )
     state = _state_for_atoms((assumption,), accepted_atom_ids=(assumption.atom_id,))
 
     view = project_epistemic_state_argumentation_view(object(), state)
@@ -64,7 +70,9 @@ def test_argumentation_view_carries_revision_event_hashes() -> None:
 def test_ic_merge_argumentation_view_reports_unmapped_merge_atoms() -> None:
     from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
 
-    accepted = replace(make_assertion_atom("ic_merge_unmapped"), source_claims=())
+    accepted = replace_struct(
+        make_assertion_atom("ic_merge_unmapped"), source_claims=()
+    )
     rejected = make_assertion_atom("ic_merge_rejected")
     state = _realized_ic_merge_state(accepted, rejected)
 
@@ -129,7 +137,10 @@ def _realized_ic_merge_state(accepted, rejected, *, support_sets=None) -> Episte
     base = BeliefBase(
         scope=RevisionScope(bindings={}, branch="topic", merge_parent_commits=("left", "right")),
         atoms=(
-            AssumptionAtom("assumption:support_a", {"assumption_id": "support_a"}),
+            AssumptionAtom(
+                "assumption:support_a",
+                AssumptionRef(assumption_id="support_a", kind="test", source="test", cel="true"),
+            ),
             accepted,
             rejected,
         ),
