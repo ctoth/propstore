@@ -89,7 +89,7 @@ def _structural_equation_from_edge(edge: ParameterizationEdge) -> StructuralEqua
         target=str(edge.output_concept_id),
         parents=tuple(str(parent) for parent in edge.input_concept_ids),
         evaluate=evaluate,
-        provenance=edge.provenance,
+        provenance=None,
     )
 
 

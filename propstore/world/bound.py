@@ -8,9 +8,9 @@ concept's value/derived/resolved value, conflicts, and the stance explanation â€
 and exposes the ATMS-native inspection surface by lazily constructing an
 :class:`~propstore.world.atms.ATMSEngine` over itself.
 
-Substrate boundary: claims are the canonical
-:class:`~propstore.core.graph_types.ClaimNode` (rich, condition-bearing) for label
-and condition reasoning, projected to the thin
+Substrate boundary: claims are canonical
+:class:`~propstore.families.claims.Claim` charters for label and condition
+reasoning, projected to the thin
 :class:`~propstore.core.active_claims.ActiveClaim` the value resolver and
 argumentation bridge consume; conditions are condition-ir's solver used directly;
 the label algebra is the carved ``core.labels`` algebra (no mirror types). The
@@ -31,15 +31,16 @@ from condition_ir import (
     check_condition_ir,
     checked_condition_set,
     to_cel_expr,
+    to_cel_exprs,
 )
 
 from propstore.conflict_detector import ConflictRecord, detect_conflicts
 from propstore.conflict_detector.models import ConflictClaim
-from propstore.core.activation import is_claim_node_active
+from propstore.core.activation import is_claim_active
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput
 from propstore.core.environment import AssumptionRef, Environment, WorldStore
 from propstore.core.graph_build import build_compiled_world_graph
-from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ParameterizationEdge
+from propstore.core.graph_types import ActiveWorldGraph, ParameterizationEdge
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.labels import (
     EnvironmentKey,
@@ -194,36 +195,36 @@ def conflict_inputs_for_store(
     return registry, cel_registry
 
 
-def conflict_claim_from_node(node: ClaimNode) -> ConflictClaim | None:
-    """Build a :class:`ConflictClaim` payload view from a compiled claim node."""
-
-    payload: dict[str, Any] = dict(node.attribute_mapping())
-    payload["id"] = str(node.claim_id)
-    payload["artifact_id"] = str(node.claim_id)
-    payload["type"] = node.claim_type.value
-    if node.value_concept_id is not None:
-        payload["output_concept"] = str(node.value_concept_id)
-    payload["value"] = node.scalar_value
-    if node.checked_conditions is not None:
-        payload["conditions"] = [str(source) for source in node.checked_conditions.sources]
-    return ConflictClaim.from_payload(payload)
-
-
 def recomputed_conflicts(
     store: WorldStore,
-    claim_nodes: Sequence[ClaimNode],
+    claims: Sequence[Claim],
     *,
     lifting_system: LiftingSystem | None = None,
     precomputed_inputs: _ConflictInputs | None = None,
 ) -> list[ConflictRecord]:
     """Revalidate active conflicts against the live belief space."""
 
-    if len(claim_nodes) < 2:
+    if len(claims) < 2:
         return []
     conflict_claims = [
-        conflict_claim
-        for node in claim_nodes
-        if (conflict_claim := conflict_claim_from_node(node)) is not None
+        ConflictClaim(
+            claim_id=claim.claim_id,
+            claim_type=None if claim.claim_type is None else claim.claim_type.value,
+            artifact_id=claim.claim_id,
+            output_concept_id=claim.output_concept,
+            target_concept_id=claim.target_concept,
+            measure=claim.measure,
+            value=claim.value,
+            lower_bound=claim.lower_bound,
+            upper_bound=claim.upper_bound,
+            unit=claim.unit,
+            expression=claim.expression,
+            sympy=claim.sympy,
+            body=claim.body,
+            context_id=claim.context_id,
+            conditions=to_cel_exprs(claim.conditions),
+        )
+        for claim in claims
     ]
     if precomputed_inputs is None:
         concept_registry, cel_registry = conflict_inputs_for_store(store)
@@ -286,7 +287,7 @@ class BoundWorld(BeliefSpace):
         self._lifting_system = lifting_system
         self._conflicts_cache: dict[str | None, list[ConflictRecord]] = {}
         self._conflict_inputs_cache: _ConflictInputs | None = None
-        self._claim_node_index_cache: dict[str, ClaimNode] | None = None
+        self._claim_index_cache: dict[str, Claim] | None = None
         self._resolver = ActiveClaimResolver(
             parameterizations_for=lambda concept_id: list(
                 self._store.parameterizations_for(str(concept_id))
@@ -321,20 +322,17 @@ class BoundWorld(BeliefSpace):
     def policy(self) -> RenderPolicy | None:
         return self._policy
 
-    # -- claim-node index ---------------------------------------------------
+    # -- canonical claim index ---------------------------------------------
 
-    def _claim_node_index(self) -> dict[str, ClaimNode]:
-        if self._claim_node_index_cache is None:
+    def _claim_index(self) -> dict[str, Claim]:
+        if self._claim_index_cache is None:
             claims = (
                 self._active_graph.compiled.claims
                 if self._active_graph is not None
                 else build_compiled_world_graph(self._store).claims
             )
-            self._claim_node_index_cache = {str(node.claim_id): node for node in claims}
-        return self._claim_node_index_cache
-
-    def _claim_node(self, claim_id: str) -> ClaimNode | None:
-        return self._claim_node_index().get(str(claim_id))
+            self._claim_index_cache = {claim.claim_id: claim for claim in claims}
+        return self._claim_index_cache
 
     def _resolve_claim_lookup_id(self, claim_id: str) -> str:
         return self._store.resolve_claim(claim_id) or claim_id
@@ -370,11 +368,11 @@ class BoundWorld(BeliefSpace):
 
         if claim_id is None:
             return True
-        node = self._claim_node(claim_id)
-        if node is None:
+        canonical_claim = self._claim_index().get(claim_id)
+        if canonical_claim is None:
             return True
-        return is_claim_node_active(
-            node,
+        return is_claim_active(
+            canonical_claim,
             environment=self._environment,
             solver=self._store.condition_solver(),
             lifting_system=self._lifting_system,
@@ -469,8 +467,8 @@ class BoundWorld(BeliefSpace):
 
     def extract_variable_concepts(self, claim: ActiveClaimInput) -> list[str]:
         # Algorithm variable bindings (symbol -> concept) are not carried on the
-        # provenance-free Claim charter or its lowered ClaimNode, so the
-        # multi-algorithm-equivalence path has no per-variable concepts to read
+        # Claim charter, so the multi-algorithm-equivalence path has no
+        # per-variable concepts to read
         # here (docs/gaps.md: algorithm variable bindings are not graph-native).
         _ = claim
         return []
@@ -575,15 +573,17 @@ class BoundWorld(BeliefSpace):
             (str(conflict.claim_a_id), str(conflict.claim_b_id), str(conflict.concept_id))
             for conflict in result
         }
-        active_nodes = [
-            node
+        canonical_claims = [
+            canonical_claim
             for claim in active_claims
-            if (node := self._claim_node(str(claim.claim_id))) is not None
+            if (
+                canonical_claim := self._claim_index().get(str(claim.claim_id))
+            ) is not None
         ]
         precomputed = self._get_or_build_conflict_inputs()
         for conflict in recomputed_conflicts(
             self._store,
-            active_nodes,
+            canonical_claims,
             lifting_system=self._lifting_system,
             precomputed_inputs=precomputed,
         ):
@@ -626,17 +626,19 @@ class BoundWorld(BeliefSpace):
         return None, self._support_quality(claim)
 
     def _claim_support_label(self, claim: ActiveClaim) -> Label | None:
-        node = self._claim_node(str(claim.claim_id))
+        canonical_claim = self._claim_index().get(str(claim.claim_id))
         labels: list[Label] = []
-        context_id = self._claim_context_id(claim, node)
+        context_id = (
+            claim.context_id
+            if claim.context_id is not None
+            else (
+                None if canonical_claim is None else canonical_claim.context_id
+            )
+        )
         if context_id is not None:
             labels.append(context_label(context_id))
 
-        conditions = (
-            node.checked_conditions.sources
-            if node is not None and node.checked_conditions is not None
-            else ()
-        )
+        conditions = () if canonical_claim is None else canonical_claim.conditions
         if not conditions:
             return combine_labels(*labels) if labels else Label.empty()
 
@@ -655,28 +657,19 @@ class BoundWorld(BeliefSpace):
         return combine_labels(*labels)
 
     def _support_quality(self, claim: ActiveClaim) -> SupportQuality:
-        node = self._claim_node(str(claim.claim_id))
+        canonical_claim = self._claim_index().get(str(claim.claim_id))
         has_conditions = bool(
-            node is not None
-            and node.checked_conditions is not None
-            and node.checked_conditions.conditions
+            canonical_claim is not None and canonical_claim.conditions
         )
-        has_context = self._claim_context_id(claim, node) is not None
+        has_context = (
+            claim.context_id is not None
+            or (canonical_claim is not None and canonical_claim.context_id is not None)
+        )
         if has_context and has_conditions:
             return SupportQuality.MIXED
         if has_context:
             return SupportQuality.CONTEXT_VISIBLE_ONLY
         return SupportQuality.SEMANTIC_COMPATIBLE
-
-    @staticmethod
-    def _claim_context_id(claim: ActiveClaim, node: ClaimNode | None) -> str | None:
-        if claim.context_id is not None:
-            return str(claim.context_id)
-        if node is not None:
-            context_id = node.attribute_value("context_id")
-            if context_id is not None:
-                return str(context_id)
-        return None
 
     def _attach_value_label(self, result: ValueResult) -> ValueResult:
         if result.status is not ValueStatus.DETERMINED or not result.claims:

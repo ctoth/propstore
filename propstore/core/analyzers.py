@@ -1,13 +1,12 @@
-"""Shared analyzer pipeline over plain active-claim payloads.
+"""Shared analyzer pipeline over typed semantic owners.
 
-This is the AF / BAF / PrAF *assembly* over plain data: a ``claims_by_id`` dict,
-stance-row dicts, conflict-row dicts, and an active-id set. The relation math
+This is the AF / BAF / PrAF assembly over canonical ``Claim`` and ``Stance``
+charters, ``ConflictRecord`` values, and an active-id set. The relation math
 (attacks / supports / direct-defeats, the invented ``rebuts`` edges from real
 conflict classes, the preference-sensitive defeat test, the Cayrol-derived
-defeats) and the analyzer entry points all read only that plain data plus the
+defeats) and the analyzer entry points read those owners plus the
 argumentation package's own framework types — never an ATMS environment or a
-store. The world-graph and store readers that *produce* this plain data live in
-the world layer (Phase 7); this module is deliberately store-free.
+store. The module is deliberately store-free.
 
 Every argument and relation enters the framework regardless of calibration
 (CLAUDE.md non-commitment): uncalibrated argument/relation existence is carried
@@ -33,24 +32,14 @@ from argumentation.structured.aspic.aspic import (
     PreferenceConfig,
 )
 
-from propstore.conflict_detector import ConflictClass
 from propstore.core.environment import (
     CompiledGraphStore,
     Environment,
     WorldStore,
 )
-from propstore.core.graph_build import (
-    claim_to_node,
-    conflict_record_to_witness,
-    stance_to_edge,
-)
-from propstore.core.graph_relation_types import GraphRelationType
 from propstore.core.graph_types import (
     ActiveWorldGraph,
-    ClaimNode,
     CompiledWorldGraph,
-    ConflictWitness,
-    RelationEdge,
 )
 from propstore.core.id_types import to_claim_ids
 from propstore.core.reasoning import (
@@ -70,14 +59,16 @@ from propstore.preference import claim_strength
 from propstore.probabilistic_relations import (
     ClaimGraphRelations,
     ProbabilisticRelation,
-    relation_from_row,
+    relation_from_stance,
 )
+from propstore.conflict_detector.models import ConflictRecord
+from propstore.families.claims import Claim
+from propstore.families.relations import Stance
 from propstore.stances import (
     ATTACK_TYPES,
     PREFERENCE_SENSITIVE_ATTACK_TYPES,
     SUPPORT_TYPES,
     UNCONDITIONAL_ATTACK_TYPES,
-    VALID_STANCE_TYPES,
 )
 
 _ATTACK_TYPES = ATTACK_TYPES
@@ -86,26 +77,11 @@ _PREFERENCE_TYPES = PREFERENCE_SENSITIVE_ATTACK_TYPES
 _SUPPORT_TYPES = SUPPORT_TYPES
 _REAL_CONFLICT_CLASSES = frozenset({"CONFLICT", "OVERLAP", "PARAM_CONFLICT"})
 
-# The graph relation types that are claim-to-claim stances (rebut/support/…), as
-# opposed to concept-to-concept relationships (broader/part-of/…). Only these
-# become stance rows for the AF assembly.
-_STANCE_GRAPH_RELATION_TYPES = frozenset(
-    relation_type
-    for relation_type in GraphRelationType
-    if relation_type.value in VALID_STANCE_TYPES
-)
-
-# A row is a plain claim/stance/conflict payload mapping: stored field name to a
-# scalar value. The store/world readers below produce these from the active
-# graph; the analyzer math only ever reads them.
-Row = dict[str, object]
-
-
 @dataclass(frozen=True)
 class SharedAnalyzerInput:
     comparison: str
-    claims_by_id: dict[str, Row]
-    stance_rows: tuple[Row, ...]
+    claims_by_id: dict[str, Claim]
+    stances: tuple[Stance, ...]
     relations: ClaimGraphRelations
     argumentation_framework: ArgumentationFramework
     bipolar_framework: BipolarArgumentationFramework
@@ -170,48 +146,38 @@ def _cayrol_derived_defeats(
     return set(_cayrol_derived_defeats_impl(frozenset(defeats), frozenset(supports)))
 
 
-def _row_endpoints(row: Row) -> tuple[str, str]:
-    return str(row["claim_id"]), str(row["target_claim_id"])
-
-
-def _rebut_row(source_id: str, target_id: str) -> Row:
-    return {
-        "claim_id": source_id,
-        "target_claim_id": target_id,
-        "stance_type": "rebuts",
-    }
-
-
 def _collect_claim_graph_relations(
-    claims_by_id: dict[str, Row],
-    stance_rows: list[Row],
-    conflict_rows: list[Row],
+    claims_by_id: dict[str, Claim],
+    stances: list[Stance],
+    conflicts: list[ConflictRecord],
     active_ids: set[str],
     *,
     comparison: str,
-) -> tuple[dict[str, Row], tuple[Row, ...], ClaimGraphRelations]:
-    stances: list[Row] = list(stance_rows)
-    conflicts = list(conflict_rows)
-
-    existing_stance_pairs = {_row_endpoints(stance) for stance in stances}
+) -> tuple[dict[str, Claim], tuple[Stance, ...], ClaimGraphRelations]:
+    existing_stance_pairs = {
+        (stance.source_claim_id, stance.target_claim_id)
+        for stance in stances
+        if stance.source_claim_id is not None and stance.target_claim_id is not None
+    }
     existing_stance_undirected = {
-        frozenset(_row_endpoints(stance)) for stance in stances
+        frozenset((source_id, target_id))
+        for source_id, target_id in existing_stance_pairs
     }
     existing_attack_undirected = {
-        frozenset(_row_endpoints(stance))
+        frozenset((stance.source_claim_id, stance.target_claim_id))
         for stance in stances
-        if str(stance["stance_type"]) in _ATTACK_TYPES
+        if stance.source_claim_id is not None
+        and stance.target_claim_id is not None
+        and stance.stance_type in _ATTACK_TYPES
     }
 
+    synthetic_rebuts: set[tuple[str, str]] = set()
     for conflict in conflicts:
-        warning_class = conflict.get("warning_class")
-        warning_class_name = (
-            warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class or "")
-        )
+        warning_class_name = conflict.warning_class.value
         if warning_class_name not in _REAL_CONFLICT_CLASSES:
             continue
-        left_id = str(conflict["claim_a_id"])
-        right_id = str(conflict["claim_b_id"])
+        left_id = conflict.claim_a_id
+        right_id = conflict.claim_b_id
         pair_key = frozenset({left_id, right_id})
         if pair_key in existing_attack_undirected:
             continue
@@ -219,10 +185,10 @@ def _collect_claim_graph_relations(
             for source_id, target_id in ((left_id, right_id), (right_id, left_id)):
                 if (source_id, target_id) in existing_stance_pairs:
                     continue
-                stances.append(_rebut_row(source_id, target_id))
+                synthetic_rebuts.add((source_id, target_id))
             continue
         for source_id, target_id in ((left_id, right_id), (right_id, left_id)):
-            stances.append(_rebut_row(source_id, target_id))
+            synthetic_rebuts.add((source_id, target_id))
 
     attacks: set[tuple[str, str]] = set()
     direct_defeats: set[tuple[str, str]] = set()
@@ -232,8 +198,11 @@ def _collect_claim_graph_relations(
     direct_defeat_relations: list[ProbabilisticRelation] = []
 
     for stance in stances:
-        source_id, target_id = _row_endpoints(stance)
-        stance_type = str(stance["stance_type"])
+        source_id = stance.source_claim_id
+        target_id = stance.target_claim_id
+        stance_type = stance.stance_type
+        if source_id is None or target_id is None or stance_type is None:
+            continue
         if source_id not in claims_by_id or target_id not in claims_by_id:
             continue
         if stance_type in _SUPPORT_TYPES:
@@ -241,12 +210,10 @@ def _collect_claim_graph_relations(
             support_opinion = p_relation_from_stance(stance)
             if not isinstance(support_opinion, NoCalibration):
                 support_relations.append(
-                    relation_from_row(
+                    relation_from_stance(
                         kind="support",
-                        source=source_id,
-                        target=target_id,
                         opinion=support_opinion.opinion,
-                        row=stance,
+                        stance=stance,
                     )
                 )
             continue
@@ -257,12 +224,10 @@ def _collect_claim_graph_relations(
         attack_opinion = p_relation_from_stance(stance)
         if not isinstance(attack_opinion, NoCalibration):
             attack_relations.append(
-                relation_from_row(
+                relation_from_stance(
                     kind="attack",
-                    source=source_id,
-                    target=target_id,
                     opinion=attack_opinion.opinion,
-                    row=stance,
+                    stance=stance,
                 )
             )
 
@@ -270,12 +235,10 @@ def _collect_claim_graph_relations(
             direct_defeats.add((source_id, target_id))
             if not isinstance(attack_opinion, NoCalibration):
                 direct_defeat_relations.append(
-                    relation_from_row(
+                    relation_from_stance(
                         kind="direct_defeat",
-                        source=source_id,
-                        target=target_id,
                         opinion=attack_opinion.opinion,
-                        row=stance,
+                        stance=stance,
                     )
                 )
             continue
@@ -292,14 +255,26 @@ def _collect_claim_graph_relations(
                 direct_defeats.add((source_id, target_id))
                 if not isinstance(attack_opinion, NoCalibration):
                     direct_defeat_relations.append(
-                        relation_from_row(
+                        relation_from_stance(
                             kind="direct_defeat",
-                            source=source_id,
-                            target=target_id,
                             opinion=attack_opinion.opinion,
-                            row=stance,
+                            stance=stance,
                         )
                     )
+
+    for source_id, target_id in synthetic_rebuts:
+        if source_id not in claims_by_id or target_id not in claims_by_id:
+            continue
+        attacks.add((source_id, target_id))
+        attacker_strength = claim_strength(claims_by_id[source_id])
+        target_strength = claim_strength(claims_by_id[target_id])
+        if defeat_holds(
+            "rebuts",
+            list(attacker_strength.dimensions),
+            list(target_strength.dimensions),
+            comparison,
+        ):
+            direct_defeats.add((source_id, target_id))
 
     relations = ClaimGraphRelations(
         arguments=frozenset(active_ids),
@@ -314,19 +289,19 @@ def _collect_claim_graph_relations(
 
 
 def shared_analyzer_input_from_active_graph(
-    claims_by_id: dict[str, Row],
-    stance_rows: list[Row],
-    conflict_rows: list[Row],
+    claims_by_id: dict[str, Claim],
+    stances: list[Stance],
+    conflicts: list[ConflictRecord],
     active_ids: set[str],
     *,
     comparison: str = "elitist",
 ) -> SharedAnalyzerInput:
-    """Assemble the shared AF / BAF inputs from plain active-claim payloads."""
+    """Assemble shared AF / BAF inputs from typed semantic owners."""
 
     collected_claims, collected_stances, relations = _collect_claim_graph_relations(
         claims_by_id,
-        stance_rows,
-        conflict_rows,
+        stances,
+        conflicts,
         active_ids,
         comparison=comparison,
     )
@@ -346,108 +321,18 @@ def shared_analyzer_input_from_active_graph(
     return SharedAnalyzerInput(
         comparison=comparison,
         claims_by_id=collected_claims,
-        stance_rows=collected_stances,
+        stances=collected_stances,
         relations=relations,
         argumentation_framework=af,
         bipolar_framework=bipolar,
     )
 
 
-# --- store / active-graph readers (produce the plain payloads above) ---------
-# These lower the canonical graph carriers (ClaimNode / RelationEdge /
-# ConflictWitness) into the plain claim/stance/conflict rows the math above
-# reads, and read a charter-backed store into an active graph. The math stays
-# store-free; only this section knows about the world graph and the store.
-
-
-def _claim_mapping_from_node(claim: ClaimNode) -> Row:
-    """The plain claim row the analyzer/preference layers read from a node."""
-
-    data: Row = {
-        "id": str(claim.claim_id),
-        "value_concept_id": (
-            None if claim.value_concept_id is None else str(claim.value_concept_id)
-        ),
-        "type": claim.claim_type.value,
-        "value": claim.scalar_value,
-    }
-    data.update(claim.attribute_mapping())
-    if claim.provenance is not None:
-        if claim.provenance.paper is not None:
-            data.setdefault("source_paper", claim.provenance.paper)
-        if claim.provenance.page is not None:
-            data.setdefault("provenance_page", claim.provenance.page)
-    return data
-
-
-def _stance_row_from_edge(edge: RelationEdge) -> Row:
-    """The plain stance row for one relation edge (calibration rides on it)."""
-
-    data: Row = {
-        "claim_id": edge.source_id,
-        "target_claim_id": edge.target_id,
-        "stance_type": edge.relation_type.value,
-    }
-    data.update(dict(edge.attributes))
-    if edge.provenance is not None:
-        if edge.provenance.source_table is not None:
-            data.setdefault("source_table", edge.provenance.source_table)
-        if edge.provenance.source_id is not None:
-            data.setdefault("source_id", edge.provenance.source_id)
-    return data
-
-
-def _conflict_row_from_witness(conflict: ConflictWitness) -> Row:
-    """The plain conflict row for one conflict witness."""
-
-    details = dict(conflict.details)
-    warning_class = (
-        details.get("warning_class") or details.get("conflict_class") or conflict.kind
-    )
-    return {
-        "claim_a_id": conflict.left_claim_id,
-        "claim_b_id": conflict.right_claim_id,
-        "warning_class": (
-            warning_class.value
-            if isinstance(warning_class, ConflictClass)
-            else str(warning_class)
-        ),
-        **details,
-    }
+# --- store / active-graph readers ------------------------------------------
 
 
 def _active_claim_ids(active_graph: ActiveWorldGraph) -> set[str]:
     return {str(claim_id) for claim_id in active_graph.active_claim_ids}
-
-
-def _graph_claim_rows(active_graph: ActiveWorldGraph) -> dict[str, Row]:
-    active_ids = _active_claim_ids(active_graph)
-    return {
-        str(claim.claim_id): _claim_mapping_from_node(claim)
-        for claim in active_graph.compiled.claims
-        if str(claim.claim_id) in active_ids
-    }
-
-
-def _graph_stance_rows(active_graph: ActiveWorldGraph) -> list[Row]:
-    active_ids = _active_claim_ids(active_graph)
-    return [
-        _stance_row_from_edge(edge)
-        for edge in active_graph.compiled.relations
-        if edge.relation_type in _STANCE_GRAPH_RELATION_TYPES
-        and edge.source_id in active_ids
-        and edge.target_id in active_ids
-    ]
-
-
-def _graph_conflict_rows(active_graph: ActiveWorldGraph) -> list[Row]:
-    active_ids = _active_claim_ids(active_graph)
-    return [
-        _conflict_row_from_witness(conflict)
-        for conflict in active_graph.compiled.conflicts
-        if str(conflict.left_claim_id) in active_ids
-        and str(conflict.right_claim_id) in active_ids
-    ]
 
 
 def _minimal_compiled_graph(
@@ -456,22 +341,14 @@ def _minimal_compiled_graph(
 ) -> CompiledWorldGraph:
     """Read just the active claims, their stances, and conflicts from a store."""
 
-    claims = tuple(
-        claim_to_node(claim)
-        for claim in store.claims_by_ids(active_claim_ids).values()
-    )
-    relations = tuple(
-        edge
-        for stance in store.stances_between(active_claim_ids)
-        if (edge := stance_to_edge(stance)) is not None
-    )
+    claims = tuple(store.claims_by_ids(active_claim_ids).values())
+    stances = tuple(store.stances_between(active_claim_ids))
     conflicts = tuple(
-        conflict_record_to_witness(record)
-        for record in store.conflicts()
+        record for record in store.conflicts()
         if str(record.claim_a_id) in active_claim_ids
         and str(record.claim_b_id) in active_claim_ids
     )
-    return CompiledWorldGraph(claims=claims, relations=relations, conflicts=conflicts)
+    return CompiledWorldGraph(claims=claims, stances=stances, conflicts=conflicts)
 
 
 def _active_graph_from_store(
@@ -488,7 +365,7 @@ def _active_graph_from_store(
         compiled=compiled,
         environment=Environment(),
         active_claim_ids=tuple(active_ids),
-        inactive_claim_ids=tuple(all_claim_ids - active_ids),
+        inactive_claim_ids=to_claim_ids(all_claim_ids - {str(item) for item in active_ids}),
     )
 
 
@@ -499,15 +376,28 @@ def shared_analyzer_input_from_graph(
 ) -> SharedAnalyzerInput:
     """Assemble the shared AF inputs from an active world graph.
 
-    Extracts the plain claim/stance/conflict rows from the active graph, runs the
-    store-free assembly math, and re-attaches the active graph to the result so
-    downstream consumers that need the carrier (the world layer) can reach it.
+    Reads canonical semantic owners from the graph and re-attaches the graph to
+    the assembled result.
     """
 
     shared = shared_analyzer_input_from_active_graph(
-        _graph_claim_rows(active_graph),
-        _graph_stance_rows(active_graph),
-        _graph_conflict_rows(active_graph),
+        {
+            claim.claim_id: claim
+            for claim in active_graph.compiled.claims
+            if claim.claim_id in _active_claim_ids(active_graph)
+        },
+        [
+            stance
+            for stance in active_graph.compiled.stances
+            if stance.source_claim_id in _active_claim_ids(active_graph)
+            and stance.target_claim_id in _active_claim_ids(active_graph)
+        ],
+        [
+            conflict
+            for conflict in active_graph.compiled.conflicts
+            if conflict.claim_a_id in _active_claim_ids(active_graph)
+            and conflict.claim_b_id in _active_claim_ids(active_graph)
+        ],
         _active_claim_ids(active_graph),
         comparison=comparison,
     )
@@ -717,8 +607,12 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput) -> PropstorePrAF:
     p_args: dict[str, OpinionWithProvenance] = {}
     omitted_arguments: dict[str, NoCalibration] = {}
     for claim_id in shared.argumentation_framework.arguments:
-        fallback_claim: Row = {"claim_id": claim_id}
-        p_arg = p_arg_from_claim(shared.claims_by_id.get(claim_id, fallback_claim))
+        claim = shared.claims_by_id.get(claim_id)
+        p_arg = (
+            NoCalibration(reason="missing_claim", missing_fields=("claim",))
+            if claim is None
+            else p_arg_from_claim(claim)
+        )
         if isinstance(p_arg, NoCalibration):
             omitted_arguments[claim_id] = p_arg
             p_args[claim_id] = opinion_or_vacuous(None, base_rate=0.5, provenance=p_arg.provenance)
@@ -728,15 +622,17 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput) -> PropstorePrAF:
     active_args = frozenset(shared.argumentation_framework.arguments)
 
     # Re-derive the calibrated edge opinions (with provenance) from the stance
-    # rows. The opinion of an edge is a property of the stance, independent of
+    # charters. The opinion of an edge is a property of the stance, independent of
     # which relation class (attack / defeat / support) it lands in, so a single
     # edge -> OpinionWithProvenance map serves every map below.
     edge_opinions: dict[tuple[str, str], OpinionWithProvenance] = {}
-    for stance in shared.stance_rows:
+    for stance in shared.stances:
         owp = p_relation_from_stance(stance)
         if isinstance(owp, NoCalibration):
             continue
-        edge_opinions[_row_endpoints(stance)] = owp
+        if stance.source_claim_id is None or stance.target_claim_id is None:
+            continue
+        edge_opinions[(stance.source_claim_id, stance.target_claim_id)] = owp
 
     missing_relation_edges = (
         set(shared.relations.attacks - frozenset(edge_opinions))

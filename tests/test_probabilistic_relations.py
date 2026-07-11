@@ -1,4 +1,4 @@
-"""Probabilistic relations carry doxa.Opinion directly with row provenance."""
+"""Probabilistic relations carry doxa.Opinion with stance provenance."""
 
 from __future__ import annotations
 
@@ -7,34 +7,33 @@ from doxa import Opinion
 from propstore.probabilistic_relations import (
     ProbabilisticRelation,
     RelationProvenance,
-    relation_from_row,
+    relation_from_stance,
     relation_map,
 )
 from propstore.stances import StanceType
+from propstore.families.relations import Stance
 
 
-def _row() -> dict[str, object]:
-    return {
-        "id": "edge1",
-        "claim_id": "c1",
-        "target_claim_id": "c2",
-        "stance_type": "rebuts",
-        "resolution_model": "model-x",
-        "opinion_belief": 0.7,
-        "opinion_disbelief": 0.1,
-        "opinion_uncertainty": 0.2,
-        "opinion_base_rate": 0.5,
-    }
+def _stance(source: str = "c1", target: str = "c2") -> Stance:
+    return Stance(
+        stance_id=f"{source}:{target}",
+        source_claim_id=source,
+        target_claim_id=target,
+        stance_type=StanceType.REBUTS,
+        resolution_model="model-x",
+        opinion_belief=0.7,
+        opinion_disbelief=0.1,
+        opinion_uncertainty=0.2,
+        opinion_base_rate=0.5,
+    )
 
 
-def test_relation_from_row_carries_doxa_opinion_and_provenance() -> None:
+def test_relation_from_stance_carries_doxa_opinion_and_provenance() -> None:
     opinion = Opinion(0.7, 0.1, 0.2, 0.5)
-    relation = relation_from_row(
+    relation = relation_from_stance(
         kind="attack",
-        source="c1",
-        target="c2",
         opinion=opinion,
-        row=_row(),
+        stance=_stance(),
     )
 
     assert isinstance(relation, ProbabilisticRelation)
@@ -43,7 +42,7 @@ def test_relation_from_row_carries_doxa_opinion_and_provenance() -> None:
     assert relation.edge == ("c1", "c2")
     assert relation.provenance is not None
     assert relation.provenance.stance_type is StanceType.REBUTS
-    assert relation.provenance.source_table == "relation_edge"
+    assert relation.provenance.source_table == "stance"
 
 
 def test_relation_provenance_coerces_stance_type() -> None:
@@ -51,8 +50,8 @@ def test_relation_provenance_coerces_stance_type() -> None:
     assert prov.stance_type is StanceType.SUPPORTS
 
 
-def test_relation_without_row_has_no_provenance() -> None:
-    relation = relation_from_row(
+def test_derived_relation_can_have_no_provenance() -> None:
+    relation = ProbabilisticRelation(
         kind="support",
         source="a",
         target="b",
@@ -62,11 +61,11 @@ def test_relation_without_row_has_no_provenance() -> None:
 
 
 def test_relation_map_keys_edges_to_opinions() -> None:
-    r1 = relation_from_row(
-        kind="attack", source="a", target="b", opinion=Opinion(0.6, 0.2, 0.2, 0.5)
+    r1 = relation_from_stance(
+        kind="attack", stance=_stance("a", "b"), opinion=Opinion(0.6, 0.2, 0.2, 0.5)
     )
-    r2 = relation_from_row(
-        kind="support", source="b", target="c", opinion=Opinion.vacuous(0.5)
+    r2 = relation_from_stance(
+        kind="support", stance=_stance("b", "c"), opinion=Opinion.vacuous(0.5)
     )
     mapping = relation_map((r1, r2))
 

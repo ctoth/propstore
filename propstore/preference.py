@@ -15,11 +15,12 @@ discipline), never baked into a re-spelled opinion.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
 from dataclasses import dataclass
 
 from doxa import Opinion
 
+from propstore.core.active_claims import ActiveClaim
+from propstore.families.claims import Claim
 from propstore.provenance import Provenance, ProvenanceStatus
 
 _METADATA_STRENGTH_BASE_RATE = 0.5
@@ -74,7 +75,7 @@ def _unit_float(value: object, *, lower_inclusive: bool) -> float | None:
     return float(value) if lo_ok and value <= 1.0 else None
 
 
-def metadata_strength_vector(claim: Mapping[str, object]) -> MetadataStrengthVector:
+def metadata_strength_vector(claim: Claim | ActiveClaim) -> MetadataStrengthVector:
     """Compute a heuristic fixed-length strength vector from claim metadata.
 
     Always returns exactly 3 dimensions so that Def 19 (Modgil & Prakken 2018,
@@ -91,9 +92,9 @@ def metadata_strength_vector(claim: Mapping[str, object]) -> MetadataStrengthVec
       [2] confidence: direct value
     """
 
-    sample_size_value = _positive_float(claim.get("sample_size"))
-    uncertainty_value = _unit_float(claim.get("uncertainty"), lower_inclusive=False)
-    confidence_value = _unit_float(claim.get("confidence"), lower_inclusive=True)
+    sample_size_value = _positive_float(claim.sample_size)
+    uncertainty_value = _unit_float(claim.uncertainty, lower_inclusive=False)
+    confidence_value = _unit_float(claim.confidence, lower_inclusive=True)
 
     if (
         confidence_value is not None
@@ -133,7 +134,7 @@ def metadata_strength_vector(claim: Mapping[str, object]) -> MetadataStrengthVec
     )
 
 
-def claim_strength(claim: Mapping[str, object]) -> MetadataStrengthVector:
+def claim_strength(claim: Claim | ActiveClaim) -> MetadataStrengthVector:
     """Return the propstore claim-graph metadata strength heuristic."""
 
     return metadata_strength_vector(claim)

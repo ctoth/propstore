@@ -3,8 +3,8 @@
 These read stances and justifications for an active claim scope from either the
 active world graph or the charter-backed store, and hand the bridge plain stance
 mappings (the :data:`~propstore.aspic_bridge.translate.StanceInput` shape) and
-canonical justification records. There is no row-model DTO: a ``Stance`` charter
-or a graph ``RelationEdge`` is lowered to a plain mapping once, here.
+canonical justification records. There is no graph relation mirror for an
+authored stance; the active graph carries the ``Stance`` charter directly.
 """
 
 from __future__ import annotations
@@ -52,18 +52,21 @@ def extract_stance_rows(
     if active_graph is not None:
         active_ids = {str(claim_id) for claim_id in active_graph.active_claim_ids}
         rows: list[StanceInput] = []
-        for relation in active_graph.compiled.relations:
-            if relation.source_id not in active_ids or relation.target_id not in active_ids:
+        for stance in active_graph.compiled.stances:
+            if stance.source_claim_id is None or stance.target_claim_id is None:
                 continue
-            if relation.relation_type.value not in _STANCE_ROW_RELATION_VALUES:
+            if (
+                stance.source_claim_id not in active_ids
+                or stance.target_claim_id not in active_ids
+            ):
                 continue
-            row: dict[str, Any] = {
-                "claim_id": relation.source_id,
-                "target_claim_id": relation.target_id,
-                "stance_type": relation.relation_type.value,
-            }
-            row.update(dict(relation.attributes))
-            rows.append(row)
+            if stance.stance_type is None:
+                continue
+            if stance.stance_type.value not in _STANCE_ROW_RELATION_VALUES:
+                continue
+            mapped = _stance_to_input(stance)
+            if mapped is not None:
+                rows.append(mapped)
         return rows
 
     return [

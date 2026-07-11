@@ -343,21 +343,19 @@ def active_stance_dependencies(
 
     if active_graph is not None:
         payloads: list[dict[str, Any]] = []
-        for edge in active_graph.compiled.relations:
-            if str(edge.relation_type) not in _STANCE_RELATION_TYPES:
+        for stance in active_graph.compiled.stances:
+            if stance.source_claim_id is None or stance.target_claim_id is None:
+                continue
+            if stance.stance_type is None:
+                continue
+            if stance.stance_type.value not in _STANCE_RELATION_TYPES:
                 continue
             if (
-                to_claim_id(edge.source_id) not in active_ids
-                or to_claim_id(edge.target_id) not in active_ids
+                to_claim_id(stance.source_claim_id) not in active_ids
+                or to_claim_id(stance.target_claim_id) not in active_ids
             ):
                 continue
-            payload: dict[str, Any] = {
-                "source_claim_id": edge.source_id,
-                "target_claim_id": edge.target_id,
-                "stance_type": str(edge.relation_type),
-            }
-            payload.update(dict(edge.attributes))
-            payloads.append(payload)
+            payloads.append(_stance_key_from_charter(stance))
         return sorted(_stance_dependency_key(payload) for payload in payloads)
 
     return sorted(

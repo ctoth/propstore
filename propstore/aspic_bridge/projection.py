@@ -250,7 +250,7 @@ def csaf_to_projection(
         if claim is None:
             strength = _grounded_argument_strength(argument)
         else:
-            vector = claim_strength(claim.metadata_mapping())
+            vector = claim_strength(claim)
             strength = 0.0 if vector.is_vacuous else statistics.mean(vector.dimensions)
 
         if isinstance(argument, PremiseArg):

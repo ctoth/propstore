@@ -9,17 +9,22 @@ opinion.
 from __future__ import annotations
 
 from propstore.praf import NoCalibration, p_relation_from_stance
+from propstore.families.relations import Stance
 
 
 def test_raw_confidence_one_is_not_dogmatic_evidence() -> None:
-    result = p_relation_from_stance({"confidence": 1.0, "opinion_base_rate": 0.5})
+    result = p_relation_from_stance(
+        Stance(stance_id="s1", confidence=1.0, opinion_base_rate=0.5)
+    )
     assert isinstance(result, NoCalibration)
     assert result.reason == "raw_confidence_not_evidence"
     assert "effective_sample_size" in result.missing_fields
 
 
 def test_raw_confidence_half_without_sample_size_stays_uncalibrated() -> None:
-    result = p_relation_from_stance({"confidence": 0.5, "opinion_base_rate": 0.5})
+    result = p_relation_from_stance(
+        Stance(stance_id="s1", confidence=0.5, opinion_base_rate=0.5)
+    )
     assert isinstance(result, NoCalibration)
     assert result.reason == "missing_evidence_count"
     assert "effective_sample_size" in result.missing_fields

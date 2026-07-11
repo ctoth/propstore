@@ -9,29 +9,15 @@ spelling (CLAUDE.md substrate-boundary rule) — alongside a stable
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
 from doxa import Opinion
 
+from propstore.families.relations import Stance
 from propstore.stances import StanceType, coerce_stance_type
 
 RelationKind = Literal["attack", "support", "direct_defeat", "derived_defeat"]
-
-_PROVENANCE_KEYS = (
-    "id",
-    "claim_id",
-    "target_claim_id",
-    "stance_type",
-    "resolution_model",
-    "confidence",
-    "opinion_belief",
-    "opinion_disbelief",
-    "opinion_uncertainty",
-    "opinion_base_rate",
-)
-
 
 @dataclass(frozen=True)
 class RelationProvenance:
@@ -74,41 +60,27 @@ class ClaimGraphRelations:
     direct_defeat_relations: tuple[ProbabilisticRelation, ...] = ()
 
 
-def provenance_from_row(
-    row: Mapping[str, object], *, source_table: str = "relation_edge"
-) -> RelationProvenance:
-    """Build stable provenance from a stance-like mapping."""
-
-    row_identity = tuple(
-        (key, repr(row[key]))
-        for key in _PROVENANCE_KEYS
-        if key in row and row[key] is not None
-    )
-    return RelationProvenance(
-        source_table=source_table,
-        stance_type=coerce_stance_type(row.get("stance_type")),
-        row_identity=row_identity,
-    )
-
-
-def relation_from_row(
+def relation_from_stance(
     *,
     kind: RelationKind,
-    source: str,
-    target: str,
     opinion: Opinion,
-    row: Mapping[str, object] | None = None,
+    stance: Stance,
     derived_from: tuple[tuple[str, str], ...] = (),
 ) -> ProbabilisticRelation:
-    """Create a probabilistic relation record from a stance row."""
+    """Create a probabilistic relation record from its authored stance."""
 
-    provenance = provenance_from_row(row) if row is not None else None
+    if stance.source_claim_id is None or stance.target_claim_id is None:
+        raise ValueError("probabilistic relation stance requires claim endpoints")
     return ProbabilisticRelation(
         kind=kind,
-        source=source,
-        target=target,
+        source=stance.source_claim_id,
+        target=stance.target_claim_id,
         opinion=opinion,
-        provenance=provenance,
+        provenance=RelationProvenance(
+            source_table="stance",
+            stance_type=stance.stance_type,
+            row_identity=(("stance_id", stance.stance_id),),
+        ),
         derived_from=derived_from,
     )
 

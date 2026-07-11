@@ -11,9 +11,8 @@ replay substrate. This is a bounded ATMS-native analysis over rebuilt future
 bound worlds, not AGM-style revision or a full de Kleer runtime manager.
 
 Substrate boundary (CLAUDE.md): the node taxonomy embeds the canonical
-:class:`~propstore.core.graph_types.ClaimNode` /
-:class:`~propstore.core.graph_types.ParameterizationEdge` /
-:class:`~propstore.core.graph_types.ConflictWitness` directly — there is no row
+claim charter, graph-native parameterization edge, and conflict record directly;
+there is no row
 DTO. The label / environment / nogood algebra is the carved provenance-semiring
 algebra re-exported from :mod:`propstore.core.labels`, used directly with no
 mirror type; propstore owns only the ``ps:source:*`` variable encoding (the
@@ -42,17 +41,16 @@ from condition_ir import (
     checked_condition_set,
 )
 
-from propstore.conflict_detector.models import coerce_conflict_class
+from propstore.claim_conditions import compile_checked_conditions
+from propstore.conflict_detector.models import ConflictRecord
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.anytime import EnumerationExceeded
-from propstore.core.assertions import claim_node_assertion_id, claim_node_context_id
+from propstore.core.assertions import claim_assertion_id
 from propstore.core.environment import AssumptionRef, WorldStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import (
     ActiveWorldGraph,
-    ClaimNode,
-    ConflictWitness,
     ParameterizationEdge,
 )
 from propstore.core.id_types import (
@@ -81,6 +79,7 @@ from propstore.core.labels import (
     merge_labels,
 )
 from propstore.families.micropublications import Micropublication
+from propstore.families.claims import Claim
 from propstore.propagation import (
     ParameterizationEvaluationStatus,
     evaluate_parameterization,
@@ -140,10 +139,10 @@ class _ATMSRuntimeLike(Protocol):
     def all_micropublications(self) -> Callable[[], list[Micropublication]]: ...
 
     @property
-    def active_claims(self) -> Callable[[], list[ClaimNode]]: ...
+    def active_claims(self) -> Callable[[], list[Claim]]: ...
 
     @property
-    def conflicts(self) -> Callable[[], list[ConflictWitness]]: ...
+    def conflicts(self) -> Callable[[], list[ConflictRecord]]: ...
 
     @property
     def is_param_compatible(self) -> Callable[[ParameterizationEdge], bool]: ...
@@ -220,7 +219,7 @@ class ATMSContextNode:
 @dataclass(frozen=True)
 class ATMSClaimNode:
     node_id: str
-    claim: ClaimNode
+    claim: Claim
     label: Label = field(default_factory=Label)
     justification_ids: tuple[str, ...] = field(default_factory=tuple)
 
@@ -238,23 +237,30 @@ class ATMSClaimNode:
 
     @property
     def context_id(self) -> str | None:
-        return claim_node_context_id(self.claim)
+        return self.claim.context_id
 
     @property
     def checked_conditions(self) -> CheckedConditionSet | None:
-        return self.claim.checked_conditions
-
-    @property
-    def concept_id(self) -> str | None:
         return (
             None
-            if self.claim.value_concept_id is None
-            else str(self.claim.value_concept_id)
+            if self.claim.conditions_ir is None
+            else compile_checked_conditions(self.claim.conditions_ir)
         )
 
     @property
-    def value(self) -> float | str | None:
-        return self.claim.scalar_value
+    def concept_id(self) -> str | None:
+        for candidate in (
+            self.claim.output_concept,
+            self.claim.target_concept,
+            *self.claim.concepts,
+        ):
+            if candidate is not None:
+                return candidate
+        return None
+
+    @property
+    def value(self) -> float | None:
+        return self.claim.value
 
 
 @dataclass(frozen=True)
@@ -332,8 +338,8 @@ class _ATMSRuntime:
     active_graph: ActiveWorldGraph
     all_parameterizations: Callable[[], list[ParameterizationEdge]]
     all_micropublications: Callable[[], list[Micropublication]]
-    active_claims: Callable[[], list[ClaimNode]]
-    conflicts: Callable[[], list[ConflictWitness]]
+    active_claims: Callable[[], list[Claim]]
+    conflicts: Callable[[], list[ConflictRecord]]
     is_param_compatible: Callable[[ParameterizationEdge], bool]
     condition_registry: Mapping[str, ConceptInfo]
     claim_support: Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]
@@ -384,7 +390,7 @@ def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
     return isinstance(candidate, _ATMSRuntimeLike)
 
 
-def _node_claim(node: ATMSNode) -> ClaimNode | None:
+def _node_claim(node: ATMSNode) -> Claim | None:
     return node.claim if _is_claim_node(node) else None
 
 
@@ -469,19 +475,19 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
     compiled_claims = {claim.claim_id: claim for claim in active_graph.compiled.claims}
     bound_active_graph = active_graph
 
-    def _active_claims() -> list[ClaimNode]:
+    def _active_claims() -> list[Claim]:
         return [
-            compiled_claims[claim_id]
+            compiled_claims[str(claim_id)]
             for claim_id in bound_active_graph.active_claim_ids
-            if claim_id in compiled_claims
+            if str(claim_id) in compiled_claims
         ]
 
-    def _conflicts() -> list[ConflictWitness]:
-        active_ids = set(bound_active_graph.active_claim_ids)
+    def _conflicts() -> list[ConflictRecord]:
+        active_ids = {str(claim_id) for claim_id in bound_active_graph.active_claim_ids}
         return [
             conflict
             for conflict in bound_active_graph.compiled.conflicts
-            if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
+            if conflict.claim_a_id in active_ids and conflict.claim_b_id in active_ids
         ]
 
     def _all_parameterizations() -> list[ParameterizationEdge]:
@@ -1370,7 +1376,7 @@ class ATMSEngine:
     def _build_claim_nodes_and_justifications(self) -> None:
         for claim in sorted(self._runtime.active_claims(), key=lambda node: str(node.claim_id)):
             claim_id = str(claim.claim_id)
-            node_id = claim_node_assertion_id(
+            node_id = claim_assertion_id(
                 claim,
                 context_id=self._runtime.environment.context_id,
             )
@@ -1379,8 +1385,12 @@ class ATMSEngine:
             self._claim_artifact_node_ids[claim_id] = node_id
 
             for antecedents in self._exact_antecedent_sets(
-                claim.checked_conditions,
-                context_id=claim_node_context_id(claim),
+                (
+                    None
+                    if claim.conditions_ir is None
+                    else compile_checked_conditions(claim.conditions_ir)
+                ),
+                context_id=claim.context_id,
             ):
                 self._add_justification(
                     antecedent_ids=antecedents,
@@ -1567,9 +1577,8 @@ class ATMSEngine:
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
         for conflict in self._runtime.conflicts():
-            claim_a = str(conflict.left_claim_id)
-            claim_b = str(conflict.right_claim_id)
-            concept_id = dict(conflict.details).get("concept_id")
+            claim_a = conflict.claim_a_id
+            claim_b = conflict.claim_b_id
 
             label_a = self.claim_label(claim_a)
             label_b = self.claim_label(claim_b)
@@ -1584,8 +1593,8 @@ class ATMSEngine:
                         ATMSNogoodProvenanceDetail(
                             claim_a_id=claim_a,
                             claim_b_id=claim_b,
-                            concept_id=None if concept_id is None else str(concept_id),
-                            warning_class=coerce_conflict_class(conflict.kind),
+                            concept_id=conflict.concept_id,
+                            warning_class=conflict.warning_class,
                             environment_a=[str(variable) for variable in env_a.variables],
                             environment_b=[str(variable) for variable in env_b.variables],
                         )
@@ -2021,7 +2030,7 @@ class ATMSEngine:
         if self._runtime.environment.context_id is not None:
             context_ids.add(to_context_id(self._runtime.environment.context_id))
         for claim in self._runtime.active_claims():
-            claim_context = claim_node_context_id(claim)
+            claim_context = claim.context_id
             if claim_context is not None:
                 context_ids.add(to_context_id(claim_context))
         for micropub in self._runtime.all_micropublications():

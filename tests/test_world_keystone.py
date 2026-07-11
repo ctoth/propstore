@@ -15,9 +15,7 @@ import ast
 from pathlib import Path
 
 import pytest
-from condition_ir import KindType
 
-from propstore import claim_conditions as cc
 from propstore.core.anytime import BudgetExhausted, EnumerationExceeded
 from propstore.core.environment import (
     AssumptionRef,
@@ -34,13 +32,9 @@ from propstore.core.graph_relation_types import (
 )
 from propstore.core.graph_types import (
     ActiveWorldGraph,
-    ClaimNode,
     CompiledWorldGraph,
-    ConceptNode,
-    ConflictWitness,
     GraphDelta,
     ParameterizationEdge,
-    ProvenanceRecord,
     RelationEdge,
 )
 from propstore.core.id_types import (
@@ -99,61 +93,20 @@ def test_coerce_graph_relation_type_validates() -> None:
         coerce_graph_relation_type(object())
 
 
-# --- graph carrier round-trips -------------------------------------------
+# --- graph mechanics ------------------------------------------------------
 
 
-def test_concept_node_round_trip() -> None:
-    node = ConceptNode(
-        concept_id="c1",
-        canonical_name="Frequency",
-        status="authored",
-        kind_type="QUANTITY",
-        attributes={"definition": "cycles per second"},
-    )
-    assert ConceptNode.from_dict(node.to_dict()) == node
-
-
-def test_claim_node_round_trip_with_conditions_label_and_provenance() -> None:
-    freq = Concept(concept_id="freq", canonical_name="frequency")
-    registry = cc.condition_registry([cc.lower_concept(freq, KindType.QUANTITY)])
-    checked = cc.check_claim_conditions(
-        Claim(claim_id="c1", conditions=("freq > 10",)), registry
-    ).checked
-
-    node = ClaimNode(
-        claim_id="c1",
-        claim_type=ClaimType.PARAMETER,
-        value_concept_id="freq",
-        scalar_value=42.0,
-        checked_conditions=checked,
-        provenance=ProvenanceRecord(source_table="claim", source_id="c1", paper="P", page=3),
-        attributes={"unit": "Hz"},
-    )
-    rebuilt = ClaimNode.from_dict(node.to_dict())
-    assert rebuilt == node
-    # checked_conditions compare=False but must still survive the round-trip.
-    assert rebuilt.checked_conditions is not None
-    assert rebuilt.checked_conditions.sources == ("freq > 10",)
-
-
-def test_claim_node_requires_claim_type_in_from_dict() -> None:
-    with pytest.raises(ValueError):
-        ClaimNode.from_dict({"claim_id": "c1"})
-
-
-def test_relation_edge_round_trip() -> None:
+def test_relation_edge_coerces_relation_type() -> None:
     edge = RelationEdge(
         source_id="a",
         target_id="b",
         relation_type="supports",
         derived_from=(("x", "y"),),
-        attributes={"weight": 1},
     )
-    assert RelationEdge.from_dict(edge.to_dict()) == edge
     assert edge.relation_type is GraphRelationType.SUPPORTS
 
 
-def test_parameterization_edge_round_trip() -> None:
+def test_parameterization_edge_coerces_exactness() -> None:
     edge = ParameterizationEdge(
         output_concept_id="y",
         input_concept_ids=("a", "b"),
@@ -161,27 +114,18 @@ def test_parameterization_edge_round_trip() -> None:
         sympy="a + b",
         exactness="exact",
     )
-    assert ParameterizationEdge.from_dict(edge.to_dict()) == edge
     assert edge.exactness is Exactness.EXACT
 
 
-def test_conflict_witness_sorts_pair() -> None:
-    witness = ConflictWitness(left_claim_id="z", right_claim_id="a", kind="CONFLICT")
-    assert witness.left_claim_id == "a"
-    assert witness.right_claim_id == "z"
-    assert ConflictWitness.from_dict(witness.to_dict()) == witness
-
-
-def test_compiled_world_graph_round_trip_and_sorts() -> None:
+def test_compiled_world_graph_sorts_canonical_charters() -> None:
     graph = CompiledWorldGraph(
-        concepts=(ConceptNode(concept_id="c1", canonical_name="One"),),
+        concepts=(Concept(concept_id="c1", canonical_name="One"),),
         claims=(
-            ClaimNode(claim_id="k2", claim_type=ClaimType.PARAMETER),
-            ClaimNode(claim_id="k1", claim_type=ClaimType.OBSERVATION),
+            Claim(claim_id="k2", claim_type=ClaimType.PARAMETER),
+            Claim(claim_id="k1", claim_type=ClaimType.OBSERVATION),
         ),
     )
     assert tuple(c.claim_id for c in graph.claims) == ("k1", "k2")
-    assert CompiledWorldGraph.from_dict(graph.to_dict()) == graph
 
 
 # --- GraphDelta -----------------------------------------------------------
@@ -189,9 +133,9 @@ def test_compiled_world_graph_round_trip_and_sorts() -> None:
 
 def test_graph_delta_apply_add_and_remove() -> None:
     base = CompiledWorldGraph(
-        claims=(ClaimNode(claim_id="k1", claim_type=ClaimType.PARAMETER),)
+        claims=(Claim(claim_id="k1", claim_type=ClaimType.PARAMETER),)
     )
-    added = ClaimNode(claim_id="k2", claim_type=ClaimType.OBSERVATION)
+    added = Claim(claim_id="k2", claim_type=ClaimType.OBSERVATION)
     delta = GraphDelta(add_claims=(added,), remove_claim_ids=("k1",))
     result = delta.apply(base)
     assert tuple(c.claim_id for c in result.claims) == ("k2",)
@@ -199,8 +143,8 @@ def test_graph_delta_apply_add_and_remove() -> None:
 
 def test_graph_delta_is_identity_and_then() -> None:
     assert GraphDelta().is_identity is True
-    add_a = GraphDelta(add_claims=(ClaimNode(claim_id="a", claim_type=ClaimType.MODEL),))
-    add_b = GraphDelta(add_claims=(ClaimNode(claim_id="b", claim_type=ClaimType.MODEL),))
+    add_a = GraphDelta(add_claims=(Claim(claim_id="a", claim_type=ClaimType.MODEL),))
+    add_b = GraphDelta(add_claims=(Claim(claim_id="b", claim_type=ClaimType.MODEL),))
     composed = add_a.then(add_b)
     assert not composed.is_identity
     applied = composed.apply(CompiledWorldGraph())
@@ -232,16 +176,16 @@ def test_environment_from_dict_handles_empty_and_none() -> None:
         Environment.from_dict("not a mapping")
 
 
-def test_active_world_graph_round_trip() -> None:
+def test_active_world_graph_sorts_claim_partitions() -> None:
     compiled = CompiledWorldGraph(
-        claims=(ClaimNode(claim_id="k1", claim_type=ClaimType.PARAMETER),)
+        claims=(Claim(claim_id="k1", claim_type=ClaimType.PARAMETER),)
     )
     active = ActiveWorldGraph(
         compiled=compiled,
         environment=Environment(context_id="ctx"),
         active_claim_ids=("k1",),
     )
-    assert ActiveWorldGraph.from_dict(active.to_dict()) == active
+    assert active.active_claim_ids == ("k1",)
 
 
 # --- propagation (human-to-sympy, never raw sympy) ------------------------

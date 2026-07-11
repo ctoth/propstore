@@ -366,8 +366,8 @@ def build_preference_config(
     ]
     for index, key_a in enumerate(claim_keys):
         for key_b in claim_keys[index + 1 :]:
-            vec_a = metadata_strength_vector(claim_by_id[str(key_a.proposition_id)].metadata_mapping())
-            vec_b = metadata_strength_vector(claim_by_id[str(key_b.proposition_id)].metadata_mapping())
+            vec_a = metadata_strength_vector(claim_by_id[str(key_a.proposition_id)])
+            vec_b = metadata_strength_vector(claim_by_id[str(key_b.proposition_id)])
             lit_a = literals[key_a]
             lit_b = literals[key_b]
             if _dominates(vec_a, vec_b):

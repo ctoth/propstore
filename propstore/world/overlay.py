@@ -32,7 +32,7 @@ from propstore.conflict_detector import ConflictRecord
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import WorldStore
 from propstore.core.activation import activate_compiled_world_graph
-from propstore.core.graph_build import build_compiled_world_graph, claim_to_node
+from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import CompiledWorldGraph
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.families.claims import Claim, ClaimType
@@ -280,8 +280,6 @@ class OverlayWorld(BeliefSpace):
             overlay_claims.append(_synthetic_claim(synthetic, existing=None, solver=solver))
 
         overlay_claim_ids = {str(claim.claim_id) for claim in overlay_claims}
-        overlay_nodes = [claim_to_node(claim) for claim in overlay_claims]
-
         overlay_stances = list(base_store.stances_between(overlay_claim_ids))
 
         overlay_conflicts: list[ConflictRecord] = [
@@ -293,7 +291,7 @@ class OverlayWorld(BeliefSpace):
         seen = {_conflict_key(record) for record in overlay_conflicts}
         for record in recomputed_conflicts(
             base_store,
-            overlay_nodes,
+            overlay_claims,
             lifting_system=base.lifting_system,
         ):
             key = _conflict_key(record)
@@ -374,12 +372,12 @@ class OverlayWorld(BeliefSpace):
 
     def recompute_conflicts(self) -> list[ConflictRecord]:
         active_ids = {str(claim.claim_id) for claim in self.active_claims()}
-        active_nodes = [
-            node for node in self._compiled.claims if str(node.claim_id) in active_ids
+        active_claims = [
+            claim for claim in self._compiled.claims if claim.claim_id in active_ids
         ]
         return recomputed_conflicts(
             self._overlay_store,
-            active_nodes,
+            active_claims,
             lifting_system=self._base.lifting_system,
         )
 

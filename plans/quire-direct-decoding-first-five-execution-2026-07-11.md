@@ -415,6 +415,34 @@ forbidden-surface search.
 - Focused gate: logged ATMS/world-query/keystone/repository selection —
   104 passed.
 - Type gate: `uv run pyright propstore` — 0 errors.
+- Commit: `ed2e1708c82d16c534518f0e06565b47340e7949`.
+
+### Slice 3: canonical graph owners
+
+- Baseline: `ed2e1708`; tracked files clean, unrelated untracked files excluded.
+- Deleted old graph surface: `ConceptNode`, `ClaimNode`, `ConflictWitness`,
+  graph `ProvenanceRecord`, every graph `from_dict`/`from_mapping`/`to_dict`,
+  semantic attributes/extras/details bags, and their parsing/freezing helpers.
+- Direct graph owners: `CompiledWorldGraph` now holds `Concept`, `Claim`,
+  `Stance`, and `ConflictRecord`; graph-native relationship,
+  parameterization, delta, and activation mechanics remain.
+- Deleted second projection: claim-node assertion content parity and
+  `claim_nodes.py`; assertion identity now consumes `Claim` directly.
+- Broken analyzer edge: the first rewrite would have rebuilt semantic row
+  dictionaries. That disposition was rejected. Shared analyzer, preference,
+  PrAF calibration, and probabilistic relation paths now consume typed `Claim`
+  and `Stance` owners; conflicts remain typed `ConflictRecord` values.
+- Conditions: activation/ATMS call the existing
+  `claim_conditions.compile_checked_conditions` only where checked conditions
+  are behaviorally required.
+- Zero-surface searches: no deleted graph symbols, conversion functions,
+  graph mapping methods/helpers, semantic graph bags, or row-provenance
+  replacement functions under tracked `propstore`/`tests`.
+- Focused gates: graph/ATMS/analyzer/PrAF/preference/overlay selections —
+  83 passed after fixed-point cleanup.
+- Full tracked gate: logged suite with the unrelated untracked Clark test
+  explicitly ignored — 1,669 passed, 6 skipped.
+- Type gate: `uv run pyright propstore` — 0 errors.
 - Commit: pending this slice commit.
 
 Each later entry must contain: baseline HEAD/status, exact deleted symbols,

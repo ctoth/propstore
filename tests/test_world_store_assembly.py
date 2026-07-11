@@ -26,11 +26,11 @@ from propstore.core.analyzers import (
 )
 from propstore.core.graph_types import (
     ActiveWorldGraph,
-    ClaimNode,
     CompiledWorldGraph,
-    ConflictWitness,
-    RelationEdge,
 )
+from propstore.conflict_detector.models import ConflictClass, ConflictRecord
+from propstore.families.claims import Claim, ClaimType
+from propstore.families.relations import Stance
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.praf import PropstorePrAF, build_praf
 from propstore.probabilistic_relations import ClaimGraphRelations
@@ -53,18 +53,29 @@ _OPINION_WEAK = {
 }
 
 
-def _claim(claim_id: str, value: float, *, sample_size: int = 50) -> ClaimNode:
-    return ClaimNode(
+def _claim(claim_id: str, value: float, *, sample_size: int = 50) -> Claim:
+    return Claim(
         claim_id=claim_id,
-        claim_type="parameter",
-        value_concept_id="temp",
-        scalar_value=value,
-        attributes={"sample_size": sample_size, "confidence": 1.0},
+        claim_type=ClaimType.PARAMETER,
+        output_concept="temp",
+        value=value,
+        sample_size=sample_size,
+        confidence=1.0,
     )
 
 
-def _edge(source: str, target: str, relation: str, **opinion: float) -> RelationEdge:
-    return RelationEdge(source_id=source, target_id=target, relation_type=relation, attributes=opinion)
+def _edge(source: str, target: str, relation: str, **opinion: float) -> Stance:
+    return Stance(
+        stance_id=f"{source}:{relation}:{target}",
+        source_claim_id=source,
+        target_claim_id=target,
+        stance_type=StanceType(relation),
+        confidence=opinion.get("confidence"),
+        opinion_belief=opinion.get("opinion_belief"),
+        opinion_disbelief=opinion.get("opinion_disbelief"),
+        opinion_uncertainty=opinion.get("opinion_uncertainty"),
+        opinion_base_rate=opinion.get("opinion_base_rate"),
+    )
 
 
 def _store(compiled: CompiledWorldGraph) -> CompiledGraphStore:
@@ -82,7 +93,7 @@ def test_shared_claim_graph_grounded_matches_compute() -> None:
     store = _store(
         CompiledWorldGraph(
             claims=(_claim("c1", 100.0), _claim("c2", 200.0)),
-            relations=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
+            stances=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
         )
     )
     shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
@@ -100,7 +111,7 @@ def test_build_argumentation_framework_carries_attacks_and_defeats() -> None:
     store = _store(
         CompiledWorldGraph(
             claims=(_claim("c1", 100.0), _claim("c2", 200.0)),
-            relations=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
+            stances=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
         )
     )
     framework = build_argumentation_framework(store, {"c1", "c2"})
@@ -112,7 +123,7 @@ def test_compute_claim_graph_justified_preferred_and_stable() -> None:
     store = _store(
         CompiledWorldGraph(
             claims=(_claim("c1", 100.0), _claim("c2", 200.0)),
-            relations=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
+            stances=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
         )
     )
     for semantics in ("preferred", "stable"):
@@ -124,7 +135,7 @@ def test_compute_claim_graph_justified_preferred_and_stable() -> None:
 def test_shared_projection_independent_of_active_id_order() -> None:
     compiled = CompiledWorldGraph(
         claims=(_claim("c1", 100.0), _claim("c2", 200.0)),
-        relations=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
+        stances=(_edge("c1", "c2", "rebuts"), _edge("c2", "c1", "rebuts")),
     )
     forward = ActiveWorldGraph(compiled=compiled, active_claim_ids=("c1", "c2"))
     reverse = ActiveWorldGraph(compiled=compiled, active_claim_ids=("c2", "c1"))
@@ -149,23 +160,29 @@ def test_conflict_synthesizes_rebuts_and_fabricates_no_opinions() -> None:
     store = _store(
         CompiledWorldGraph(
             claims=(_claim("cA", 100.0), _claim("cB", 200.0), _claim("cC", 300.0)),
-            relations=(_edge("cA", "cB", "supports"),),
-            conflicts=(ConflictWitness(left_claim_id="cA", right_claim_id="cC", kind="CONFLICT"),),
+            stances=(_edge("cA", "cB", "supports"),),
+            conflicts=(
+                ConflictRecord(
+                    concept_id="temp",
+                    claim_a_id="cA",
+                    claim_b_id="cC",
+                    warning_class=ConflictClass.CONFLICT,
+                    conditions_a=[],
+                    conditions_b=[],
+                    value_a="100",
+                    value_b="300",
+                ),
+            ),
         )
     )
     shared = shared_analyzer_input_from_store(store, {"cA", "cB", "cC"})
 
-    synthetic = {
-        (row["claim_id"], row["target_claim_id"])
-        for row in shared.stance_rows
-        if row["stance_type"] == "rebuts"
-    }
-    assert ("cA", "cC") in synthetic
-    assert ("cC", "cA") in synthetic
-    for row in shared.stance_rows:
-        if (row["claim_id"], row["target_claim_id"]) in {("cA", "cC"), ("cC", "cA")}:
-            assert "confidence" not in row
-            assert "opinion_belief" not in row
+    assert ("cA", "cC") in shared.relations.attacks
+    assert ("cC", "cA") in shared.relations.attacks
+    assert all(
+        relation.edge not in {("cA", "cC"), ("cC", "cA")}
+        for relation in shared.relations.attack_relations
+    )
 
 
 # --- PrAF -------------------------------------------------------------------
@@ -175,7 +192,7 @@ def test_build_praf_deterministic() -> None:
     store = _store(
         CompiledWorldGraph(
             claims=(_claim("c1", 100.0, sample_size=50), _claim("c2", 200.0, sample_size=10)),
-            relations=(_edge("c1", "c2", "rebuts", **_OPINION_STRONG),),
+            stances=(_edge("c1", "c2", "rebuts", **_OPINION_STRONG),),
         )
     )
     praf = build_praf(store, {"c1", "c2"})
@@ -205,7 +222,7 @@ def test_build_praf_uncertain_defeat_probabilities() -> None:
     store = _store(
         CompiledWorldGraph(
             claims=(_claim("c1", 100.0, sample_size=50), _claim("c2", 200.0, sample_size=50)),
-            relations=(
+            stances=(
                 _edge("c1", "c2", "rebuts", **_OPINION_WEAK),
                 _edge("c2", "c1", "rebuts", **_OPINION_STRONG),
             ),
@@ -222,7 +239,7 @@ def test_analyze_praf_metadata_exposes_query_contract() -> None:
     store = _store(
         CompiledWorldGraph(
             claims=(_claim("c1", 100.0, sample_size=50), _claim("c2", 200.0, sample_size=50)),
-            relations=(
+            stances=(
                 _edge("c1", "c2", "rebuts", **_OPINION_WEAK),
                 _edge("c2", "c1", "rebuts", **_OPINION_STRONG),
             ),
@@ -244,17 +261,16 @@ def test_analyze_praf_metadata_exposes_query_contract() -> None:
 
 
 def test_analyze_praf_paper_td_routes_to_extension_probability() -> None:
-    prior = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
     active_graph = ActiveWorldGraph(
         compiled=CompiledWorldGraph(
-            claims=(ClaimNode(claim_id="claim_a", claim_type="observation"),)
+            claims=(Claim(claim_id="claim_a", claim_type=ClaimType.OBSERVATION),)
         ),
         active_claim_ids=("claim_a",),
     )
     shared = SharedAnalyzerInput(
         comparison="elitist",
-        claims_by_id={"claim_a": {"id": "claim_a", "source_prior_base_rate": prior}},
-        stance_rows=(),
+        claims_by_id={"claim_a": Claim(claim_id="claim_a")},
+        stances=(),
         relations=ClaimGraphRelations(
             arguments=frozenset({"claim_a"}),
             attacks=frozenset(),
@@ -292,7 +308,7 @@ def test_analyze_praf_paper_td_routes_to_extension_probability() -> None:
 def test_build_aspic_projection_from_active_graph() -> None:
     compiled = CompiledWorldGraph(
         claims=(_claim("premise", 1.0), _claim("goal", 2.0)),
-        relations=(_edge("premise", "goal", "supports"),),
+        stances=(_edge("premise", "goal", "supports"),),
     )
     active_graph = ActiveWorldGraph(compiled=compiled, active_claim_ids=("premise", "goal"))
     active_claims = [{"id": "premise"}, {"id": "goal"}]

@@ -4,6 +4,7 @@ from argumentation.core.bipolar import BipolarArgumentationFramework
 from argumentation.core.dung import ArgumentationFramework
 
 from propstore.core.analyzers import SharedAnalyzerInput, build_praf_from_shared_input
+from propstore.families.claims import Claim
 from propstore.probabilistic_relations import ClaimGraphRelations
 from propstore.provenance import ProvenanceStatus
 
@@ -14,16 +15,10 @@ def test_uncalibrated_arguments_remain_vacuous_in_kernel_framework() -> None:
     shared = SharedAnalyzerInput(
         comparison="elitist",
         claims_by_id={
-            "calibrated": {
-                "id": "calibrated",
-                "opinion_belief": 0.8,
-                "opinion_disbelief": 0.1,
-                "opinion_uncertainty": 0.1,
-                "opinion_base_rate": 0.5,
-            },
-            "unknown": {"id": "unknown"},
+            "calibrated": Claim(claim_id="calibrated"),
+            "unknown": Claim(claim_id="unknown"),
         },
-        stance_rows=(),
+        stances=(),
         relations=ClaimGraphRelations(
             arguments=frozenset({"calibrated", "unknown"}),
             attacks=frozenset({("calibrated", "unknown")}),

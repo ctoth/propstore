@@ -38,8 +38,10 @@ from doxa import Opinion
 from doxa.opinion import W
 
 from propstore.opinion_provenance import OpinionWithProvenance
-from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
+from propstore.probabilistic_relations import ProbabilisticRelation
 from propstore.provenance import Provenance, ProvenanceStatus
+from propstore.families.claims import Claim
+from propstore.families.relations import Stance
 
 _DOGMATIC_TOL = 1e-9
 _COH_MAX_ITERATIONS = 100
@@ -176,129 +178,19 @@ def _defeat_summary_opinion(probability: float) -> OpinionWithProvenance:
     )
 
 
-def _opinion_from_payload(
-    payload: Mapping[str, Any],
-    *,
-    prefix: str,
-    operation: str,
-) -> OpinionWithProvenance | NoCalibration | None:
-    """Build a stated opinion from explicit Jøsang component columns, or ``None``.
+def p_arg_from_claim(claim: Claim) -> OpinionWithProvenance | NoCalibration:
+    """Report that the canonical claim charter lacks a typed calibration prior."""
 
-    ``None`` means the columns were absent (defer to the next calibration path);
-    a :class:`NoCalibration` means the columns were partial (e.g. belief without a
-    base rate) — an explicit gap, not a fabricated completion.
-    """
-
-    b = payload.get(f"{prefix}belief")
-    d = payload.get(f"{prefix}disbelief")
-    u = payload.get(f"{prefix}uncertainty")
-    if b is None or d is None or u is None:
-        return None
-    a = payload.get(f"{prefix}base_rate")
-    if a is None:
-        return _missing_calibration("missing_base_rate", f"{prefix}base_rate")
-    uncertainty = float(u)
-    return _owp(
-        Opinion(
-            float(b),
-            float(d),
-            uncertainty,
-            float(a),
-            allow_dogmatic=uncertainty <= _DOGMATIC_TOL,
-        ),
-        ProvenanceStatus.STATED,
-        operation,
+    _ = claim
+    return _missing_calibration(
+        "missing_claim_calibration",
+        "source_prior_base_rate",
+        "claim_probability",
+        "source_quality_opinion",
     )
 
 
-def _opinion_from_components(raw: Opinion | Mapping[str, Any], field_name: str) -> Opinion:
-    if isinstance(raw, Opinion):
-        return raw
-    if not {"b", "d", "u", "a"}.issubset(raw):
-        raise ValueError(f"{field_name} must contain b, d, u, and a")
-    uncertainty = float(raw["u"])
-    return Opinion(
-        float(raw["b"]),
-        float(raw["d"]),
-        uncertainty,
-        float(raw["a"]),
-        allow_dogmatic=uncertainty <= _DOGMATIC_TOL,
-    )
-
-
-def _nested_trust(source: Mapping[str, Any] | None) -> Mapping[str, Any]:
-    """Return a claim's ``source.trust`` mapping, or an empty mapping."""
-
-    if not isinstance(source, Mapping):
-        return {}
-    trust: Mapping[str, Any] = source.get("trust") or {}
-    return trust
-
-
-def p_arg_from_claim(claim: Mapping[str, Any]) -> OpinionWithProvenance | NoCalibration:
-    """Derive an argument-existence opinion from a calibrated claim mapping.
-
-    Order of evidence (each path either resolves or hands off honestly): explicit
-    opinion columns; then a source prior base rate combined with a calibrated
-    claim probability and effective sample size (Jøsang's evidence mapping);
-    finally trust-discounted by the source's quality opinion (Jøsang Def. 14). Any
-    missing required field yields :class:`NoCalibration`, never a default number.
-    """
-
-    columns = _opinion_from_payload(claim, prefix="opinion_", operation="claim_opinion_columns")
-    if columns is not None:
-        return columns
-
-    source_trust = _nested_trust(claim.get("source"))
-
-    prior_base_rate = claim.get("source_prior_base_rate")
-    if prior_base_rate is None:
-        prior_base_rate = source_trust.get("prior_base_rate")
-
-    claim_probability = claim.get("claim_probability")
-    if claim_probability is None and claim.get("confidence") is not None:
-        claim_probability = claim.get("confidence")
-
-    effective_sample_size = claim.get("effective_sample_size")
-    if effective_sample_size is None and claim.get("sample_size") is not None:
-        effective_sample_size = claim.get("sample_size")
-
-    quality_payload = claim.get("source_quality_opinion")
-    if quality_payload is None:
-        quality_payload = source_trust.get("quality")
-
-    has_structured_fields = (
-        prior_base_rate is not None
-        or claim_probability is not None
-        or quality_payload is not None
-    )
-    if not has_structured_fields:
-        return _missing_calibration(
-            "missing_claim_calibration",
-            "source_prior_base_rate",
-            "claim_probability",
-            "source_quality_opinion",
-        )
-    if prior_base_rate is None:
-        return _missing_calibration("missing_base_rate", "source_prior_base_rate")
-
-    omega_prior = _opinion_from_components(prior_base_rate, "source_prior_base_rate")
-    if claim_probability is not None and effective_sample_size is not None:
-        omega_claim = Opinion.from_probability(
-            float(claim_probability), float(effective_sample_size), omega_prior.a
-        )
-        claim_status, claim_operation = ProvenanceStatus.CALIBRATED, "claim_evidence"
-    else:
-        omega_claim = omega_prior
-        claim_status, claim_operation = ProvenanceStatus.STATED, "source_prior_base_rate"
-
-    if quality_payload is None:
-        return _owp(omega_claim, claim_status, claim_operation)
-    quality = _opinion_from_components(quality_payload, "source_quality_opinion")
-    return _owp(quality.discount(omega_claim), ProvenanceStatus.CALIBRATED, "source_quality")
-
-
-def p_relation_from_stance(stance: Mapping[str, Any]) -> OpinionWithProvenance | NoCalibration:
+def p_relation_from_stance(stance: Stance) -> OpinionWithProvenance | NoCalibration:
     """Derive an edge-existence opinion from a stance's opinion/confidence fields.
 
     Explicit opinion columns win. A bare ``confidence`` is *not* evidence on its
@@ -308,11 +200,31 @@ def p_relation_from_stance(stance: Mapping[str, Any]) -> OpinionWithProvenance |
     :class:`NoCalibration`.
     """
 
-    columns = _opinion_from_payload(stance, prefix="opinion_", operation="stance_opinion_columns")
-    if columns is not None:
-        return columns
+    belief = stance.opinion_belief
+    disbelief = stance.opinion_disbelief
+    uncertainty = stance.opinion_uncertainty
+    base_rate = stance.opinion_base_rate
+    if (
+        belief is not None
+        and disbelief is not None
+        and uncertainty is not None
+        and base_rate is not None
+    ):
+        return _owp(
+            Opinion(
+                belief,
+                disbelief,
+                uncertainty,
+                base_rate,
+                allow_dogmatic=uncertainty <= _DOGMATIC_TOL,
+            ),
+            ProvenanceStatus.STATED,
+            "stance_opinion_columns",
+        )
+    if belief is not None or disbelief is not None or uncertainty is not None:
+        return _missing_calibration("missing_base_rate", "opinion_base_rate")
 
-    confidence = stance.get("confidence")
+    confidence = stance.confidence
     if confidence is None:
         return _missing_calibration(
             "missing_relation_calibration",
@@ -330,28 +242,18 @@ def p_relation_from_stance(stance: Mapping[str, Any]) -> OpinionWithProvenance |
             "opinion_disbelief",
             "opinion_uncertainty",
         )
-    if stance.get("opinion_base_rate") is None:
+    if stance.opinion_base_rate is None:
         return _missing_calibration("missing_base_rate", "opinion_base_rate")
-    base_rate = float(stance["opinion_base_rate"])
     if confidence_value >= 1.0 - 1e-12:
         return _missing_calibration(
             "raw_confidence_not_evidence", "effective_sample_size", "sample_size"
         )
-    effective_sample_size = stance.get("effective_sample_size")
-    if effective_sample_size is None:
-        effective_sample_size = stance.get("sample_size")
-    if effective_sample_size is None or float(effective_sample_size) <= 0.0:
-        return _missing_calibration(
-            "missing_evidence_count", "effective_sample_size", "sample_size"
-        )
-    return _owp(
-        Opinion.from_probability(confidence_value, float(effective_sample_size), base_rate),
-        ProvenanceStatus.STATED,
-        "stance_confidence",
+    return _missing_calibration(
+        "missing_evidence_count", "effective_sample_size", "sample_size"
     )
 
 
-def p_defeat_from_stance(stance: Mapping[str, Any]) -> OpinionWithProvenance | NoCalibration:
+def p_defeat_from_stance(stance: Stance) -> OpinionWithProvenance | NoCalibration:
     """A defeat-existence opinion is derived the same way as any relation edge."""
 
     return p_relation_from_stance(stance)
@@ -519,12 +421,11 @@ def summarize_defeat_relations(
         kernel.base_defeats if kernel.base_defeats is not None else kernel.framework.defeats
     )
     return tuple(
-        relation_from_row(
+        ProbabilisticRelation(
             kind="direct_defeat" if edge in direct_defeats else "derived_defeat",
             source=edge[0],
             target=edge[1],
             opinion=_defeat_summary_opinion(probability).opinion,
-            row=None,
             derived_from=(),
         )
         for edge, probability in probabilities.items()

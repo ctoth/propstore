@@ -1,7 +1,7 @@
-"""Phase-6 analyzer math over plain active-claim payloads.
+"""Phase-6 analyzer math over typed semantic owners.
 
 These exercise the store-free assembly: ``shared_analyzer_input_from_active_graph``
-fed plain ``claims_by_id`` / stance-row / conflict-row payloads, then
+fed canonical claims, stances, and conflicts, then
 ``analyze_claim_graph`` / ``analyze_praf`` and the pure projection helpers. The
 store/world readers that *produce* these payloads (``shared_analyzer_input_from_store``,
 the ``_*_from_row`` converters, ``ActiveWorldGraph``) are deferred to the world
@@ -10,7 +10,7 @@ layer (Phase 7) and are intentionally not constructed here.
 
 from __future__ import annotations
 
-from propstore.conflict_detector import ConflictClass
+from propstore.conflict_detector import ConflictClass, ConflictRecord
 from propstore.core.analyzers import (
     SharedAnalyzerInput,
     analyze_claim_graph,
@@ -20,24 +20,47 @@ from propstore.core.analyzers import (
     shared_analyzer_input_from_active_graph,
 )
 from propstore.core.results import ExtensionResult
+from propstore.families.claims import Claim, ClaimType
+from propstore.families.relations import Stance
+from propstore.stances import StanceType
 
 
-def _claim(claim_id: str, value: float) -> dict[str, object]:
-    return {
-        "id": claim_id,
-        "value_concept_id": "concept1",
-        "type": "parameter",
-        "value": value,
-        "sample_size": 30,
-        "confidence": 1.0,
-    }
+def _claim(claim_id: str, value: float) -> Claim:
+    return Claim(
+        claim_id=claim_id,
+        output_concept="concept1",
+        claim_type=ClaimType.PARAMETER,
+        value=value,
+        sample_size=30,
+        confidence=1.0,
+    )
+
+
+def _conflict(kind: ConflictClass) -> ConflictRecord:
+    return ConflictRecord(
+        concept_id="concept1",
+        claim_a_id="a",
+        claim_b_id="b",
+        warning_class=kind,
+        conditions_a=[],
+        conditions_b=[],
+        value_a="1",
+        value_b="2",
+    )
 
 
 def _shared_supersede() -> SharedAnalyzerInput:
     # ``b supersedes a`` is an unconditional attack → a direct defeat b -> a.
     return shared_analyzer_input_from_active_graph(
         {"a": _claim("a", 1.0), "b": _claim("b", 2.0)},
-        [{"claim_id": "b", "target_claim_id": "a", "stance_type": "supersedes"}],
+        [
+            Stance(
+                stance_id="s_ba",
+                source_claim_id="b",
+                target_claim_id="a",
+                stance_type=StanceType.SUPERSEDES,
+            )
+        ],
         [],
         {"a", "b"},
     )
@@ -59,7 +82,7 @@ def test_conflict_row_invents_symmetric_rebuts() -> None:
     shared = shared_analyzer_input_from_active_graph(
         {"a": _claim("a", 1.0), "b": _claim("b", 2.0)},
         [],
-        [{"claim_a_id": "a", "claim_b_id": "b", "warning_class": ConflictClass.CONFLICT}],
+        [_conflict(ConflictClass.CONFLICT)],
         {"a", "b"},
     )
 
@@ -72,25 +95,15 @@ def test_conflict_row_invents_symmetric_rebuts() -> None:
     assert grounded.extensions[0].accepted_claim_ids == ()
 
 
-def test_conflict_row_warning_class_string_is_accepted() -> None:
-    shared = shared_analyzer_input_from_active_graph(
-        {"a": _claim("a", 1.0), "b": _claim("b", 2.0)},
-        [],
-        [{"claim_a_id": "a", "claim_b_id": "b", "warning_class": "PARAM_CONFLICT"}],
-        {"a", "b"},
-    )
-    assert ("a", "b") in shared.relations.attacks
-
-
 def test_non_real_conflict_class_invents_no_rebuts() -> None:
     shared = shared_analyzer_input_from_active_graph(
         {"a": _claim("a", 1.0), "b": _claim("b", 2.0)},
         [],
-        [{"claim_a_id": "a", "claim_b_id": "b", "warning_class": "PHI_NODE"}],
+        [_conflict(ConflictClass.PHI_NODE)],
         {"a", "b"},
     )
     assert shared.relations.attacks == frozenset()
-    assert shared.stance_rows == ()
+    assert shared.stances == ()
 
 
 def test_analyze_praf_returns_acceptance_projection() -> None:

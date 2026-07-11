@@ -55,9 +55,9 @@ def test_claim_justifications_from_active_graph_preserves_reported_and_support_e
 
     assert by_id["reported:claim_a"].conclusion_claim_id == "claim_a"
     assert by_id["reported:claim_b"].premise_claim_ids == ()
-    assert by_id["supports:claim_a->claim_b"].premise_claim_ids == ("claim_a",)
-    assert by_id["supports:claim_a->claim_b"].conclusion_claim_id == "claim_b"
-    assert by_id["explains:claim_b->claim_c"].premise_claim_ids == ("claim_b",)
+    assert by_id["s_ab"].premise_claim_ids == ("claim_a",)
+    assert by_id["s_ab"].conclusion_claim_id == "claim_b"
+    assert by_id["s_bc"].premise_claim_ids == ("claim_b",)
 
 
 def test_claim_justifications_from_active_graph_is_deterministic_under_order_changes() -> None:

@@ -13,10 +13,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from condition_ir import to_cel_exprs
+
+from propstore.conflict_detector.models import ConflictClaim
 from propstore.core.environment import Environment, WorldStore
 from propstore.reporting import JsonReportMixin
 from propstore.world import model
-from propstore.world.bound import conflict_claim_from_node, conflict_inputs_for_store
+from propstore.world.bound import conflict_inputs_for_store
 
 
 @dataclass(frozen=True)
@@ -73,9 +76,24 @@ def _check_transitive_consistency(store: WorldStore) -> WorldConsistencyReport:
 
     compiled = model.compiled_graph(store)
     conflict_claims = [
-        conflict_claim
-        for node in compiled.claims
-        if (conflict_claim := conflict_claim_from_node(node)) is not None
+        ConflictClaim(
+            claim_id=claim.claim_id,
+            claim_type=None if claim.claim_type is None else claim.claim_type.value,
+            artifact_id=claim.claim_id,
+            output_concept_id=claim.output_concept,
+            target_concept_id=claim.target_concept,
+            measure=claim.measure,
+            value=claim.value,
+            lower_bound=claim.lower_bound,
+            upper_bound=claim.upper_bound,
+            unit=claim.unit,
+            expression=claim.expression,
+            sympy=claim.sympy,
+            body=claim.body,
+            context_id=claim.context_id,
+            conditions=to_cel_exprs(claim.conditions),
+        )
+        for claim in compiled.claims
     ]
     concept_registry, _cel_registry = conflict_inputs_for_store(store)
     records = detect_transitive_conflicts(conflict_claims, concept_registry)
