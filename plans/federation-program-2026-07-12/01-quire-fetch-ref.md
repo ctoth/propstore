@@ -1,6 +1,7 @@
 # Slice 1 - Quire Fetch One Ref
 
-Status: active candidate.
+Status: complete and published in Quire commit
+`b777ec91cee40a97a5e1d11733b2429a6252068d`.
 
 ## Outcome
 
@@ -48,3 +49,17 @@ Quire `GitStore`; Dulwich remains the transport implementation.
 ## Completion
 
 Commit and publish the Quire slice. Propstore pinning and remote-import consumption are separate later slices.
+
+Completed 2026-07-12:
+
+- local-path transport passed for disk and memory destinations;
+- selected-closure, tree-readability, unrelated-ref, advancement, failure,
+  and idempotence coverage passed;
+- smart HTTP was exercised end to end through a Dulwich WSGI server;
+- `uv run pytest tests/test_git_store.py tests/test_git_properties.py`:
+  108 passed;
+- `uv run pyright quire`: 0 errors;
+- `uv run pytest`: 501 passed;
+- `uv run ruff check quire tests/test_git_store.py tests/test_git_properties.py`:
+  passed;
+- published `master` to `origin/master` at the commit above.
