@@ -190,12 +190,16 @@ Key subcommands:
 - `pks source promote <name>`
 - `pks source sync <name> [--output-dir DIR]`
 
+Source kinds are a closed vocabulary: `academic_paper` or
+`mailing_list_message`. Unknown kinds are rejected.
+
 `--context <ctx-id>` on `add-claim` stamps every claim in the batch
 that does not already declare an inline `context:` with the supplied
 default. Inline context always wins.
 
 ```bash
 uv run pks source init Demo_2026 --kind academic_paper --origin-type file --origin-value Demo_2026.pdf
+uv run pks source init Federation_2026_07_12 --kind mailing_list_message --origin-type file --origin-value federation/2026-07-12.eml --content-file federation-2026-07-12.eml
 uv run pks source write-notes Demo_2026 --file ../research/papers/Demo_2026/notes.md
 uv run pks source write-metadata Demo_2026 --file ../research/papers/Demo_2026/metadata.json
 uv run pks source propose-concept Demo_2026 --name pitch --definition "Fundamental frequency of voiced speech" --form frequency

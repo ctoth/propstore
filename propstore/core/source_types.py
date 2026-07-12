@@ -13,6 +13,7 @@ from enum import StrEnum
 
 class SourceKind(StrEnum):
     ACADEMIC_PAPER = "academic_paper"
+    MAILING_LIST_MESSAGE = "mailing_list_message"
 
 
 class SourceOriginType(StrEnum):

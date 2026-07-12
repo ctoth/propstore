@@ -32,6 +32,7 @@ from propstore.source.common import (
     load_source_concepts_document,
     load_source_document,
 )
+from propstore.uri import verify_ni_uri
 
 _RUNNER = CliRunner()
 
@@ -101,6 +102,39 @@ def test_source_init_creates_branch_and_manifest(tmp_path: Path) -> None:
     assert sd.origin.type == "doi"
     assert sd.origin.value == "10.1007/x"
     assert sd.id is not None and sd.id.startswith("tag:")
+
+
+def test_source_init_accepts_mailing_list_message_with_content_digest(
+    tmp_path: Path,
+) -> None:
+    repo = _init_repo(tmp_path)
+    content = b"From: author@example.org\nSubject: Federation\n\nMessage body.\n"
+    message = tmp_path / "message.eml"
+    message.write_bytes(content)
+
+    result = _invoke(
+        repo,
+        "init",
+        "Federation_2026_07_12",
+        "--kind",
+        "mailing_list_message",
+        "--origin-type",
+        "file",
+        "--origin-value",
+        "federation/2026-07-12.eml",
+        "--content-file",
+        str(message),
+    )
+
+    assert result.exit_code == 0, result.output
+    source = load_source_document(
+        Repository.find(repo.root), "Federation_2026_07_12"
+    )
+    assert source.kind.value == "mailing_list_message"
+    assert source.origin.type == "file"
+    assert source.origin.value == "federation/2026-07-12.eml"
+    assert source.origin.content_ref is not None
+    assert verify_ni_uri(source.origin.content_ref, content)
 
 
 def test_source_init_rejects_unknown_kind(tmp_path: Path) -> None:
