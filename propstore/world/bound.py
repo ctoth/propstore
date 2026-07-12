@@ -31,13 +31,12 @@ from condition_ir import (
     check_condition_ir,
     checked_condition_set,
     to_cel_expr,
-    to_cel_exprs,
 )
 
 from propstore.conflict_detector import ConflictRecord, detect_conflicts
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.core.activation import is_claim_active
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.environment import AssumptionRef, Environment, WorldStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import ActiveWorldGraph, ParameterizationEdge
@@ -52,7 +51,7 @@ from propstore.core.labels import (
     make_environment_key,
     merge_labels,
 )
-from propstore.families.claims import Claim, ClaimType
+from propstore.families.claims import Claim, ClaimType, ClaimVariable
 from propstore.families.relations import Stance
 from propstore.world.types import (
     ATMSConceptInterventionPlan,
@@ -206,26 +205,7 @@ def recomputed_conflicts(
 
     if len(claims) < 2:
         return []
-    conflict_claims = [
-        ConflictClaim(
-            claim_id=claim.claim_id,
-            claim_type=None if claim.claim_type is None else claim.claim_type.value,
-            artifact_id=claim.claim_id,
-            output_concept_id=claim.output_concept,
-            target_concept_id=claim.target_concept,
-            measure=claim.measure,
-            value=claim.value,
-            lower_bound=claim.lower_bound,
-            upper_bound=claim.upper_bound,
-            unit=claim.unit,
-            expression=claim.expression,
-            sympy=claim.sympy,
-            body=claim.body,
-            context_id=claim.context_id,
-            conditions=to_cel_exprs(claim.conditions),
-        )
-        for claim in claims
-    ]
+    conflict_claims = [ConflictClaim.from_claim(claim) for claim in claims]
     if precomputed_inputs is None:
         concept_registry, cel_registry = conflict_inputs_for_store(store)
     else:
@@ -465,17 +445,25 @@ class BoundWorld(BeliefSpace):
     ) -> dict[ConceptId, Any]:
         return collect_known_values(variable_concepts, self.value_of)
 
+    def _claim_variables(self, claim: ActiveClaimInput) -> tuple[ClaimVariable, ...]:
+        claim_id = str(coerce_active_claim(claim).claim_id)
+        document = self._claim_index().get(self._resolve_claim_lookup_id(claim_id))
+        return () if document is None else document.variables
+
     def extract_variable_concepts(self, claim: ActiveClaimInput) -> list[str]:
-        # Algorithm variable bindings (symbol -> concept) are not carried on the
-        # Claim charter, so the multi-algorithm-equivalence path has no
-        # per-variable concepts to read
-        # here (docs/gaps.md: algorithm variable bindings are not graph-native).
-        _ = claim
-        return []
+        return [
+            variable.concept
+            for variable in self._claim_variables(claim)
+            if variable.concept
+        ]
 
     def extract_bindings(self, claim: ActiveClaimInput) -> dict[str, str]:
-        _ = claim
-        return {}
+        bindings: dict[str, str] = {}
+        for variable in self._claim_variables(claim):
+            name = variable.name or variable.symbol
+            if name and variable.concept:
+                bindings[name] = variable.concept
+        return bindings
 
     # -- value / derived / resolved ----------------------------------------
 

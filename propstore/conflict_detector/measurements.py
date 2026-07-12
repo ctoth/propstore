@@ -1,9 +1,10 @@
 """Measurement-claim conflict detection.
 
 Two MEASUREMENT claims on the same concept/measure conflict when their values
-are incompatible (interval comparison, owned by ``value_comparison``). A
-listener-population mismatch makes them a :attr:`ConflictClass.PHI_NODE` (rival
-populations, kept apart); otherwise the conditions decide the class.
+are incompatible (interval comparison, owned by ``value_comparison``); the
+conditions decide the class. Population/regime splits are authored as CEL
+conditions (the condition solver classifies disjoint regimes as PHI), not as a
+dedicated claim field.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from propstore.value_comparison import value_str, values_compatible
 from .collectors import collect_measurement_claims
 from .condition_classifier import classify_conditions
 from .context import append_context_classified_record, claim_context
-from .models import ConflictClaim, ConflictClass, ConflictRecord
+from .models import ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
@@ -64,17 +65,11 @@ def detect_measurement_conflicts(
                 ):
                     continue
 
-                pop_a = claim_a.listener_population or ""
-                pop_b = claim_b.listener_population or ""
-                warning_class = (
-                    ConflictClass.PHI_NODE
-                    if pop_a and pop_b and pop_a != pop_b
-                    else classify_conditions(
-                        conditions_a,
-                        conditions_b,
-                        cel_registry,
-                        solver=solver,
-                    )
+                warning_class = classify_conditions(
+                    conditions_a,
+                    conditions_b,
+                    cel_registry,
+                    solver=solver,
                 )
                 records.append(
                     ConflictRecord(

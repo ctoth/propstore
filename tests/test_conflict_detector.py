@@ -17,7 +17,13 @@ import inspect
 from unittest.mock import MagicMock
 
 import pytest
-from condition_ir import ConceptInfo, KindType, Z3TranslationError
+from condition_ir import (
+    ConceptInfo,
+    KindType,
+    Z3TranslationError,
+    synthetic_category_concept,
+    to_cel_exprs,
+)
 
 from propstore.conflict_detector import (
     ConflictClass,
@@ -27,57 +33,57 @@ from propstore.conflict_detector import (
 from propstore.conflict_detector import orchestrator
 from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
 from propstore.conflict_detector.condition_classifier import classify_conditions
-from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.equations import detect_equation_conflicts
 from propstore.conflict_detector.measurements import detect_measurement_conflicts
 from propstore.conflict_detector.models import (
     ConflictClaim,
-    ConflictClaimVariable,
     coerce_conflict_class,
 )
 from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 from propstore.dimensions import UnitConversion
+from propstore.families.claims import Claim, ClaimType, ClaimVariable
 from propstore.families.forms import FormDefinition
 
 
-# ── models / payload parse ───────────────────────────────────────────
+# ── models / charter view ────────────────────────────────────────────
 
 
-def test_conflict_claim_from_payload_maps_stored_keys() -> None:
-    claim = ConflictClaim.from_payload(
-        {
-            "id": "c1",
-            "type": "parameter",
-            "output_concept": "out",
-            "target_concept": "tgt",
-            "value": 12.0,
-            "unit": "Hz",
-            "conditions": ["x > 1"],
-            "context": {"id": "ctx_a"},
-            "variables": [{"concept": "k", "symbol": "x", "role": "independent"}],
-        }
+def test_conflict_claim_from_claim_maps_charter_fields() -> None:
+    claim = Claim(
+        claim_id="c1",
+        context_id="ctx_a",
+        claim_type=ClaimType.PARAMETER,
+        output_concept="out",
+        target_concept="tgt",
+        value=12.0,
+        unit="Hz",
+        conditions=("x > 1",),
+        variables=(ClaimVariable(concept="k", symbol="x", role="independent"),),
     )
-    assert claim is not None
-    assert claim.claim_id == "c1"
-    assert claim.claim_type == "parameter"
-    assert claim.output_concept_id == "out"
-    assert claim.target_concept_id == "tgt"
-    assert claim.context_id == "ctx_a"
-    assert [str(condition) for condition in claim.conditions] == ["x > 1"]
-    assert claim.variables == (
-        ConflictClaimVariable(concept_id="k", symbol="x", role="independent"),
+    view = ConflictClaim.from_claim(claim)
+    assert view.claim_id == "c1"
+    assert view.claim_type is ClaimType.PARAMETER
+    assert view.output_concept_id == "out"
+    assert view.target_concept_id == "tgt"
+    assert view.context_id == "ctx_a"
+    assert [str(condition) for condition in view.conditions] == ["x > 1"]
+    assert view.variables == (
+        ClaimVariable(concept="k", symbol="x", role="independent"),
     )
 
 
-def test_conflict_claim_from_payload_requires_id() -> None:
-    assert ConflictClaim.from_payload({"value": 1.0}) is None
+def test_conflict_claim_from_claim_folds_source_condition() -> None:
+    view = ConflictClaim.from_claim(
+        Claim(claim_id="c1", value=1.0), source_paper="paperA"
+    ).with_source_condition()
+    assert view.source_paper == "paperA"
+    assert "source == 'paperA'" in [str(condition) for condition in view.conditions]
 
 
-def test_conflict_claim_from_payload_folds_source_condition() -> None:
-    claim = conflict_claim_from_payload({"id": "c1", "value": 1.0}, source_paper="paperA")
-    assert claim is not None
-    assert claim.source_paper == "paperA"
-    assert "source == 'paperA'" in [str(condition) for condition in claim.conditions]
+def test_conflict_claim_without_source_adds_no_condition() -> None:
+    view = ConflictClaim.from_claim(Claim(claim_id="c1", value=1.0)).with_source_condition()
+    assert view.source_paper is None
+    assert view.conditions == ()
 
 
 def test_coerce_conflict_class_round_trips_and_uppercases() -> None:
@@ -128,12 +134,12 @@ def test_classify_overlapping_conditions_is_overlap() -> None:
 def _equation_claim(claim_id: str, expression: str) -> ConflictClaim:
     return ConflictClaim(
         claim_id=claim_id,
-        claim_type="equation",
+        claim_type=ClaimType.EQUATION,
         expression=expression,
         variables=(
-            ConflictClaimVariable(concept_id="output", symbol="y", role="dependent"),
-            ConflictClaimVariable(concept_id="factor_a", symbol="x", role="independent"),
-            ConflictClaimVariable(concept_id="factor_b", symbol="z", role="independent"),
+            ClaimVariable(concept="output", symbol="y", role="dependent"),
+            ClaimVariable(concept="factor_a", symbol="x", role="independent"),
+            ClaimVariable(concept="factor_b", symbol="z", role="independent"),
         ),
     )
 
@@ -173,10 +179,10 @@ def test_equation_detector_reports_undecidable_domain_sensitive_pair() -> None:
 def _algorithm_claim(claim_id: str, body: str) -> ConflictClaim:
     return ConflictClaim(
         claim_id=claim_id,
-        claim_type="algorithm",
+        claim_type=ClaimType.ALGORITHM,
         output_concept_id="out",
         body=body,
-        variables=(ConflictClaimVariable(concept_id="in", symbol="x"),),
+        variables=(ClaimVariable(concept="in", symbol="x"),),
     )
 
 
@@ -230,14 +236,28 @@ def test_algorithm_partial_eval_equivalence_suppresses_conflict(monkeypatch: pyt
 def _measurement_claim(
     claim_id: str, value: float, *, population: str | None = None
 ) -> ConflictClaim:
+    conditions = (
+        () if population is None else (f"population == '{population}'",)
+    )
     return ConflictClaim(
         claim_id=claim_id,
-        claim_type="measurement",
+        claim_type=ClaimType.MEASUREMENT,
         target_concept_id="concept",
         measure="mean",
         value=value,
-        listener_population=population,
+        conditions=to_cel_exprs(conditions),
     )
+
+
+def _population_registry() -> dict[str, ConceptInfo]:
+    return {
+        "population": synthetic_category_concept(
+            concept_id="population",
+            canonical_name="population",
+            values=["adults", "children"],
+            extensible=False,
+        )
+    }
 
 
 def test_measurement_population_mismatch_is_phi_node() -> None:
@@ -246,7 +266,7 @@ def test_measurement_population_mismatch_is_phi_node() -> None:
             _measurement_claim("m1", 10.0, population="adults"),
             _measurement_claim("m2", 20.0, population="children"),
         ],
-        {},
+        _population_registry(),
     )
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.PHI_NODE
@@ -258,7 +278,7 @@ def test_measurement_same_population_identical_conditions_is_conflict() -> None:
             _measurement_claim("m1", 10.0, population="adults"),
             _measurement_claim("m2", 20.0, population="adults"),
         ],
-        {},
+        _population_registry(),
     )
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.CONFLICT
@@ -279,11 +299,11 @@ def _three_parameter_claims() -> tuple[ConflictClaim, ...]:
     return tuple(
         ConflictClaim(
             claim_id=f"c{i}",
-            claim_type="parameter",
+            claim_type=ClaimType.PARAMETER,
             output_concept_id="outcome",
             value=float(i),
             unit="",
-            conditions=("intention_to_treat == true",),
+            conditions=to_cel_exprs(("intention_to_treat == true",)),
         )
         for i in range(3)
     )
@@ -359,7 +379,7 @@ def _frequency_concept_registry() -> dict[str, dict[str, object]]:
 def _parameter_claim(claim_id: str, value: float, unit: str) -> ConflictClaim:
     return ConflictClaim(
         claim_id=claim_id,
-        claim_type="parameter",
+        claim_type=ClaimType.PARAMETER,
         output_concept_id="c1",
         value=value,
         unit=unit,

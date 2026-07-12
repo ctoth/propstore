@@ -31,6 +31,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Annotated, Protocol
 
+import msgspec
+
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
@@ -77,10 +79,25 @@ class ClaimStatus(str, Enum):
     BLOCKED = "blocked"
 
 
+class ClaimVariable(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+    """One symbol→concept binding on an equation-bearing claim.
+
+    ``concept`` is a canonical concept FK (promotion lowers the source-local
+    handle before the canonical write); ``symbol`` is the equation symbol the
+    binding grounds. eq-equiv's ``EquationSymbolBinding`` is built from these
+    fields when equations are compared.
+    """
+
+    concept: str
+    symbol: str | None = None
+    role: str | None = None
+    name: str | None = None
+
+
 @charter(
     key="claim",
     name="claim",
-    contract_version="2026.06.29",
+    contract_version="2026.07.12",
     placement="claim",
     identity_field="claim_id",
     semantic="propstore.claim",
@@ -167,6 +184,24 @@ class Claim(CharterDoc):
             ),
         ),
     ] = ()
+    variables: Annotated[
+        tuple[ClaimVariable, ...],
+        charter_field(
+            json=True,
+            foreign_keys=(
+                ForeignKeySpec(
+                    name="claim_variable_concepts",
+                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                    source_family="claim",
+                    source_field="variables[].concept",
+                    target_family="concept",
+                    target_field="concept_id",
+                    required=False,
+                    many=True,
+                ),
+            ),
+        ),
+    ] = ()
     equations: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     conditions: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     conditions_ir: str | None = None
@@ -210,6 +245,7 @@ class _ClaimRow(Protocol):
     output_concept: str | None
     target_concept: str | None
     concepts: tuple[str, ...]
+    variables: tuple[ClaimVariable, ...]
     equations: tuple[str, ...]
     conditions: tuple[str, ...]
     conditions_ir: str | None
@@ -246,6 +282,7 @@ def _row_to_claim(row: _ClaimRow) -> Claim:
         output_concept=row.output_concept,
         target_concept=row.target_concept,
         concepts=row.concepts,
+        variables=row.variables,
         equations=row.equations,
         conditions=row.conditions,
         conditions_ir=row.conditions_ir,

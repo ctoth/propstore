@@ -134,6 +134,6 @@ def _bindings_for_algorithm_claim(claim: ConflictClaim) -> dict[str, str]:
     bindings: dict[str, str] = {}
     for variable in claim.variables:
         name = variable.name or variable.symbol
-        if name and variable.concept_id:
-            bindings[name] = variable.concept_id
+        if name and variable.concept:
+            bindings[name] = variable.concept
     return bindings

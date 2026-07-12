@@ -107,8 +107,8 @@ _KNOWN_EVALUATION_ERRORS = (
 def _string_sequence(value: Any) -> tuple[str, ...]:
     """Coerce an untyped stored list field to a tuple of strings.
 
-    The value flows from an ``Any``-typed payload ``.get`` (cf.
-    ``models._conditions_from_payload``); ``or ()`` guards a missing field.
+    The value flows from an untyped concept-registry ``.get``; ``or ()``
+    guards a missing field.
     """
 
     return tuple(str(item) for item in (value or ()))

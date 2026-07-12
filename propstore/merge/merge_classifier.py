@@ -28,7 +28,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from itertools import product
 
-from condition_ir import Z3TranslationError, to_cel_exprs
+from condition_ir import Z3TranslationError
 
 from propstore.conflict_detector import ConflictClass, detect_conflicts
 from propstore.conflict_detector.models import ConflictClaim
@@ -155,27 +155,10 @@ def _claims_equal(left: MergeClaim, right: MergeClaim) -> bool:
 
 
 def _conflict_claim(claim: MergeClaim, *, source_paper: str) -> ConflictClaim:
-    """Build the conflict-detector view of a merge claim (no payload round-trip)."""
+    """The conflict-detector view of a merge claim, with its source folded in."""
 
-    document = claim.claim
-    claim_type = None if document.claim_type is None else document.claim_type.value
-    return ConflictClaim(
-        claim_id=claim.artifact_id,
-        claim_type=claim_type,
-        artifact_id=claim.artifact_id,
-        output_concept_id=document.output_concept,
-        target_concept_id=document.target_concept,
-        measure=document.measure,
-        value=document.value,
-        lower_bound=document.lower_bound,
-        upper_bound=document.upper_bound,
-        unit=document.unit,
-        expression=document.expression,
-        sympy=document.sympy,
-        body=document.body,
-        context_id=document.context_id,
-        source_paper=source_paper,
-        conditions=to_cel_exprs(claim.conditions),
+    return ConflictClaim.from_claim(
+        claim.claim, source_paper=source_paper
     ).with_source_condition()
 
 

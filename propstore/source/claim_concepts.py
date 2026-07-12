@@ -15,7 +15,7 @@ from collections.abc import Mapping
 
 import msgspec
 
-from propstore.families.claims import Claim, ClaimStatus
+from propstore.families.claims import Claim, ClaimStatus, ClaimVariable
 from propstore.families.sources import SourceClaimDocument
 
 _CANONICAL_CONCEPT_PREFIXES = ("ps:concept:", "tag:")
@@ -90,9 +90,11 @@ def build_promoted_claim(
     new identity. Any concept handle that could not be lowered is recorded in
     *unresolved* (never dropped); the caller quarantines such claims.
 
-    The flat canonical charter does not model variable/parameter bindings, so the
-    concept refs they carry are lowered for the resolvability check but are not
-    re-materialised onto the canonical claim.
+    Variable bindings are re-materialised onto the canonical claim as
+    :class:`~propstore.families.claims.ClaimVariable` with their concept refs
+    lowered — equation claims are meaningless to compare without their
+    symbol→concept bindings. Parameter bindings are still lowered only for the
+    resolvability check and not re-materialised (tracked in ``docs/gaps.md``).
     """
 
     artifact_id = claim.artifact_id
@@ -115,6 +117,15 @@ def build_promoted_claim(
         output_concept=lowered.concept,
         target_concept=lowered.target_concept,
         concepts=lowered.concepts,
+        variables=tuple(
+            ClaimVariable(
+                concept=variable.concept,
+                symbol=variable.symbol,
+                role=variable.role,
+                name=variable.name,
+            )
+            for variable in lowered.variables
+        ),
         equations=lowered.equations,
         conditions=lowered.conditions,
         value=lowered.value,

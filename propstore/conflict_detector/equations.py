@@ -122,10 +122,10 @@ def detect_equation_conflicts(
 
 def _reported_equation_concept(claims: Sequence[ConflictClaim]) -> str | None:
     dependent_ids = {
-        variable.concept_id
+        variable.concept
         for claim in claims
         for variable in claim.variables
-        if variable.role == "dependent" and variable.concept_id
+        if variable.role == "dependent" and variable.concept
     }
     if len(dependent_ids) == 1:
         return next(iter(dependent_ids))

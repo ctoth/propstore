@@ -3,35 +3,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from dataclasses import replace
-from typing import Any
+from collections.abc import Sequence
 
 from eq_equiv import BoundEquation, EquationSymbolBinding, equation_signature
 
 from propstore.claim_equations import bound_equation
+from propstore.families.claims import ClaimType
 
 from .models import ConflictClaim
-
-
-def conflict_claim_from_payload(
-    payload: Mapping[str, Any],
-    *,
-    source_paper: str | None = None,
-) -> ConflictClaim | None:
-    """Parse a stored claim payload into a :class:`ConflictClaim`.
-
-    A payload-supplied ``source_paper`` only fills in when the claim does not
-    already carry one; the source provenance is then folded into the claim's
-    conditions so the solver treats different papers as disjoint enum values.
-    """
-
-    claim = ConflictClaim.from_payload(payload)
-    if claim is None:
-        return None
-    if claim.source_paper is None and source_paper:
-        claim = replace(claim, source_paper=source_paper)
-    return claim.with_source_condition()
 
 
 def equation_bound_for_claim(claim: ConflictClaim) -> BoundEquation:
@@ -41,7 +20,7 @@ def equation_bound_for_claim(claim: ConflictClaim) -> BoundEquation:
     bindings = tuple(
         EquationSymbolBinding(
             symbol=variable.symbol,
-            concept_id=variable.concept_id,
+            concept_id=variable.concept,
             role=variable.role,
         )
         for variable in claim.variables
@@ -56,7 +35,7 @@ def collect_measurement_claims(
     by_key: dict[tuple[str, str], list[ConflictClaim]] = defaultdict(list)
     for claim in claims:
         if (
-            claim.claim_type == "measurement"
+            claim.claim_type is ClaimType.MEASUREMENT
             and claim.target_concept_id
             and claim.measure
         ):
@@ -69,7 +48,7 @@ def collect_parameter_claims(
 ) -> dict[str, list[ConflictClaim]]:
     by_concept: dict[str, list[ConflictClaim]] = defaultdict(list)
     for claim in claims:
-        if claim.claim_type == "parameter" and claim.output_concept_id:
+        if claim.claim_type is ClaimType.PARAMETER and claim.output_concept_id:
             by_concept[claim.output_concept_id].append(claim)
     return dict(by_concept)
 
@@ -81,7 +60,7 @@ def collect_equation_claims(
         list
     )
     for claim in claims:
-        if claim.claim_type != "equation":
+        if claim.claim_type is not ClaimType.EQUATION:
             continue
         signature = equation_signature(equation_bound_for_claim(claim))
         if signature is None:
@@ -95,13 +74,13 @@ def collect_algorithm_claims(
 ) -> dict[str, list[ConflictClaim]]:
     by_concept: dict[str, list[ConflictClaim]] = defaultdict(list)
     for claim in claims:
-        if claim.claim_type != "algorithm":
+        if claim.claim_type is not ClaimType.ALGORITHM:
             continue
         if claim.output_concept_id is not None:
             by_concept[claim.output_concept_id].append(claim)
             continue
         first_concept = next(
-            (variable.concept_id for variable in claim.variables), None
+            (variable.concept for variable in claim.variables), None
         )
         if first_concept is not None:
             by_concept[first_concept].append(claim)

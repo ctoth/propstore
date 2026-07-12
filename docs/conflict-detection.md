@@ -43,7 +43,7 @@ Each type-specific detector follows the same pattern:
 
 **Parameter claims** are grouped by concept ID. Values are compared via numeric tolerance (default 1e-9), interval overlap for ranges, and direct equality for non-numeric values. When a concept has 3+ claims, the detector uses equivalence class optimization (see below) instead of O(N^2) pairwise comparison.
 
-**Measurement claims** are grouped by `(target_concept, measure)` tuple. An additional `PHI_NODE` path exists: claims with different `listener_population` values are classified as regime splits regardless of other conditions.
+**Measurement claims** are grouped by `(target_concept, measure)` tuple. Population/regime splits are authored as CEL conditions (e.g. `population == 'trained'`) and classified `PHI_NODE` by the condition solver when the conditions are disjoint; there is no dedicated population field on the claim (the 2026-05-15 typed-metadata cleanup assigned population regime ownership to contexts/conditions).
 
 **Equation claims** are grouped by equation signature -- the dependent concept plus sorted independent concepts. Comparison now uses a strict parser-owned algebra subset and deterministic normalization from `lhs - rhs`, rather than handing raw strings to SymPy parsing.
 

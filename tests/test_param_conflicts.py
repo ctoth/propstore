@@ -2,7 +2,7 @@
 
 Ported from the reference ``test_param_conflicts`` suite to the rewrite's
 substrate-direct construction: concept registries are plain dicts, claims are
-built with ``ConflictClaim.from_payload``, CEL registries are
+built directly as ``ConflictClaim`` values, CEL registries are
 ``condition_ir.ConceptInfo`` maps, and lifting uses ``Context`` /
 ``LiftingSystem`` directly. The behavioral contract is preserved — Eq(...)
 parameterizations derive values without warnings, SI normalization flows through
@@ -21,7 +21,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from condition_ir import KindType
+from condition_ir import KindType, to_cel_exprs
 
 from human_to_sympy import parse_cached
 from propstore.conflict_detector import (
@@ -30,6 +30,7 @@ from propstore.conflict_detector import (
     detect_transitive_conflicts,
 )
 from propstore.conflict_detector.models import ConflictClaim
+from propstore.families.claims import ClaimType
 from propstore.conflict_detector.parameterization_conflicts import (
     detect_parameterization_conflicts,
 )
@@ -68,9 +69,18 @@ def _concept(
 
 
 def _claim(payload: dict[str, Any]) -> ConflictClaim:
-    claim = ConflictClaim.from_payload(payload)
-    assert claim is not None
-    return claim
+    """Test fixture: a ConflictClaim from the suite's compact dict spelling."""
+
+    claim_type = payload.get("type")
+    return ConflictClaim(
+        claim_id=payload["id"],
+        claim_type=None if claim_type is None else ClaimType(claim_type),
+        output_concept_id=payload.get("output_concept"),
+        value=payload.get("value"),
+        unit=payload.get("unit"),
+        context_id=payload.get("context"),
+        conditions=to_cel_exprs(payload.get("conditions") or ()),
+    )
 
 
 def _param_claim(claim_id: str, concept_id: str, value: float, **extra: Any) -> ConflictClaim:

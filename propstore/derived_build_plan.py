@@ -21,7 +21,7 @@ records a blocking :class:`BuildDiagnostic` so render policy can hide it.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -108,38 +108,43 @@ class SidecarBuildPlan:
         )
 
 
-def _claim_payload(claim: Claim) -> dict[str, object]:
-    """The stored-claim payload :meth:`ConflictClaim.from_payload` parses.
+def _claim_sources(
+    micropubs: Iterable[Micropublication],
+) -> dict[str, str | None]:
+    """Per-claim source identity derived from micropublication bundles.
 
-    Maps the flat ``Claim`` charter fields onto the payload keys the conflict
-    detector reads. ``id`` carries the identity; ``type`` the claim type value.
+    The ``Claim`` charter is provenance-free, so the paper asserting a claim
+    lives on the :class:`Micropublication` bundling it (``source``). A claim
+    bundled under exactly one distinct source carries that source into the
+    detector, where :meth:`ConflictClaim.with_source_condition` folds it into a
+    ``source == …`` condition so the solver treats papers as disjoint regimes.
+    A claim asserted by multiple sources gets none — conditions conjoin, and a
+    multi-source claim genuinely is not source-gated. An unbundled claim
+    honestly has no source (never fabricated).
     """
 
+    sources: dict[str, set[str]] = {}
+    for micropub in micropubs:
+        if micropub.source is None:
+            continue
+        for claim_ref in micropub.claims:
+            sources.setdefault(claim_ref, set()).add(micropub.source)
     return {
-        "id": claim.claim_id,
-        "type": None if claim.claim_type is None else claim.claim_type.value,
-        "output_concept": claim.output_concept,
-        "target_concept": claim.target_concept,
-        "measure": claim.measure,
-        "value": claim.value,
-        "lower_bound": claim.lower_bound,
-        "upper_bound": claim.upper_bound,
-        "unit": claim.unit,
-        "expression": claim.expression,
-        "sympy": claim.sympy,
-        "body": claim.body,
-        "context_id": claim.context_id,
-        "conditions": list(claim.conditions),
+        claim_id: next(iter(papers)) if len(papers) == 1 else None
+        for claim_id, papers in sources.items()
     }
 
 
-def _conflict_claims(claims: tuple[Claim, ...]) -> list[ConflictClaim]:
-    parsed: list[ConflictClaim] = []
-    for claim in claims:
-        conflict_claim = ConflictClaim.from_payload(_claim_payload(claim))
-        if conflict_claim is not None:
-            parsed.append(conflict_claim)
-    return parsed
+def _conflict_claims(
+    claims: tuple[Claim, ...], claim_sources: Mapping[str, str | None]
+) -> list[ConflictClaim]:
+    return [
+        ConflictClaim.from_claim(
+            claim, source_paper=claim_sources.get(claim.claim_id)
+        ).with_source_condition()
+        for claim in claims
+        if claim.claim_id
+    ]
 
 
 def _concept_registry(concepts: tuple[Concept, ...]) -> dict[str, Mapping[str, object]]:
@@ -169,8 +174,11 @@ def _conflict_row(record: ConflictRecord, *, index: int) -> ConflictProjection:
     )
 
 
-def _compile_conflicts(checked: RepositoryCheckedBundle) -> tuple[ConflictProjection, ...]:
-    conflict_claims = _conflict_claims(checked.claims)
+def _compile_conflicts(
+    checked: RepositoryCheckedBundle,
+    micropubs: tuple[Micropublication, ...],
+) -> tuple[ConflictProjection, ...]:
+    conflict_claims = _conflict_claims(checked.claims, _claim_sources(micropubs))
     if not conflict_claims:
         return ()
     lifting_system = LiftingSystem(
@@ -299,7 +307,12 @@ def compile_sidecar_build_plan(
     must be written alongside them.
     """
 
-    conflicts = _compile_conflicts(checked)
+    micropubs = tuple(
+        document
+        for document in _iter_documents(repo, "micropublication", commit)
+        if isinstance(document, Micropublication)
+    )
+    conflicts = _compile_conflicts(checked, micropubs)
     valid_claims = frozenset(claim.claim_id for claim in checked.claims)
     quarantine = _quarantine_dangling_references(
         repo, commit=commit, valid_claims=valid_claims
