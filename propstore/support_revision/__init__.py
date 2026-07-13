@@ -14,7 +14,10 @@ from propstore.support_revision.af_adapter import (
 )
 from propstore.support_revision.entrenchment import EntrenchmentReport, compute_entrenchment
 from propstore.support_revision.explain import build_revision_explanation
-from propstore.support_revision.input_normalization import normalize_revision_input
+from propstore.support_revision.input_normalization import (
+    normalize_revision_input,
+    parse_revision_atom_payload,
+)
 from propstore.support_revision.projection import project_belief_base
 from propstore.support_revision.iterated import (
     advance_epistemic_state,
@@ -55,6 +58,7 @@ __all__ = [
     "iterated_revise",
     "make_epistemic_state",
     "normalize_revision_input",
+    "parse_revision_atom_payload",
     "project_belief_base",
     "project_epistemic_state_argumentation_view",
     "stabilize_belief_base",

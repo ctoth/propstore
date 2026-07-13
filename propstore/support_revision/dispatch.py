@@ -19,9 +19,6 @@ from propstore.support_revision.realization import (
     realize_formal_decision,
     realize_ic_merge_decision,
 )
-from propstore.support_revision.snapshot_types import (
-    EpistemicStateSnapshot,
-)
 from propstore.support_revision.state import (
     AssertionAtom,
     AssumptionAtom,
@@ -46,9 +43,9 @@ def dispatch(
     op = JournalOperator(operator)
     state = convert_document_value(
         state_in,
-        EpistemicStateSnapshot,
+        EpistemicState,
         source="journal state_in",
-    ).to_state()
+    )
     payload = _required_mapping(operator_input, "operator_input")
     _required_policy_snapshot(policy)
     policy_snapshot = {str(key): str(value) for key, value in policy.items()}

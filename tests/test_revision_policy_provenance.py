@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from msgspec.structs import replace
 
 from quire.documents import to_document_builtins
 
@@ -101,6 +101,9 @@ def test_replay_rejects_policy_version_mismatch_before_semantic_replay() -> None
             "ranking_policy_version": "ranking.v2",
             "entrenchment_policy_version": "entrenchment.v1",
         },
+        # Re-stamp so the drifted entry is internally consistent and replay()
+        # must catch the policy mismatch, not the constructor.
+        content_hash="",
     )
 
     report = TransitionJournal(entries=(mismatched,)).replay()

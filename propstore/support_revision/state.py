@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
 import msgspec
-from condition_ir import to_cel_expr
 from quire.canonical import canonical_json_bytes
 
 from propstore.core.active_claims import ActiveClaim
@@ -17,7 +16,6 @@ from propstore.core.id_types import (
     AssumptionId,
     ContextId,
     to_assertion_id,
-    to_assumption_id,
     to_assumption_ids,
     to_context_id,
 )
@@ -25,27 +23,11 @@ from propstore.core.labels import Label
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
     RevisionAtomDetail,
-    coerce_entrenchment_reason,
-    coerce_revision_atom_detail,
 )
 
 
 def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
     return isinstance(value, Mapping)
-
-
-def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> AssumptionRef:
-    if isinstance(payload, AssumptionRef):
-        return payload
-    assumption_id = payload.get("assumption_id") or payload.get("id")
-    if assumption_id is None:
-        raise ValueError("Assumption atom requires 'assumption_id' or 'id'")
-    return AssumptionRef(
-        assumption_id=to_assumption_id(assumption_id),
-        cel=to_cel_expr(str(payload.get("cel") or "")),
-        kind=str(payload.get("kind") or ""),
-        source=str(payload.get("source") or ""),
-    )
 
 
 class AssertionAtom(
@@ -226,10 +208,7 @@ class SupportRevisionRealization(
         object.__setattr__(
             self,
             "reasons",
-            {
-                str(atom_id): coerce_revision_atom_detail(detail)
-                for atom_id, detail in self.reasons.items()
-            },
+            {str(atom_id): detail for atom_id, detail in self.reasons.items()},
         )
         object.__setattr__(self, "journal_metadata", dict(self.journal_metadata))
 
@@ -248,7 +227,7 @@ class SupportRevisionRealization(
             incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
             source_claim_ids=tuple(str(claim_id) for claim_id in (payload.get("source_claim_ids") or ())),
             reasons={
-                str(atom_id): coerce_revision_atom_detail(detail)
+                str(atom_id): RevisionAtomDetail.from_mapping(detail)
                 for atom_id, detail in reasons_payload.items()
             },
             snapshot_hash=None if payload.get("snapshot_hash") is None else str(payload.get("snapshot_hash")),
@@ -292,10 +271,7 @@ class RevisionResult:
         object.__setattr__(
             self,
             "explanation",
-            {
-                str(atom_id): coerce_revision_atom_detail(detail)
-                for atom_id, detail in self.explanation.items()
-            },
+            {str(atom_id): detail for atom_id, detail in self.explanation.items()},
         )
         if self.realization is None:
             object.__setattr__(
@@ -436,15 +412,22 @@ class RevisionMergeRequiredFailure(ValueError):
         super().__init__(message)
 
 
-@dataclass(frozen=True)
-class RevisionEpisode:
+class RevisionEpisode(
+    msgspec.Struct,
+    frozen=True,
+    kw_only=True,
+    forbid_unknown_fields=True,
+    omit_defaults=True,
+):
     operator: str
     input_atom_id: str | None = None
-    target_atom_ids: tuple[str, ...] = field(default_factory=tuple)
-    accepted_atom_ids: tuple[str, ...] = field(default_factory=tuple)
-    rejected_atom_ids: tuple[str, ...] = field(default_factory=tuple)
-    incision_set: tuple[str, ...] = field(default_factory=tuple)
-    explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict[str, RevisionAtomDetail])
+    target_atom_ids: tuple[str, ...] = ()
+    accepted_atom_ids: tuple[str, ...] = ()
+    rejected_atom_ids: tuple[str, ...] = ()
+    incision_set: tuple[str, ...] = ()
+    explanation: dict[str, RevisionAtomDetail] = msgspec.field(
+        default_factory=dict[str, RevisionAtomDetail]
+    )
     event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
@@ -455,22 +438,26 @@ class RevisionEpisode:
         object.__setattr__(
             self,
             "explanation",
-            {
-                str(atom_id): coerce_revision_atom_detail(detail)
-                for atom_id, detail in self.explanation.items()
-            },
+            {str(atom_id): detail for atom_id, detail in self.explanation.items()},
         )
 
 
-@dataclass(frozen=True)
-class EpistemicState:
+class EpistemicState(
+    msgspec.Struct,
+    frozen=True,
+    kw_only=True,
+    forbid_unknown_fields=True,
+    omit_defaults=True,
+):
     scope: RevisionScope
     base: BeliefBase
     accepted_atom_ids: tuple[str, ...]
     ranked_atom_ids: tuple[str, ...]
-    ranking: Mapping[str, int] = field(default_factory=dict[str, int])
-    entrenchment_reasons: Mapping[str, EntrenchmentReason] = field(default_factory=dict[str, EntrenchmentReason])
-    history: tuple[RevisionEpisode, ...] = field(default_factory=tuple)
+    ranking: dict[str, int] = msgspec.field(default_factory=dict[str, int])
+    entrenchment_reasons: dict[str, EntrenchmentReason] = msgspec.field(
+        default_factory=dict[str, EntrenchmentReason]
+    )
+    history: tuple[RevisionEpisode, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
@@ -483,19 +470,14 @@ class EpistemicState:
         object.__setattr__(
             self,
             "entrenchment_reasons",
-            {
-                str(atom_id): coerce_entrenchment_reason(reason)
-                for atom_id, reason in self.entrenchment_reasons.items()
-            },
+            {str(atom_id): reason for atom_id, reason in self.entrenchment_reasons.items()},
         )
         object.__setattr__(self, "history", tuple(self.history))
 
     def to_canonical_dict(self) -> dict[str, Any]:
         from quire.documents import to_document_builtins
 
-        from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
-
-        payload = to_document_builtins(EpistemicStateSnapshot.from_state(self))
+        payload = to_document_builtins(self)
         if not _is_mapping(payload):
-            raise TypeError("epistemic state snapshot must encode as a mapping")
+            raise TypeError("epistemic state must encode as a mapping")
         return dict(payload)

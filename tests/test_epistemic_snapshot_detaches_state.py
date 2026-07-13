@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from propstore.support_revision.snapshot_types import EpistemicStateSnapshot
+from propstore.support_revision.history import EpistemicSnapshot
 from propstore.support_revision.iterated import make_epistemic_state
 from tests.test_revision_operators import _base_with_shared_support
 
 
-def test_ws_j_epistemic_state_snapshot_from_state_deep_copies_payload() -> None:
+def test_ws_j_epistemic_snapshot_from_state_deep_copies_payload() -> None:
     base, entrenchment, _ = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
 
-    snapshot = EpistemicStateSnapshot.from_state(state)
+    snapshot = EpistemicSnapshot.from_state(state).state
 
     assert tuple(atom.atom_id for atom in snapshot.base.atoms) == tuple(
         atom.atom_id for atom in state.base.atoms

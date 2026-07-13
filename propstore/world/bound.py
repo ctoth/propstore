@@ -1087,7 +1087,7 @@ class BoundWorld(BeliefSpace):
 
         return compute_entrenchment(self, self.revision_base(), overrides=overrides)
 
-    def expand(self, atom: BeliefAtom | str | Mapping[str, Any]) -> RevisionResult:
+    def expand(self, atom: BeliefAtom | str) -> RevisionResult:
         """Expand the scoped revision belief base without mutating source storage."""
 
         base = self.revision_base()
@@ -1106,7 +1106,7 @@ class BoundWorld(BeliefSpace):
 
     def contract(
         self,
-        targets: BeliefAtom | str | Mapping[str, Any] | Sequence[BeliefAtom | str | Mapping[str, Any]],
+        targets: BeliefAtom | str | Sequence[BeliefAtom | str],
         *,
         max_candidates: int,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
@@ -1130,7 +1130,7 @@ class BoundWorld(BeliefSpace):
 
     def revise(
         self,
-        atom: BeliefAtom | str | Mapping[str, Any],
+        atom: BeliefAtom | str,
         *,
         max_candidates: int,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
@@ -1194,7 +1194,7 @@ class BoundWorld(BeliefSpace):
 
     def iterated_revise(
         self,
-        atom: BeliefAtom | str | Mapping[str, Any],
+        atom: BeliefAtom | str,
         *,
         max_candidates: int,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
@@ -1218,14 +1218,11 @@ class BoundWorld(BeliefSpace):
 
 def _normalize_revision_targets(
     base: BeliefBase,
-    targets: BeliefAtom
-    | str
-    | Mapping[str, Any]
-    | Sequence[BeliefAtom | str | Mapping[str, Any]],
+    targets: BeliefAtom | str | Sequence[BeliefAtom | str],
 ) -> tuple[str, ...]:
     """Normalize one-or-many contract targets to their belief-atom ids."""
 
-    if isinstance(targets, AssertionAtom | AssumptionAtom | str | Mapping):
+    if isinstance(targets, AssertionAtom | AssumptionAtom | str):
         return (normalize_revision_input(base, targets).atom_id,)
     return tuple(normalize_revision_input(base, target).atom_id for target in targets)
 

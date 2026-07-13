@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from msgspec.structs import replace
 
 from msgspec.structs import replace as replace_struct
 

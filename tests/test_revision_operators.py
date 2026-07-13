@@ -185,48 +185,58 @@ def test_normalize_revision_input_resolves_existing_assertion_ids() -> None:
     assert atom.atom_id == ids["legacy"]
 
 
-def test_normalize_revision_input_rejects_claim_mapping_adapters() -> None:
-    from propstore.support_revision.input_normalization import normalize_revision_input
-
-    base, _, _ = _base_with_shared_support()
+def test_parse_revision_atom_payload_rejects_claim_payloads() -> None:
+    from propstore.support_revision.input_normalization import parse_revision_atom_payload
 
     try:
-        normalize_revision_input(base, {"kind": "claim", "id": "new", "value": 3.0})
+        parse_revision_atom_payload({"kind": "claim", "id": "new", "value": 3.0})
     except ValueError as exc:
-        assert "Assertion revision input requires an AssertionAtom" in str(exc)
+        assert "requires kind 'assertion' or 'assumption'" in str(exc)
     else:
-        raise AssertionError("claim-shaped revision mappings must not be accepted")
+        raise AssertionError("claim-shaped revision payloads must not be accepted")
 
 
-def test_normalize_revision_input_builds_assumption_atoms() -> None:
-    from propstore.support_revision.input_normalization import normalize_revision_input
+def test_parse_revision_atom_payload_builds_assumption_atoms() -> None:
+    from propstore.support_revision.input_normalization import parse_revision_atom_payload
 
-    base, _, _ = _base_with_shared_support()
-
-    atom = normalize_revision_input(
-        base,
+    atom = parse_revision_atom_payload(
         {
             "kind": "assumption",
             "assumption_id": "queryable:extra",
             "cel": "x == 2",
-        },
+        }
     )
 
-    assert atom.atom_id == "assumption:queryable:extra"
     assert isinstance(atom, AssumptionAtom)
+    assert atom.atom_id == "assumption:queryable:extra"
     assert atom.assumption.assumption_id == "queryable:extra"
     assert atom.assumption.cel == "x == 2"
+    assert atom.assumption.kind == ""
 
 
-def test_expand_rejects_synthetic_claim_mapping_adapter() -> None:
+def test_parse_revision_atom_payload_resolves_assertions_to_id_strings() -> None:
+    from propstore.support_revision.input_normalization import (
+        normalize_revision_input,
+        parse_revision_atom_payload,
+    )
+
+    base, _, ids = _base_with_shared_support()
+
+    resolved = parse_revision_atom_payload({"kind": "assertion", "id": ids["legacy"]})
+
+    assert resolved == ids["legacy"]
+    assert normalize_revision_input(base, resolved).atom_id == ids["legacy"]
+
+
+def test_expand_rejects_unknown_string_inputs() -> None:
     base, _, _ = _base_with_shared_support()
 
     try:
-        expand_via_formal_decision(base, {"kind": "claim", "id": "new_from_adapter", "value": 9.0})
+        expand_via_formal_decision(base, "new_from_adapter")
     except ValueError as exc:
-        assert "Assertion revision input requires an AssertionAtom" in str(exc)
+        assert "Unknown revision input" in str(exc)
     else:
-        raise AssertionError("claim-shaped expand mappings must not be accepted")
+        raise AssertionError("unknown revision input strings must not be accepted")
 
 
 def test_stabilize_belief_base_applies_support_loss_cascade_from_incision_set() -> None:

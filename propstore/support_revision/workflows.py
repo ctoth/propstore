@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from propstore.core.environment import Environment
 from propstore.core.id_types import to_context_id
@@ -22,7 +22,12 @@ if TYPE_CHECKING:
     from propstore.core.environment import WorldStore
     from propstore.support_revision.entrenchment import EntrenchmentReport
     from propstore.support_revision.explanation_types import RevisionExplanation
-    from propstore.support_revision.state import BeliefBase, EpistemicState, RevisionResult
+    from propstore.support_revision.state import (
+        BeliefAtom,
+        BeliefBase,
+        EpistemicState,
+        RevisionResult,
+    )
     from propstore.world.bound import BoundWorld
 
 
@@ -65,7 +70,7 @@ def revision_entrenchment(store: WorldStore, request: RevisionWorldRequest) -> E
 def expand_revision(
     store: WorldStore,
     request: RevisionWorldRequest,
-    atom: Mapping[str, Any],
+    atom: BeliefAtom | str,
 ) -> RevisionResult:
     return _bind_revision_world(store, request).expand(atom)
 
@@ -83,14 +88,14 @@ def contract_revision(
 def revise_world(
     store: WorldStore,
     request: RevisionWorldRequest,
-    atom: Mapping[str, Any],
+    atom: BeliefAtom | str,
     conflicts: tuple[str, ...],
 ) -> RevisionResult:
     bound = _bind_revision_world(store, request)
     base = bound.revision_base()
     normalized = normalize_revision_input(base, atom)
     conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
-    return bound.revise(atom, conflicts=conflict_map, max_candidates=4096)
+    return bound.revise(normalized, conflicts=conflict_map, max_candidates=4096)
 
 
 def explain_revision_operation(
@@ -98,7 +103,7 @@ def explain_revision_operation(
     request: RevisionWorldRequest,
     *,
     operation: str,
-    atom: Mapping[str, Any] | None = None,
+    atom: BeliefAtom | str | None = None,
     targets: tuple[str, ...] = (),
     conflicts: tuple[str, ...] = (),
 ) -> RevisionExplanation:
@@ -118,7 +123,7 @@ def explain_revision_operation(
         base = bound.revision_base()
         normalized = normalize_revision_input(base, atom)
         conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
-        result = bound.revise(atom, conflicts=conflict_map, max_candidates=4096)
+        result = bound.revise(normalized, conflicts=conflict_map, max_candidates=4096)
     else:
         raise ValueError(f"unsupported revision operation: {operation}")
     return bound.revision_explain(result)
@@ -132,7 +137,7 @@ def iterated_revise_world(
     store: WorldStore,
     request: RevisionWorldRequest,
     *,
-    atom: Mapping[str, Any],
+    atom: BeliefAtom | str,
     conflicts: tuple[str, ...],
     operator: str,
 ) -> IteratedRevisionReport:
@@ -141,7 +146,7 @@ def iterated_revise_world(
     normalized = normalize_revision_input(state.base, atom)
     conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
     result, next_state = bound.iterated_revise(
-        atom,
+        normalized,
         conflicts=conflict_map,
         max_candidates=4096,
         operator=operator,

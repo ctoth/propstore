@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from dataclasses import replace
+from msgspec.structs import replace
 
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -83,8 +83,9 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
     payload = entry.to_dict()
     replay = journal.check_chain_integrity()
 
-    assert payload["state_in_hash"] == entry.state_in.content_hash
-    assert payload["state_out_hash"] == entry.state_out.content_hash
+    assert payload["content_hash"] == entry.content_hash
+    assert payload["state_in"]["content_hash"] == entry.state_in.content_hash
+    assert payload["state_out"]["content_hash"] == entry.state_out.content_hash
     assert payload["policy_id"] == "policy:revision/default"
     assert payload["operator"] == "iterated_revise"
     assert payload["operator_input"]["revision_operator"] == "restrained"

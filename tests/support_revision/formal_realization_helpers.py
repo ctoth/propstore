@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
 
 from propstore.support_revision.belief_set_adapter import (
     DEFAULT_MAX_ALPHABET_SIZE,
@@ -23,7 +22,7 @@ from propstore.support_revision.state import (
 
 def expand_via_formal_decision(
     base: BeliefBase,
-    atom: BeliefAtom | str | Mapping[str, Any],
+    atom: BeliefAtom | str,
 ) -> RevisionResult:
     normalized = normalize_revision_input(base, atom)
     decision = decide_expand(
@@ -41,7 +40,7 @@ def expand_via_formal_decision(
 
 def contract_via_formal_decision(
     base: BeliefBase,
-    targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
+    targets: str | BeliefAtom | Sequence[str | BeliefAtom],
     *,
     entrenchment: EntrenchmentReport,
     max_candidates: int,
@@ -62,7 +61,7 @@ def contract_via_formal_decision(
 
 def revise_via_formal_decision(
     base: BeliefBase,
-    atom: BeliefAtom | str | Mapping[str, Any],
+    atom: BeliefAtom | str,
     *,
     entrenchment: EntrenchmentReport,
     max_candidates: int,
@@ -88,9 +87,9 @@ def revise_via_formal_decision(
 
 def _normalize_targets(
     base: BeliefBase,
-    targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
+    targets: str | BeliefAtom | Sequence[str | BeliefAtom],
 ) -> tuple[str, ...]:
-    if isinstance(targets, (str, Mapping)):
+    if isinstance(targets, str):
         return (normalize_revision_input(base, targets).atom_id,)
     if isinstance(targets, tuple) and len(targets) == 0:
         return ()

@@ -88,7 +88,7 @@ def advance_epistemic_state(
 
 def iterated_revise(
     state: EpistemicState,
-    atom: BeliefAtom | str | Mapping[str, Any],
+    atom: BeliefAtom | str,
     *,
     max_candidates: int,
     conflicts: dict[str, tuple[str, ...] | list[str]] | None = None,

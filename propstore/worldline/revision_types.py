@@ -12,7 +12,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
-from propstore.support_revision.state import RevisionEvent
+from condition_ir import to_cel_expr
+
+from propstore.core.environment import AssumptionRef
+from propstore.core.id_types import to_assumption_id
+from propstore.support_revision.state import AssumptionAtom, RevisionEvent
 from propstore.worldline.result_types import (
     WorldlineCaptureError,
     coerce_worldline_capture_error,
@@ -77,22 +81,30 @@ class RevisionAtomRef:
             data["value"] = self.value
         return data
 
-    def to_revision_input(self) -> dict[str, Any]:
-        data = self.to_dict()
+    def to_belief_atom_input(self) -> str | AssumptionAtom:
+        """Resolve this ref to a typed revision input — no dict hop.
+
+        Assertion refs resolve to the atom id string (the atom must already
+        exist in the belief base); assumption refs construct the typed
+        :class:`AssumptionAtom` directly.
+        """
         if self.kind == "assertion":
-            if self.assertion_id is None:
+            atom_id = self.atom_id or self.assertion_id
+            if atom_id is None:
                 raise ValueError("Assertion revision atom requires an assertion_id")
-            data["assertion_id"] = self.assertion_id
-            if self.atom_id is not None:
-                data["atom_id"] = self.atom_id
-            return data
+            return str(atom_id)
         if self.kind == "assumption":
             if self.assumption_id is None:
                 raise ValueError("Assumption revision atom requires an assumption_id")
-            data["assumption_id"] = self.assumption_id
-            if self.atom_id is not None:
-                data["atom_id"] = self.atom_id
-            return data
+            return AssumptionAtom(
+                atom_id=str(self.atom_id or f"assumption:{self.assumption_id}"),
+                assumption=AssumptionRef(
+                    assumption_id=to_assumption_id(self.assumption_id),
+                    cel=to_cel_expr(""),
+                    kind="",
+                    source="",
+                ),
+            )
         raise ValueError(f"Unsupported revision atom kind: {self.kind}")
 
     def resolved_atom_id(self) -> str | None:
@@ -143,12 +155,6 @@ class RevisionConflictSelection:
 
     def targets_for(self, atom_id: str) -> tuple[str, ...]:
         return self.targets_by_atom_id.get(atom_id, ())
-
-    def to_revision_input(self) -> dict[str, tuple[str, ...]]:
-        return {
-            atom_id: tuple(target_ids)
-            for atom_id, target_ids in self.targets_by_atom_id.items()
-        }
 
 
 @dataclass(frozen=True)

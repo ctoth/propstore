@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from msgspec.structs import replace
 
 from msgspec.structs import replace as replace_struct
 
@@ -204,12 +204,7 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     assert len(bound.calls) == 1
     call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = bound.calls[0]
     assert call_operation == "revise"
-    assert call_atom == {
-        "kind": "assertion",
-        "id": synthetic.atom_id,
-        "assertion_id": synthetic.atom_id,
-        "value": 9.0,
-    }
+    assert call_atom == synthetic.atom_id
     assert call_conflicts == {synthetic.atom_id: (ids["legacy"],)}
     assert call_operator is None
     assert call_max_candidates == 1024
@@ -270,12 +265,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     assert len(bound.calls) == 1
     call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = bound.calls[0]
     assert call_operation == "iterated_revise"
-    assert call_atom == {
-        "kind": "assertion",
-        "id": new.atom_id,
-        "assertion_id": new.atom_id,
-        "value": 9.0,
-    }
+    assert call_atom == new.atom_id
     assert call_conflicts == {new.atom_id: (ids["legacy"],)}
     assert call_operator == "restrained"
     assert call_max_candidates == 1024

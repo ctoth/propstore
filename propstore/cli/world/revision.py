@@ -10,8 +10,6 @@ only parses flags, calls them, and renders the typed results.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
-from typing import Any
 
 import click
 
@@ -32,7 +30,9 @@ from propstore.support_revision.belief_set_adapter import (
 )
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import RevisionExplanation
+from propstore.support_revision.input_normalization import parse_revision_atom_payload
 from propstore.support_revision.state import (
+    BeliefAtom,
     BeliefBase,
     EpistemicState,
     RevisionResult,
@@ -61,14 +61,17 @@ def _request(args: tuple[str, ...], context: str | None) -> RevisionWorldRequest
     return RevisionWorldRequest(bindings=bindings, context_id=context)
 
 
-def _parse_atom_json(atom_json: str) -> Mapping[str, Any]:
+def _parse_atom_json(atom_json: str) -> BeliefAtom | str:
     try:
         data = json.loads(atom_json)
     except json.JSONDecodeError as exc:
         raise click.ClickException(f"invalid --atom JSON: {exc}") from exc
     if not is_json_object(data):
         raise click.ClickException("--atom must decode to a JSON object")
-    return data
+    try:
+        return parse_revision_atom_payload(data)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 # ── inspect ────────────────────────────────────────────────────────────────────

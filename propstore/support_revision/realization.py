@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from itertools import combinations
-from typing import Any, TypeGuard
 
 from msgspec.structs import replace
 
@@ -161,39 +160,13 @@ def realize_ic_merge_decision(
 
 
 def _ic_merge_failure(reason: str, decision: FormalDecision) -> RevisionMergeRequiredFailure:
-    trace = decision.report.trace
     return RevisionMergeRequiredFailure(
         reason=reason,
         decision_report=decision.report,
-        profile_atom_ids=_trace_profile_atom_ids(trace.get("profile_atom_ids") or ()),
-        integrity_constraint=_trace_integrity_constraint(trace.get("integrity_constraint")),
-        selected_worlds_hash=trace.get("selected_worlds_hash"),
+        profile_atom_ids=decision.profile_atom_ids,
+        integrity_constraint=decision.integrity_constraint,
+        selected_worlds_hash=decision.report.trace.get("selected_worlds_hash"),
     )
-
-
-def _is_sequence(value: object) -> TypeGuard[Sequence[Any]]:
-    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
-
-
-def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
-    return isinstance(value, Mapping)
-
-
-def _trace_profile_atom_ids(value: object) -> tuple[tuple[str, ...], ...]:
-    if not _is_sequence(value):
-        return ()
-    profiles: list[tuple[str, ...]] = []
-    for profile in value:
-        if not _is_sequence(profile):
-            return ()
-        profiles.append(tuple(str(atom_id) for atom_id in profile))
-    return tuple(profiles)
-
-
-def _trace_integrity_constraint(value: object) -> Mapping[str, object] | None:
-    if not _is_mapping(value):
-        return None
-    return dict(value)
 
 
 def stabilize_belief_base(

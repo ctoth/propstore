@@ -69,7 +69,7 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
     if operation == "revise":
         result = bound.revise(
             _revision_atom_input(revision_query.atom),
-            conflicts=revision_query.conflicts.to_revision_input(),
+            conflicts=dict(revision_query.conflicts.targets_by_atom_id),
             max_candidates=1024,
         )
         return WorldlineRevisionState(
@@ -88,7 +88,7 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
     if operation == "iterated_revise":
         result, state = bound.iterated_revise(
             _revision_atom_input(revision_query.atom),
-            conflicts=revision_query.conflicts.to_revision_input(),
+            conflicts=dict(revision_query.conflicts.targets_by_atom_id),
             max_candidates=1024,
             operator=revision_query.operator or DEFAULT_ITERATED_OPERATOR,
         )
@@ -188,10 +188,10 @@ def _bound_epistemic_state_hash(bound: Any) -> str:
     return EpistemicSnapshot.from_state(result).content_hash
 
 
-def _revision_atom_input(atom: RevisionAtomRef | None) -> Mapping[str, Any] | None:
+def _revision_atom_input(atom: RevisionAtomRef | None) -> BeliefAtom | str | None:
     if atom is None:
         return None
-    return atom.to_revision_input()
+    return atom.to_belief_atom_input()
 
 
 def _revision_state_snapshot(bound: Any, state: Any) -> Any:
@@ -247,7 +247,7 @@ def _journal_operator_input(
         )
     if operation == "revise":
         atom = _normalize_query_atom(state, revision_query.atom)
-        conflicts = revision_query.conflicts.to_revision_input()
+        conflicts = dict(revision_query.conflicts.targets_by_atom_id)
         return (
             JournalOperator.REVISE,
             TransitionOperation(
@@ -314,7 +314,7 @@ def _journal_operator_input(
 def _normalize_query_atom(state: EpistemicState, atom: RevisionAtomRef | None) -> BeliefAtom:
     if atom is None:
         raise ValueError("journal revision operation requires an atom")
-    return normalize_revision_input(state.base, atom.to_revision_input())
+    return normalize_revision_input(state.base, atom.to_belief_atom_input())
 
 
 def _query_atom_id(atom: RevisionAtomRef | None) -> str | None:

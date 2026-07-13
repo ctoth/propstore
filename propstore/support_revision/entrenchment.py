@@ -12,7 +12,6 @@ from propstore.support_revision.belief_set_adapter import (
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
     coerce_override_priority,
-    coerce_entrenchment_reason,
 )
 from propstore.support_revision.state import (
     BeliefAtom,
@@ -32,10 +31,7 @@ class EntrenchmentReport:
         object.__setattr__(
             self,
             "reasons",
-            {
-                str(atom_id): coerce_entrenchment_reason(reason)
-                for atom_id, reason in self.reasons.items()
-            },
+            {str(atom_id): reason for atom_id, reason in self.reasons.items()},
         )
 
 

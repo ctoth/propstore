@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import replace
+from msgspec.structs import replace
 from pathlib import Path
 
 from msgspec.structs import replace as replace_struct

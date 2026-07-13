@@ -67,15 +67,6 @@ class RevisionAtomDetail(
         return data
 
 
-RevisionAtomDetailInput = RevisionAtomDetail | Mapping[str, Any]
-
-
-def coerce_revision_atom_detail(detail: RevisionAtomDetailInput) -> RevisionAtomDetail:
-    if isinstance(detail, RevisionAtomDetail):
-        return detail
-    return RevisionAtomDetail.from_mapping(detail)
-
-
 class EntrenchmentReason(
     msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
 ):
@@ -130,15 +121,6 @@ class EntrenchmentReason(
         if self.revised_in is not None:
             data["revised_in"] = self.revised_in
         return data
-
-
-EntrenchmentReasonInput = EntrenchmentReason | Mapping[str, Any]
-
-
-def coerce_entrenchment_reason(reason: EntrenchmentReasonInput) -> EntrenchmentReason:
-    if isinstance(reason, EntrenchmentReason):
-        return reason
-    return EntrenchmentReason.from_mapping(reason)
 
 
 def coerce_override_priority(value: Any) -> int | str | None:

@@ -58,6 +58,11 @@ class FormalDecision:
     outcome: BeliefSet | RevisionOutcome | ICMergeOutcome | SpohnEpistemicState
     operation: str
     report: FormalRevisionDecisionReport
+    # IC-merge inputs carried typed for downstream failure reporting. The same
+    # values are also written into ``report.trace`` as provenance payload;
+    # consumers read these fields, never the trace.
+    profile_atom_ids: tuple[tuple[str, ...], ...] = ()
+    integrity_constraint: Mapping[str, Any] | None = None
 
 
 def is_formal_budget_error(exc: BaseException) -> bool:
@@ -224,6 +229,8 @@ def decide_ic_merge(
     merge_operator: str = ICMergeOperator.SIGMA.value,
     max_alphabet_size: int,
     trace_metadata: Mapping[str, Any] | None = None,
+    profile_atom_ids: tuple[tuple[str, ...], ...] = (),
+    integrity_constraint_payload: Mapping[str, Any] | None = None,
 ) -> FormalDecision:
     operator = ICMergeOperator(str(merge_operator))
     outcome = merge_belief_profile(
@@ -263,7 +270,14 @@ def decide_ic_merge(
         input_formula_ids=tuple(sorted(outcome.belief_set.alphabet)),
         trace=trace,
     )
-    return FormalDecision(bundle, outcome, "ic_merge", report)
+    return FormalDecision(
+        bundle,
+        outcome,
+        "ic_merge",
+        report,
+        profile_atom_ids=profile_atom_ids,
+        integrity_constraint=integrity_constraint_payload,
+    )
 
 
 def decide_ic_merge_profile(
@@ -291,6 +305,8 @@ def decide_ic_merge_profile(
             "profile_hash": _plain_hash([list(atom_ids) for atom_ids in profile_atom_ids]),
             "integrity_constraint": dict(integrity_constraint),
         },
+        profile_atom_ids=profile_atom_ids,
+        integrity_constraint_payload=dict(integrity_constraint),
     )
 
 

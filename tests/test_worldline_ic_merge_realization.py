@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from msgspec.structs import replace
 
 import pytest
 
@@ -239,7 +239,11 @@ def test_ic_merge_replay_rejects_profile_drift() -> None:
     entry = journal.entries[0]
     drifted_input = dict(entry.operator_input)
     drifted_input["profile_atom_ids"] = [[entry.operation.target_atom_ids[0]]]
-    drifted = TransitionJournal(entries=(replace(entry, operator_input=drifted_input),))
+    # Re-stamp the drifted entry (content_hash="") so it is internally consistent
+    # and replay() must catch the semantic drift, not the constructor.
+    drifted = TransitionJournal(
+        entries=(replace(entry, operator_input=drifted_input, content_hash=""),)
+    )
 
     replayed = drifted.replay()
 
@@ -256,7 +260,11 @@ def test_ic_merge_replay_rejects_integrity_constraint_drift() -> None:
         "required": [entry.operation.target_atom_ids[1]],
         "forbidden": [entry.operation.target_atom_ids[0]],
     }
-    drifted = TransitionJournal(entries=(replace(entry, operator_input=drifted_input),))
+    # Re-stamp the drifted entry (content_hash="") so it is internally consistent
+    # and replay() must catch the semantic drift, not the constructor.
+    drifted = TransitionJournal(
+        entries=(replace(entry, operator_input=drifted_input, content_hash=""),)
+    )
 
     replayed = drifted.replay()
 
@@ -275,6 +283,7 @@ def test_ic_merge_replay_rejects_policy_drift_before_semantic_replay() -> None:
                     **entry.version_policy_snapshot,
                     "revision_policy_version": "revision.v2",
                 },
+                content_hash="",
             ),
         )
     )
@@ -309,7 +318,7 @@ def test_worldline_capture_serializes_ic_merge_event() -> None:
     assert entry["operator"] == "ic_merge"
     assert entry["operator_input"]["merge_parent_commits"] == ["left", "right"]
     assert entry["operator_input"]["integrity_constraint"]["required"] == [atom_ids["a"]]
-    event = entry["normalized_state_out"]["history"][-1]["event"]
+    event = entry["state_out"]["state"]["history"][-1]["event"]
     assert event["operation"] == "ic_merge"
     assert event["decision"]["trace"]["merge_operator"] == "sigma"
     assert event["realization"]["rejected_atom_ids"] == [atom_ids["b"]]

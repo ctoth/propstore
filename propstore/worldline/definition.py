@@ -17,12 +17,16 @@ The nested input graph is declared as typed Quire documents. Quire's charter
 codec owns recursive decoding, encoding, and strict field validation; this
 module owns only the worldline's semantic declarations and invariants.
 
-The transition ``journal`` cannot be structurally decoded by msgspec — a captured
-:class:`~propstore.support_revision.history.TransitionJournal` nests an untagged
-``AssertionAtom | AssumptionAtom`` union — so it is stored as the journal's own
-canonical dict (``TransitionJournal.to_dict()``) and parsed back through the
-package-owned :meth:`TransitionJournal.from_mapping` via
-:meth:`WorldlineDefinition.transition_journal`.
+The transition ``journal`` is stored as the journal's own canonical dict
+(``TransitionJournal.to_dict()``) and parsed back through
+:meth:`TransitionJournal.from_mapping` via
+:meth:`WorldlineDefinition.transition_journal`. Since wire format v2 the journal
+envelope is plain msgspec — ``from_mapping`` is a one-line structural decode,
+and each entry's ``content_hash`` field is stamped on construction and verified
+on decode in ``__post_init__``. The remaining reason this charter field is a
+dict rather than the typed ``TransitionJournal`` is contract sequencing: typing
+the field changes the worldline family contract and forces a registry manifest
+bump, deferred until the in-flight alignment contract changes land.
 """
 
 from __future__ import annotations

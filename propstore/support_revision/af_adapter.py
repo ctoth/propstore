@@ -19,7 +19,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import (
     ClaimCatalogStore,
     ClaimLookupStore,
@@ -64,10 +64,10 @@ class RevisionArgumentationStore:
     def __init__(
         self,
         backing_store: object,
-        active_claims: tuple[ActiveClaimInput, ...],
+        active_claims: tuple[ActiveClaim, ...],
     ) -> None:
         self._backing_store = backing_store
-        self._active_claims = tuple(coerce_active_claim(claim) for claim in active_claims)
+        self._active_claims = tuple(active_claims)
         self._claims_by_id = {str(claim.claim_id): claim for claim in self._active_claims}
         self._active_claim_ids = frozenset(self._claims_by_id)
 
