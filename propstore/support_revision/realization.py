@@ -15,9 +15,11 @@ from propstore.support_revision.belief_set_adapter import (
 )
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import RevisionAtomDetail
+from propstore.support_revision.decision_trace import ICMergeTrace
 from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
+    FormalRevisionDecisionReport,
     RevisionMergeRequiredFailure,
     RevisionResult,
     SupportRevisionRealization,
@@ -143,10 +145,6 @@ def realize_ic_merge_decision(
         incision_set=(),
         source_claim_ids=_source_claim_ids(atoms_by_id, accepted_ids),
         reasons=explanation,
-        journal_metadata={
-            "selected_world": list(selected_worlds[0]),
-            "selected_worlds_hash": decision.report.trace.get("selected_worlds_hash"),
-        },
     )
     return RevisionResult(
         revised_base=revised_base,
@@ -165,7 +163,7 @@ def _ic_merge_failure(reason: str, decision: FormalDecision) -> RevisionMergeReq
         decision_report=decision.report,
         profile_atom_ids=decision.profile_atom_ids,
         integrity_constraint=decision.integrity_constraint,
-        selected_worlds_hash=decision.report.trace.get("selected_worlds_hash"),
+        selected_worlds_hash=_selected_worlds_hash(decision.report),
     )
 
 
@@ -361,3 +359,11 @@ def _rebuild_base(base: BeliefBase, atoms: Sequence[BeliefAtom]) -> BeliefBase:
         support_sets=support_sets,
         essential_support=essential_support,
     )
+
+
+def _selected_worlds_hash(report: FormalRevisionDecisionReport | None) -> str | None:
+    """The worlds an IC merge selected — only an IC merge selects any."""
+
+    if report is None or not isinstance(report.trace, ICMergeTrace):
+        return None
+    return report.trace.selected_worlds_hash or None

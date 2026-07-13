@@ -70,7 +70,6 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
         name="iterated_revise",
         input_atom_id=new_atom.atom_id,
         target_atom_ids=(ids["legacy"],),
-        parameters={"conflicts": {new_atom.atom_id: [ids["legacy"]]}},
     )
 
     entry = TransitionJournalEntry.from_states(

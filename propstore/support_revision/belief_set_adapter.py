@@ -29,7 +29,13 @@ from belief_set import (
     revise,
 )
 
-from propstore.reporting import json_ready
+from propstore.provenance import ProvenanceStatus
+from propstore.support_revision.decision_trace import (
+    DecisionTrace,
+    ICMergeTrace,
+    RankingProvenance,
+    RevisionTrace,
+)
 from propstore.support_revision.integrity_constraints import (
     AtomConstraint,
     IntegrityConstraintSpec,
@@ -235,7 +241,6 @@ def decide_ic_merge(
     *,
     merge_operator: str = ICMergeOperator.SIGMA.value,
     max_alphabet_size: int,
-    trace_metadata: Mapping[str, Any] | None = None,
     profile_atom_ids: tuple[tuple[str, ...], ...] = (),
     integrity_constraint_payload: IntegrityConstraintSpec | None = None,
 ) -> FormalDecision:
@@ -261,13 +266,13 @@ def decide_ic_merge(
         },
         budget_config={"max_alphabet_size": max_alphabet_size},
     )
-    trace = dict(trace_metadata or {})
-    trace.update(
-        {
-            "merge_operator": operator.value,
-            "selected_worlds_hash": _worlds_hash(outcome.belief_set.models),
-            "scored_worlds_hash": _scored_worlds_hash(outcome.scored_worlds),
-        }
+    trace = ICMergeTrace(
+        profile_atom_ids=profile_atom_ids,
+        profile_hash=_plain_hash([list(atom_ids) for atom_ids in profile_atom_ids]),
+        integrity_constraint=integrity_constraint_payload,
+        merge_operator=operator.value,
+        selected_worlds_hash=_worlds_hash(outcome.belief_set.models),
+        scored_worlds_hash=_scored_worlds_hash(outcome.scored_worlds),
     )
     report = _decision_report(
         operation="ic_merge",
@@ -307,11 +312,6 @@ def decide_ic_merge_profile(
         integrity_constraint_formula(integrity_constraint),
         merge_operator=merge_operator,
         max_alphabet_size=max_alphabet_size,
-        trace_metadata={
-            "profile_atom_ids": [list(atom_ids) for atom_ids in profile_atom_ids],
-            "profile_hash": _plain_hash([list(atom_ids) for atom_ids in profile_atom_ids]),
-            "integrity_constraint": json_ready(integrity_constraint),
-        },
         profile_atom_ids=profile_atom_ids,
         integrity_constraint_payload=integrity_constraint,
     )
@@ -378,7 +378,7 @@ def _decision_report(
     bundle: FormalProjectionBundle,
     outcome: BeliefSet | RevisionOutcome | ICMergeOutcome | SpohnEpistemicState,
     input_formula_ids: tuple[str, ...],
-    trace: Mapping[str, Any] | None = None,
+    trace: DecisionTrace | None = None,
 ) -> FormalRevisionDecisionReport:
     belief_set = _outcome_belief_set(outcome)
     accepted = tuple(
@@ -393,14 +393,6 @@ def _decision_report(
     )
     state = _outcome_state(outcome)
     state_hash = None if state is None else _state_hash(state)
-    trace_payload = dict(_trace_payload(outcome))
-    trace_payload.update(dict(trace or {}))
-    if state_hash is not None:
-        trace_payload["ranking_provenance"] = {
-            "status": "defaulted",
-            "method": "hamming_distance",
-            "input_hash": state_hash,
-        }
     return FormalRevisionDecisionReport(
         operation=operation,
         policy=policy,
@@ -408,7 +400,18 @@ def _decision_report(
         accepted_formula_ids=accepted,
         rejected_formula_ids=rejected,
         epistemic_state_hash=state_hash,
-        trace=trace_payload,
+        trace=trace if trace is not None else _revision_trace(outcome),
+        # No authored ranking existed: the Hamming-distance fallback supplied one.
+        # That is a fallback, not a measurement, and the enum says so.
+        ranking_provenance=(
+            None
+            if state_hash is None
+            else RankingProvenance(
+                status=ProvenanceStatus.DEFAULTED,
+                method="hamming_distance",
+                input_hash=state_hash,
+            )
+        ),
     )
 
 
@@ -460,15 +463,17 @@ def _outcome_state(
     return None
 
 
-def _trace_payload(
+def _revision_trace(
     outcome: BeliefSet | RevisionOutcome | ICMergeOutcome | SpohnEpistemicState,
-) -> Mapping[str, Any]:
+) -> RevisionTrace | None:
+    """A revision records its operator and pre-image; expand and contract record nothing."""
+
     if not isinstance(outcome, RevisionOutcome):
-        return {}
-    return {
-        "operator": outcome.trace.operator,
-        "pre_image_fingerprint": outcome.trace.pre_image_fingerprint,
-    }
+        return None
+    return RevisionTrace(
+        operator=outcome.trace.operator,
+        pre_image_fingerprint=outcome.trace.pre_image_fingerprint,
+    )
 
 
 def _state_for(bundle: FormalProjectionBundle) -> SpohnEpistemicState:

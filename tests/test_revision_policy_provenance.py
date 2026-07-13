@@ -4,6 +4,8 @@ from msgspec.structs import replace
 
 from quire.documents import to_document_builtins
 
+from propstore.provenance import ProvenanceStatus
+from propstore.support_revision.decision_trace import RankingProvenance
 from propstore.support_revision.integrity_constraints import (
     AtomConstraint,
     LiteralsConstraint,
@@ -48,11 +50,11 @@ def test_defaulted_spohn_ranking_is_visible_in_formal_decision_trace() -> None:
     )
 
     assert result.decision is not None
-    assert result.decision.trace["ranking_provenance"] == {
-        "status": "defaulted",
-        "method": "hamming_distance",
-        "input_hash": result.decision.epistemic_state_hash,
-    }
+    assert result.decision.ranking_provenance == RankingProvenance(
+        status=ProvenanceStatus.DEFAULTED,
+        method="hamming_distance",
+        input_hash=result.decision.epistemic_state_hash or "",
+    )
 
 
 def test_dispatch_rejects_empty_policy_version_values() -> None:
@@ -116,3 +118,28 @@ def test_replay_rejects_policy_version_mismatch_before_semantic_replay() -> None
     assert report.errors
     assert "policy" in report.errors[0]
     assert not report.divergences
+
+
+def test_ranking_provenance_carries_the_typed_status_not_a_string() -> None:
+    """A defaulted ranking says so with the enum (CLAUDE.md honest-ignorance).
+
+    The Hamming-distance fallback supplies a ranking when none was authored.
+    That is a *fallback*, and ``ProvenanceStatus.DEFAULTED`` is how the system
+    says so. It used to say it with the bare string ``"defaulted"`` buried in an
+    untyped trace dict — a second spelling of the one provenance enum, in the one
+    place the project is least willing to fabricate confidence.
+    """
+    from propstore.provenance import ProvenanceStatus
+    from propstore.support_revision.decision_trace import RankingProvenance
+
+    provenance = RankingProvenance(
+        status=ProvenanceStatus.DEFAULTED,
+        method="hamming_distance",
+        input_hash="abc",
+    )
+
+    # ProvenanceStatus is a StrEnum, so `== "defaulted"` is true either way —
+    # that is exactly why the string spelling went unnoticed. What matters is
+    # that the value IS the enum member, so the type system can reason about it.
+    assert provenance.status is ProvenanceStatus.DEFAULTED
+    assert isinstance(provenance.status, ProvenanceStatus)

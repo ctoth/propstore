@@ -19,6 +19,7 @@ from propstore.support_revision.realization import (
     realize_formal_decision,
     realize_ic_merge_decision,
 )
+from propstore.support_revision.decision_trace import ICMergeTrace
 from propstore.support_revision.integrity_constraints import IntegrityConstraintSpec
 from propstore.support_revision.operator_inputs import (
     ContractInput,
@@ -297,7 +298,7 @@ def _raise_ic_merge_failure(
     decision_report = exc.decision_report or decision
     selected_worlds_hash = exc.selected_worlds_hash
     if selected_worlds_hash is None and decision_report is not None:
-        selected_worlds_hash = decision_report.trace.get("selected_worlds_hash")
+        selected_worlds_hash = _selected_worlds_hash(decision_report)
     event = RevisionEvent(
         operation=JournalOperator.IC_MERGE.value,
         pre_state_hash=EpistemicSnapshot.from_state(state).content_hash,
@@ -320,3 +321,11 @@ def _raise_ic_merge_failure(
 
 
 
+
+
+def _selected_worlds_hash(report: FormalRevisionDecisionReport | None) -> str | None:
+    """The worlds an IC merge selected — only an IC merge selects any."""
+
+    if report is None or not isinstance(report.trace, ICMergeTrace):
+        return None
+    return report.trace.selected_worlds_hash or None

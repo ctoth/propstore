@@ -270,7 +270,6 @@ def _journal_operator_input(
                 name=operation,
                 input_atom_id=atom.atom_id,
                 target_atom_ids=targets,
-                parameters={"operator": operator},
             ),
             IteratedReviseInput(
                 formula=atom,
@@ -301,10 +300,6 @@ def _journal_operator_input(
                 name=operation,
                 input_atom_id=None,
                 target_atom_ids=target_atom_ids,
-                # The merge operator is the operation's descriptive parameter; the
-                # full input rides typed on the entry's ``operator_input`` and is
-                # not duplicated here.
-                parameters={"operator": operator_input.merge_operator},
             ),
             operator_input,
         )

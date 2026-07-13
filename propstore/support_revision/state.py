@@ -21,6 +21,7 @@ from propstore.core.id_types import (
 )
 from propstore.core.labels import Label
 from propstore.reporting import json_ready
+from propstore.support_revision.decision_trace import DecisionTrace, RankingProvenance
 from propstore.support_revision.integrity_constraints import IntegrityConstraintSpec
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
@@ -143,13 +144,18 @@ class FormalRevisionDecisionReport(
     rejected_formula_ids: tuple[str, ...] = ()
     epistemic_state_hash: str | None = None
     budget_failure: str | None = None
-    trace: dict[str, Any] = msgspec.field(default_factory=dict[str, Any])
+    # What the operator recorded about how it reached this decision — a tagged
+    # union, not a bag. Expand and contract record nothing.
+    trace: DecisionTrace | None = None
+    # How the ranking this decision used was obtained. A sibling fact about the
+    # decision, not part of the operator's trace, and it carries the typed
+    # ProvenanceStatus rather than the string "defaulted".
+    ranking_provenance: RankingProvenance | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "input_formula_ids", tuple(str(item) for item in self.input_formula_ids))
         object.__setattr__(self, "accepted_formula_ids", tuple(str(item) for item in self.accepted_formula_ids))
         object.__setattr__(self, "rejected_formula_ids", tuple(str(item) for item in self.rejected_formula_ids))
-        object.__setattr__(self, "trace", dict(self.trace))
 
 class SupportRevisionRealization(
     msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
@@ -162,7 +168,6 @@ class SupportRevisionRealization(
         default_factory=dict[str, RevisionAtomDetail]
     )
     snapshot_hash: str | None = None
-    journal_metadata: dict[str, Any] = msgspec.field(default_factory=dict[str, Any])
     replay_status: str | None = None
 
     def __post_init__(self) -> None:
@@ -175,7 +180,6 @@ class SupportRevisionRealization(
             "reasons",
             {str(atom_id): detail for atom_id, detail in self.reasons.items()},
         )
-        object.__setattr__(self, "journal_metadata", dict(self.journal_metadata))
 
 @dataclass(frozen=True)
 class RevisionResult:

@@ -19,7 +19,7 @@ from propstore.support_revision.operator_inputs import OperatorInput
 from propstore.support_revision.state import EpistemicState
 
 EPistemicSnapshotVersion = "propstore.epistemic_snapshot.v2"
-TransitionJournalVersion = "propstore.transition_journal.v4"
+TransitionJournalVersion = "propstore.transition_journal.v5"
 
 
 class JournalOperator(Enum):
@@ -189,7 +189,6 @@ class TransitionOperation(
     name: str
     input_atom_id: str | None = None
     target_atom_ids: tuple[str, ...] = ()
-    parameters: dict[str, Any] = msgspec.field(default_factory=dict[str, Any])
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "name", str(self.name))
@@ -199,7 +198,6 @@ class TransitionOperation(
             None if self.input_atom_id is None else str(self.input_atom_id),
         )
         object.__setattr__(self, "target_atom_ids", tuple(str(item) for item in self.target_atom_ids))
-        object.__setattr__(self, "parameters", json_ready(dict(self.parameters)))
 
     def to_dict(self) -> dict[str, Any]:
         return dict(_required_mapping(to_document_builtins(self), "operation"))

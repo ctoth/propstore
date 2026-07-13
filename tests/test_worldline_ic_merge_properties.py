@@ -148,7 +148,7 @@ def test_profile_multiset_hash_preserves_duplicate_entries(count: int) -> None:
         max_alphabet_size=8,
     )
 
-    assert duplicate.report.trace["profile_hash"] != unique.report.trace["profile_hash"]
+    assert duplicate.report.trace.profile_hash != unique.report.trace.profile_hash
 
 
 @pytest.mark.property
@@ -175,7 +175,6 @@ def test_ic_merge_journal_replay_matches_direct_dispatch(count: int) -> None:
                 operation=TransitionOperation(
                     name="ic_merge",
                     target_atom_ids=tuple(atom_ids),
-                    parameters={"operator": operator_input.merge_operator},
                 ),
                 operator=JournalOperator.IC_MERGE,
                 operator_input=operator_input,

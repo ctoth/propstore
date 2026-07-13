@@ -48,8 +48,8 @@ def test_ic_merge_decision_report_records_profile_multiset_and_integrity_constra
     )
 
     trace = decision.report.trace
-    assert trace["profile_atom_ids"] == [["atom:a"], ["atom:a"], ["atom:b"]]
-    assert trace["integrity_constraint"] == {"kind": "atom", "atom_id": "atom:a"}
+    assert trace.profile_atom_ids == (("atom:a",), ("atom:a",), ("atom:b",))
+    assert trace.integrity_constraint == AtomConstraint(atom_id="atom:a")
 
 
 def test_ic_merge_decision_report_records_selected_worlds_hash() -> None:
@@ -61,10 +61,10 @@ def test_ic_merge_decision_report_records_selected_worlds_hash() -> None:
     )
 
     trace = decision.report.trace
-    assert isinstance(trace["selected_worlds_hash"], str)
-    assert len(trace["selected_worlds_hash"]) == 64
-    assert isinstance(trace["scored_worlds_hash"], str)
-    assert len(trace["scored_worlds_hash"]) == 64
+    assert isinstance(trace.selected_worlds_hash, str)
+    assert len(trace.selected_worlds_hash) == 64
+    assert isinstance(trace.scored_worlds_hash, str)
+    assert len(trace.scored_worlds_hash) == 64
 
 
 def test_ic_merge_decision_report_records_formal_operator_family() -> None:
@@ -77,7 +77,7 @@ def test_ic_merge_decision_report_records_formal_operator_family() -> None:
 
     assert decision.report.operation == "ic_merge"
     assert decision.report.policy == "belief_set.ic_merge.merge_belief_profile.gmax"
-    assert decision.report.trace["merge_operator"] == "gmax"
+    assert decision.report.trace.merge_operator == "gmax"
 
 
 def test_ic_merge_decision_preserves_duplicate_profile_members() -> None:
@@ -94,8 +94,8 @@ def test_ic_merge_decision_preserves_duplicate_profile_members() -> None:
         max_alphabet_size=4,
     )
 
-    assert duplicate_decision.report.trace["profile_atom_ids"] == [["atom:a"], ["atom:a"], ["atom:b"]]
-    assert duplicate_decision.report.trace["profile_hash"] != unique_decision.report.trace["profile_hash"]
+    assert duplicate_decision.report.trace.profile_atom_ids == (("atom:a",), ("atom:a",), ("atom:b",))
+    assert duplicate_decision.report.trace.profile_hash != unique_decision.report.trace.profile_hash
 
 
 def test_realizable_ic_merge_returns_epistemic_state_instead_of_realization_not_implemented() -> None:
@@ -163,7 +163,7 @@ def test_disjunctive_selected_worlds_fail_with_typed_ambiguous_realization() -> 
 
     assert exc_info.value.reason == "ambiguous_selected_worlds"
     assert exc_info.value.decision_report is not None
-    assert exc_info.value.selected_worlds_hash == decision.report.trace["selected_worlds_hash"]
+    assert exc_info.value.selected_worlds_hash == decision.report.trace.selected_worlds_hash
 
 
 def test_selected_world_with_unknown_formal_atom_fails_typed() -> None:
@@ -182,7 +182,7 @@ def test_selected_world_with_unknown_formal_atom_fails_typed() -> None:
 
     assert exc_info.value.reason == "unmapped_formal_atom"
     assert exc_info.value.decision_report is not None
-    assert exc_info.value.selected_worlds_hash == exc_info.value.decision_report.trace["selected_worlds_hash"]
+    assert exc_info.value.selected_worlds_hash == exc_info.value.decision_report.trace.selected_worlds_hash
 
 
 def test_unsatisfiable_integrity_constraint_preserves_formal_decision() -> None:
@@ -211,7 +211,7 @@ def test_unrealizable_merge_failure_event_preserves_selected_world_hash() -> Non
     assert event.decision is not None
     assert event.realization is None
     assert event.realization_failure == "unsatisfiable_integrity_constraint"
-    assert event.decision.trace["selected_worlds_hash"] == exc_info.value.selected_worlds_hash
+    assert event.decision.trace.selected_worlds_hash == exc_info.value.selected_worlds_hash
 
 
 def test_unrealizable_merge_failure_is_replayable_as_failure() -> None:
@@ -376,7 +376,6 @@ def _realizable_ic_merge_journal() -> TransitionJournal:
                 operation=TransitionOperation(
                     name="ic_merge",
                     target_atom_ids=(atom_ids["a"], atom_ids["b"]),
-                    parameters={"operator": operator_input.merge_operator},
                 ),
                 operator=JournalOperator.IC_MERGE,
                 operator_input=operator_input,
