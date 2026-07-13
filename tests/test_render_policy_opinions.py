@@ -148,7 +148,7 @@ def test_uncertainty_interval_is_belief_plausibility() -> None:
 # ── RenderPolicy serialization ──────────────────────────────────
 
 
-def test_render_policy_opinion_fields_roundtrip() -> None:
+def test_render_policy_carries_the_opinion_fields() -> None:
     policy = RenderPolicy(
         reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
         strategy=ResolutionStrategy.ARGUMENTATION,
@@ -156,14 +156,13 @@ def test_render_policy_opinion_fields_roundtrip() -> None:
         pessimism_index=0.7,
         show_uncertainty_interval=True,
     )
-    restored = RenderPolicy.from_dict(policy.to_dict())
-    assert restored.decision_criterion == "hurwicz"
-    assert restored.pessimism_index == pytest.approx(0.7)
-    assert restored.show_uncertainty_interval is True
+    assert policy.decision_criterion == "hurwicz"
+    assert policy.pessimism_index == pytest.approx(0.7)
+    assert policy.show_uncertainty_interval is True
 
 
-def test_render_policy_defaults_from_empty_dict() -> None:
-    policy = RenderPolicy.from_dict({})
+def test_render_policy_opinion_defaults() -> None:
+    policy = RenderPolicy()
     assert policy.decision_criterion == "pignistic"
     assert policy.pessimism_index == pytest.approx(0.5)
     assert policy.show_uncertainty_interval is False

@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, TypeGuard
+from typing import Any
 
 from assignment_selection import MergeOperator
 from condition_ir import CelExpr, to_cel_expr
@@ -26,21 +26,8 @@ from propstore.core.reasoning import (
     ArgumentationSemantics,
     ReasoningBackend,
     normalize_argumentation_semantics,
-    normalize_reasoning_backend,
 )
 from propstore.families.concepts import ConceptStatus
-
-
-def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
-    return isinstance(value, Mapping)
-
-
-def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
-    if value is None:
-        return {}
-    if not _is_mapping(value):
-        raise ValueError(f"render policy field '{field_name}' must be a mapping")
-    return value
 
 
 class ResolutionStrategy(StrEnum):
@@ -95,37 +82,6 @@ class IntegrityConstraint:
             predicate = self.metadata.get("predicate")
             if not callable(predicate):
                 raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
-
-
-def integrity_constraint_from_dict(data: Mapping[str, Any]) -> IntegrityConstraint:
-    return IntegrityConstraint(
-        kind=(
-            data["kind"]
-            if isinstance(data["kind"], IntegrityConstraintKind)
-            else IntegrityConstraintKind(str(data["kind"]))
-        ),
-        concept_ids=tuple(str(concept_id) for concept_id in data.get("concept_ids", ())),
-        metadata=dict(_optional_mapping(data.get("metadata"), "metadata")),
-        cel=None if data.get("cel") is None else to_cel_expr(str(data["cel"])),
-        description=(
-            None
-            if data.get("description") is None
-            else str(data["description"])
-        ),
-    )
-
-
-def integrity_constraint_to_dict(constraint: IntegrityConstraint) -> dict[str, Any]:
-    metadata = dict(constraint.metadata)
-    if constraint.kind == IntegrityConstraintKind.CUSTOM and "predicate" in metadata:
-        raise TypeError("CUSTOM integrity constraints with callable predicates are not serializable")
-    return {
-        "kind": constraint.kind.value,
-        "concept_ids": list(constraint.concept_ids),
-        "metadata": metadata,
-        "cel": constraint.cel,
-        "description": constraint.description,
-    }
 
 
 @dataclass(frozen=True)
@@ -247,157 +203,11 @@ class RenderPolicy:
             return self.include_blocked
         return True
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> RenderPolicy:
-        """Parse a render policy from a genuinely untyped payload.
-
-        This is the CLI/HTTP flag-and-query boundary, where the input really is
-        decoded JSON authored outside the type system. The ``worldlines``
-        charter does *not* go through here — it stores a typed ``RenderPolicy``
-        and Quire decodes it (CLAUDE.md: crossing a boundary is a call, not a
-        conversion).
-        """
-        if not data:
-            return cls()
-
-        strategy_value = data.get("strategy")
-        reasoning_backend_value = data.get("reasoning_backend", ReasoningBackend.CLAIM_GRAPH)
-        reasoning_backend = normalize_reasoning_backend(reasoning_backend_value)
-        concept_strategies = {
-            str(concept_id): (
-                strategy
-                if isinstance(strategy, ResolutionStrategy)
-                else ResolutionStrategy(str(strategy))
-            )
-            for concept_id, strategy in _optional_mapping(
-                data.get("concept_strategies"),
-                "concept_strategies",
-            ).items()
-        }
-        branch_weights = (
-            None
-            if data.get("branch_weights") is None
-            else dict(_optional_mapping(data.get("branch_weights"), "branch_weights"))
-        )
-        return cls(
-            reasoning_backend=reasoning_backend,
-            strategy=(
-                None
-                if strategy_value is None
-                else (
-                    strategy_value
-                    if isinstance(strategy_value, ResolutionStrategy)
-                    else ResolutionStrategy(str(strategy_value))
-                )
-            ),
-            semantics=normalize_argumentation_semantics(
-                data.get("semantics", ArgumentationSemantics.GROUNDED)
-            ),
-            comparison=str(data.get("comparison", "elitist")),
-            link=str(data.get("link", "last")),
-            decision_criterion=str(data.get("decision_criterion", "pignistic")),
-            pessimism_index=float(data.get("pessimism_index", 0.5)),
-            show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
-            praf_strategy=str(data.get("praf_strategy", "auto")),
-            praf_mc_epsilon=float(data.get("praf_mc_epsilon", 0.01)),
-            praf_mc_confidence=float(data.get("praf_mc_confidence", 0.95)),
-            praf_treewidth_cutoff=int(data.get("praf_treewidth_cutoff", 12)),
-            praf_mc_seed=(
-                None
-                if data.get("praf_mc_seed") is None
-                else int(data["praf_mc_seed"])
-            ),
-            merge_operator=normalize_merge_operator(
-                data.get("merge_operator", MergeOperator.SIGMA)
-            ),
-            branch_filter=(
-                None
-                if data.get("branch_filter") is None
-                else tuple(data["branch_filter"])
-            ),
-            branch_weights=branch_weights,
-            integrity_constraints=tuple(
-                integrity_constraint_from_dict(item)
-                for item in (data.get("integrity_constraints") or ())
-            ),
-            future_queryables=tuple(data.get("future_queryables") or ()),
-            future_limit=(
-                None
-                if data.get("future_limit") is None
-                else int(data["future_limit"])
-            ),
-            overrides=dict(_optional_mapping(data.get("overrides"), "overrides")),
-            concept_strategies=concept_strategies,
-            include_drafts=bool(data.get("include_drafts", False)),
-            include_blocked=bool(data.get("include_blocked", False)),
-            show_quarantined=bool(data.get("show_quarantined", False)),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {}
-        if self.reasoning_backend != ReasoningBackend.CLAIM_GRAPH:
-            data["reasoning_backend"] = self.reasoning_backend.value
-        if self.strategy is not None:
-            data["strategy"] = self.strategy.value
-        if self.semantics != ArgumentationSemantics.GROUNDED:
-            data["semantics"] = self.semantics.value
-        if self.comparison != "elitist":
-            data["comparison"] = self.comparison
-        if self.link != "last":
-            data["link"] = self.link
-        if self.decision_criterion != "pignistic":
-            data["decision_criterion"] = self.decision_criterion
-        if self.pessimism_index != 0.5:
-            data["pessimism_index"] = self.pessimism_index
-        if self.show_uncertainty_interval:
-            data["show_uncertainty_interval"] = self.show_uncertainty_interval
-        if self.praf_strategy != "auto":
-            data["praf_strategy"] = self.praf_strategy
-        if self.praf_mc_epsilon != 0.01:
-            data["praf_mc_epsilon"] = self.praf_mc_epsilon
-        if self.praf_mc_confidence != 0.95:
-            data["praf_mc_confidence"] = self.praf_mc_confidence
-        if self.praf_treewidth_cutoff != 12:
-            data["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
-        if self.praf_mc_seed is not None:
-            data["praf_mc_seed"] = self.praf_mc_seed
-        if self.merge_operator != MergeOperator.SIGMA:
-            data["merge_operator"] = self.merge_operator
-        if self.branch_filter is not None:
-            data["branch_filter"] = list(self.branch_filter)
-        if self.branch_weights is not None:
-            data["branch_weights"] = dict(self.branch_weights)
-        if self.integrity_constraints:
-            data["integrity_constraints"] = [
-                integrity_constraint_to_dict(constraint)
-                for constraint in self.integrity_constraints
-            ]
-        if self.future_queryables:
-            data["future_queryables"] = list(self.future_queryables)
-        if self.future_limit is not None:
-            data["future_limit"] = self.future_limit
-        if self.overrides:
-            data["overrides"] = dict(self.overrides)
-        if self.concept_strategies:
-            data["concept_strategies"] = {
-                concept_id: strategy.value
-                for concept_id, strategy in self.concept_strategies.items()
-            }
-        if self.include_drafts:
-            data["include_drafts"] = self.include_drafts
-        if self.include_blocked:
-            data["include_blocked"] = self.include_blocked
-        if self.show_quarantined:
-            data["show_quarantined"] = self.show_quarantined
-        return data
-
 
 __all__ = [
     "IntegrityConstraint",
     "IntegrityConstraintKind",
     "RenderPolicy",
     "ResolutionStrategy",
-    "integrity_constraint_from_dict",
-    "integrity_constraint_to_dict",
     "normalize_merge_operator",
 ]

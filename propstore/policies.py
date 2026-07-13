@@ -59,16 +59,6 @@ class RevisionPolicy:
     entrenchment: str = "support_sensitive"
     allow_reintroduction: bool = False
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> RevisionPolicy:
-        payload: Mapping[str, Any] = {} if data is None else data
-        return cls(
-            operator=str(payload.get("operator", DEFAULT_ITERATED_OPERATOR)),
-            selection=str(payload.get("selection", "minimal_incision")),
-            entrenchment=str(payload.get("entrenchment", "support_sensitive")),
-            allow_reintroduction=bool(payload.get("allow_reintroduction", False)),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         return {
             "operator": self.operator,
@@ -93,21 +83,6 @@ class MergePolicy:
                 "branch_filter",
                 tuple(str(item) for item in self.branch_filter),
             )
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> MergePolicy:
-        payload: Mapping[str, Any] = {} if data is None else data
-        branch_filter = payload.get("branch_filter")
-        return cls(
-            operator=payload.get("operator", MergeOperator.SIGMA),
-            conflict_strategy=str(
-                payload.get("conflict_strategy", "surface_conflicts")
-            ),
-            branch_filter=None
-            if branch_filter is None
-            else tuple(str(item) for item in branch_filter),
-            require_witnesses=bool(payload.get("require_witnesses", True)),
-        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -143,21 +118,6 @@ class AdmissibilityProfile:
         )
         object.__setattr__(self, "pessimism_index", float(self.pessimism_index))
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> AdmissibilityProfile:
-        payload: Mapping[str, Any] = {} if data is None else data
-        return cls(
-            reasoning_backend=payload.get(
-                "reasoning_backend", ReasoningBackend.CLAIM_GRAPH
-            ),
-            semantics=payload.get("semantics", ArgumentationSemantics.GROUNDED),
-            conflict_free_basis=str(payload.get("conflict_free_basis", "attack")),
-            comparison=str(payload.get("comparison", "elitist")),
-            link=str(payload.get("link", "last")),
-            decision_criterion=str(payload.get("decision_criterion", "pignistic")),
-            pessimism_index=float(payload.get("pessimism_index", 0.5)),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         return {
             "reasoning_backend": self.reasoning_backend.value,
@@ -184,20 +144,6 @@ class SourceTrustProfile:
             tuple(sorted(str(item) for item in self.accepted_authorities)),
         )
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> SourceTrustProfile:
-        payload: Mapping[str, Any] = {} if data is None else data
-        return cls(
-            accepted_authorities=tuple(
-                str(item) for item in payload.get("accepted_authorities", ())
-            ),
-            required_attitude=str(payload.get("required_attitude", "asserted")),
-            unsigned_graph_policy=str(
-                payload.get("unsigned_graph_policy", "quote_only")
-            ),
-            require_digest=bool(payload.get("require_digest", False)),
-        )
-
     def to_dict(self) -> dict[str, Any]:
         return {
             "accepted_authorities": list(self.accepted_authorities),
@@ -212,17 +158,6 @@ class EscalationPolicy:
     unresolved_conflict: str = "queue_investigation"
     missing_warrant: str = "mark_untrusted"
     low_trust: str = "require_review"
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> EscalationPolicy:
-        payload: Mapping[str, Any] = {} if data is None else data
-        return cls(
-            unresolved_conflict=str(
-                payload.get("unresolved_conflict", "queue_investigation")
-            ),
-            missing_warrant=str(payload.get("missing_warrant", "mark_untrusted")),
-            low_trust=str(payload.get("low_trust", "require_review")),
-        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -249,26 +184,6 @@ class PolicyProfile:
                 f"unsupported policy profile version: {self.schema_version}"
             )
         object.__setattr__(self, "profile_id", self._derived_profile_id())
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> PolicyProfile:
-        schema_version = str(data.get("schema_version", _PROFILE_VERSION))
-        recorded_profile_id = str(data.get("profile_id", ""))
-        profile = cls(
-            revision=RevisionPolicy.from_dict(data.get("revision")),
-            merge=MergePolicy.from_dict(data.get("merge")),
-            admissibility=AdmissibilityProfile.from_dict(data.get("admissibility")),
-            source_trust=SourceTrustProfile.from_dict(data.get("source_trust")),
-            escalation=EscalationPolicy.from_dict(data.get("escalation")),
-            label=str(data.get("label", "default")),
-            schema_version=schema_version,
-        )
-        if recorded_profile_id and recorded_profile_id != profile.profile_id:
-            raise ValueError("policy profile_id does not match policy content")
-        recorded_hash = data.get("content_hash")
-        if recorded_hash is not None and str(recorded_hash) != profile.content_hash:
-            raise ValueError("policy profile content_hash does not match payload")
-        return profile
 
     @property
     def content_hash(self) -> str:

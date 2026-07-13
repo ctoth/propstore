@@ -69,23 +69,6 @@ class CanonicalJustification:
             data["attributes"] = dict(self.attributes)
         return data
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> CanonicalJustification:
-        provenance_data = data.get("provenance")
-        return cls(
-            justification_id=str(data["justification_id"]),
-            conclusion_claim_id=str(data["conclusion_claim_id"]),
-            premise_claim_ids=tuple(str(item) for item in data.get("premise_claim_ids") or ()),
-            rule_kind=str(data.get("rule_kind") or "reported_claim"),
-            rule_strength=str(data.get("rule_strength") or "defeasible"),
-            provenance=(
-                None
-                if provenance_data is None
-                else msgspec.convert(provenance_data, Provenance)
-            ),
-            attributes=tuple(_normalize_attrs(data.get("attributes"))),
-        )
-
 
 def claim_justifications_from_active_graph(
     active_graph: ActiveWorldGraph,

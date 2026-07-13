@@ -42,40 +42,33 @@ def test_distinct_policy_content_yields_distinct_profile_id() -> None:
     assert sigma.profile_id != gmax.profile_id
 
 
-def test_to_dict_round_trips_through_from_dict() -> None:
-    profile = PolicyProfile(
-        revision=RevisionPolicy(operator="lexicographic", allow_reintroduction=True),
-        merge=MergePolicy(operator=MergeOperator.MAX, branch_filter=("main", "rc")),
-        admissibility=AdmissibilityProfile(
-            semantics=ArgumentationSemantics.PREFERRED,
-            reasoning_backend=ReasoningBackend.ATMS,
-        ),
-        label="experiment",
-    )
+def test_identical_policy_collapses_to_one_identity() -> None:
+    # The point of the profile: identity is derived from content, so two runs
+    # under the same policy are the same policy. (There is no from_dict to test
+    # a round trip through — nothing parses a profile back from a payload; the
+    # journal only ever writes one.)
+    def _profile() -> PolicyProfile:
+        return PolicyProfile(
+            revision=RevisionPolicy(operator="lexicographic", allow_reintroduction=True),
+            merge=MergePolicy(operator=MergeOperator.MAX, branch_filter=("main", "rc")),
+            admissibility=AdmissibilityProfile(
+                semantics=ArgumentationSemantics.PREFERRED,
+                reasoning_backend=ReasoningBackend.ATMS,
+            ),
+            label="experiment",
+        )
 
-    payload = profile.to_dict()
-    restored = PolicyProfile.from_dict(payload)
-
-    assert restored.profile_id == profile.profile_id
-    assert restored.content_hash == profile.content_hash
-    assert restored.to_dict() == payload
-    assert restored.merge.branch_filter == ("main", "rc")
-
-
-def test_from_dict_rejects_tampered_content_hash() -> None:
-    payload = default_policy_profile().to_dict()
-    payload["content_hash"] = "0" * 64
-
-    with pytest.raises(ValueError, match="content_hash"):
-        PolicyProfile.from_dict(payload)
+    assert _profile().profile_id == _profile().profile_id
+    assert _profile().content_hash == _profile().content_hash
+    assert _profile().merge.branch_filter == ("main", "rc")
 
 
-def test_from_dict_rejects_tampered_profile_id() -> None:
-    payload = default_policy_profile().to_dict()
-    payload["profile_id"] = "urn:propstore:policy-profile:deadbeef"
+def test_differing_policy_gets_a_different_identity() -> None:
+    default = default_policy_profile()
+    other = PolicyProfile(revision=RevisionPolicy(operator="lexicographic"))
 
-    with pytest.raises(ValueError, match="profile_id"):
-        PolicyProfile.from_dict(payload)
+    assert other.profile_id != default.profile_id
+    assert other.content_hash != default.content_hash
 
 
 def test_policy_profile_from_render_policy_lowers_render_choices() -> None:

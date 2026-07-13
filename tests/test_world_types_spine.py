@@ -20,6 +20,7 @@ from propstore.world.types import (
     IntegrityConstraint,
     IntegrityConstraintKind,
     MergeOperator,
+    ReasoningBackend,
     QueryableAssumption,
     RenderPolicy,
     ResolutionStrategy,
@@ -29,8 +30,6 @@ from propstore.world.types import (
     apply_decision_criterion,
     coerce_queryable_assumptions,
     coerce_value_status,
-    integrity_constraint_from_dict,
-    integrity_constraint_to_dict,
     normalize_merge_operator,
     normalize_queryable_cel,
 )
@@ -84,44 +83,47 @@ def test_claim_view_is_landed_by_journal_step_bridge() -> None:
 # --- RenderPolicy: round-trip + lifecycle admits ----------------------------
 
 
-def test_render_policy_default_round_trip_is_empty() -> None:
-    assert RenderPolicy().to_dict() == {}
-    assert RenderPolicy.from_dict(None).to_dict() == {}
-    assert RenderPolicy.from_dict({}).to_dict() == {}
+def test_render_policy_round_trips_through_the_document_codec() -> None:
+    # The policy is persisted as a typed charter field, so the round trip that
+    # matters is Quire's — there is no hand-written to_dict/from_dict pair to be
+    # a fixed point of.
+    from quire.documents import convert_document_value, to_document_builtins
 
+    policy = RenderPolicy(
+        strategy=ResolutionStrategy.RECENCY,
+        reasoning_backend=ReasoningBackend.ASPIC,
+        merge_operator=MergeOperator.GMAX,
+        comparison="democratic",
+        link="first",
+        decision_criterion="hurwicz",
+        pessimism_index=0.25,
+        branch_filter=("main", "exp"),
+        branch_weights={"main": 2.0},
+        future_queryables=("x == 1",),
+        future_limit=4,
+        overrides={"c1": "claim:7"},
+        concept_strategies={"c2": ResolutionStrategy.SAMPLE_SIZE},
+        include_drafts=True,
+        include_blocked=True,
+        show_quarantined=True,
+        integrity_constraints=(
+            IntegrityConstraint(
+                kind=IntegrityConstraintKind.RANGE,
+                concept_ids=("c1",),
+                metadata={"min": 0.0, "max": 1.0},
+            ),
+        ),
+    )
 
-def test_render_policy_round_trip_preserves_non_defaults() -> None:
-    data = {
-        "strategy": "recency",
-        "reasoning_backend": "aspic",
-        "merge_operator": "gmax",
-        "comparison": "democratic",
-        "link": "first",
-        "decision_criterion": "hurwicz",
-        "pessimism_index": 0.25,
-        "branch_filter": ["main", "exp"],
-        "branch_weights": {"main": 2.0},
-        "future_queryables": ["x == 1"],
-        "future_limit": 4,
-        "overrides": {"c1": "claim:7"},
-        "concept_strategies": {"c2": "sample_size"},
-        "include_drafts": True,
-        "include_blocked": True,
-        "show_quarantined": True,
-        "integrity_constraints": [
-            {
-                "kind": "range",
-                "concept_ids": ["c1"],
-                "metadata": {"min": 0.0, "max": 1.0},
-            }
-        ],
-    }
-    policy = RenderPolicy.from_dict(data)
-    # to_dict -> from_dict -> to_dict is a stable fixed point.
-    assert RenderPolicy.from_dict(policy.to_dict()).to_dict() == policy.to_dict()
-    assert policy.strategy is ResolutionStrategy.RECENCY
-    assert policy.merge_operator is MergeOperator.GMAX
-    assert policy.concept_strategies["c2"] is ResolutionStrategy.SAMPLE_SIZE
+    restored = convert_document_value(
+        to_document_builtins(policy), RenderPolicy, source="render policy"
+    )
+
+    assert restored == policy
+    assert restored.strategy is ResolutionStrategy.RECENCY
+    assert restored.merge_operator is MergeOperator.GMAX
+    assert restored.concept_strategies["c2"] is ResolutionStrategy.SAMPLE_SIZE
+    assert restored.integrity_constraints[0].kind is IntegrityConstraintKind.RANGE
 
 
 def test_render_policy_normalizes_merge_operator_and_freezes_collections() -> None:
@@ -222,18 +224,6 @@ def test_resolved_result_coerces_claims_to_tuple() -> None:
 # --- IntegrityConstraint ----------------------------------------------------
 
 
-def test_integrity_constraint_round_trip() -> None:
-    constraint = IntegrityConstraint(
-        kind=IntegrityConstraintKind.RANGE,
-        concept_ids=("c1",),
-        metadata={"min": 0.0, "max": 1.0},
-    )
-    restored = integrity_constraint_from_dict(integrity_constraint_to_dict(constraint))
-    assert restored.kind is IntegrityConstraintKind.RANGE
-    assert restored.concept_ids == ("c1",)
-    assert restored.metadata == {"min": 0.0, "max": 1.0}
-
-
 def test_integrity_constraint_requires_concept_ids() -> None:
     with pytest.raises(ValueError, match="at least one concept id"):
         IntegrityConstraint(kind=IntegrityConstraintKind.RANGE, concept_ids=())
@@ -244,14 +234,7 @@ def test_integrity_constraint_rejects_duplicate_concept_ids() -> None:
         IntegrityConstraint(kind=IntegrityConstraintKind.RANGE, concept_ids=("c1", "c1"))
 
 
-def test_custom_integrity_constraint_requires_callable_and_is_unserializable() -> None:
-    constraint = IntegrityConstraint(
-        kind=IntegrityConstraintKind.CUSTOM,
-        concept_ids=("c1",),
-        metadata={"predicate": lambda assignment: True},
-    )
-    with pytest.raises(TypeError, match="not serializable"):
-        integrity_constraint_to_dict(constraint)
+def test_custom_integrity_constraint_requires_a_callable_predicate() -> None:
     with pytest.raises(TypeError, match="requires callable"):
         IntegrityConstraint(
             kind=IntegrityConstraintKind.CUSTOM,

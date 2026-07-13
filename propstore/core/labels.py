@@ -59,8 +59,6 @@ __all__ = [
     "context_variable",
     "environment_assumption_ids",
     "environment_context_ids",
-    "label_from_dict",
-    "label_to_dict",
     "make_environment_key",
     "merge_labels",
     "normalize_environments",
@@ -69,26 +67,6 @@ __all__ = [
 
 SupportMetadata = Mapping[str, tuple["Label | None", SupportQuality]]
 
-
-def label_to_dict(label: Label) -> dict[str, Any]:
-    """Serialize a :class:`Label` to a deterministic JSON-ready mapping."""
-
-    return {
-        "environments": [sorted(environment.variables) for environment in label.environments]
-    }
-
-
-def label_from_dict(data: Mapping[str, Any] | None) -> Label | None:
-    """Rebuild a :class:`Label` from :func:`label_to_dict` output (or ``None``)."""
-
-    if data is None:
-        return None
-    raw_environments = data.get("environments") or ()
-    environments = tuple(
-        EnvironmentKey(tuple(SourceVariableId(str(item)) for item in environment))
-        for environment in raw_environments
-    )
-    return Label(environments)
 
 
 def binding_condition_to_cel(key: str, value: Any) -> CelExpr:

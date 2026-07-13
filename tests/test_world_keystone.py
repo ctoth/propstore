@@ -233,7 +233,9 @@ def test_micropublication_requires_claims() -> None:
 
 
 def test_store_result_hits_from_mapping() -> None:
-    assert ConceptSearchHit.from_mapping({"concept_id": "c1"}).concept_id == "c1"
+    # ConceptSearchHit is constructed typed by the query layer; only the
+    # similarity hits parse a raw sidecar row, so only they keep a from_mapping.
+    assert ConceptSearchHit(concept_id="c1").concept_id == "c1"
     claim_hit = ClaimSimilarityHit.from_mapping({"id": "k1", "distance": 0.5})
     assert claim_hit.claim_id == "k1"
     assert claim_hit.distance == 0.5

@@ -24,9 +24,6 @@ class ConceptSearchHit:
     def __post_init__(self) -> None:
         object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
 
-    @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> ConceptSearchHit:
-        return cls(concept_id=to_concept_id(data["concept_id"]))
 
 
 @dataclass(frozen=True)

@@ -74,8 +74,6 @@ from propstore.core.render_policy import (
     IntegrityConstraintKind,
     RenderPolicy,
     ResolutionStrategy,
-    integrity_constraint_from_dict,
-    integrity_constraint_to_dict,
     normalize_merge_operator,
 )
 from propstore.core.store_results import (
@@ -779,8 +777,6 @@ __all__ = [
     "normalize_merge_operator",
     "IntegrityConstraintKind",
     "IntegrityConstraint",
-    "integrity_constraint_from_dict",
-    "integrity_constraint_to_dict",
     "SyntheticClaim",
     "ClaimView",
     "ChainStep",

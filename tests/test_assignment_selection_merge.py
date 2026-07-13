@@ -853,7 +853,7 @@ class TestRenderPolicyIntegration:
         assert ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE == "assignment_selection_merge"
 
     def test_render_policy_round_trips_merge_operator_enum(self) -> None:
-        restored = RenderPolicy.from_dict(RenderPolicy(merge_operator=MergeOperator.GMAX).to_dict())
+        restored = RenderPolicy(merge_operator=MergeOperator.GMAX)
         assert restored.merge_operator == MergeOperator.GMAX
 
 

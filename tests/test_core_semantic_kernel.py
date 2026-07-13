@@ -8,8 +8,6 @@ from propstore.core.labels import (
     EnvironmentKey,
     Label,
     SupportQuality,
-    label_from_dict,
-    label_to_dict,
 )
 from propstore.core.reasoning import (
     ArgumentationSemantics,
@@ -56,15 +54,6 @@ def test_label_empty_is_unconditional_environment() -> None:
     assert Label.empty().environments == (EnvironmentKey(()),)
 
 
-def test_label_round_trips_through_dict() -> None:
-    label = Label((EnvironmentKey(("a", "b")), EnvironmentKey(("c",))))
-    assert label_from_dict(label_to_dict(label)) == label
-
-
-def test_label_from_dict_none_is_none() -> None:
-    assert label_from_dict(None) is None
-
-
 def test_support_quality_members() -> None:
     assert {quality.value for quality in SupportQuality} == {
         "exact",
@@ -77,16 +66,15 @@ def test_support_quality_members() -> None:
 # ── results ──────────────────────────────────────────────────────────
 
 
-def test_extension_result_normalizes_and_round_trips() -> None:
+def test_extension_result_normalizes_accepted_claim_ids() -> None:
     result = ExtensionResult(
         name="grounded",
         accepted_claim_ids=("b", "a", "a"),
     )
     assert result.accepted_claim_ids == ("a", "b")
-    assert ExtensionResult.from_dict(result.to_dict()) == result
 
 
-def test_analyzer_result_round_trips_with_label_and_metadata() -> None:
+def test_analyzer_result_carries_label_and_metadata() -> None:
     result = AnalyzerResult(
         backend="aspic",
         semantics="grounded",
@@ -97,4 +85,7 @@ def test_analyzer_result_round_trips_with_label_and_metadata() -> None:
         support_label=Label.empty(),
         metadata=(("k", "v"),),
     )
-    assert AnalyzerResult.from_dict(result.to_dict()) == result
+    assert result.extensions[0].accepted_claim_ids == ("a",)
+    assert result.projection is not None
+    assert result.projection.survivor_claim_ids == ("a",)
+    assert result.metadata == (("k", "v"),)
