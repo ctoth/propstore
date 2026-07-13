@@ -14,13 +14,12 @@ from condition_ir import CelExpr, CheckedConditionSet, to_cel_exprs
 
 from propstore.conflict_detector.models import ConflictRecord
 from propstore.core.environment import Environment
-from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.graph_relation_types import (
     GraphRelationType,
     coerce_graph_relation_type,
 )
 from propstore.core.id_types import ClaimId, ConceptId, to_claim_ids, to_concept_ids
-from propstore.families.claims import Claim
+from propstore.families.claims import Claim, Exactness
 from propstore.families.concepts import Concept
 from propstore.families.relations import Stance
 
@@ -51,7 +50,6 @@ class ParameterizationEdge:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "input_concept_ids", to_concept_ids(self.input_concept_ids))
-        object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
         object.__setattr__(
             self,
             "conditions",

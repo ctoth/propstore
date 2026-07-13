@@ -36,7 +36,7 @@ from quire.refs import single_field_ref_type
 
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.source_types import SourceKind
-from propstore.families.claims import ClaimType
+from propstore.families.claims import ClaimType, Exactness
 from propstore.families.micropublications import MicropublicationEvidence
 from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType
@@ -138,7 +138,7 @@ class SourceParameterizationRelationshipDocument(_Struct):
     inputs: tuple[str, ...]
     formula: str | None = None
     sympy: str | None = None
-    exactness: str | None = None
+    exactness: Exactness | None = None
     source: str | None = None
     bidirectional: bool | None = None
     conditions: tuple[str, ...] = ()
@@ -261,6 +261,7 @@ class SourceClaimDocument(_Struct):
     conditions: tuple[str, ...] = ()
     context: str | None = None
     equations: tuple[str, ...] = ()
+    exactness: Exactness | None = None
     expression: str | None = None
     fit: FitStatisticsDocument | None = None
     listener_population: str | None = None

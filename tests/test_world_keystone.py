@@ -26,7 +26,6 @@ from propstore.core.environment import (
     StanceStore,
     WorldStore,
 )
-from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.graph_relation_types import (
     GraphRelationType,
     coerce_graph_relation_type,
@@ -53,7 +52,7 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
     WorldStoreStats,
 )
-from propstore.families.claims import Claim, ClaimType
+from propstore.families.claims import Claim, ClaimType, Exactness
 from propstore.families.concepts import Concept
 from propstore.families.micropublications import Micropublication
 from propstore.propagation import (
@@ -79,12 +78,6 @@ def test_id_type_coercers_brand_strings() -> None:
 # --- enum coercers --------------------------------------------------------
 
 
-def test_coerce_exactness_round_trips_and_allows_none() -> None:
-    assert coerce_exactness("exact") is Exactness.EXACT
-    assert coerce_exactness(Exactness.CONDITIONAL) is Exactness.CONDITIONAL
-    assert coerce_exactness(None) is None
-
-
 def test_coerce_graph_relation_type_validates() -> None:
     assert coerce_graph_relation_type("supports") is GraphRelationType.SUPPORTS
     assert coerce_graph_relation_type(GraphRelationType.IS_A) is GraphRelationType.IS_A
@@ -107,13 +100,13 @@ def test_relation_edge_coerces_relation_type() -> None:
     assert edge.relation_type is GraphRelationType.SUPPORTS
 
 
-def test_parameterization_edge_coerces_exactness() -> None:
+def test_parameterization_edge_carries_typed_exactness() -> None:
     edge = ParameterizationEdge(
         output_concept_id="y",
         input_concept_ids=("a", "b"),
         formula="a + b",
         sympy="a + b",
-        exactness="exact",
+        exactness=Exactness.EXACT,
     )
     assert edge.exactness is Exactness.EXACT
 

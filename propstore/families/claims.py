@@ -65,6 +65,23 @@ class ClaimType(str, Enum):
     UNKNOWN = "unknown"
 
 
+class Exactness(str, Enum):
+    """How faithful a claimed relationship is to its output.
+
+    An equation claim relating an output concept to its input concepts records
+    whether the relationship is an ``EXACT`` algebraic identity, an
+    ``APPROXIMATE`` fit, or a ``CONDITIONAL`` relationship that only holds under
+    stated conditions. The parameterization edge derived from the claim carries
+    this value into conflict detection, which only trusts ``EXACT`` (single-hop)
+    or ``EXACT``/``APPROXIMATE`` (transitive) derivations. ``None`` means the
+    author did not state exactness; an unstated exactness is never defaulted.
+    """
+
+    EXACT = "exact"
+    APPROXIMATE = "approximate"
+    CONDITIONAL = "conditional"
+
+
 class ClaimStatus(str, Enum):
     """Authoring lifecycle status of a claim.
 
@@ -135,6 +152,7 @@ class Claim(CharterDoc):
     body: str | None = None
     expression: str | None = None
     sympy: str | None = None
+    exactness: Exactness | None = None
     measure: str | None = None
     methodology: str | None = None
     notes: str | None = None
@@ -239,6 +257,7 @@ class _ClaimRow(Protocol):
     body: str | None
     expression: str | None
     sympy: str | None
+    exactness: Exactness | str | None
     measure: str | None
     methodology: str | None
     notes: str | None
@@ -266,6 +285,9 @@ def _row_to_claim(row: _ClaimRow) -> Claim:
     if claim_type is not None and not isinstance(claim_type, ClaimType):
         claim_type = ClaimType(claim_type)
     status = row.status if isinstance(row.status, ClaimStatus) else ClaimStatus(row.status)
+    exactness = row.exactness
+    if exactness is not None and not isinstance(exactness, Exactness):
+        exactness = Exactness(exactness)
     return Claim(
         claim_id=row.claim_id,
         context_id=row.context_id,
@@ -276,6 +298,7 @@ def _row_to_claim(row: _ClaimRow) -> Claim:
         body=row.body,
         expression=row.expression,
         sympy=row.sympy,
+        exactness=exactness,
         measure=row.measure,
         methodology=row.methodology,
         notes=row.notes,
@@ -354,12 +377,14 @@ class ClaimRepository:
                         "body": claim.body,
                         "expression": claim.expression,
                         "sympy": claim.sympy,
+                        "exactness": claim.exactness,
                         "measure": claim.measure,
                         "methodology": claim.methodology,
                         "notes": claim.notes,
                         "output_concept": claim.output_concept,
                         "target_concept": claim.target_concept,
                         "concepts": claim.concepts,
+                        "variables": claim.variables,
                         "equations": claim.equations,
                         "conditions": claim.conditions,
                         "conditions_ir": claim.conditions_ir,

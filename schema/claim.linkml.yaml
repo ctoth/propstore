@@ -94,6 +94,20 @@ enums:
       effect_size:
         description: "Standardized effect size measure."
 
+  Exactness:
+    description: >
+      How faithful a claimed relationship is to its output: an exact
+      algebraic identity, an approximate fit, or a conditional relationship
+      that only holds under stated conditions. Omitted when the source does
+      not state exactness; never defaulted.
+    permissible_values:
+      exact:
+        description: "An exact algebraic identity."
+      approximate:
+        description: "An approximate or fitted relationship."
+      conditional:
+        description: "Holds only under the stated conditions."
+
   UncertaintyType:
     description: >
       The type of uncertainty measure associated with a parameter claim.
@@ -302,6 +316,13 @@ classes:
           SymPy-parseable equation string.
           Required for equation claims.
         range: string
+
+      exactness:
+        description: >
+          How faithful the equation is to its output concept.
+          Optional; when stated it rides the derived parameterization edge
+          and gates derivation-based conflict detection.
+        range: Exactness
 
       variables:
         description: >

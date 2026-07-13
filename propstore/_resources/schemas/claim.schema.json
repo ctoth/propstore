@@ -52,6 +52,10 @@
                         "null"
                     ]
                 },
+                "exactness": {
+                    "$ref": "#/$defs/Exactness",
+                    "description": "How faithful the equation is to its output concept. Optional; when stated it rides the derived parameterization edge and gates derivation-based conflict detection.\n"
+                },
                 "expression": {
                     "description": "Human-readable equation string. Required for equation claims.\n",
                     "type": [
@@ -313,6 +317,16 @@
                 "limitation"
             ],
             "title": "ClaimType",
+            "type": "string"
+        },
+        "Exactness": {
+            "description": "How faithful a claimed relationship is to its output: an exact algebraic identity, an approximate fit, or a conditional relationship that only holds under stated conditions. Omitted when the source does not state exactness; never defaulted.",
+            "enum": [
+                "exact",
+                "approximate",
+                "conditional"
+            ],
+            "title": "Exactness",
             "type": "string"
         },
         "FitStatistics": {

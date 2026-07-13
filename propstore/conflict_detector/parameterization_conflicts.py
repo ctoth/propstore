@@ -38,7 +38,7 @@ from human_to_sympy import (
     evaluate_numeric,
 )
 
-from propstore.core.exactness_types import Exactness
+from propstore.families.claims import Exactness
 from propstore.core.graph_types import ParameterizationEdge
 from propstore.dimensions import normalize_to_si
 from propstore.families.concepts import Concept

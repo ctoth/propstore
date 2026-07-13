@@ -33,7 +33,7 @@ from propstore.conflict_detector.models import ConflictClaim
 from propstore.core.graph_types import ParameterizationEdge
 from propstore.core.id_types import to_concept_id, to_concept_ids
 from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
-from propstore.families.claims import ClaimType
+from propstore.families.claims import ClaimType, Exactness
 from propstore.conflict_detector.parameterization_conflicts import (
     detect_parameterization_conflicts,
 )
@@ -82,7 +82,11 @@ def _concept(
             output_concept_id=to_concept_id(concept_id),
             input_concept_ids=to_concept_ids(relationship["inputs"]),
             sympy=relationship["sympy"],
-            exactness=relationship.get("exactness"),
+            exactness=(
+                None
+                if relationship.get("exactness") is None
+                else Exactness(relationship["exactness"])
+            ),
             conditions=to_cel_exprs(relationship.get("conditions") or ()),
         )
         for relationship in (parameterizations or ())

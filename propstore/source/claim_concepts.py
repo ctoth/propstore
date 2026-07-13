@@ -111,6 +111,7 @@ def build_promoted_claim(
         body=lowered.body,
         expression=lowered.expression,
         sympy=lowered.sympy,
+        exactness=lowered.exactness,
         measure=lowered.measure,
         methodology=lowered.methodology,
         notes=lowered.notes,

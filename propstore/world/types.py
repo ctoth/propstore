@@ -31,7 +31,6 @@ from condition_ir import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.environment import AssumptionRef, Environment, WorldStore
-from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
     AssumptionId,
     ClaimId,
@@ -61,7 +60,7 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
     WorldStoreStats,
 )
-from propstore.families.claims import ClaimType
+from propstore.families.claims import ClaimType, Exactness
 from propstore.families.concepts import ConceptStatus
 
 if TYPE_CHECKING:
@@ -166,7 +165,6 @@ class DerivedResult:
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
         self.status = coerce_value_status(self.status)
-        self.exactness = coerce_exactness(self.exactness)
         self.input_values = {
             to_concept_id(concept_id): float(value)
             for concept_id, value in self.input_values.items()
@@ -1204,7 +1202,6 @@ __all__ = [
     "Environment",
     "WorldStore",
     "Exactness",
-    "coerce_exactness",
     "AssumptionId",
     "ClaimId",
     "ConceptId",

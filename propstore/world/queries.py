@@ -326,8 +326,8 @@ def derive_parameterizations(claims: Sequence[Claim]) -> list[ParameterizationEd
 
     An equation claim names the concept it computes (``output_concept``) and the
     concepts it is computed from (the other ``concepts`` it references). That is a
-    parameterization edge ``output <- inputs``; the formula/sympy and the claim's
-    checked conditions ride on the edge. A claim with no output concept or no
+    parameterization edge ``output <- inputs``; the formula/sympy, the claim's
+    stated exactness, and the claim's checked conditions ride on the edge. A claim with no output concept or no
     distinct input concepts contributes no edge.
     """
 
@@ -349,6 +349,7 @@ def derive_parameterizations(claims: Sequence[Claim]) -> list[ParameterizationEd
                 input_concept_ids=to_concept_ids(inputs),
                 formula=claim.expression,
                 sympy=claim.sympy,
+                exactness=claim.exactness,
                 checked_conditions=_checked_conditions(claim.conditions_ir),
             )
         )
