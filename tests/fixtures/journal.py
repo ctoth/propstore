@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.core.active_claims import coerce_active_claim
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims import Claim
 from propstore.core.assertions.refs import (
     ConditionRef,
@@ -92,7 +92,7 @@ def make_assertion_atom(
             f"propstore:claim:test/{local}" for local in source_claim_local_ids
         )
     source_claims = tuple(
-        coerce_active_claim({"id": claim_id}) for claim_id in source_claim_ids
+        ActiveClaim(claim_id=claim_id) for claim_id in source_claim_ids
     )
     return AssertionAtom(
         atom_id=str(assertion.assertion_id),

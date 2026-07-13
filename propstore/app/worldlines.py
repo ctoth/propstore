@@ -34,19 +34,22 @@ from propstore.world.types import (
     Environment,
     ReasoningBackend,
     RenderPolicy,
+    ResolutionStrategy,
     cli_argumentation_semantics_values,
-    normalize_argumentation_semantics,
     validate_backend_semantics,
 )
 from propstore.core.id_types import to_context_id
 from propstore.worldline.definition import (
     WorldlineDefinition,
     WorldlineInputs,
-    validated_revision_target,
 )
 from propstore.worldline.query import (
     WorldlineResult,
     WorldlineRevisionQuery,
+)
+from propstore.worldline.revision_types import (
+    RevisionAtomRef,
+    RevisionConflictSelection,
 )
 from propstore.worldline.revision_capture import capture_journal
 from propstore.worldline.runner import run_worldline
@@ -103,7 +106,7 @@ class WorldlinePolicyOptions:
 @dataclass(frozen=True)
 class WorldlineRevisionOptions:
     operation: str | None = None
-    atom: Mapping[str, Any] | None = None
+    atom: RevisionAtomRef | None = None
     target: str | None = None
     conflicts: Mapping[str, tuple[str, ...]] = field(
         default_factory=dict[str, tuple[str, ...]]
@@ -276,7 +279,7 @@ def materialize_worldline(
 
     with open_app_world_model(repo) as world:
         result = run_worldline(definition, world)
-    definition.results = result.to_dict()
+    definition.results = result
 
     repo.families.worldlines.save(
         ref, definition, message=f"Materialize worldline: {request.name}"
@@ -342,8 +345,8 @@ def diff_worldlines(
 ) -> WorldlineDiffReport:
     left = load_worldline_definition(repo, request.left_name)
     right = load_worldline_definition(repo, request.right_name)
-    left_results = WorldlineResult.from_dict(left.results)
-    right_results = WorldlineResult.from_dict(right.results)
+    left_results = left.results
+    right_results = right.results
     if left_results is None or right_results is None:
         raise WorldlineValidationError("Both worldlines must be materialized first")
 
@@ -405,12 +408,12 @@ def build_worldline_journal(
 ) -> WorldlineJournalReport:
     ref = WorldlineRef(request.name)
     definition = load_worldline_definition(repo, request.name)
-    revision_query = WorldlineRevisionQuery.from_dict(definition.revision)
+    revision_query = definition.revision
     if revision_query is None:
         raise WorldlineValidationError("worldline has no revision query to capture")
 
     inputs = definition.inputs
-    policy = RenderPolicy.from_dict(definition.policy)
+    policy = definition.policy
     with open_app_world_model(repo) as world:
         bound = world.bind(inputs.environment, policy=policy)
         try:
@@ -422,7 +425,7 @@ def build_worldline_journal(
         except ValueError as exc:
             raise WorldlineValidationError(str(exc)) from exc
 
-    definition.journal = journal.to_dict()
+    definition.journal = journal
     repo.families.worldlines.save(
         ref, definition, message=f"Build worldline journal: {request.name}"
     )
@@ -434,7 +437,7 @@ def worldline_at_step(
     request: WorldlineAtStepRequest,
 ) -> WorldlineAtStepReport:
     definition = load_worldline_definition(repo, request.name)
-    journal = definition.transition_journal()
+    journal = definition.journal
     if journal is None:
         raise WorldlineValidationError(
             "worldline has no journal; build the journal first"
@@ -454,9 +457,11 @@ def worldline_at_step(
     )
 
 
-def build_worldline_policy_dict(
+def build_worldline_policy(
     options: WorldlinePolicyOptions,
-) -> dict[str, Any] | None:
+) -> RenderPolicy:
+    """Lower CLI/request policy flags into the canonical typed render policy."""
+
     try:
         normalized_backend, normalized_semantics = validate_backend_semantics(
             options.reasoning_backend,
@@ -465,35 +470,26 @@ def build_worldline_policy_dict(
     except ValueError as exc:
         raise WorldlineValidationError(str(exc)) from exc
 
-    policy: dict[str, Any] = {}
-    if options.strategy:
-        policy["strategy"] = options.strategy
-    if normalized_backend != ReasoningBackend.CLAIM_GRAPH:
-        policy["reasoning_backend"] = normalized_backend.value
-    if normalized_semantics != normalize_argumentation_semantics("grounded"):
-        policy["semantics"] = normalized_semantics.value
-    if options.set_comparison != "elitist":
-        policy["comparison"] = options.set_comparison
-    if options.link_principle != "last":
-        policy["link"] = options.link_principle
-    if options.decision_criterion != "pignistic":
-        policy["decision_criterion"] = options.decision_criterion
-    if options.pessimism_index != 0.5:
-        policy["pessimism_index"] = options.pessimism_index
-    if options.praf_strategy != "auto":
-        policy["praf_strategy"] = options.praf_strategy
-    if options.praf_epsilon != 0.01:
-        policy["praf_mc_epsilon"] = options.praf_epsilon
-    if options.praf_confidence != 0.95:
-        policy["praf_mc_confidence"] = options.praf_confidence
-    if options.praf_seed is not None:
-        policy["praf_mc_seed"] = options.praf_seed
-    return policy or None
+    return RenderPolicy(
+        reasoning_backend=normalized_backend,
+        strategy=None if not options.strategy else ResolutionStrategy(options.strategy),
+        semantics=normalized_semantics,
+        comparison=options.set_comparison,
+        link=options.link_principle,
+        decision_criterion=options.decision_criterion,
+        pessimism_index=options.pessimism_index,
+        praf_strategy=options.praf_strategy,
+        praf_mc_epsilon=options.praf_epsilon,
+        praf_mc_confidence=options.praf_confidence,
+        praf_mc_seed=options.praf_seed,
+    )
 
 
-def build_worldline_revision_dict(
+def build_worldline_revision_query(
     options: WorldlineRevisionOptions,
-) -> dict[str, Any] | None:
+) -> WorldlineRevisionQuery | None:
+    """Lower CLI/request revision flags into the canonical typed revision query."""
+
     if options.operation is None:
         return None
     if (
@@ -510,18 +506,18 @@ def build_worldline_revision_dict(
             "revision operator is required for iterated_revise"
         )
 
-    revision: dict[str, Any] = {"operation": options.operation}
-    if options.atom is not None:
-        revision["atom"] = dict(options.atom)
-    if options.target is not None:
-        revision["target"] = options.target
-    if options.conflicts:
-        revision["conflicts"] = {
-            atom_id: list(targets) for atom_id, targets in options.conflicts.items()
-        }
-    if options.operator is not None:
-        revision["operator"] = options.operator
-    return revision
+    return WorldlineRevisionQuery(
+        operation=options.operation,
+        atom=options.atom,
+        target=options.target,
+        conflicts=RevisionConflictSelection(
+            targets_by_atom_id={
+                atom_id: tuple(targets)
+                for atom_id, targets in options.conflicts.items()
+            }
+        ),
+        operator=options.operator,
+    )
 
 
 def _definition_from_request(
@@ -529,13 +525,8 @@ def _definition_from_request(
 ) -> WorldlineDefinition:
     if not request.targets:
         raise ValueError("Worldline definition requires 'targets'")
-    policy = build_worldline_policy_dict(request.policy)
-    revision = build_worldline_revision_dict(request.revision)
-    if revision:
-        validated_revision_target(
-            str(revision.get("operation", "")),
-            revision.get("target"),
-        )
+    policy = build_worldline_policy(request.policy)
+    revision = build_worldline_revision_query(request.revision)
     return WorldlineDefinition(
         id=request.name,
         name=request.name,
@@ -551,6 +542,6 @@ def _definition_from_request(
             ),
             overrides=dict(request.overrides),
         ),
-        policy=policy or {},
-        revision=revision or None,
+        policy=policy,
+        revision=revision,
     )

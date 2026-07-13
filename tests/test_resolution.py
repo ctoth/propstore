@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from propstore.core.active_claims import ActiveClaim, coerce_active_claims
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.resolution import (
@@ -36,7 +36,7 @@ from propstore.world.types import (
 )
 
 
-def _claim_mapping(
+def _claim(
     claim_id: str,
     *,
     concept_id: str = "concept1",
@@ -44,27 +44,21 @@ def _claim_mapping(
     branch: str | None = None,
     date: str | None = None,
     sample_size: int | None = None,
-) -> dict[str, Any]:
-    data: dict[str, Any] = {"id": claim_id, "concept_id": concept_id}
-    if value is not None:
-        data["value"] = value
-    if branch is not None:
-        data["branch"] = branch
-    if date is not None:
-        data["date"] = date
-    if sample_size is not None:
-        data["sample_size"] = sample_size
-    return data
-
-
-def _claim(claim_id: str, **kwargs: Any) -> ActiveClaim:
-    return coerce_active_claims([_claim_mapping(claim_id, **kwargs)])[0]
+) -> ActiveClaim:
+    return ActiveClaim(
+        claim_id=claim_id,
+        concept_id=concept_id,
+        value=value,
+        branch=branch,
+        date=date,
+        sample_size=None if sample_size is None else float(sample_size),
+    )
 
 
 class _ConflictedView:
     """A belief-space double whose concept is always CONFLICTED."""
 
-    def __init__(self, claims: list[dict[str, Any]]) -> None:
+    def __init__(self, claims: list[ActiveClaim]) -> None:
         self._claims = claims
 
     def value_of(self, concept_id: str) -> ValueResult:
@@ -72,14 +66,14 @@ class _ConflictedView:
             concept_id=concept_id,
             status=ValueStatus.CONFLICTED,
             claims=[
-                claim for claim in self._claims if claim["concept_id"] == concept_id
+                claim for claim in self._claims if claim.concept_id == concept_id
             ],
         )
 
-    def active_claims(self, concept_id: str | None = None) -> list[dict[str, Any]]:
+    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [claim for claim in self._claims if claim.concept_id == concept_id]
 
 
 class _DeterminedView:
@@ -87,18 +81,18 @@ class _DeterminedView:
         return ValueResult(
             concept_id=concept_id,
             status=ValueStatus.DETERMINED,
-            claims=[_claim_mapping("only", value=7.0)],
+            claims=[_claim("only", value=7.0)],
         )
 
-    def active_claims(self, concept_id: str | None = None) -> list[dict[str, Any]]:
-        return [_claim_mapping("only", value=7.0)]
+    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
+        return [_claim("only", value=7.0)]
 
 
 class _NoClaimsView:
     def value_of(self, concept_id: str) -> ValueResult:
         return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
-    def active_claims(self, concept_id: str | None = None) -> list[dict[str, Any]]:
+    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         return []
 
 
@@ -150,10 +144,8 @@ def test_recency_helper_no_dates_is_conflicted() -> None:
     assert reason == "no dates in provenance"
 
 
-def test_recency_reads_date_from_provenance_mapping() -> None:
-    claim = coerce_active_claims(
-        [{"id": "p", "concept_id": "concept1", "value": 1.0, "provenance": {"date": "2025-05-05"}}]
-    )[0]
+def test_recency_reads_typed_date_field() -> None:
+    claim = _claim("p", date="2025-05-05")
     winner, reason = _resolve_recency([claim])
     assert winner == "p"
     assert reason == "most recent: 2025-05-05"
@@ -162,8 +154,8 @@ def test_recency_reads_date_from_provenance_mapping() -> None:
 def test_recency_resolves_through_resolve() -> None:
     view = _ConflictedView(
         [
-            _claim_mapping("old", value=1.0, date="2024-01-01"),
-            _claim_mapping("new", value=2.0, date="2026-06-01"),
+            _claim("old", value=1.0, date="2024-01-01"),
+            _claim("new", value=2.0, date="2026-06-01"),
         ]
     )
     result = resolve(view, "concept1", strategy=ResolutionStrategy.RECENCY)
@@ -207,8 +199,8 @@ def test_sample_size_helper_no_values_is_conflicted() -> None:
 def test_sample_size_resolves_through_resolve() -> None:
     view = _ConflictedView(
         [
-            _claim_mapping("small", value=1.0, sample_size=10),
-            _claim_mapping("big", value=2.0, sample_size=100),
+            _claim("small", value=1.0, sample_size=10),
+            _claim("big", value=2.0, sample_size=100),
         ]
     )
     result = resolve(view, "concept1", strategy=ResolutionStrategy.SAMPLE_SIZE)
@@ -222,7 +214,7 @@ def test_sample_size_resolves_through_resolve() -> None:
 
 def test_override_selects_named_claim() -> None:
     view = _ConflictedView(
-        [_claim_mapping("a", value=1.0), _claim_mapping("b", value=2.0)]
+        [_claim("a", value=1.0), _claim("b", value=2.0)]
     )
     result = resolve(
         view,
@@ -238,7 +230,7 @@ def test_override_selects_named_claim() -> None:
 
 
 def test_override_to_inactive_claim_raises() -> None:
-    view = _ConflictedView([_claim_mapping("a", value=1.0)])
+    view = _ConflictedView([_claim("a", value=1.0)])
     with pytest.raises(ValueError, match="not an active claim"):
         resolve(
             view,
@@ -261,7 +253,7 @@ def test_no_claims_passes_through() -> None:
 
 def test_no_strategy_stays_conflicted() -> None:
     view = _ConflictedView(
-        [_claim_mapping("a", value=1.0), _claim_mapping("b", value=2.0)]
+        [_claim("a", value=1.0), _claim("b", value=2.0)]
     )
     result = resolve(view, "concept1")
     assert result.status is ValueStatus.CONFLICTED
@@ -358,7 +350,7 @@ def test_claim_graph_resolution_sole_survivor_wins(
 
     result = resolve(
         _ConflictedView(
-            [_claim_mapping("claim_a", value=1.0), _claim_mapping("claim_b", value=2.0)]
+            [_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]
         ),
         "concept1",
         strategy=ResolutionStrategy.ARGUMENTATION,
@@ -371,7 +363,7 @@ def test_claim_graph_resolution_sole_survivor_wins(
 
 def test_argumentation_without_store_stays_conflicted() -> None:
     view = _ConflictedView(
-        [_claim_mapping("a", value=1.0), _claim_mapping("b", value=2.0)]
+        [_claim("a", value=1.0), _claim("b", value=2.0)]
     )
     result = resolve(
         view,
@@ -437,7 +429,7 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(
 
     result = resolve(
         _ConflictedView(
-            [_claim_mapping("claim_a", value=1.0), _claim_mapping("claim_b", value=2.0)]
+            [_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]
         ),
         "concept1",
         strategy=ResolutionStrategy.ARGUMENTATION,
@@ -484,7 +476,7 @@ def test_praf_resolution_picks_highest_acceptance(
 
     result = resolve(
         _ConflictedView(
-            [_claim_mapping("claim_a", value=1.0), _claim_mapping("claim_b", value=2.0)]
+            [_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]
         ),
         "concept1",
         strategy=ResolutionStrategy.ARGUMENTATION,
@@ -509,9 +501,9 @@ def test_assignment_selection_merge_filters_with_explicit_range_constraint() -> 
     """
     view = _ConflictedView(
         [
-            _claim_mapping("claim_a", value=50.0),
-            _claim_mapping("claim_b", value=10.0),
-            _claim_mapping("claim_c", value=5.0),
+            _claim("claim_a", value=50.0),
+            _claim("claim_b", value=10.0),
+            _claim("claim_c", value=5.0),
         ]
     )
     result = resolve(
@@ -537,8 +529,8 @@ def test_assignment_selection_merge_filters_with_explicit_range_constraint() -> 
 def test_assignment_selection_merge_reports_duplicate_source() -> None:
     view = _ConflictedView(
         [
-            _claim_mapping("claim_a1", value=10.0, branch="a"),
-            _claim_mapping("claim_a2", value=11.0, branch="a"),
+            _claim("claim_a1", value=10.0, branch="a"),
+            _claim("claim_a2", value=11.0, branch="a"),
         ]
     )
     result = resolve(
@@ -554,8 +546,8 @@ def test_assignment_selection_merge_reports_duplicate_source() -> None:
 def test_assignment_selection_merge_branch_filter_narrows_sources() -> None:
     view = _ConflictedView(
         [
-            _claim_mapping("claim_a", value=10.0, branch="a"),
-            _claim_mapping("claim_b", value=5.0, branch="b"),
+            _claim("claim_a", value=10.0, branch="a"),
+            _claim("claim_b", value=5.0, branch="b"),
         ]
     )
     result = resolve(

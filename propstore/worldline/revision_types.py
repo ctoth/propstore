@@ -1,42 +1,30 @@
-"""Typed worldline revision-query shapes (data only).
+"""Typed worldline revision-query and revision-result shapes (data only).
 
-These are the parse-time/result shapes the worldline revision *query* and
-*result* surfaces use. A captured ``WorldlineRevisionState`` carries the
-``support_revision`` ``RevisionEvent`` materialized by
-``worldline/revision_capture.py``.
+A captured :class:`WorldlineRevisionState` carries the ``support_revision``
+``RevisionEvent`` materialized by ``worldline/revision_capture.py``, the
+``EpistemicSnapshot`` the revision landed on, and the ``RevisionExplanation``
+that justifies it — all as their own canonical package types. They were
+previously typed ``Any`` and lowered through hand-written ``to_dict`` hops; the
+charter now stores them typed and Quire's codec owns the encoding.
+
+This module is **storage-pure**: it imports only ``propstore.core`` and
+``propstore.support_revision`` (both of which are themselves world-free), so the
+worldline charter can reach it without breaking the layering contract.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, TypeGuard
 
 from condition_ir import to_cel_expr
 
 from propstore.core.environment import AssumptionRef
 from propstore.core.id_types import to_assumption_id
+from propstore.support_revision.explanation_types import RevisionExplanation
+from propstore.support_revision.history import EpistemicSnapshot
 from propstore.support_revision.state import AssumptionAtom, RevisionEvent
-from propstore.worldline.result_types import (
-    WorldlineCaptureError,
-    coerce_worldline_capture_error,
-)
-
-
-def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
-    return isinstance(value, Mapping)
-
-
-def _is_sequence(value: object) -> TypeGuard[Sequence[Any]]:
-    return isinstance(value, (tuple, list))
-
-
-def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
-    if value is None:
-        return {}
-    if not _is_mapping(value):
-        raise ValueError(f"worldline revision field '{field_name}' must be a mapping")
-    return value
+from propstore.worldline.result_types import WorldlineCaptureError
 
 
 @dataclass(frozen=True)
@@ -46,40 +34,6 @@ class RevisionAtomRef:
     assumption_id: str | None = None
     atom_id: str | None = None
     value: float | str | None = None
-
-    @classmethod
-    def from_mapping(cls, data: object) -> RevisionAtomRef | None:
-        if data is None:
-            return None
-        payload = _optional_mapping(data, "atom")
-        if not payload:
-            return None
-        kind = str(payload.get("kind") or "assertion")
-        assertion_id = payload.get("assertion_id")
-        assumption_id = payload.get("assumption_id")
-        if assertion_id is None and kind == "assertion":
-            assertion_id = payload.get("id")
-        if assumption_id is None and kind == "assumption":
-            assumption_id = payload.get("id")
-        return cls(
-            kind=kind,
-            assertion_id=None if assertion_id is None else str(assertion_id),
-            assumption_id=None if assumption_id is None else str(assumption_id),
-            atom_id=None if payload.get("atom_id") is None else str(payload.get("atom_id")),
-            value=payload.get("value"),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {"kind": self.kind}
-        if self.kind == "assertion" and self.assertion_id is not None:
-            data["id"] = self.assertion_id
-        if self.kind == "assumption" and self.assumption_id is not None:
-            data["id"] = self.assumption_id
-        if self.atom_id is not None:
-            data["atom_id"] = self.atom_id
-        if self.value is not None:
-            data["value"] = self.value
-        return data
 
     def to_belief_atom_input(self) -> str | AssumptionAtom:
         """Resolve this ref to a typed revision input — no dict hop.
@@ -133,26 +87,6 @@ class RevisionConflictSelection:
             },
         )
 
-    @classmethod
-    def from_mapping(cls, data: object) -> RevisionConflictSelection:
-        if data is None:
-            return cls()
-        payload = _optional_mapping(data, "conflicts")
-        if not payload:
-            return cls()
-        return cls(
-            targets_by_atom_id={
-                str(atom_id): tuple(str(target_id) for target_id in target_ids)
-                for atom_id, target_ids in payload.items()
-            }
-        )
-
-    def to_dict(self) -> dict[str, list[str]]:
-        return {
-            atom_id: list(target_ids)
-            for atom_id, target_ids in self.targets_by_atom_id.items()
-        }
-
     def targets_for(self, atom_id: str) -> tuple[str, ...]:
         return self.targets_by_atom_id.get(atom_id, ())
 
@@ -162,39 +96,24 @@ class WorldlineRevisionResult:
     accepted_atom_ids: tuple[str, ...] = ()
     rejected_atom_ids: tuple[str, ...] = ()
     incision_set: tuple[str, ...] = ()
-    explanation: Any | None = None
+    explanation: RevisionExplanation | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
-
-    @classmethod
-    def from_mapping(cls, data: object) -> WorldlineRevisionResult | None:
-        if data is None:
-            return None
-        payload = _optional_mapping(data, "result")
-        if not payload:
-            return None
-        explanation_data = payload.get("explanation")
-        if explanation_data is not None and not _is_mapping(explanation_data):
-            raise ValueError("worldline revision field 'explanation' must be a mapping")
-        return cls(
-            accepted_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("accepted_atom_ids") or ())),
-            rejected_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("rejected_atom_ids") or ())),
-            incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
-            explanation=None if explanation_data is None else dict(explanation_data),
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
         )
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "accepted_atom_ids": list(self.accepted_atom_ids),
-            "rejected_atom_ids": list(self.rejected_atom_ids),
-            "incision_set": list(self.incision_set),
-        }
-        if self.explanation is not None:
-            data["explanation"] = _to_plain_data(self.explanation)
-        return data
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "incision_set",
+            tuple(str(atom_id) for atom_id in self.incision_set),
+        )
 
 
 @dataclass(frozen=True)
@@ -203,71 +122,22 @@ class WorldlineRevisionState:
     input_atom_id: str | None = None
     target_atom_ids: tuple[str, ...] = ()
     result: WorldlineRevisionResult | None = None
-    state: Any | None = None
+    state: EpistemicSnapshot | None = None
     status: str | None = None
     error: WorldlineCaptureError | None = None
     event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
-        object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
-
-    @classmethod
-    def from_mapping(cls, data: object) -> WorldlineRevisionState | None:
-        if data is None:
-            return None
-        payload = _optional_mapping(data, "revision")
-        if not payload:
-            return None
-        state_data = payload.get("state")
-        result_data = payload.get("result")
-        if result_data is not None and not _is_mapping(result_data):
-            raise ValueError("worldline revision field 'result' must be a mapping")
-        if state_data is not None and not _is_mapping(state_data):
-            raise ValueError("worldline revision field 'state' must be a mapping")
-        event_data = payload.get("event")
-        if event_data is not None and not _is_mapping(event_data):
-            raise ValueError("worldline revision field 'event' must be a mapping")
-        return cls(
-            operation=str(payload.get("operation") or ""),
-            input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
-            target_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())),
-            result=WorldlineRevisionResult.from_mapping(result_data),
-            state=None if state_data is None else dict(state_data),
-            status=None if payload.get("status") is None else str(payload.get("status")),
-            error=coerce_worldline_capture_error(payload.get("error")),
-            event=None if event_data is None else RevisionEvent.from_mapping(event_data),
+        object.__setattr__(
+            self,
+            "target_atom_ids",
+            tuple(str(atom_id) for atom_id in self.target_atom_ids),
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "operation": self.operation,
-            "target_atom_ids": list(self.target_atom_ids),
-        }
-        if self.input_atom_id is not None:
-            data["input_atom_id"] = self.input_atom_id
-        if self.result is not None:
-            data["result"] = self.result.to_dict()
-        if self.state is not None:
-            data["state"] = _to_plain_data(self.state)
-        if self.status is not None:
-            data["status"] = self.status
-        if self.error is not None:
-            data["error"] = self.error.value
-        if self.event is not None:
-            data["event"] = self.event.to_dict()
-        return data
 
-
-def _to_plain_data(value: Any) -> Any:
-    to_dict = getattr(value, "to_dict", None)
-    if callable(to_dict):
-        return to_dict()
-    if _is_mapping(value):
-        return {
-            str(key): _to_plain_data(item)
-            for key, item in value.items()
-        }
-    if _is_sequence(value):
-        return [_to_plain_data(item) for item in value]
-    return value
+__all__ = [
+    "RevisionAtomRef",
+    "RevisionConflictSelection",
+    "WorldlineRevisionResult",
+    "WorldlineRevisionState",
+]

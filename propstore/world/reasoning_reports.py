@@ -90,7 +90,7 @@ def _claim_value_display(claim: Claim) -> str:
 def _active_value_display(active: ActiveClaim, claim: Claim | None) -> str:
     if claim is not None:
         return _claim_value_display(claim)
-    return f"value={active.attribute_value('value')}"
+    return f"value={active.value}"
 
 
 def _claim_conditions_display(claim: Claim | None) -> str:

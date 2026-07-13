@@ -13,20 +13,22 @@ absorbed.
 
 from __future__ import annotations
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
 from propstore.world.value_resolver import ActiveClaimResolver
 
 
-def _is_algorithm_claim(claim) -> bool:
-    """True if this claim is an ALGORITHM claim — handles both dict inputs
-    (pre-coercion) and ActiveClaim instances (post-coercion)."""
-    claim_type = getattr(claim, "claim_type", None)
-    if claim_type is not None:
-        return claim_type is ClaimType.ALGORITHM
-    if isinstance(claim, dict):
-        return claim.get("type") == "algorithm"
-    return False
+def _param(claim_id: str, value: float) -> ActiveClaim:
+    return ActiveClaim(claim_id=claim_id, claim_type=ClaimType.PARAMETER, value=value)
+
+
+def _algo(claim_id: str, body: str) -> ActiveClaim:
+    return ActiveClaim(claim_id=claim_id, claim_type=ClaimType.ALGORITHM, body=body)
+
+
+def _is_algorithm_claim(claim: ActiveClaim) -> bool:
+    return claim.claim_type is ClaimType.ALGORITHM
 
 
 def _make_resolver(
@@ -71,15 +73,10 @@ def test_unparseable_algo_abstains_when_direct_consensus_exists():
     """
     resolver = _make_resolver()
     active = [
-        {"id": "direct_a", "type": "parameter", "value": 42.0},
-        {"id": "direct_b", "type": "parameter", "value": 42.0},
-        {
-            "id": "algo_broken",
-            "type": "algorithm",
-            # Deliberately broken python — def signature not closed.
-            "body": "def compute(x:\n    return x +",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct_a", 42.0),
+        _param("direct_b", 42.0),
+        # Deliberately broken python — def signature not closed.
+        _algo("algo_broken", "def compute(x:\n    return x +"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -102,14 +99,9 @@ def test_parseable_disagreeing_algorithm_still_conflicts_with_direct_consensus()
     # evaluate to 100, which disagrees with the direct consensus of 42.
     resolver = _make_resolver(collect_known_values=lambda ids: {"input": 50.0})
     active = [
-        {"id": "direct_a", "type": "parameter", "value": 42.0},
-        {"id": "direct_b", "type": "parameter", "value": 42.0},
-        {
-            "id": "algo_disagree",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct_a", 42.0),
+        _param("direct_b", 42.0),
+        _algo("algo_disagree", "def compute(x):\n    return x * 2\n"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -125,20 +117,10 @@ def test_all_algorithms_unparseable_with_direct_consensus_returns_determined():
     """
     resolver = _make_resolver()
     active = [
-        {"id": "direct_a", "type": "parameter", "value": 42.0},
-        {"id": "direct_b", "type": "parameter", "value": 42.0},
-        {
-            "id": "algo_broken_1",
-            "type": "algorithm",
-            "body": "def compute(x:\n    return x +",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
-        {
-            "id": "algo_broken_2",
-            "type": "algorithm",
-            "body": "def compute(\n    !!!",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct_a", 42.0),
+        _param("direct_b", 42.0),
+        _algo("algo_broken_1", "def compute(x:\n    return x +"),
+        _algo("algo_broken_2", "def compute(\n    !!!"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -157,20 +139,10 @@ def test_mixed_agreeing_and_unparseable_algorithms_with_direct_consensus():
     # to 42, matching the direct consensus.
     resolver = _make_resolver(collect_known_values=lambda ids: {"input": 21.0})
     active = [
-        {"id": "direct_a", "type": "parameter", "value": 42.0},
-        {"id": "direct_b", "type": "parameter", "value": 42.0},
-        {
-            "id": "algo_agree",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
-        {
-            "id": "algo_broken",
-            "type": "algorithm",
-            "body": "def compute(x:\n    return x +",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct_a", 42.0),
+        _param("direct_b", 42.0),
+        _algo("algo_agree", "def compute(x):\n    return x * 2\n"),
+        _algo("algo_broken", "def compute(x:\n    return x +"),
     ]
 
     result = resolver.value_of_from_active(active, "target")

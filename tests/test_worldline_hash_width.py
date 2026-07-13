@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from propstore.worldline import compute_worldline_content_hash
+from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
 
 

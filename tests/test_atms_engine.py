@@ -274,9 +274,9 @@ def test_argumentation_state_reports_supported_and_defeated() -> None:
         ],
     )
     state = bound.atms_engine().argumentation_state()
-    assert state["backend"] == "atms"
-    assert "c_true" in state["supported"]
-    assert "c_out" in state["defeated"]
+    assert state.backend == "atms"
+    assert "c_true" in state.supported
+    assert "c_out" in state.defeated
 
 
 def test_engine_constructed_directly_from_bound_matches_pass_through() -> None:

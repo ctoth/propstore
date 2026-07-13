@@ -3,12 +3,11 @@
 The in-memory ``capture_journal`` surface, the ``at_journal_step`` bridge over a
 captured journal, and the **document-codec round-trip** (a captured journal
 survives ``Repository``-backed worldline persist -> load with the journal intact)
-are exercised here. The document-codec cases land with slice W1: the worldline is
-a single canonical charter (:class:`WorldlineDefinition`), and the journal is
-persisted as its own canonical dict (``TransitionJournal.to_dict()``) and
-reconstructed through the package-owned ``TransitionJournal.from_mapping`` — there
-is no ``WorldlineDefinitionDocument`` mirror and no ``to_document`` coercer. The
-``cli.worldline`` cases still ride on the deferred CLI/owner surfaces.
+are exercised here. The worldline is a single canonical charter
+(:class:`WorldlineDefinition`) that stores the journal as its canonical package
+type (:class:`TransitionJournal`); Quire's codec owns the encode/decode, so there
+is no mirror document, no ``to_document`` coercer, and no local mapping codec.
+The ``cli.worldline`` cases still ride on the deferred CLI/owner surfaces.
 """
 
 from __future__ import annotations
@@ -27,6 +26,7 @@ from propstore.support_revision.state import EpistemicState
 from propstore.world.bridge import at_journal_step
 from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.query import WorldlineRevisionQuery
+from propstore.worldline.revision_types import RevisionAtomRef
 from tests.fixtures.journal import (
     direct_dispatch,
     make_assertion_atom,
@@ -52,31 +52,21 @@ class _JournalWorld:
 
 
 def _query_for(atom_id: str) -> WorldlineRevisionQuery:
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "revise",
-        "atom": {"kind": "assertion", "id": atom_id},
-        "conflicts": {},
-    })
-    assert query is not None
-    return query
+    return WorldlineRevisionQuery(
+        operation="revise",
+        atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id),
+    )
 
 
 def _contract_query_for(atom_id: str) -> WorldlineRevisionQuery:
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "contract",
-        "target": atom_id,
-    })
-    assert query is not None
-    return query
+    return WorldlineRevisionQuery(operation="contract", target=atom_id)
 
 
 def _expand_query_for(atom_id: str) -> WorldlineRevisionQuery:
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "expand",
-        "atom": {"kind": "assertion", "id": atom_id},
-    })
-    assert query is not None
-    return query
+    return WorldlineRevisionQuery(
+        operation="expand",
+        atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id),
+    )
 
 
 @st.composite
@@ -256,9 +246,8 @@ def _capture_two_step_journal() -> TransitionJournal:
 def test_worldline_charter_journal_survives_repository_round_trip(tmp_path: Path) -> None:
     """A captured journal attached to a worldline survives persist -> load intact.
 
-    The single canonical charter carries the journal as its own canonical dict;
-    ``WorldlineDefinition.transition_journal`` reconstructs the package type via
-    ``TransitionJournal.from_mapping``. No mirror document, no ``to_document``.
+    The charter carries the journal as its canonical package type and Quire
+    decodes it back. No mirror document, no local codec, no dict hop.
     """
 
     journal = _capture_two_step_journal()
@@ -267,7 +256,7 @@ def test_worldline_charter_journal_survives_repository_round_trip(tmp_path: Path
         name="journalled",
         id="journalled",
         targets=["target"],
-        journal=journal.to_dict(),
+        journal=journal,
     )
 
     repo.families.worldlines.save(
@@ -276,7 +265,7 @@ def test_worldline_charter_journal_survives_repository_round_trip(tmp_path: Path
     loaded = repo.families.worldlines.load(WorldlineRef("journalled"))
 
     assert loaded is not None
-    reconstructed = loaded.transition_journal()
+    reconstructed = loaded.journal
     assert isinstance(reconstructed, TransitionJournal)
     assert reconstructed == journal
     assert tuple(entry.content_hash for entry in reconstructed.entries) == tuple(
@@ -289,7 +278,7 @@ def test_worldline_charter_journal_survives_quire_codec() -> None:
 
     journal = _capture_two_step_journal()
     definition = WorldlineDefinition(
-        name="mapped", id="mapped", targets=["target"], journal=journal.to_dict()
+        name="mapped", id="mapped", targets=["target"], journal=journal
     )
 
     codec = WorldlineDefinition.__charter__.document_codec()
@@ -299,10 +288,10 @@ def test_worldline_charter_journal_survives_quire_codec() -> None:
         source="test worldline journal",
     )
 
-    assert rebuilt.transition_journal() == journal
+    assert rebuilt.journal == journal
 
 
-def test_worldline_without_journal_reconstructs_to_none(tmp_path: Path) -> None:
+def test_worldline_without_journal_loads_as_none(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     definition = WorldlineDefinition(name="plain", id="plain", targets=["target"])
 
@@ -311,7 +300,6 @@ def test_worldline_without_journal_reconstructs_to_none(tmp_path: Path) -> None:
 
     assert loaded is not None
     assert loaded.journal is None
-    assert loaded.transition_journal() is None
 
 
 # ---------------------------------------------------------------------------
@@ -367,11 +355,10 @@ def test_owner_build_worldline_journal_and_at_step_round_trip(tmp_path: Path) ->
         id="wl",
         name="wl",
         targets=["Speed"],
-        revision={
-            "operation": "revise",
-            "atom": {"kind": "assertion", "id": atom_id},
-            "conflicts": {},
-        },
+        revision=WorldlineRevisionQuery(
+            operation="revise",
+            atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id),
+        ),
     )
     repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
 
@@ -383,7 +370,7 @@ def test_owner_build_worldline_journal_and_at_step_round_trip(tmp_path: Path) ->
     # The journal was persisted on the charter and reconstructs to the package type.
     loaded = repo.families.worldlines.load(WorldlineRef("wl"))
     assert loaded is not None
-    reconstructed = loaded.transition_journal()
+    reconstructed = loaded.journal
     assert isinstance(reconstructed, TransitionJournal)
     assert len(reconstructed.entries) == 1
 
@@ -443,11 +430,10 @@ def test_cli_build_journal_and_at_step_round_trip(tmp_path: Path) -> None:
         id="wl",
         name="wl",
         targets=["Speed"],
-        revision={
-            "operation": "revise",
-            "atom": {"kind": "assertion", "id": atom_id},
-            "conflicts": {},
-        },
+        revision=WorldlineRevisionQuery(
+            operation="revise",
+            atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id),
+        ),
     )
     repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
 

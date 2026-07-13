@@ -119,6 +119,7 @@ from propstore.world.types import (
     ValueStatus,
     coerce_value_status,
 )
+from propstore.worldline.result_types import WorldlineArgumentationState
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
@@ -1228,91 +1229,101 @@ class ATMSEngine:
         *,
         queryables: Sequence[QueryableAssumption] | None = None,
         future_limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> WorldlineArgumentationState:
+        """The engine's argumentation state, as the canonical typed view.
+
+        Every field is direct attribute access over the engine's own typed
+        reports. This used to manufacture a ``dict`` that the worldline layer
+        immediately re-typed, which silently dropped the report types: a fresh
+        capture held typed reports while a stored one held raw dicts.
+        """
         claim_inspections = {
             str(claim.claim_id): self.claim_status(str(claim.claim_id))
             for claim in self._runtime.active_claims()
             if str(claim.claim_id) in self._claim_node_ids
         }
-        result: dict[str, Any] = {
-            "backend": "atms",
-            "supported": sorted(self.supported_claim_ids()),
-            "defeated": sorted(
+        supported = self.supported_claim_ids()
+        normalized_queryables = self._coerce_queryables(queryables or ())
+
+        declared_queryables: tuple[str, ...] = ()
+        future_statuses: dict[str, ATMSFutureStatusReport] = {}
+        stability: dict[str, ATMSNodeStabilityReport] = {}
+        relevance: dict[str, ATMSNodeRelevanceReport] = {}
+        witness_futures: dict[str, tuple[ATMSNodeFutureStatusEntry, ...]] = {}
+        why_out: dict[str, ATMSWhyOutReport] = {}
+        if normalized_queryables:
+            declared_queryables = tuple(
+                queryable.cel for queryable in normalized_queryables
+            )
+            for claim_id in sorted(claim_inspections):
+                future_statuses[claim_id] = self.claim_future_statuses(
+                    claim_id,
+                    normalized_queryables,
+                    limit=future_limit,
+                )
+                stability[claim_id] = self.claim_stability(
+                    claim_id,
+                    normalized_queryables,
+                    limit=future_limit,
+                )
+                relevance[claim_id] = self.claim_relevance(
+                    claim_id,
+                    normalized_queryables,
+                    limit=future_limit,
+                )
+                witness_futures[claim_id] = tuple(
+                    self.status_flip_witnesses(
+                        self._claim_node_ids[claim_id],
+                        normalized_queryables,
+                        limit=future_limit,
+                    )
+                )
+                if claim_inspections[claim_id].status == ATMSNodeStatus.OUT:
+                    why_out[claim_id] = self.why_out(
+                        self._claim_node_ids[claim_id],
+                        queryables=normalized_queryables,
+                        limit=future_limit,
+                    )
+
+        return WorldlineArgumentationState(
+            backend="atms",
+            supported=tuple(sorted(supported)),
+            defeated=tuple(sorted(
                 str(claim.claim_id)
                 for claim in self._runtime.active_claims()
-                if str(claim.claim_id) not in self.supported_claim_ids()
+                if str(claim.claim_id) not in supported
+            )),
+            nogoods=tuple(
+                tuple(environment.variables)
+                for environment in self.nogoods.environments
             ),
-            "nogoods": [
-                list(environment.variables) for environment in self.nogoods.environments
-            ],
-            "node_statuses": {
+            node_statuses={
                 inspection.node_id: inspection.status.value
                 for inspection in claim_inspections.values()
             },
-            "support_quality": {
+            support_quality={
                 claim_id: inspection.support_quality.value
                 for claim_id, inspection in claim_inspections.items()
             },
-            "essential_support": {
-                claim_id: self._serialize_environment_key(inspection.essential_support) or []
+            essential_support={
+                claim_id: self._serialize_environment_key(inspection.essential_support)
                 for claim_id, inspection in claim_inspections.items()
             },
-            "status_reasons": {
+            status_reasons={
                 claim_id: inspection.reason
                 for claim_id, inspection in claim_inspections.items()
             },
-            "nogood_details": [
+            nogood_details=tuple(
                 self._serialize_nogood_detail(environment)
                 for environment in self.nogoods.environments
-            ],
-        }
-        normalized_queryables = self._coerce_queryables(queryables or ())
-        if normalized_queryables:
-            result["declared_queryables"] = [queryable.cel for queryable in normalized_queryables]
-            result["future_statuses"] = {
-                claim_id: self.claim_future_statuses(
-                    claim_id,
-                    normalized_queryables,
-                    limit=future_limit,
-                )
-                for claim_id in sorted(claim_inspections)
-            }
-            result["stability"] = {
-                claim_id: self.claim_stability(
-                    claim_id,
-                    normalized_queryables,
-                    limit=future_limit,
-                )
-                for claim_id in sorted(claim_inspections)
-            }
-            result["relevance"] = {
-                claim_id: self.claim_relevance(
-                    claim_id,
-                    normalized_queryables,
-                    limit=future_limit,
-                )
-                for claim_id in sorted(claim_inspections)
-            }
-            result["witness_futures"] = {
-                claim_id: self.status_flip_witnesses(
-                    self._claim_node_ids[claim_id],
-                    normalized_queryables,
-                    limit=future_limit,
-                )
-                for claim_id in sorted(claim_inspections)
-            }
-            why_out = {
-                claim_id: self.why_out(
-                    self._claim_node_ids[claim_id],
-                    queryables=normalized_queryables,
-                    limit=future_limit,
-                )
-                for claim_id, inspection in sorted(claim_inspections.items())
-                if inspection.status == ATMSNodeStatus.OUT
-            }
-            if why_out:
-                result["why_out"] = why_out
-        return result
+            ),
+            declared_queryables=declared_queryables,
+            future_statuses=future_statuses,
+            stability=stability,
+            relevance=relevance,
+            witness_futures=witness_futures,
+            why_out=why_out,
+        )
 
     # -- build --------------------------------------------------------------
 

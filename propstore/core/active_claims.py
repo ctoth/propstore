@@ -1,40 +1,38 @@
-"""The active-claim value the ASPIC+ bridge consumes.
+"""The active-claim value the resolution and argumentation layers consume.
 
-An :class:`ActiveClaim` is the bridge-facing view of a claim participating in an
-argumentation pass: its identity, the context it is used in, whether it is a
-necessary or ordinary premise, and the metadata the preference heuristic reads.
-The bridge accepts either an :class:`ActiveClaim` or a plain mapping and
-normalizes with :func:`coerce_active_claims` — there is no row-model DTO and no
-``to_payload``/``from_payload`` pair; a mapping is lowered once, at the boundary.
+An :class:`ActiveClaim` is a frozen field-subset VIEW over the canonical
+:class:`~propstore.families.claims.Claim` charter — built by attribute access
+in :meth:`ActiveClaim.from_claim`, never by re-typing a payload mapping. It
+adds the participation facts a claim only has *inside* one argumentation pass
+(``premise_kind``, ``branch``, ``source_assertion_ids``) and the per-claim
+epistemic slots (``date``, the Jøsang opinion components, ``source_paper``)
+whose production substrates are tracked in ``docs/gaps.md``; absence is honest
+ignorance, never a fabricated value.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Any, TypeAlias
-
 import msgspec
+from doxa import Opinion
 
-_RESERVED_KEYS = frozenset(
-    {
-        "id",
-        "claim_id",
-        "context_id",
-        "premise_kind",
-        "concept_id",
-        "canonical_name",
-        "statement",
-        "sample_size",
-        "uncertainty",
-        "confidence",
-    }
-)
+from propstore.families.claims import Claim, ClaimType, ClaimVariable
+
+_DOGMATIC_TOL = 1e-12
+
+
+def _value_concept_id(claim: Claim) -> str | None:
+    """The concept a claim's value is about: output, else target, else first ref."""
+
+    for candidate in (claim.output_concept, claim.target_concept, *claim.concepts):
+        if candidate:
+            return str(candidate)
+    return None
 
 
 class ActiveClaim(
     msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
 ):
-    """One claim as the ASPIC+ bridge sees it."""
+    """One claim as the resolution and argumentation layers see it."""
 
     claim_id: str
     context_id: str | None = None
@@ -42,82 +40,79 @@ class ActiveClaim(
     concept_id: str | None = None
     canonical_name: str | None = None
     statement: str | None = None
+    claim_type: ClaimType | None = None
+    value: float | str | None = None
+    body: str | None = None
+    expression: str | None = None
+    variables: tuple[ClaimVariable, ...] = ()
+    conditions: tuple[str, ...] = ()
     sample_size: float | None = None
     uncertainty: float | None = None
     confidence: float | None = None
-    attributes: tuple[tuple[str, Any], ...] = ()
+    branch: str | None = None
+    source_assertion_ids: tuple[str, ...] = ()
+    date: str | None = None
+    opinion_belief: float | None = None
+    opinion_disbelief: float | None = None
+    opinion_uncertainty: float | None = None
+    opinion_base_rate: float | None = None
+    source_paper: str | None = None
 
-    def attribute_value(self, key: str) -> Any:
-        """Return an extra attribute by name, or ``None``."""
+    @classmethod
+    def from_claim(
+        cls,
+        claim: Claim,
+        *,
+        claim_id: str | None = None,
+        concept_id: str | None = None,
+        branch: str | None = None,
+        source_assertion_ids: tuple[str, ...] = (),
+        premise_kind: str = "ordinary",
+        source_paper: str | None = None,
+    ) -> ActiveClaim:
+        """Project the canonical :class:`Claim` charter into the active view.
 
-        for attribute_key, value in self.attributes:
-            if attribute_key == key:
-                return value
-        return None
+        Pure attribute access. ``claim_id``/``concept_id`` overrides exist for
+        the merge path, whose active identity is the branch-scoped artifact id
+        rather than the document's own ``claim_id``.
+        """
 
-    def metadata_mapping(self) -> dict[str, object]:
-        """The metadata the preference heuristic reads (omitting absent values)."""
-
-        mapping: dict[str, object] = {}
-        if self.sample_size is not None:
-            mapping["sample_size"] = self.sample_size
-        if self.uncertainty is not None:
-            mapping["uncertainty"] = self.uncertainty
-        if self.confidence is not None:
-            mapping["confidence"] = self.confidence
-        return mapping
-
-
-ActiveClaimInput: TypeAlias = ActiveClaim | Mapping[str, Any]
-
-
-def _float_or_none(value: object) -> float | None:
-    return float(value) if isinstance(value, int | float) else None
-
-
-def _active_claim_from_mapping(claim: Mapping[str, Any]) -> ActiveClaim:
-    identity = claim.get("id")
-    if identity is None:
-        identity = claim.get("claim_id")
-    if identity is None:
-        raise ValueError("active claim mapping requires an 'id' or 'claim_id'")
-    context_id = claim.get("context_id")
-    concept_id = claim.get("concept_id")
-    canonical_name = claim.get("canonical_name")
-    statement = claim.get("statement")
-    attributes = tuple(
-        sorted(
-            (str(key), value)
-            for key, value in claim.items()
-            if str(key) not in _RESERVED_KEYS
+        return cls(
+            claim_id=str(claim.claim_id) if claim_id is None else claim_id,
+            context_id=claim.context_id,
+            premise_kind=premise_kind,
+            concept_id=_value_concept_id(claim) if concept_id is None else concept_id,
+            canonical_name=claim.name,
+            statement=claim.statement,
+            claim_type=claim.claim_type,
+            value=claim.value,
+            body=claim.body,
+            expression=claim.expression,
+            variables=claim.variables,
+            conditions=claim.conditions,
+            sample_size=None if claim.sample_size is None else float(claim.sample_size),
+            uncertainty=claim.uncertainty,
+            confidence=claim.confidence,
+            branch=branch,
+            source_assertion_ids=source_assertion_ids,
+            source_paper=source_paper,
         )
-    )
-    return ActiveClaim(
-        claim_id=str(identity),
-        context_id=None if context_id is None else str(context_id),
-        premise_kind=str(claim.get("premise_kind") or "ordinary"),
-        concept_id=None if concept_id is None else str(concept_id),
-        canonical_name=None if canonical_name is None else str(canonical_name),
-        statement=None if statement is None else str(statement),
-        sample_size=_float_or_none(claim.get("sample_size")),
-        uncertainty=_float_or_none(claim.get("uncertainty")),
-        confidence=_float_or_none(claim.get("confidence")),
-        attributes=attributes,
-    )
+
+    def opinion(self) -> Opinion | None:
+        """Rebuild the attached opinion as ``doxa.Opinion``, or ``None``.
+
+        Returns ``None`` unless all four Jøsang components are present — a
+        partial opinion is treated as no opinion, never completed with a
+        fabricated mass (mirrors ``Stance.opinion``).
+        """
+
+        b = self.opinion_belief
+        d = self.opinion_disbelief
+        u = self.opinion_uncertainty
+        a = self.opinion_base_rate
+        if b is None or d is None or u is None or a is None:
+            return None
+        return Opinion(b, d, u, a, allow_dogmatic=u < _DOGMATIC_TOL)
 
 
-def coerce_active_claim(claim: ActiveClaimInput) -> ActiveClaim:
-    """Normalize a single claim-or-mapping into an ``ActiveClaim`` value."""
-
-    return claim if isinstance(claim, ActiveClaim) else _active_claim_from_mapping(claim)
-
-
-def coerce_active_claims(
-    active_claims: Sequence[ActiveClaimInput],
-) -> tuple[ActiveClaim, ...]:
-    """Normalize a sequence of claims-or-mappings into ``ActiveClaim`` values."""
-
-    return tuple(coerce_active_claim(claim) for claim in active_claims)
-
-
-__all__ = ["ActiveClaim", "ActiveClaimInput", "coerce_active_claim", "coerce_active_claims"]
+__all__ = ["ActiveClaim"]

@@ -165,7 +165,7 @@ def _override_source_ids(atom: BeliefAtom) -> tuple[str, ...]:
 
     values: list[str] = []
     for claim in atom.source_claims:
-        source_paper = claim.attribute_value("source_paper")
+        source_paper = claim.source_paper
         if source_paper:
-            values.append(str(source_paper))
+            values.append(source_paper)
     return tuple(dict.fromkeys(values))

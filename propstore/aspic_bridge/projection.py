@@ -31,7 +31,7 @@ from argumentation.structured.aspic.aspic import (
 )
 from argumentation.core.dung import ArgumentationFramework
 
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
@@ -56,17 +56,9 @@ _DEFEASIBLE_RULE_STRENGTH = 0.7
 
 
 def _claim_has_conditions(claim: ActiveClaim) -> bool:
-    """Whether the active claim carries CEL conditions.
+    """Whether the active claim carries authored CEL conditions."""
 
-    The bridge-facing :class:`ActiveClaim` keeps conditions in its extra
-    attributes (the slim active-claim does not promote them to a field), so a
-    condition presence test reads them through ``attribute_value``.
-    """
-
-    return (
-        claim.attribute_value("conditions") is not None
-        or claim.attribute_value("conditions_cel") is not None
-    )
+    return bool(claim.conditions)
 
 
 def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
@@ -97,25 +89,8 @@ def _projection_backend_atom_id(literal: Literal) -> str:
     )
 
 
-def _is_str_sequence(value: object) -> bool:
-    """Whether a value is a non-string sequence of scalars."""
-
-    return isinstance(value, Sequence) and not isinstance(value, str | bytes)
-
-
 def _source_assertion_ids_for_claim(claim: ActiveClaim | None) -> tuple[str, ...]:
-    if claim is None:
-        return ()
-    # ``attribute_value`` is the slim active-claim's deliberately untyped escape
-    # hatch for extra payload fields; the membership test lives in a helper so
-    # this scope keeps ``raw`` as the upstream Any rather than narrowing it to a
-    # ``Sequence[Unknown]`` whose element type pyright cannot recover.
-    raw = claim.attribute_value("source_assertion_ids")
-    if isinstance(raw, str):
-        return (raw,)
-    if _is_str_sequence(raw):
-        return tuple(str(value) for value in raw)
-    return ()
+    return () if claim is None else claim.source_assertion_ids
 
 
 def _projection_atom_for_literal(
@@ -200,7 +175,7 @@ def _grounded_argument_strength(argument: Argument) -> float:
 
 def csaf_to_projection(
     csaf: CSAF,
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaim],
     *,
     support_metadata: SupportMetadata | None = None,
 ) -> StructuredProjection:
@@ -209,7 +184,7 @@ def csaf_to_projection(
     metadata: SupportMetadata = {}
     if support_metadata is not None:
         metadata = support_metadata
-    normalized_claims = coerce_active_claims(active_claims)
+    normalized_claims = tuple(active_claims)
     claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
     claim_literal_ids = {
         literal: str(key.proposition_id)
@@ -348,7 +323,7 @@ def csaf_to_projection(
 
 def build_aspic_projection(
     store: StanceStore,
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaim],
     *,
     bundle: GroundedRulesBundle,
     support_metadata: SupportMetadata | None = None,
@@ -364,7 +339,7 @@ def build_aspic_projection(
     directly (CLAUDE.md substrate boundary).
     """
 
-    normalized_claims = tuple(coerce_active_claims(active_claims))
+    normalized_claims = tuple(active_claims)
     active_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
 
     stance_rows = extract_stance_rows(store, active_by_id, active_graph=active_graph)

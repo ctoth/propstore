@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.12
+  contract_version: 2026.07.13
   body:
     families:
     - contract_version: 2026.06.28
@@ -170,7 +170,7 @@ contracts:
     - contract_version: 2026.06.29
       key: same_as_assertion
       name: same_as_assertion
-    - contract_version: 2026.06.29
+    - contract_version: 2026.07.12
       key: concept_alignment
       name: concept_alignment_framework
     - contract_version: 2026.06.29
@@ -221,7 +221,7 @@ contracts:
     - contract_version: 2026.06.29
       key: merge_manifest
       name: merge_manifest
-    - contract_version: 2026.06.29
+    - contract_version: 2026.07.13
       key: worldlines
       name: worldlines
 - kind: family
@@ -342,7 +342,7 @@ contracts:
     key: concept
 - kind: family
   name: concept_alignment_framework
-  contract_version: 2026.06.29
+  contract_version: 2026.07.12
   body:
     accessor: concept_alignments
     artifact_family: concept_alignment_framework
@@ -357,7 +357,7 @@ contracts:
         kind: flat-yaml
         namespace: merge/concepts
         ref_field: slug
-    artifact_family_contract_version: 2026.06.29
+    artifact_family_contract_version: 2026.07.12
     foreign_keys: []
     identity_field: alignment_id
     key: concept_alignment
@@ -876,7 +876,7 @@ contracts:
     key: stance
 - kind: family
   name: worldlines
-  contract_version: 2026.06.29
+  contract_version: 2026.07.13
   body:
     accessor: worldlines
     artifact_family: worldlines
@@ -890,7 +890,7 @@ contracts:
         kind: flat-yaml
         namespace: worldlines
         ref_field: name
-    artifact_family_contract_version: 2026.06.29
+    artifact_family_contract_version: 2026.07.13
     foreign_keys: []
     identity_field: name
     key: worldlines
@@ -1004,4 +1004,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.12
+  contract_version: 2026.07.13

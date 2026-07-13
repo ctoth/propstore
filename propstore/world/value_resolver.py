@@ -15,7 +15,7 @@ supplied as a callable at construction. Parameterization evaluation goes through
 :func:`propstore.propagation.evaluate_parameterization` (which lowers to the
 ``human_to_sympy`` substrate — no raw sympy here); algorithm comparison goes
 through ``ast_equiv.compare``. Claims are read as the canonical
-:class:`~propstore.core.active_claims.ActiveClaim`/``ActiveClaimInput`` and
+:class:`~propstore.core.active_claims.ActiveClaim` and
 parameterizations as the canonical
 :class:`~propstore.core.graph_types.ParameterizationEdge` (CLAUDE.md substrate
 discipline: one spelling per thing, no mirror types, no row DTOs).
@@ -32,7 +32,7 @@ from typing import Any, Protocol
 import ast_equiv
 from ast_equiv import AlgorithmParseError, ComparisonResult
 
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.graph_types import ParameterizationEdge
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.families.claims import ClaimType
@@ -103,28 +103,6 @@ def _comparison_from_equivalence(equivalent: object) -> _AlgorithmComparison:
     return _BENIGN_INCONCLUSIVE
 
 
-@dataclass(frozen=True)
-class _ActiveClaimView:
-    """The fields the kernel reads off one claim payload.
-
-    ``claim`` keeps the original ``ActiveClaimInput`` so the caller-supplied
-    ``extract_bindings``/``extract_variable_concepts`` callables (and
-    ``ValueResult`` coercion) see the same value the kernel was handed.
-    """
-
-    claim: ActiveClaimInput
-    claim_id: str | None
-    claim_type: ClaimType | None
-    value: float | str | None
-    body: str | None
-
-
-def _coerce_claim_type(value: object) -> ClaimType:
-    if isinstance(value, ClaimType):
-        return value
-    return ClaimType(str(value))
-
-
 def _normalize_numeric(value: object) -> float | str | None:
     if isinstance(value, bool):
         return None
@@ -135,45 +113,8 @@ def _normalize_numeric(value: object) -> float | str | None:
     return None
 
 
-def _claim_attr(claim: ActiveClaimInput, key: str) -> Any:
-    """Read one named field off a claim payload (mapping or ``ActiveClaim``).
-
-    Algorithm body, claim type, and scalar value are not first-class
-    ``ActiveClaim`` fields — they ride in its ``attributes`` after coercion, so
-    they are read through ``attribute_value`` for the ``ActiveClaim`` case and
-    by key for a raw mapping.
-    """
-
-    if isinstance(claim, Mapping):
-        return claim.get(key)
-    return claim.attribute_value(key)
-
-
-def _claim_id_of(claim: ActiveClaimInput) -> str | None:
-    if isinstance(claim, Mapping):
-        identity = claim.get("id")
-        if identity is None:
-            identity = claim.get("claim_id")
-        return None if identity is None else str(identity)
-    return str(claim.claim_id)
-
-
 def _active_claim_value(claim: ActiveClaim) -> float | str | None:
-    return _normalize_numeric(claim.attribute_value("value"))
-
-
-def _active_claim_view(claim_input: ActiveClaimInput) -> _ActiveClaimView:
-    raw_type = _claim_attr(claim_input, "claim_type")
-    if raw_type is None:
-        raw_type = _claim_attr(claim_input, "type")
-    body = _claim_attr(claim_input, "body")
-    return _ActiveClaimView(
-        claim=claim_input,
-        claim_id=_claim_id_of(claim_input),
-        claim_type=None if raw_type is None else _coerce_claim_type(raw_type),
-        value=_normalize_numeric(_claim_attr(claim_input, "value")),
-        body=None if body is None else str(body),
-    )
+    return _normalize_numeric(claim.value)
 
 
 _SAFE_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -214,9 +155,9 @@ class ActiveClaimResolver:
         parameterizations_for: Callable[[ConceptId | str], list[ParameterizationEdge]],
         is_param_compatible: Callable[[ParameterizationEdge], bool],
         value_of: Callable[[ConceptId | str], ValueResult],
-        extract_variable_concepts: Callable[[ActiveClaimInput], list[str]],
+        extract_variable_concepts: Callable[[ActiveClaim], list[str]],
         collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
-        extract_bindings: Callable[[ActiveClaimInput], dict[str, str]],
+        extract_bindings: Callable[[ActiveClaim], dict[str, str]],
         concept_symbol_candidates: Callable[[ConceptId | str], Sequence[str]] | None = None,
     ) -> None:
         self._parameterizations_for = parameterizations_for
@@ -286,24 +227,22 @@ class ActiveClaimResolver:
 
     def value_of_from_active(
         self,
-        active: Sequence[ActiveClaimInput],
+        active: Sequence[ActiveClaim],
         concept_id: ConceptId | str,
     ) -> ValueResult:
         typed_concept_id = to_concept_id(concept_id)
-        active_list = list(active)
-        if not active_list:
+        active_claims = tuple(active)
+        if not active_claims:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
-        active_claims = coerce_active_claims(active_list)
-        active_views = tuple(_active_claim_view(claim) for claim in active_list)
-        algo_claims = [claim for claim in active_views if claim.claim_type is ClaimType.ALGORITHM]
-        value_claims = [claim for claim in active_views if claim.claim_type is not ClaimType.ALGORITHM]
+        algo_claims = [claim for claim in active_claims if claim.claim_type is ClaimType.ALGORITHM]
+        value_claims = [claim for claim in active_claims if claim.claim_type is not ClaimType.ALGORITHM]
 
         if value_claims and algo_claims:
             direct_values = {
-                self._normalize_value(claim.value)
+                _normalize_numeric(claim.value)
                 for claim in value_claims
-                if claim.value is not None
+                if _normalize_numeric(claim.value) is not None
             }
             if not direct_values:
                 return ValueResult(
@@ -379,7 +318,7 @@ class ActiveClaimResolver:
             for claim in algo_claims:
                 all_var_concepts.update(
                     to_concept_id(variable_concept_id)
-                    for variable_concept_id in self._extract_variable_concepts(claim.claim)
+                    for variable_concept_id in self._extract_variable_concepts(claim)
                 )
             all_var_concepts.discard(typed_concept_id)
 
@@ -402,7 +341,11 @@ class ActiveClaimResolver:
                 ),
             )
 
-        values = {claim.value for claim in active_views if claim.value is not None}
+        values = {
+            _normalize_numeric(claim.value)
+            for claim in active_claims
+            if _normalize_numeric(claim.value) is not None
+        }
         if not values:
             return ValueResult(
                 concept_id=typed_concept_id,
@@ -598,14 +541,14 @@ class ActiveClaimResolver:
 
     def _algorithm_matches_direct_value(
         self,
-        claim: _ActiveClaimView,
+        claim: ActiveClaim,
         direct_value: float | str | None,
     ) -> _AlgorithmComparison:
         body = claim.body
         if not body:
             return _BENIGN_INCONCLUSIVE
 
-        bindings = self._extract_bindings(claim.claim)
+        bindings = self._extract_bindings(claim)
         if not bindings:
             return _BENIGN_INCONCLUSIVE
 
@@ -638,24 +581,20 @@ class ActiveClaimResolver:
 
     def _all_algorithms_equivalent(
         self,
-        algo_claims: Sequence[_ActiveClaimView | ActiveClaimInput],
+        algo_claims: Sequence[ActiveClaim],
         known_values: Mapping[ConceptId, Any],
     ) -> _AlgorithmComparison:
-        normalized_claims = [
-            claim if isinstance(claim, _ActiveClaimView) else _active_claim_view(claim)
-            for claim in algo_claims
-        ]
-        for i in range(len(normalized_claims)):
-            for j in range(i + 1, len(normalized_claims)):
-                body_a = normalized_claims[i].body or ""
-                body_b = normalized_claims[j].body or ""
+        for i in range(len(algo_claims)):
+            for j in range(i + 1, len(algo_claims)):
+                body_a = algo_claims[i].body or ""
+                body_b = algo_claims[j].body or ""
                 if not body_a or not body_b:
                     # Benign: cannot compare without bodies. Not a parse
                     # failure — mirror previous behavior of signalling
                     # non-equivalence to the caller.
                     return _AlgorithmComparison(equivalent=False)
-                bindings_a = self._extract_bindings(normalized_claims[i].claim)
-                bindings_b = self._extract_bindings(normalized_claims[j].claim)
+                bindings_a = self._extract_bindings(algo_claims[i])
+                bindings_b = self._extract_bindings(algo_claims[j])
                 try:
                     result = ast_compare(
                         body_a,

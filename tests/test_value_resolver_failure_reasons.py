@@ -13,20 +13,22 @@ from unittest.mock import patch
 
 import pytest
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
-from propstore.world.value_resolver import ActiveClaimResolver, _active_claim_view
+from propstore.world.value_resolver import ActiveClaimResolver
 
 
-def _is_algorithm_claim(claim) -> bool:
-    """True if this claim is an ALGORITHM claim — handles both dict inputs
-    (pre-coercion) and ActiveClaim instances (post-coercion)."""
-    claim_type = getattr(claim, "claim_type", None)
-    if claim_type is not None:
-        return claim_type is ClaimType.ALGORITHM
-    if isinstance(claim, dict):
-        return claim.get("type") == "algorithm"
-    return False
+def _param(claim_id: str, value: float) -> ActiveClaim:
+    return ActiveClaim(claim_id=claim_id, claim_type=ClaimType.PARAMETER, value=value)
+
+
+def _algo(claim_id: str, body: str) -> ActiveClaim:
+    return ActiveClaim(claim_id=claim_id, claim_type=ClaimType.ALGORITHM, body=body)
+
+
+def _is_algorithm_claim(claim: ActiveClaim) -> bool:
+    return claim.claim_type is ClaimType.ALGORITHM
 
 
 def _make_resolver(
@@ -73,14 +75,9 @@ def test_unparseable_algorithm_records_failure_reason():
     """
     resolver = _make_resolver()
     active = [
-        {"id": "direct", "type": "parameter", "value": 10.0},
-        {
-            "id": "algo",
-            "type": "algorithm",
-            # Deliberately broken python — def signature not closed.
-            "body": "def compute(x:\n    return x +",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct", 10.0),
+        # Deliberately broken python — def signature not closed.
+        _algo("algo", "def compute(x:\n    return x +"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -98,14 +95,9 @@ def test_benign_inconclusive_algorithm_has_no_reason_annotation():
         # This hits the CONFLICTED branch before any algorithm
         # comparison, so the helper is never called and no reason should
         # be attached.
-        {"id": "direct1", "type": "parameter", "value": 10.0},
-        {"id": "direct2", "type": "parameter", "value": 20.0},
-        {
-            "id": "algo",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct1", 10.0),
+        _param("direct2", 20.0),
+        _algo("algo", "def compute(x):\n    return x * 2\n"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -121,13 +113,8 @@ def test_benign_missing_bindings_has_no_reason_annotation():
         extract_bindings=lambda claim: {},  # no bindings → helper returns None
     )
     active = [
-        {"id": "direct", "type": "parameter", "value": 10.0},
-        {
-            "id": "algo",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct", 10.0),
+        _algo("algo", "def compute(x):\n    return x * 2\n"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -145,13 +132,8 @@ def test_successful_comparison_has_no_reason_annotation():
     # direct value 10 with known_values x=5, algorithm compute(x): return x*2
     # ⇒ 10 == 10. Should land as DETERMINED.
     active = [
-        {"id": "direct", "type": "parameter", "value": 10.0},
-        {
-            "id": "algo",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _param("direct", 10.0),
+        _algo("algo", "def compute(x):\n    return x * 2\n"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -169,19 +151,9 @@ def test_unparseable_algorithm_only_records_failure_reason():
     """Parse failure in _all_algorithms_equivalent must tag reason."""
     resolver = _make_resolver()
     active = [
-        {
-            "id": "algo_ok",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
-        {
-            "id": "algo_broken",
-            "type": "algorithm",
-            # Deliberately broken body.
-            "body": "def compute(x:\n    return x +",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _algo("algo_ok", "def compute(x):\n    return x * 2\n"),
+        # Deliberately broken body.
+        _algo("algo_broken", "def compute(x:\n    return x +"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -194,18 +166,8 @@ def test_successful_algorithm_only_has_no_reason_annotation():
     """Happy path: two equivalent algorithms → DETERMINED, reason is None."""
     resolver = _make_resolver()
     active = [
-        {
-            "id": "algo_a",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
-        {
-            "id": "algo_b",
-            "type": "algorithm",
-            "body": "def compute(x):\n    return x * 2\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        _algo("algo_a", "def compute(x):\n    return x * 2\n"),
+        _algo("algo_b", "def compute(x):\n    return x * 2\n"),
     ]
 
     result = resolver.value_of_from_active(active, "target")
@@ -217,8 +179,8 @@ def test_successful_algorithm_only_has_no_reason_annotation():
 def test_runtime_error_from_algorithm_equivalence_propagates():
     resolver = _make_resolver()
     algo_claims = [
-        {"body": "x = 1", "id": "c1"},
-        {"body": "x = 2", "id": "c2"},
+        ActiveClaim(claim_id="c1", body="x = 1"),
+        ActiveClaim(claim_id="c2", body="x = 2"),
     ]
 
     with patch(
@@ -231,12 +193,7 @@ def test_runtime_error_from_algorithm_equivalence_propagates():
 
 def test_ast_compare_none_equivalence_is_benign_inconclusive():
     resolver = _make_resolver()
-    claim = {
-        "id": "algo",
-        "type": "algorithm",
-        "body": "def compute(x):\n    return x * 2\n",
-        "variables_json": '[{"name":"x","concept":"input"}]',
-    }
+    claim = _algo("algo", "def compute(x):\n    return x * 2\n")
 
     class _Comparison:
         equivalent = None
@@ -245,10 +202,7 @@ def test_ast_compare_none_equivalence_is_benign_inconclusive():
         "propstore.world.value_resolver.ast_compare",
         return_value=_Comparison(),
     ):
-        comparison = resolver._algorithm_matches_direct_value(
-            _active_claim_view(claim),
-            10.0,
-        )
+        comparison = resolver._algorithm_matches_direct_value(claim, 10.0)
 
     assert comparison.equivalent is None
     assert comparison.parse_failed is False

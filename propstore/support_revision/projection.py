@@ -157,8 +157,8 @@ def _revision_scope_from_bound(bound: BoundWorld) -> RevisionScope:
 
 
 def _relation_ref(claim: ActiveClaim) -> RelationConceptRef:
-    claim_type = claim.attribute_value("claim_type")
-    claim_type_text = "unknown" if claim_type is None else str(claim_type)
+    claim_type = claim.claim_type
+    claim_type_text = "unknown" if claim_type is None else claim_type.value
     return RelationConceptRef(f"ps:relation:claim:{claim_type_text}")
 
 
@@ -166,15 +166,14 @@ def _role_bindings(claim: ActiveClaim) -> RoleBindingSet:
     return RoleBindingSet(
         (
             RoleBinding("subject", _claim_subject(claim)),
-            RoleBinding("value", _stable_value(claim.attribute_value("value"))),
+            RoleBinding("value", _stable_value(claim.value)),
         )
     )
 
 
 def _claim_subject(claim: ActiveClaim) -> str:
-    for value in (claim.concept_id, claim.attribute_value("concept_id")):
-        if value is not None:
-            return str(value)
+    if claim.concept_id is not None:
+        return str(claim.concept_id)
     return "ps:concept:unscoped"
 
 

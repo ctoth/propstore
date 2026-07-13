@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
-
-from propstore.core.active_claims import coerce_active_claim
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.assertions.refs import (
     ConditionRef,
     ContextReference,
@@ -38,10 +36,7 @@ def make_assertion_atom(
         condition=ConditionRef.unconditional(),
         provenance_ref=ProvenanceGraphRef("urn:propstore:test:provenance"),
     )
-    claim_payload: dict[str, Any] = {"id": f"claim_{name}"}
-    if source_paper is not None:
-        claim_payload["source_paper"] = source_paper
-    claim = coerce_active_claim(claim_payload)
+    claim = ActiveClaim(claim_id=f"claim_{name}", source_paper=source_paper)
     return AssertionAtom(
         atom_id=str(assertion.assertion_id),
         assertion=assertion,

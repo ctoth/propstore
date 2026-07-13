@@ -8,7 +8,11 @@ from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import WorldStore
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasEnvironment, WorldlineBoundView
-from propstore.worldline.result_types import WorldlineInputSource, WorldlineTargetValue
+from propstore.worldline.result_types import (
+    WorldlineInputSource,
+    WorldlineTargetValue,
+    WorldlineVariableRef,
+)
 from propstore.worldline.trace import ResolutionTrace
 
 
@@ -61,22 +65,25 @@ def claim_target_value(
     claim: ActiveClaim,
     claim_id: str | None,
 ) -> WorldlineTargetValue:
-    name = claim.attribute_value("name")
-    if name is None:
-        name = claim.canonical_name
-    return WorldlineTargetValue.from_mapping({
-        "status": status,
-        "source": source,
-        "claim_id": claim_id,
-        "value": claim.attribute_value("value"),
-        "claim_type": claim.attribute_value("claim_type"),
-        "statement": claim.statement,
-        "expression": claim.attribute_value("expression"),
-        "body": claim.attribute_value("body"),
-        "name": name,
-        "canonical_ast": claim.attribute_value("canonical_ast"),
-        "variables": claim.attribute_value("variables"),
-    })
+    return WorldlineTargetValue(
+        status=status,
+        source=source,
+        claim_id=claim_id,
+        value=claim.value,
+        claim_type=None if claim.claim_type is None else claim.claim_type.value,
+        statement=claim.statement,
+        expression=claim.expression,
+        body=claim.body,
+        name=claim.canonical_name,
+        variables=tuple(
+            WorldlineVariableRef(
+                name=variable.name,
+                symbol=variable.symbol,
+                concept_id=variable.concept,
+            )
+            for variable in claim.variables
+        ),
+    )
 
 
 def pre_resolve_conflicts(
@@ -399,9 +406,7 @@ def _resolve_chain_target(
             for input_cid, value in result.input_values.items()
         }
     else:
-        chain_value = (
-            result.claims[0].attribute_value("value") if result.claims else None
-        )
+        chain_value = result.claims[0].value if result.claims else None
 
     if chain_value is None or result.status not in ("derived", "determined"):
         return None
@@ -506,7 +511,7 @@ def _resolve_claim_input(
     claim_id = str(claim.claim_id)
     trace.record_claim_dependency(claim_id)
     return WorldlineInputSource(
-        value=claim.attribute_value("value"),
+        value=claim.value,
         source="claim",
         claim_id=display_claim_id(context.world, claim_id) or claim_id,
     )

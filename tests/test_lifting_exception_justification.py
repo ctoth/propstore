@@ -23,19 +23,19 @@ from propstore.context_lifting import (
     LiftingRule,
     LiftingSystem,
 )
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.families.contexts import LiftingDecisionStatus
 from propstore.grounding.bundle import GroundedRulesBundle
 
 
-def _claim(claim_id: str, context_id: str) -> dict[str, object]:
-    return {
-        "id": claim_id,
-        "concept_id": "k",
-        "statement": claim_id,
-        "premise_kind": "ordinary",
-        "context_id": context_id,
-    }
+def _claim(claim_id: str, context_id: str) -> ActiveClaim:
+    return ActiveClaim(
+        claim_id=claim_id,
+        concept_id="k",
+        statement=claim_id,
+        context_id=context_id,
+    )
 
 
 def _reported(claim_id: str) -> CanonicalJustification:

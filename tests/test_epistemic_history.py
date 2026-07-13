@@ -10,7 +10,8 @@ from hypothesis import strategies as st
 from msgspec.structs import replace as replace_struct
 from quire.documents import to_document_builtins
 
-from propstore.core.active_claims import coerce_active_claim
+from propstore.core.active_claims import ActiveClaim
+from propstore.families.claims import ClaimType
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
@@ -154,14 +155,12 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
         if atom.atom_id != legacy_id:
             changed_atoms.append(atom)
             continue
-        source_claim = coerce_active_claim(
-            {
-                "id": "claim_legacy_updated",
-                "type": "parameter",
-                "value": "legacy",
-                "concept_id": "concept_legacy",
-                "source_paper": "paper:updated",
-            }
+        source_claim = ActiveClaim(
+            claim_id="claim_legacy_updated",
+            claim_type=ClaimType.PARAMETER,
+            value="legacy",
+            concept_id="concept_legacy",
+            source_paper="paper:updated",
         )
         changed_atoms.append(replace_struct(atom, source_claims=(source_claim,)))
     changed_base = replace_struct(

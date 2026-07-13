@@ -7,6 +7,7 @@ import pytest
 from belief_set import Atom, TOP, disjunction
 
 from propstore.core.environment import AssumptionRef
+from propstore.reporting import json_ready
 from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -297,23 +298,22 @@ def test_ic_merge_replay_rejects_policy_drift_before_semantic_replay() -> None:
 
 def test_worldline_capture_serializes_ic_merge_event() -> None:
     state, atom_ids = _merge_state()
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "ic_merge",
-        "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
-        "integrity_constraint": {
+    query = WorldlineRevisionQuery(
+        operation="ic_merge",
+        profile_atom_ids=((atom_ids["a"],), (atom_ids["b"],)),
+        integrity_constraint={
             "kind": "literals",
             "required": [atom_ids["a"]],
             "forbidden": [atom_ids["b"]],
         },
-        "merge_parent_commits": ["left", "right"],
-        "merge_operator": "sigma",
-        "max_alphabet_size": 8,
-    })
-    assert query is not None
+        merge_parent_commits=("left", "right"),
+        operator="sigma",
+        max_alphabet_size=8,
+    )
 
     journal = _capture_journal_for(state, (query,))
 
-    payload = journal.to_dict()
+    payload = json_ready(journal)
     entry = payload["entries"][0]
     assert entry["operator"] == "ic_merge"
     assert entry["operator_input"]["merge_parent_commits"] == ["left", "right"]

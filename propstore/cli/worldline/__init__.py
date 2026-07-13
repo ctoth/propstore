@@ -26,6 +26,7 @@ from propstore.app.worldlines import (
     reasoning_backend_values,
 )
 from propstore.reporting import JsonValue
+from propstore.worldline.revision_types import RevisionAtomRef
 from propstore.support_revision.belief_set_adapter import (
     LEXICOGRAPHIC_OPERATOR,
     RESTRAINED_OPERATOR,
@@ -91,7 +92,15 @@ def parse_kv_args(args: tuple[str, ...]) -> dict[str, str | int | float | bool]:
     return bindings
 
 
-def parse_worldline_revision_atom(raw: str | None) -> JsonObject | None:
+def parse_worldline_revision_atom(raw: str | None) -> RevisionAtomRef | None:
+    """Parse the ``--revision-atom`` flag into the canonical typed atom ref.
+
+    User-supplied JSON on the command line is a genuinely untyped surface, so
+    this is a real parse — and it decodes straight into the domain type rather
+    than handing a mapping deeper into the system. ``id`` is accepted as the
+    kind-dependent spelling of ``assertion_id``/``assumption_id``.
+    """
+
     if raw is None:
         return None
     try:
@@ -100,7 +109,23 @@ def parse_worldline_revision_atom(raw: str | None) -> JsonObject | None:
         raise click.ClickException(f"Invalid --revision-atom JSON: {exc}") from exc
     if not _is_json_object(loaded):
         raise click.ClickException("--revision-atom must decode to a JSON object")
-    return {key: coerce_worldline_cli_value(value) for key, value in loaded.items()}
+
+    kind = str(loaded.get("kind") or "assertion")
+    assertion_id = loaded.get("assertion_id")
+    assumption_id = loaded.get("assumption_id")
+    if assertion_id is None and kind == "assertion":
+        assertion_id = loaded.get("id")
+    if assumption_id is None and kind == "assumption":
+        assumption_id = loaded.get("id")
+    value = loaded.get("value")
+    atom_id = loaded.get("atom_id")
+    return RevisionAtomRef(
+        kind=kind,
+        assertion_id=None if assertion_id is None else str(assertion_id),
+        assumption_id=None if assumption_id is None else str(assumption_id),
+        atom_id=None if atom_id is None else str(atom_id),
+        value=value if isinstance(value, (int, float, str)) else None,
+    )
 
 
 # ── shared option blocks ────────────────────────────────────────────────────────

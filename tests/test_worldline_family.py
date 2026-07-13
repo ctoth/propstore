@@ -35,7 +35,7 @@ def _definition(name: str) -> WorldlineDefinition:
         name=name,
         id=name,
         inputs=WorldlineInputs(environment=Environment()),
-        policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY).to_dict(),
+        policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY),
         targets=["Speed"],
     )
 
@@ -70,8 +70,9 @@ def test_worldline_round_trips_through_repository(tmp_path: Path) -> None:
     assert loaded is not None
     assert loaded == definition
     assert loaded.targets == ["Speed"]
-    # The stored policy is a mapping; the compile path reconstructs the policy.
-    assert RenderPolicy.from_dict(loaded.policy).strategy is ResolutionStrategy.RECENCY
+    # The charter stores the policy typed; Quire decodes it back to the
+    # canonical RenderPolicy — no reconstruction step at the read boundary.
+    assert loaded.policy.strategy is ResolutionStrategy.RECENCY
 
 
 def test_worldline_places_on_the_current_branch(tmp_path: Path) -> None:

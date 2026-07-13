@@ -9,6 +9,8 @@ and lands with the bound world / concrete store slices.
 
 from __future__ import annotations
 
+from propstore.core.active_claims import ActiveClaim
+from propstore.families.claims import ClaimType
 from propstore.world.types import ValueStatus
 from propstore.world.value_resolver import ActiveClaimResolver
 
@@ -19,20 +21,19 @@ def test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence():
         is_param_compatible=lambda conds: True,
         value_of=lambda cid: None,
         extract_variable_concepts=lambda claim: (
-            ["input"] if claim.get("type") == "algorithm" else []
+            ["input"] if claim.claim_type is ClaimType.ALGORITHM else []
         ),
         collect_known_values=lambda ids: {"input": 5.0},
         extract_bindings=lambda claim: {"x": "input"},
     )
 
     active = [
-        {"id": "direct", "type": "parameter", "value": 10.0},
-        {
-            "id": "algo",
-            "type": "algorithm",
-            "body": "def compute(x):\n    y = x * 2\n    return y\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        ActiveClaim(claim_id="direct", claim_type=ClaimType.PARAMETER, value=10.0),
+        ActiveClaim(
+            claim_id="algo",
+            claim_type=ClaimType.ALGORITHM,
+            body="def compute(x):\n    y = x * 2\n    return y\n",
+        ),
     ]
 
     result = resolver.value_of_from_active(active, "target")

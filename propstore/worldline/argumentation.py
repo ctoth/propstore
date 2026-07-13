@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any, TypeGuard
 
 import rfc8785
-from propstore.core.active_claims import ActiveClaim, coerce_active_claims
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
 from propstore.families.relations import Stance
@@ -52,7 +52,7 @@ def capture_argumentation_state(
 ) -> tuple[WorldlineArgumentationState | None, list[str], set[ClaimId]]:
     from propstore.world.types import ReasoningBackend
 
-    active = coerce_active_claims(bound.active_claims())
+    active = tuple(bound.active_claims())
     active_ids = {claim.claim_id for claim in active}
     active_graph = bound.active_world_graph() if isinstance(bound, HasActiveGraph) else None
     reasoning_backend = policy.reasoning_backend
@@ -242,11 +242,9 @@ def _capture_atms(
 ) -> WorldlineArgumentationState | None:
     if not isinstance(bound, HasATMSEngine):
         return None
-    return WorldlineArgumentationState.from_mapping(
-        bound.atms_engine().argumentation_state(
-            queryables=coerce_queryable_assumptions(policy.future_queryables),
-            future_limit=policy.future_limit or 8,
-        )
+    return bound.atms_engine().argumentation_state(
+        queryables=coerce_queryable_assumptions(policy.future_queryables),
+        future_limit=policy.future_limit or 8,
     )
 
 

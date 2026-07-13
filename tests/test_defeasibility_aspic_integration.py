@@ -20,6 +20,7 @@ from provenance_semiring import (
 )
 
 from propstore.aspic_bridge import build_bridge_csaf
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.defeasibility import (
     ClaimApplicability,
@@ -32,8 +33,8 @@ from propstore.defeasibility import (
 from propstore.grounding.bundle import GroundedRulesBundle
 
 
-def _claim(claim_id: str) -> dict[str, object]:
-    return {"id": claim_id, "concept_id": "k", "statement": claim_id, "premise_kind": "ordinary"}
+def _claim(claim_id: str) -> ActiveClaim:
+    return ActiveClaim(claim_id=claim_id, concept_id="k", statement=claim_id)
 
 
 def _reported(claim_id: str) -> CanonicalJustification:

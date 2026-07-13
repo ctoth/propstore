@@ -31,6 +31,7 @@ from argumentation.frameworks.partial_af import EnumerationExceeded
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.aspic_bridge.translate import StanceInput
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.merge.merge_claims import MergeClaim
@@ -145,26 +146,22 @@ def argumentation_evidence_from_projection(
     )
 
 
-def _active_claim_input(claim: MergeClaim) -> dict[str, Any]:
-    document = claim.claim
-    concept_id = claim.value_concept_id
-    active: dict[str, Any] = {
-        "id": claim.artifact_id,
-        "context_id": document.context_id,
-        "statement": document.statement,
-        "source_assertion_ids": (claim.assertion_id,),
-    }
-    if concept_id:
-        active["concept_id"] = concept_id
-    if document.conditions:
-        active["conditions"] = list(document.conditions)
-    if document.sample_size is not None:
-        active["sample_size"] = document.sample_size
-    if document.uncertainty is not None:
-        active["uncertainty"] = document.uncertainty
-    if document.confidence is not None:
-        active["confidence"] = document.confidence
-    return active
+def _merge_active_claim(claim: MergeClaim, branch: str) -> ActiveClaim:
+    """The branch-scoped active view of one merge claim.
+
+    Identity is the branch-scoped ``artifact_id`` (not the document's own
+    ``claim_id``); ``branch``/``source_paper`` ride along so assignment-selection
+    source grouping and entrenchment source overrides see the merge claim's real
+    provenance facts.
+    """
+
+    return ActiveClaim.from_claim(
+        claim.claim,
+        claim_id=claim.artifact_id,
+        branch=claim.branch_origin or branch,
+        source_assertion_ids=(claim.assertion_id,),
+        source_paper=claim.paper,
+    )
 
 
 def _stance_attributes_json(stance: Mapping[str, Any]) -> str:
@@ -288,7 +285,7 @@ def build_branch_structured_summary(
     content_signature = _content_signature(claims, stance_rows)
 
     if claims:
-        active_claims = [_active_claim_input(claim) for claim in claims]
+        active_claims = [_merge_active_claim(claim, branch) for claim in claims]
         # Each branch-local claim enters the KB as a reported premise: the store
         # path synthesizes these reported justifications from claim rows, so the
         # store-free path does the same here.

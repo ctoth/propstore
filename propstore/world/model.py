@@ -348,9 +348,9 @@ def _target_result(
 
 
 def _claim_scalar(claim: ActiveClaim) -> float | str | None:
-    """The scalar value an active claim carries (it rides in ``attributes``)."""
+    """The scalar value an active claim carries."""
 
-    return _as_scalar(claim.attribute_value("value"))
+    return _as_scalar(claim.value)
 
 
 def _as_scalar(value: object) -> float | str | None:

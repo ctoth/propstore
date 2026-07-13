@@ -29,6 +29,7 @@ from propstore.core.graph_types import (
     CompiledWorldGraph,
 )
 from propstore.conflict_detector.models import ConflictClass, ConflictRecord
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.relations import Stance
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -311,7 +312,7 @@ def test_build_aspic_projection_from_active_graph() -> None:
         stances=(_edge("premise", "goal", "supports"),),
     )
     active_graph = ActiveWorldGraph(compiled=compiled, active_claim_ids=("premise", "goal"))
-    active_claims = [{"id": "premise"}, {"id": "goal"}]
+    active_claims = [ActiveClaim(claim_id="premise"), ActiveClaim(claim_id="goal")]
 
     projection = build_aspic_projection(
         CompiledGraphStore(compiled=compiled),

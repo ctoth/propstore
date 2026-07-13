@@ -13,76 +13,111 @@ from tests.test_revision_operators import _base_with_shared_support
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
-def test_worldline_definition_roundtrip_preserves_revision_query_block() -> None:
-    from propstore.worldline import WorldlineDefinition
+def _revision_query(
+    *,
+    operation: str,
+    atom_id: str,
+    value: float | str | None = None,
+    conflicts: dict[str, list[str]] | None = None,
+    operator: str | None = None,
+):
+    """Build the typed revision query a worldline charter now holds."""
+
+    from propstore.worldline.query import WorldlineRevisionQuery
+    from propstore.worldline.revision_types import (
+        RevisionAtomRef,
+        RevisionConflictSelection,
+    )
+
+    return WorldlineRevisionQuery(
+        operation=operation,
+        atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id, value=value),
+        conflicts=RevisionConflictSelection(
+            targets_by_atom_id={
+                key: tuple(targets)
+                for key, targets in (conflicts or {}).items()
+            }
+        ),
+        operator=operator,
+    )
+
+
+def test_worldline_definition_preserves_revision_query_block() -> None:
+    from propstore.worldline.definition import WorldlineDefinition
+    from propstore.worldline.query import WorldlineRevisionQuery
+    from propstore.worldline.revision_types import (
+        RevisionAtomRef,
+        RevisionConflictSelection,
+    )
 
     synthetic = make_assertion_atom("synthetic", value=9.0)
     legacy = make_assertion_atom("legacy")
     definition = WorldlineDefinition(
         id="revision_wl",
         targets=["target"],
-        revision={
-            "operation": "revise",
-            "atom": {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0},
-            "conflicts": {synthetic.atom_id: [legacy.atom_id]},
-        },
+        revision=WorldlineRevisionQuery(
+            operation="revise",
+            atom=RevisionAtomRef(
+                kind="assertion",
+                assertion_id=synthetic.atom_id,
+                value=9.0,
+            ),
+            conflicts=RevisionConflictSelection(
+                targets_by_atom_id={synthetic.atom_id: (legacy.atom_id,)}
+            ),
+        ),
     )
 
-    # The charter stores the revision block as a mapping; the compute form is
-    # rebuilt one-way via ``WorldlineRevisionQuery.from_dict``.
-    from propstore.worldline.query import WorldlineRevisionQuery
-
-    assert definition.revision is not None
-    query = WorldlineRevisionQuery.from_dict(definition.revision)
+    # The charter holds the revision query as its canonical type — no dict hop.
+    query = definition.revision
     assert query is not None
     assert query.operation == "revise"
     assert query.atom is not None
-    assert query.atom.to_dict() == {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0}
-    assert definition.revision["conflicts"] == {synthetic.atom_id: [legacy.atom_id]}
+    assert query.atom.kind == "assertion"
+    assert query.atom.assertion_id == synthetic.atom_id
+    assert query.atom.value == 9.0
+    assert query.conflicts.targets_for(synthetic.atom_id) == (legacy.atom_id,)
 
 
-def test_worldline_result_roundtrip_preserves_revision_payload() -> None:
-    from propstore.worldline import WorldlineResult
+def test_worldline_result_preserves_revision_payload() -> None:
+    from propstore.worldline.query import WorldlineResult
+    from propstore.worldline.result_types import (
+        WorldlineDependencies,
+        WorldlineTargetValue,
+    )
+    from propstore.worldline.revision_types import (
+        WorldlineRevisionResult,
+        WorldlineRevisionState,
+    )
 
     synthetic_id = "ps:assertion:synthetic"
     legacy_id = "ps:assertion:legacy"
-    result = WorldlineResult.from_dict({
-        "computed": "2026-03-29T00:00:00Z",
-        "content_hash": "abc123",
-        "values": {"target": {"status": "determined", "value": 1.0}},
-        "steps": [],
-        "dependencies": {"claims": [], "stances": [], "contexts": []},
-        "revision": {
-            "operation": "revise",
-            "input_atom_id": synthetic_id,
-            "target_atom_ids": [legacy_id],
-            "result": {
-                "accepted_atom_ids": [synthetic_id],
-                "rejected_atom_ids": [legacy_id],
-                "incision_set": ["assumption:shared_weak"],
-                "explanation": {
-                    "accepted_atom_ids": [synthetic_id],
-                    "rejected_atom_ids": [legacy_id],
-                    "incision_set": ["assumption:shared_weak"],
-                    "atoms": {
-                        legacy_id: {
-                            "status": "rejected",
-                            "reason": "support_lost",
-                        }
-                    },
-                },
-            },
-        },
-    })
+    result = WorldlineResult(
+        computed="2026-03-29T00:00:00Z",
+        content_hash="abc123",
+        values={"target": WorldlineTargetValue(status="determined", value=1.0)},
+        steps=(),
+        dependencies=WorldlineDependencies(),
+        revision=WorldlineRevisionState(
+            operation="revise",
+            input_atom_id=synthetic_id,
+            target_atom_ids=(legacy_id,),
+            result=WorldlineRevisionResult(
+                accepted_atom_ids=(synthetic_id,),
+                rejected_atom_ids=(legacy_id,),
+                incision_set=("assumption:shared_weak",),
+            ),
+        ),
+    )
 
-    assert result is not None
     assert result.revision is not None
     assert result.revision.operation == "revise"
-    assert result.to_dict()["revision"]["result"]["rejected_atom_ids"] == [legacy_id]
+    assert result.revision.result is not None
+    assert result.revision.result.rejected_atom_ids == (legacy_id,)
 
 
 def test_compute_worldline_content_hash_changes_when_revision_payload_changes() -> None:
-    from propstore.worldline import compute_worldline_content_hash
+    from propstore.worldline.hashing import compute_worldline_content_hash
     from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
     from propstore.worldline.revision_types import WorldlineRevisionResult, WorldlineRevisionState
 
@@ -160,7 +195,8 @@ class _RevisionWorld:
 
 def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     from propstore.support_revision.explain import build_revision_explanation
-    from propstore.worldline import WorldlineDefinition, run_worldline
+    from propstore.worldline.definition import WorldlineDefinition
+    from propstore.worldline.runner import run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 
     base, entrenchment, ids = _base_with_shared_support()
@@ -187,11 +223,12 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
         WorldlineDefinition(
             id="revision_capture",
             targets=["target"],
-            revision={
-                "operation": "revise",
-                "atom": {"kind": "assertion", "id": synthetic.atom_id, "value": 9.0},
-                "conflicts": {synthetic.atom_id: [ids["legacy"]]},
-            },
+            revision=_revision_query(
+                operation="revise",
+                atom_id=synthetic.atom_id,
+                value=9.0,
+                conflicts={synthetic.atom_id: [ids["legacy"]]},
+            ),
         ),
         _RevisionWorld(bound),
     )
@@ -212,7 +249,8 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
 
 def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> None:
     from propstore.support_revision.explain import build_revision_explanation
-    from propstore.worldline import WorldlineDefinition, run_worldline
+    from propstore.worldline.definition import WorldlineDefinition
+    from propstore.worldline.runner import run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 
     base, entrenchment, _, ids = _history_sensitive_base()
@@ -248,12 +286,13 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
         WorldlineDefinition(
             id="iterated_revision_capture",
             targets=["target"],
-            revision={
-                "operation": "iterated_revise",
-                "atom": {"kind": "assertion", "id": new.atom_id, "value": 9.0},
-                "conflicts": {new.atom_id: [ids["legacy"]]},
-                "operator": "restrained",
-            },
+            revision=_revision_query(
+                operation="iterated_revise",
+                atom_id=new.atom_id,
+                value=9.0,
+                conflicts={new.atom_id: [ids["legacy"]]},
+                operator="restrained",
+            ),
         ),
         _RevisionWorld(bound),
     )
@@ -272,7 +311,8 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
 
 
 def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> None:
-    from propstore.worldline import WorldlineDefinition, run_worldline
+    from propstore.worldline.definition import WorldlineDefinition
+    from propstore.worldline.runner import run_worldline
     from propstore.worldline.result_types import WorldlineTargetValue
 
     base, entrenchment, _, _ = _history_sensitive_base()
@@ -298,12 +338,12 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
         WorldlineDefinition(
             id="iterated_revision_merge_refusal",
             targets=["target"],
-            revision={
-                "operation": "iterated_revise",
-                "atom": {"kind": "assertion", "id": make_assertion_atom("new", value=9.0).atom_id, "value": 9.0},
-                "conflicts": {},
-                "operator": "restrained",
-            },
+            revision=_revision_query(
+                operation="iterated_revise",
+                atom_id=make_assertion_atom("new", value=9.0).atom_id,
+                value=9.0,
+                operator="restrained",
+            ),
         ),
         _RevisionWorld(bound),
     )

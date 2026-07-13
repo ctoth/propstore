@@ -36,7 +36,7 @@ from condition_ir import (
 from propstore.conflict_detector import ConflictRecord, detect_conflicts
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.core.activation import is_claim_active
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import AssumptionRef, Environment, WorldStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import ActiveWorldGraph, ParameterizationEdge
@@ -105,50 +105,7 @@ if TYPE_CHECKING:
     from propstore.world.atms import ATMSEngine
 
 
-def _value_concept_id(claim: Claim) -> str | None:
-    """The concept a claim's value is about: output, else target, else first ref."""
-
-    for candidate in (claim.output_concept, claim.target_concept, *claim.concepts):
-        if candidate:
-            return str(candidate)
-    return None
-
-
-def _active_claim_from_claim(claim: Claim) -> ActiveClaim:
-    """Project a stored :class:`Claim` charter into the thin bridge view.
-
-    The resolver and argumentation bridge read the claim's scalar value,
-    algorithm body, and claim type through ``attribute_value``; they ride in
-    ``attributes`` here so the canonical thin :class:`ActiveClaim` stays free of
-    storage-shaped fields.
-    """
-
-    attributes: list[tuple[str, Any]] = [
-        ("claim_type", (claim.claim_type or ClaimType.UNKNOWN).value),
-    ]
-    if claim.value is not None:
-        attributes.append(("value", claim.value))
-    if claim.body is not None:
-        attributes.append(("body", claim.body))
-    return ActiveClaim(
-        claim_id=str(claim.claim_id),
-        context_id=claim.context_id,
-        concept_id=_value_concept_id(claim),
-        canonical_name=claim.name,
-        statement=claim.statement,
-        sample_size=None if claim.sample_size is None else float(claim.sample_size),
-        uncertainty=claim.uncertainty,
-        confidence=claim.confidence,
-        attributes=tuple(sorted(attributes)),
-    )
-
-
-def _claim_id_of(claim: ActiveClaimInput | Claim) -> str | None:
-    if isinstance(claim, Mapping):
-        identity = claim.get("id")
-        if identity is None:
-            identity = claim.get("claim_id")
-        return None if identity is None else str(identity)
+def _claim_id_of(claim: ActiveClaim | Claim) -> str | None:
     return str(claim.claim_id)
 
 
@@ -332,7 +289,7 @@ class BoundWorld(BeliefSpace):
 
     # -- activation ---------------------------------------------------------
 
-    def is_active(self, claim: ActiveClaimInput | Claim) -> bool:
+    def is_active(self, claim: ActiveClaim | Claim) -> bool:
         """Whether a claim is active under the current bindings and context."""
 
         claim_id = _claim_id_of(claim)
@@ -377,7 +334,7 @@ class BoundWorld(BeliefSpace):
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         all_claims = [
-            _active_claim_from_claim(claim)
+            ActiveClaim.from_claim(claim)
             for claim in self._store.claims_for(concept_id)
         ]
         if self._active_claim_id_set is not None:
@@ -390,7 +347,7 @@ class BoundWorld(BeliefSpace):
 
     def inactive_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         all_claims = [
-            _active_claim_from_claim(claim)
+            ActiveClaim.from_claim(claim)
             for claim in self._store.claims_for(concept_id)
         ]
         if self._inactive_claim_id_set is not None:
@@ -407,7 +364,7 @@ class BoundWorld(BeliefSpace):
         return [
             claim
             for claim in self.active_claims(concept_id)
-            if claim.attribute_value("claim_type") == ClaimType.ALGORITHM.value
+            if claim.claim_type is ClaimType.ALGORITHM
         ]
 
     # -- resolver callbacks -------------------------------------------------
@@ -441,19 +398,17 @@ class BoundWorld(BeliefSpace):
     ) -> dict[ConceptId, Any]:
         return collect_known_values(variable_concepts, self.value_of)
 
-    def _claim_variables(self, claim: ActiveClaimInput) -> tuple[ClaimVariable, ...]:
-        claim_id = str(coerce_active_claim(claim).claim_id)
-        document = self._claim_index().get(self._resolve_claim_lookup_id(claim_id))
-        return () if document is None else document.variables
+    def _claim_variables(self, claim: ActiveClaim) -> tuple[ClaimVariable, ...]:
+        return claim.variables
 
-    def extract_variable_concepts(self, claim: ActiveClaimInput) -> list[str]:
+    def extract_variable_concepts(self, claim: ActiveClaim) -> list[str]:
         return [
             variable.concept
             for variable in self._claim_variables(claim)
             if variable.concept
         ]
 
-    def extract_bindings(self, claim: ActiveClaimInput) -> dict[str, str]:
+    def extract_bindings(self, claim: ActiveClaim) -> dict[str, str]:
         bindings: dict[str, str] = {}
         for variable in self._claim_variables(claim):
             name = variable.name or variable.symbol

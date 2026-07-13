@@ -12,6 +12,7 @@ from propstore.support_revision.state import (
     SupportRevisionRealization,
 )
 from propstore.worldline.query import WorldlineRevisionQuery
+from propstore.worldline.revision_types import RevisionAtomRef
 from propstore.worldline.revision_capture import capture_journal
 from tests.fixtures.journal import direct_dispatch, make_assertion_atom, make_state
 from tests.test_capture_journal import _JournalBound
@@ -112,10 +113,7 @@ def test_generated_revise_journals_replay_and_events_keep_disjoint_realization_s
 
 
 def _revise_query(atom_id: str) -> WorldlineRevisionQuery:
-    query = WorldlineRevisionQuery.from_dict({
-        "operation": "revise",
-        "atom": {"kind": "assertion", "id": atom_id},
-        "conflicts": {},
-    })
-    assert query is not None
-    return query
+    return WorldlineRevisionQuery(
+        operation="revise",
+        atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id),
+    )

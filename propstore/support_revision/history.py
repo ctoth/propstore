@@ -15,8 +15,8 @@ from msgspec.structs import replace as replace_struct
 from propstore.support_revision.explanation_types import RevisionAtomDetail
 from propstore.support_revision.state import EpistemicState
 
-EPistemicSnapshotVersion = "propstore.epistemic_snapshot.v1"
-TransitionJournalVersion = "propstore.transition_journal.v2"
+EPistemicSnapshotVersion = "propstore.epistemic_snapshot.v2"
+TransitionJournalVersion = "propstore.transition_journal.v3"
 
 
 class JournalOperator(Enum):
@@ -262,15 +262,6 @@ class TransitionJournalEntry(
             policy={} if policy_payload is None else dict(policy_payload),
         )
 
-    @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> TransitionJournalEntry:
-        """Structural decode of a persisted entry; ``__post_init__`` verifies the hash."""
-        return convert_document_value(
-            dict(_required_mapping(data, "journal entry")),
-            cls,
-            source="transition journal entry",
-        )
-
     def to_dict(self) -> dict[str, Any]:
         return dict(_required_mapping(to_document_builtins(self), "journal entry"))
 
@@ -346,18 +337,6 @@ class TransitionJournal(
         if self.schema_version != TransitionJournalVersion:
             raise ValueError(f"unsupported transition journal version: {self.schema_version}")
         object.__setattr__(self, "entries", tuple(self.entries))
-
-    @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> TransitionJournal:
-        """Structural decode of a persisted journal; entry hashes verify in ``__post_init__``."""
-        return convert_document_value(
-            dict(_required_mapping(data, "journal")),
-            cls,
-            source="transition journal",
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return dict(_required_mapping(to_document_builtins(self), "transition journal"))
 
     def check_chain_integrity(self) -> ChainIntegrityReport:
         errors: list[str] = []

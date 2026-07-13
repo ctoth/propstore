@@ -25,7 +25,7 @@ def test_overlay_adds_synthetic_claim_for_new_concept() -> None:
     assert base.value_of("B").status is ValueStatus.NO_CLAIMS
     result = overlay.value_of("B")
     assert result.status is ValueStatus.DETERMINED
-    assert result.claims[0].attribute_value("value") == 7.0
+    assert result.claims[0].value == 7.0
 
 
 def test_overlay_replaces_existing_claim_value() -> None:
@@ -34,7 +34,7 @@ def test_overlay_replaces_existing_claim_value() -> None:
         base,
         add=[SyntheticClaim(id="a", concept_id="A", value=9.0, type=ClaimType.PARAMETER)],
     )
-    assert overlay.value_of("A").claims[0].attribute_value("value") == 9.0
+    assert overlay.value_of("A").claims[0].value == 9.0
 
 
 def test_overlay_removes_claim() -> None:
@@ -53,8 +53,8 @@ def test_overlay_diff_reports_changed_concepts() -> None:
     diff = overlay.diff()
     assert "A" in diff
     base_result, overlay_result = diff["A"]
-    assert base_result.claims[0].attribute_value("value") == 2.0
-    assert overlay_result.claims[0].attribute_value("value") == 9.0
+    assert base_result.claims[0].value == 2.0
+    assert overlay_result.claims[0].value == 9.0
 
 
 def test_overlay_diff_empty_when_no_change() -> None:

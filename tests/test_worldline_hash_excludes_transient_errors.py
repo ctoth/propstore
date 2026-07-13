@@ -6,7 +6,9 @@ from unittest.mock import MagicMock, patch
 
 from propstore.world.types import Environment
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
-from propstore.worldline import WorldlineDefinition, WorldlineInputs, run_worldline
+from propstore.worldline.definition import WorldlineDefinition, WorldlineInputs
+from propstore.worldline.runner import run_worldline
+from propstore.reporting import json_ready
 from propstore.worldline.result_types import WorldlineTargetValue
 
 
@@ -53,7 +55,7 @@ def _argumentation_definition() -> WorldlineDefinition:
             strategy=ResolutionStrategy.ARGUMENTATION,
             reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
             semantics="grounded",
-        ).to_dict(),
+        ),
         targets=["target"],
     )
 
@@ -90,5 +92,5 @@ def test_ws_j_equivalent_argumentation_failures_have_same_content_hash() -> None
     assert right.argumentation is not None
     assert left.argumentation.error == WorldlineCaptureError.ARGUMENTATION
     assert right.argumentation.error == WorldlineCaptureError.ARGUMENTATION
-    assert left.argumentation.to_dict()["error"] == "argumentation"
+    assert json_ready(left.argumentation)["error"] == "argumentation"
     assert left.content_hash == right.content_hash

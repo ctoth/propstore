@@ -19,7 +19,7 @@ from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.interfaces import HasEnvironment, HasLiftingSystem, WorldlineStore
-from propstore.worldline.query import WorldlineResult, WorldlineRevisionQuery
+from propstore.worldline.query import WorldlineResult
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineCaptureError,
@@ -48,18 +48,18 @@ def run_worldline(
     definition: WorldlineDefinition,
     world: WorldlineStore,
 ) -> WorldlineResult:
-    from propstore.world.types import RenderPolicy, ResolutionStrategy
+    from propstore.world.types import ResolutionStrategy
 
-    # Compile the charter's stored dict serialization into the canonical compute
-    # forms one-way at use time (CLAUDE.md substrate discipline point 3): the
-    # charter stays storage-pure, the runner owns the world-shaped types.
+    # The charter's fields are already the canonical typed forms — Quire decoded
+    # them. Nothing to compile here; reading a stored worldline is attribute
+    # access, not a conversion.
     inputs = definition.inputs
     environment = inputs.environment
     bindings = dict(environment.bindings)
     context_id = environment.context_id
     overrides = dict(inputs.overrides)
-    policy = RenderPolicy.from_dict(definition.policy)
-    revision = WorldlineRevisionQuery.from_dict(definition.revision)
+    policy = definition.policy
+    revision = definition.revision
     strategy = policy.strategy
     bound = world.bind(environment, policy=policy)
 
@@ -188,12 +188,11 @@ def worldline_is_stale(definition: WorldlineDefinition, world: WorldlineStore) -
     current render's content hash is compared against the stored one.
     """
 
-    results = definition.results
-    if results is None:
+    stored = definition.results
+    if stored is None:
         return False
 
-    stored = WorldlineResult.from_dict(results)
-    stored_hash = "" if stored is None else stored.content_hash
+    stored_hash = stored.content_hash
     if not stored_hash:
         return True
 

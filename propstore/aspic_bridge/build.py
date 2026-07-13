@@ -52,7 +52,7 @@ from propstore.aspic_bridge.translate import (
     stances_to_contrariness,
 )
 from propstore.context_lifting import LiftingDecision, LiftingDecisionStatus
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
+from propstore.core.active_claims import ActiveClaim
 from propstore.defeasibility import arguments_concluding, inject_dung_defeats
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
@@ -102,7 +102,7 @@ def _build_language(
 
 
 def compile_bridge_context(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaim],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceInput],
     *,
@@ -113,7 +113,7 @@ def compile_bridge_context(
 ) -> BridgeCompilation:
     """Compile claim-graph inputs into the shared ASPIC+ engine inputs."""
 
-    normalized_claims = coerce_active_claims(active_claims)
+    normalized_claims = tuple(active_claims)
     literals = claims_to_literals(normalized_claims)
     lifting_projection = project_lifting_decisions(literals, lifting_decisions)
     literals = lifting_projection.literals
@@ -286,7 +286,7 @@ def apply_lifting_exception_defeats(
 
 
 def build_bridge_csaf(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaim],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceInput],
     *,

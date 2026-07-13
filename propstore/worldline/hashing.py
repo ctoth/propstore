@@ -4,6 +4,8 @@ import hashlib
 from collections.abc import Mapping, Sequence
 
 from quire.canonical import canonical_json_bytes
+
+from propstore.reporting import json_ready
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineDependencies,
@@ -27,20 +29,19 @@ def compute_worldline_content_hash(
     """Compute a deterministic fingerprint for materialized worldline content.
 
     Identity is the canonical JSON of the rendered content (quire's canonical
-    encoder), digested to a bare 64-char SHA-256 hex. Transient capture failures
-    are recorded as typed error markers, never as exception text, so equivalent
-    failures hash identically.
+    encoder), digested to a bare 64-char SHA-256 hex. The typed content is
+    lowered by :func:`json_ready`, so the fingerprint is derived from the render
+    types themselves rather than from a hand-written serialization that could
+    drift from them. Transient capture failures are recorded as typed error
+    markers, never as exception text, so equivalent failures hash identically.
     """
     payload = {
         "policy": {} if policy is None else dict(policy),
-        "values": {
-            target_name: target_value.to_dict()
-            for target_name, target_value in values.items()
-        },
-        "steps": [step.to_dict() for step in steps],
-        "dependencies": dependencies.to_dict(),
-        "sensitivity": None if sensitivity is None else sensitivity.to_dict(),
-        "argumentation": None if argumentation is None else argumentation.to_dict(),
-        "revision": None if revision is None else revision.to_dict(),
+        "values": json_ready(values),
+        "steps": json_ready(list(steps)),
+        "dependencies": json_ready(dependencies),
+        "sensitivity": json_ready(sensitivity),
+        "argumentation": json_ready(argumentation),
+        "revision": json_ready(revision),
     }
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()

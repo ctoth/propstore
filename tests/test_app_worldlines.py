@@ -31,6 +31,7 @@ from propstore.app.worldlines import (
 )
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
+from propstore.world.types import ResolutionStrategy
 from propstore.families.contexts import Context
 from propstore.repository import Repository
 
@@ -203,4 +204,4 @@ def test_policy_options_are_compiled_into_the_definition(tmp_path: Path) -> None
         ),
     )
     shown = show_worldline(repo, WorldlineShowRequest(name="wl"))
-    assert shown.definition.policy.get("strategy") == "recency"
+    assert shown.definition.policy.strategy is ResolutionStrategy.RECENCY

@@ -19,11 +19,8 @@ from unittest.mock import MagicMock, patch
 
 from propstore.world.types import Environment
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
-from propstore.worldline import (
-    WorldlineDefinition,
-    WorldlineInputs,
-    run_worldline,
-)
+from propstore.worldline.definition import WorldlineDefinition, WorldlineInputs
+from propstore.worldline.runner import run_worldline
 from propstore.worldline.result_types import WorldlineTargetValue
 
 
@@ -43,7 +40,7 @@ def _make_definition(
         policy=RenderPolicy(
             strategy=strategy,
             reasoning_backend=reasoning_backend,
-        ).to_dict(),
+        ),
         targets=targets,
     )
 

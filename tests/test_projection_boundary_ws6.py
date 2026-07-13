@@ -16,6 +16,7 @@ import pytest
 from argumentation.structured.aspic.aspic import GroundAtom
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -48,12 +49,11 @@ def _grounded_fly_bundle() -> GroundedRulesBundle:
 
 def test_aspic_projection_arguments_expose_typed_source_projection_records() -> None:
     source_id = "ps:assertion:source-a"
-    claim = {
-        "id": "claim-a",
-        "concept_id": "concept-a",
-        "premise_kind": "ordinary",
-        "source_assertion_ids": [source_id],
-    }
+    claim = ActiveClaim(
+        claim_id="claim-a",
+        concept_id="concept-a",
+        source_assertion_ids=(source_id,),
+    )
     csaf = build_bridge_csaf(
         [claim],
         [

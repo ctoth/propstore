@@ -22,13 +22,14 @@ from propstore.aspic_bridge import (
     query_claim,
     stances_to_contrariness,
 )
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
 
 
-def _claim(claim_id: str, **extra: object) -> dict[str, object]:
-    return {"id": claim_id, "concept_id": "k", "statement": claim_id, "premise_kind": "ordinary", **extra}
+def _claim(claim_id: str, **extra) -> ActiveClaim:  # noqa: ANN003 - typed field kwargs
+    return ActiveClaim(claim_id=claim_id, concept_id="k", statement=claim_id, **extra)
 
 
 def _reported(claim_id: str) -> CanonicalJustification:

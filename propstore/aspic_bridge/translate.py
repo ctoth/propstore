@@ -33,7 +33,7 @@ from argumentation.structured.aspic.aspic import (
 )
 from argumentation.structured.aspic.datalog_grounding import GroundRuleOrigin
 
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import (
     REPOSITORY_ROOT_CONTEXT_ID,
@@ -83,7 +83,7 @@ def _literal_key_for_proposition(
     return matches[0]
 
 
-def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[LiteralKey, Literal]:
+def claims_to_literals(active_claims: Sequence[ActiveClaim]) -> dict[LiteralKey, Literal]:
     """Map each claim to a positive ASPIC+ ``ist(c, p)`` literal."""
 
     return {
@@ -91,7 +91,7 @@ def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[Litera
             atom=GroundAtom("ist", (_claim_context_id(claim), str(claim.claim_id))),
             negated=False,
         )
-        for claim in coerce_active_claims(active_claims)
+        for claim in active_claims
     }
 
 
@@ -292,7 +292,7 @@ def preference_sensitive_stance_pairs(
 
 
 def claims_to_kb(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaim],
     justifications: list[CanonicalJustification],
     literals: dict[LiteralKey, Literal],
 ) -> KnowledgeBase:
@@ -303,7 +303,7 @@ def claims_to_kb(
         for justification in justifications
         if justification.rule_kind == "reported_claim"
     }
-    claim_by_id = {str(claim.claim_id): claim for claim in coerce_active_claims(active_claims)}
+    claim_by_id = {str(claim.claim_id): claim for claim in active_claims}
     axioms: set[Literal] = set()
     premises: set[Literal] = set()
 
@@ -334,7 +334,7 @@ def _dominates(a: MetadataStrengthVector, b: MetadataStrengthVector) -> bool:
 
 
 def build_preference_config(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaim],
     literals: dict[LiteralKey, Literal],
     defeasible_rules: frozenset[Rule],
     *,
@@ -349,7 +349,7 @@ def build_preference_config(
     partial order over defeasible rules, oriented ``(weaker, stronger)``.
     """
 
-    normalized_claims = coerce_active_claims(active_claims)
+    normalized_claims = tuple(active_claims)
     claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
     premise_order: set[tuple[Literal, Literal]] = set()
 

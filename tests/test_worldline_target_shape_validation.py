@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.worldline import WorldlineDefinition
+from propstore.worldline.definition import WorldlineDefinition
 
 
 def test_ws_j_worldline_revision_target_rejects_unprefixed_concept_names() -> None:

@@ -13,26 +13,29 @@ registry (``propstore.families.registry``) is imported by ``propstore.storage``,
 so any upward import here would drag storage into the world/argumentation layers
 and break the substrate import contracts.
 
-The nested input graph is declared as typed Quire documents. Quire's charter
-codec owns recursive decoding, encoding, and strict field validation; this
-module owns only the worldline's semantic declarations and invariants.
+The nested input graph, the render policy, the revision query, and the
+materialized results are all declared as typed documents. Quire's charter codec
+owns recursive decoding, encoding, and strict field validation; this module owns
+only the worldline's semantic declarations and invariants. The payload types
+those fields hold (:class:`~propstore.core.render_policy.RenderPolicy`, the ATMS
+reports, the worldline result views) live under ``propstore.core`` precisely so
+that this storage-pure charter can name them: ``propstore.families.registry``
+imports this module, and ``storage``/``source``/``heuristic`` all reach the
+registry, so an import of ``propstore.world`` here would break the layering
+contract in ``.importlinter``.
 
-The transition ``journal`` is stored as the journal's own canonical dict
-(``TransitionJournal.to_dict()``) and parsed back through
-:meth:`TransitionJournal.from_mapping` via
-:meth:`WorldlineDefinition.transition_journal`. Since wire format v2 the journal
-envelope is plain msgspec — ``from_mapping`` is a one-line structural decode,
-and each entry's ``content_hash`` field is stamped on construction and verified
-on decode in ``__post_init__``. The remaining reason this charter field is a
-dict rather than the typed ``TransitionJournal`` is contract sequencing: typing
-the field changes the worldline family contract and forces a registry manifest
-bump, deferred until the in-flight alignment contract changes land.
+The transition ``journal`` is typed too. It was long carried as a ``dict`` on the
+claim that a :class:`~propstore.support_revision.history.TransitionJournal`
+"nests an untagged atom union msgspec cannot decode" — that has not been true
+since the v2/v3 wire formats typed the nested state: ``TransitionJournal`` is a
+``msgspec.Struct`` with ``forbid_unknown_fields``, msgspec builds a decoder for
+it, and Quire stores it directly.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
 import msgspec
 from quire.artifacts import BranchPlacement, FlatYamlPlacement
@@ -41,25 +44,9 @@ from quire.documents import DocumentStruct
 from quire.refs import single_field_ref_type
 
 from propstore.core.environment import Environment
+from propstore.core.render_policy import RenderPolicy
 from propstore.support_revision.history import TransitionJournal
-
-class WorldlineRevisionTargetValidationError(ValueError):
-    """Raised when a revision target cannot be resolved as an atom id."""
-
-
-def validated_revision_target(operation: str, target: object) -> str | None:
-    if target is None:
-        return None
-    target_id = str(target)
-    if operation == "contract" and not (
-        target_id.startswith("ps:assertion:")
-        or target_id.startswith("assumption:")
-    ):
-        raise WorldlineRevisionTargetValidationError(
-            "Worldline revision target must be an assertion or assumption atom id: "
-            f"{target_id}"
-        )
-    return target_id
+from propstore.worldline.query import WorldlineResult, WorldlineRevisionQuery
 
 
 class WorldlineInputs(DocumentStruct):
@@ -104,7 +91,7 @@ WORLDLINE_PLACEMENT: FlatYamlPlacement[object, WorldlineRef] = FlatYamlPlacement
 @charter(
     key="worldlines",
     name="worldlines",
-    contract_version="2026.06.29",
+    contract_version="2026.07.13",
     placement=WORLDLINE_PLACEMENT,
     identity_field="name",
 )
@@ -115,12 +102,9 @@ class WorldlineDefinition(CharterDoc):
     There is no ``WorldlineDefinitionDocument`` mirror and no local mapping
     codec around Quire's charter codec.
 
-    ``journal`` cannot ride as its runtime type: a
-    :class:`~propstore.support_revision.history.TransitionJournal` nests an
-    untagged atom union msgspec cannot decode, so it is persisted as the journal's
-    own canonical dict (:meth:`TransitionJournal.to_dict`) and reconstructed on
-    demand by :meth:`transition_journal` via the package-owned
-    :meth:`TransitionJournal.from_mapping`.
+    ``policy``, ``revision``, ``results``, and ``journal`` are typed documents:
+    Quire decodes them into the canonical types directly. No field on this
+    charter is a ``dict[str, Any]`` blob behind a hand-written codec.
     """
 
     name: Annotated[str, charter_field(primary_key=True)] = ""
@@ -132,32 +116,15 @@ class WorldlineDefinition(CharterDoc):
     inputs: Annotated[WorldlineInputs, charter_field(json=True)] = msgspec.field(
         default_factory=WorldlineInputs
     )
-    policy: Annotated[dict[str, Any], charter_field(json=True)] = msgspec.field(
-        default_factory=dict[str, Any]
+    policy: Annotated[RenderPolicy, charter_field(json=True)] = msgspec.field(
+        default_factory=RenderPolicy
     )
-    revision: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
-    results: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
-    journal: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
+    revision: Annotated[WorldlineRevisionQuery | None, charter_field(json=True)] = None
+    results: Annotated[WorldlineResult | None, charter_field(json=True)] = None
+    journal: Annotated[TransitionJournal | None, charter_field(json=True)] = None
 
     def __post_init__(self) -> None:
         if not self.id:
             raise ValueError("Worldline definition requires 'id'")
         if not self.targets:
             raise ValueError("Worldline definition requires 'targets'")
-        if self.revision is not None:
-            validated_revision_target(
-                str(self.revision.get("operation", "")),
-                self.revision.get("target"),
-            )
-
-    def transition_journal(self) -> TransitionJournal | None:
-        """Reconstruct the captured journal as its canonical package type.
-
-        The persisted ``journal`` field holds the journal's own serialized dict
-        (:meth:`TransitionJournal.to_dict`); this is the package-owned parse back
-        to the single canonical :class:`TransitionJournal` — never a mirror type.
-        """
-
-        if self.journal is None:
-            return None
-        return TransitionJournal.from_mapping(self.journal)

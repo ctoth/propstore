@@ -1,11 +1,9 @@
 """Worldline display CLI commands: ``show`` / ``list`` / ``diff``.
 
-The persisted worldline is a dict-shaped charter
-(:class:`~propstore.worldline.definition.WorldlineDefinition`); ``show``
-reconstructs the typed compute forms one-way at render time via the package-owned
-parsers (``WorldlineInputs.from_dict`` / ``WorldlineResult.from_dict`` /
-``WorldlineRevisionQuery.from_dict``) — a boundary crossing that is a call, not a
-conversion. The reconstructed forms are used only for presentation here.
+The persisted worldline is a typed charter
+(:class:`~propstore.worldline.definition.WorldlineDefinition`): Quire decodes its
+policy, revision query, and results into the canonical render types, so ``show``
+reads them by attribute access and only formats them for the terminal.
 """
 from __future__ import annotations
 
@@ -28,10 +26,6 @@ from propstore.cli.worldline.rendering import (
     sensitivity_lines,
     target_value_lines,
 )
-from propstore.worldline.query import (
-    WorldlineResult,
-    WorldlineRevisionQuery,
-)
 
 
 @worldline.command("show")
@@ -50,8 +44,8 @@ def worldline_show(obj: CliContext, name: str, check: bool) -> None:
 
     wl = report.definition
     inputs = wl.inputs
-    revision = WorldlineRevisionQuery.from_dict(wl.revision)
-    results = WorldlineResult.from_dict(wl.results)
+    revision = wl.revision
+    results = wl.results
 
     emit(f"Worldline: {wl.name or wl.id}")
     if inputs.environment.bindings:
@@ -65,11 +59,14 @@ def worldline_show(obj: CliContext, name: str, check: bool) -> None:
     if revision is not None:
         emit(f"  Revision query: {revision.operation}")
         if revision.atom is not None:
-            emit(f"  Revision atom: {revision.atom.to_dict()}")
+            emit(f"  Revision atom: {revision.atom.resolved_atom_id()}")
         if revision.target is not None:
             emit(f"  Revision target: {revision.target}")
         if revision.conflicts.targets_by_atom_id:
-            emit(f"  Revision conflicts: {revision.conflicts.to_dict()}")
+            emit(
+                "  Revision conflicts: "
+                f"{ {atom_id: list(targets) for atom_id, targets in revision.conflicts.targets_by_atom_id.items()} }"
+            )
         if revision.operator is not None:
             emit(f"  Revision operator: {revision.operator}")
 

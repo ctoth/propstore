@@ -458,5 +458,5 @@ def _value_set(result: ValueResult) -> set[object]:
     return {
         value
         for claim in result.claims
-        if (value := claim.attribute_value("value")) is not None
+        if (value := claim.value) is not None
     }
