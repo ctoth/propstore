@@ -1,30 +1,16 @@
-"""Committed-snapshot import normalization (the repo-to-repo path).
+"""Normalize committed repository snapshots onto isolated import branches.
 
-This is the semantic-pass that turns another propstore repository's *committed
-canonical* artifacts into the writes a repo-to-repo import lands on an
-``import/<name>`` branch. Unlike the source-branch manifest path
-(:mod:`propstore.importing.repository_import`'s ``import_manifest`` /
-:mod:`propstore.source.passes`), the input here is a snapshot of canonical
-charter documents read out of a source repository's git tree at a commit.
+The input is a source repository's committed canonical semantic tree.  Every
+document is decoded through its registered family and rewritten only where the
+destination branch needs local identities.  Imported concepts are namespaced by
+repository origin and source artifact identity; canonical names never reconcile
+or merge concepts.  Claims and stances then rewrite their typed references
+through the identities established earlier in the same import pass.
 
-The normalization reconciles identity into the importing repository and rewrites
-cross-family references so the snapshot stands on its own on the import branch,
-*never* as truth ([[feedback_imports_are_opinions]]):
-
-* **concepts** are reconciled by canonical name — two source concepts with the
-  same canonical name converge on one ``concept_id`` (dedup), and every source
-  reference to a concept (by old id or by name) is recorded for rewriting;
-* **claims** are re-keyed into the importing repository's namespace and have
-  their concept references rewritten to the reconciled concept ids;
-* **stances** have their source/target claim references rewritten through quire's
-  :class:`~quire.references.FamilyReferenceIndex` (not string munging), then are
-  re-keyed from their reconciled content;
-* every other semantic family passes through verbatim (its id is a shared
-  handle, e.g. a context or form name).
-
-Identity is content-derived and provenance-free, so a repeated import of the same
-commit produces an identical tree (convergence). The pass runs through the
-generic :mod:`propstore.semantic_passes` runner.
+Each import branch therefore remains a self-contained snapshot.  Repeating an
+import of the same source snapshot produces the same semantic documents, while
+an equally named concept from another repository remains independently
+addressable.
 """
 
 from __future__ import annotations
@@ -80,18 +66,14 @@ SemanticImportBatch = Callable[
 def _bound_registry(
     store: DocumentFamilyStore[object],
 ) -> BoundFamilyRegistry[object, object]:
-    """Bind the canonical registry to the import's document store.
-
-    The bound registry resolves ``family_for_path`` and gives charter-coercing
-    handles. Foreign keys are a build/render concern (the quarantine-not-reject
-    discipline), never enforced at git-write time, so the canonical registry is
-    used directly here.
-    """
+    """Bind the canonical registry to the destination import store."""
 
     return PROPSTORE_FAMILY_REGISTRY.bind(store.owner, store)
 
 
 def _decode(content: bytes, *, path: str) -> dict[str, object]:
+    """Decode one YAML document at the import IO boundary."""
+
     return decode_yaml_mapping(content, source=path)
 
 
@@ -125,14 +107,15 @@ def _normalize_concept_batch(
 ) -> Mapping[str, PlannedSemanticWrite]:
     normalized: dict[str, PlannedSemanticWrite] = {}
     coercer = bound.by_name(family_name)
+    repository_identity = normalize_source_slug(state.repository_name)
     for path in paths:
         concept: Concept = coercer.coerce(_decode(writes[path], path=path), source=path)
-        slug = normalize_source_slug(concept.canonical_name)
-        new_id = derive_concept_artifact_id(slug)
+        source_identity = normalize_source_slug(concept.concept_id)
+        new_id = derive_concept_artifact_id(
+            f"{repository_identity}_{source_identity}"
+        )
+        state.concept_ref_map[concept.concept_id] = new_id
         rekeyed = msgspec.structs.replace(concept, concept_id=new_id)
-        for handle in (concept.concept_id, concept.canonical_name, slug):
-            if handle:
-                state.concept_ref_map[handle] = new_id
         planned = _planned_write(bound, family_name, new_id, rekeyed)
         normalized[planned.relpath] = planned
     return normalized
@@ -156,6 +139,14 @@ def _normalize_claim_batch(
             concepts=tuple(
                 _remap(state.concept_ref_map, concept) or concept
                 for concept in claim.concepts
+            ),
+            variables=tuple(
+                msgspec.structs.replace(
+                    variable,
+                    concept=_remap(state.concept_ref_map, variable.concept)
+                    or variable.concept,
+                )
+                for variable in claim.variables
             ),
             output_concept=_remap(state.concept_ref_map, claim.output_concept),
             target_concept=_remap(state.concept_ref_map, claim.target_concept),
@@ -267,7 +258,7 @@ def _normalize_semantic_import_writes(
 
 
 class SourceImportNormalizePass:
-    """Reconcile + rewrite a committed snapshot into planned import writes."""
+    """Rewrite a committed snapshot into isolated planned import writes."""
 
     family = PropstoreFamily.CONCEPT
     name = "import.snapshot.normalize"
@@ -296,7 +287,7 @@ def register_source_import_pipeline(registry: PipelineRegistry) -> None:
 def run_source_import_pipeline(
     authored: SourceImportAuthoredWrites,
 ) -> PipelineResult[object]:
-    """Run the committed-snapshot normalization through the semantic-pass runner."""
+    """Run committed-snapshot normalization through the semantic-pass runner."""
 
     registry = PipelineRegistry()
     register_source_import_pipeline(registry)

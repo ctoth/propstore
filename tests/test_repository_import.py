@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from propstore.families.claims import Claim, ClaimType
+from propstore.families.claims import Claim, ClaimType, ClaimVariable
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
 from propstore.families.identity.claims import derive_claim_artifact_id
@@ -33,8 +33,11 @@ def _init(root: Path) -> Repository:
     return Repository.init(root / "knowledge")
 
 
-def _concept_id(canonical_name: str) -> str:
-    return derive_concept_artifact_id(normalize_source_slug(canonical_name))
+def _imported_concept_id(repository_name: str, source_concept_id: str) -> str:
+    return derive_concept_artifact_id(
+        f"{normalize_source_slug(repository_name)}_"
+        f"{normalize_source_slug(source_concept_id)}"
+    )
 
 
 def _read_yaml(repo: Repository, path: str, *, commit: str) -> dict[str, object]:
@@ -77,7 +80,7 @@ def test_plan_uses_committed_head_not_worktree(tmp_path: Path) -> None:
 
     plan = plan_repository_import(destination, source.root.parent)
     assert plan.source_commit == committed
-    new_concept_path = f"concept/{_concept_id('Mass')}.yaml"
+    new_concept_path = f"concept/{_imported_concept_id('repo-b', 'concept:legacy')}.yaml"
     assert new_concept_path in plan.writes
 
 
@@ -95,7 +98,9 @@ def test_plan_limits_to_semantic_tree_and_excludes_non_semantic(tmp_path: Path) 
 
     plan = plan_repository_import(destination, source.root.parent)
 
-    assert plan.touched_paths == [f"concept/{_concept_id('Mass')}.yaml"]
+    assert plan.touched_paths == [
+        f"concept/{_imported_concept_id('repo-b', 'concept:legacy')}.yaml"
+    ]
     assert all(
         path.split("/", 1)[0] not in {"sidecar", "notes.txt"}
         for path in plan.touched_paths
@@ -122,6 +127,7 @@ def test_commit_writes_target_branch_and_reconciles_concept_refs(tmp_path: Path)
             claim_type=ClaimType.OBSERVATION,
             statement="mass observed",
             concepts=("concept:legacy",),
+            variables=(ClaimVariable(concept="concept:legacy", symbol="m"),),
             context_id="ctx",
         ),
         message="claim",
@@ -139,7 +145,7 @@ def test_commit_writes_target_branch_and_reconciles_concept_refs(tmp_path: Path)
     assert destination_git.head_sha() == master_before
     assert destination_git.branch_sha("import/repo-b") == result.commit_sha
 
-    new_concept_id = _concept_id("Mass")
+    new_concept_id = _imported_concept_id("repo-b", "concept:legacy")
     new_claim_id = derive_claim_artifact_id("repo-b", "claim:obs")
     imported_concept: Concept | None = destination.families.concept.load(
         new_concept_id, commit=result.commit_sha
@@ -153,7 +159,43 @@ def test_commit_writes_target_branch_and_reconciles_concept_refs(tmp_path: Path)
     assert imported_claim is not None
     assert imported_claim.claim_id == new_claim_id
     assert imported_claim.concepts == (new_concept_id,)
+    assert imported_claim.variables == (
+        ClaimVariable(concept=new_concept_id, symbol="m"),
+    )
     assert imported_claim.context_id == "ctx"
+
+
+def test_same_named_concepts_from_rival_repositories_keep_distinct_identity(
+    tmp_path: Path,
+) -> None:
+    destination = _init(tmp_path / "dest")
+    source_a = _init(tmp_path / "repo-a")
+    source_b = _init(tmp_path / "repo-b")
+    for source in (source_a, source_b):
+        source.families.concept.save(
+            "concept:mass",
+            Concept(concept_id="concept:mass", canonical_name="Mass"),
+            message="concept",
+        )
+
+    result_a = commit_repository_import(
+        destination, plan_repository_import(destination, source_a.root.parent)
+    )
+    result_b = commit_repository_import(
+        destination, plan_repository_import(destination, source_b.root.parent)
+    )
+
+    concept_a_id = _imported_concept_id("repo-a", "concept:mass")
+    concept_b_id = _imported_concept_id("repo-b", "concept:mass")
+    assert concept_a_id != concept_b_id
+    assert destination.families.concept.pin(
+        branch=result_a.target_branch,
+        commit=result_a.commit_sha,
+    ).require(concept_a_id).canonical_name == "Mass"
+    assert destination.families.concept.pin(
+        branch=result_b.target_branch,
+        commit=result_b.commit_sha,
+    ).require(concept_b_id).canonical_name == "Mass"
 
 
 def test_commit_rewrites_stance_claim_refs(tmp_path: Path) -> None:
@@ -209,7 +251,9 @@ def test_commit_target_master_does_not_materialize_worktree(tmp_path: Path) -> N
     result = commit_repository_import(destination, plan)
 
     assert plan.target_branch == "master"
-    imported_path = f"concept/{_concept_id('Mass')}.yaml"
+    imported_path = (
+        f"concept/{_imported_concept_id('repo-b', 'concept:legacy')}.yaml"
+    )
     # colon-bearing canonical paths are never materialized to the worktree.
     assert not (destination.root / Path(imported_path)).exists()
     imported = _read_yaml(destination, imported_path, commit=result.commit_sha)
@@ -220,7 +264,7 @@ def test_plan_deletes_paths_missing_from_latest_snapshot(tmp_path: Path) -> None
     destination = _init(tmp_path / "dest")
     destination_git = destination.require_git()
     destination_git.create_branch("import/repo-b")
-    stale_concept_id = _concept_id("Stale")
+    stale_concept_id = _imported_concept_id("repo-b", "concept:stale")
     destination.families.concept.save(
         stale_concept_id,
         Concept(concept_id=stale_concept_id, canonical_name="Stale"),
@@ -237,7 +281,7 @@ def test_plan_deletes_paths_missing_from_latest_snapshot(tmp_path: Path) -> None
     plan = plan_repository_import(destination, source.root.parent)
 
     stale_path = f"concept/{stale_concept_id}.yaml"
-    fresh_path = f"concept/{_concept_id('Fresh')}.yaml"
+    fresh_path = f"concept/{_imported_concept_id('repo-b', 'concept:fresh')}.yaml"
     assert plan.deletes == [stale_path]
     assert plan.touched_paths == sorted([stale_path, fresh_path])
 
