@@ -93,9 +93,7 @@ class ConceptRepository:
         """Project EVERY authored concept into a fresh sqlite sidecar.
 
         Returns the built :class:`SqlAlchemySchema` so the render layer can query
-        the same schema instance. (``build_sqlalchemy_schema`` resets the global
-        SQLAlchemy mapper registry, so a process holds one live schema at a time;
-        callers reuse the returned object rather than rebuilding.)
+        the same schema instance and its schema-local mapped classes.
 
         This never filters: a ``DRAFT`` or ``BLOCKED`` concept lands as a row
         just like an ``AUTHORED`` one. Visibility is decided later, at render.

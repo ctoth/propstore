@@ -453,11 +453,8 @@ class WorldQuery(WorldStore):
     / :meth:`build_diagnostics` views are where draft/blocked/quarantine rows are
     hidden at render time.
 
-    One live charter schema is held per open reader. ``build_world_sidecar_schema``
-    resets the global SQLAlchemy mapper registry, so callers should not interleave
-    a second build/open against a different sidecar while querying this one; the
-    schemas are structurally identical, so the held read session stays valid for
-    this reader's lifetime.
+    Each open reader holds its own charter schema and schema-local mapped classes,
+    so readers over independently built sidecars can coexist safely.
     """
 
     @classmethod
