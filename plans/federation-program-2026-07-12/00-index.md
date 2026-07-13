@@ -4,15 +4,15 @@ Goal: make independently versioned knowledge repositories and heterogeneous corp
 
 ## Active
 
-None. The next candidate is Slice 2; it has not started.
+None. The next candidate is Slice 3; it has not started.
 
 ## Completed
 
 1. `01-quire-fetch-ref.md` - fetch one remote Git ref into a local tracking ref under CAS. Published in Quire commit `b777ec91cee40a97a5e1d11733b2429a6252068d`.
+2. `02-propstore-import-snapshot-alignment.md` - align two committed imported KB snapshots without canonical-name collapse. Completed in Propstore commits `e9502380` and `732b4393`.
 
 ## Queued
 
-2. `02-propstore-import-snapshot-alignment.md` - align two committed imported KB snapshots without canonical-name collapse.
 3. `03-propstore-mailing-list-source-kind.md` - admit mailing-list messages as an honest source kind.
 4. `04-corpus-mailing-list-root-message.md` - carry one real BlindHandyman message through the `pks source` validation boundary.
 
