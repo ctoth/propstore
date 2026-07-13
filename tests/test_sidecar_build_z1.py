@@ -138,7 +138,12 @@ def test_dangling_micropublication_reference_quarantines(tmp_path: Path) -> None
     repo = _base_repo(tmp_path)
     _save_unvalidated(
         repo,
-        Micropublication(artifact_id="mbad", context_id="ctx1", claims=("GONE",)),
+        Micropublication(
+            artifact_id="mbad",
+            context_id="ctx1",
+            claims=("GONE",),
+            source="src:test",
+        ),
         "mbad",
     )
     report = build_repository(repo)

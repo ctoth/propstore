@@ -92,6 +92,7 @@ def test_micropublication_round_trips_with_resolved_references(tmp_path: Path) -
         claims=("cl1",),
         evidence=(MicropublicationEvidence(kind="figure", reference="fig1"),),
         assumptions=("a1",),
+        source="src:test",
     )
     repo.families.micropublication.save("mp1", micropub, message="author mp")
     loaded = repo.families.micropublication.load("mp1")

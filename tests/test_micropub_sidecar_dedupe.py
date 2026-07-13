@@ -59,13 +59,23 @@ def test_identical_payload_micropubs_dedupe_to_one_row(tmp_path: Path) -> None:
     # Two micropub files carrying definitionally identical content: same
     # content-derived artifact_id, same bundle. (Authored under distinct refs the
     # way a repo-to-repo import might land them.)
-    bundle = dict(artifact_id="ni:///sha-256;dup", context_id="ctx1", claims=("cl1",))
-    _save_unvalidated(repo, Micropublication(**bundle), "m1")
-    _save_unvalidated(repo, Micropublication(**bundle), "m2")
+    bundle = Micropublication(
+        artifact_id="ni:///sha-256;dup",
+        context_id="ctx1",
+        claims=("cl1",),
+        source="src:test",
+    )
+    _save_unvalidated(repo, bundle, "m1")
+    _save_unvalidated(repo, bundle, "m2")
     # A distinct bundle (different content -> different id) must survive.
     _save_unvalidated(
         repo,
-        Micropublication(artifact_id="ni:///sha-256;other", context_id="ctx1", claims=("cl1",)),
+        Micropublication(
+            artifact_id="ni:///sha-256;other",
+            context_id="ctx1",
+            claims=("cl1",),
+            source="src:test",
+        ),
         "m3",
     )
 

@@ -307,6 +307,7 @@ def build_bound(
             artifact_id=spec.artifact_id,
             context_id=spec.context_id,
             claims=tuple(spec.claim_ids),
+            source="src:test",
         )
         for spec in micropublications
     )

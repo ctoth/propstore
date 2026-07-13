@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.13
+  contract_version: 2026.07.13.1
   body:
     families:
     - contract_version: 2026.06.28
@@ -185,7 +185,7 @@ contracts:
     - contract_version: 2026.06.29
       key: justification
       name: justification
-    - contract_version: 2026.06.29
+    - contract_version: 2026.07.13
       key: micropublication
       name: micropublication
     - contract_version: 2026.06.29
@@ -535,7 +535,7 @@ contracts:
     key: merge_manifest
 - kind: family
   name: micropublication
-  contract_version: 2026.06.29
+  contract_version: 2026.07.13
   body:
     accessor: micropublication
     artifact_family: micropublication
@@ -549,7 +549,7 @@ contracts:
         kind: flat-yaml
         namespace: micropublication
         ref_field: self
-    artifact_family_contract_version: 2026.06.29
+    artifact_family_contract_version: 2026.07.13
     foreign_keys:
     - many: false
       required: true
@@ -1004,4 +1004,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.13
+  contract_version: 2026.07.13.1

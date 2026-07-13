@@ -371,7 +371,12 @@ def test_all_micropublications(tmp_path: Path) -> None:
     )
     repo.families.micropublication.save(
         "mp1",
-        Micropublication(artifact_id="mp1", context_id="ctx1", claims=("cl1",)),
+        Micropublication(
+            artifact_id="mp1",
+            context_id="ctx1",
+            claims=("cl1",),
+            source="src:test",
+        ),
         message="m",
     )
     with WorldQuery(repo) as world:
