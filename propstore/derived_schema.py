@@ -12,13 +12,11 @@ fields})``.
 
 Two load-bearing constraints govern callers:
 
-1. **Single live schema (mapper-reset caveat).** ``build_sqlalchemy_schema``
-   resets the global SQLAlchemy mapper registry, so a process holds exactly one
-   live schema at a time. Build the schema **once** at the top of a build and
-   thread that one object through every step; never rebuild it mid-build (a
-   rebuild silently invalidates the mappers of any earlier instance you still
-   hold). Read the schema hash off the threaded instance (``schema.catalog_hash``)
-   rather than building a second schema to hash it.
+1. **Schema-local mappings.** ``build_sqlalchemy_schema`` gives every schema its
+   own mapper registry and mapped subclasses. Authored charter models remain the
+   behavior owners; SQL reads and writes obtain the mapped row class from the
+   schema. Build code still threads one schema through a build so every step uses
+   the same catalog and schema hash.
 
 2. **Quarantine, not reject (Z1).** The derived schema emits real SQL foreign
    keys (some non-nullable). A build that aborted on a dangling reference would
@@ -45,11 +43,6 @@ change invalidates every cached sidecar.
 
 
 def build_world_sidecar_schema() -> SqlAlchemySchema:
-    """Build the one charter-derived multi-family sidecar schema.
-
-    Builds a fresh schema from every registered charter. Per the mapper-reset
-    caveat above, call this **once** per build and thread the returned object;
-    do not rebuild while holding a previous instance.
-    """
+    """Build a charter-derived multi-family sidecar schema."""
 
     return build_sqlalchemy_schema(charter_catalog(*registered_charters()))
