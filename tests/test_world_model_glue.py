@@ -130,3 +130,27 @@ def test_observe_builds_observation_world_over_compiled_graph() -> None:
     )
     world = model.observe(store, {"C": 9.0}, exogenous_assignment={"A": 4.0, "B": 5.0})
     assert world.derived_value("C").value == 9.0
+
+
+def test_chain_query_echoes_bindings_in_the_type_they_were_passed() -> None:
+    """A binding comes back as the binding you gave, not a rewrite of it.
+
+    ``bindings_used`` used to be ``dict[str, Any]`` holding the result of the
+    narrowing that exists for ``ChainStep.value`` (``float | str | None``), so a
+    bool binding echoed back as the string ``"True"`` and an int as a float. A
+    binding scalar has one spelling — the one ``Environment.bindings`` and
+    ``chain_query`` itself already declare.
+    """
+    store = _store_with(
+        claims=(ClaimSpec(claim_id="a", concept_id="A", value=2.0),),
+        params=(),
+    )
+
+    result = model.chain_query(store, "A", flag=True, count=3, label="x", ratio=1.5)
+
+    assert result.bindings_used == {
+        "flag": True,
+        "count": 3,
+        "label": "x",
+        "ratio": 1.5,
+    }

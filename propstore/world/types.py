@@ -23,7 +23,7 @@ import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
 
 from assignment_selection import MergeOperator
 from condition_ir import CelExpr, to_cel_expr, to_cel_exprs
@@ -540,7 +540,15 @@ class ChainResult:
     target_concept_id: ConceptId
     result: ValueResult | DerivedResult
     steps: list[ChainStep] = field(default_factory=list[ChainStep])
-    bindings_used: dict[str, Any] = field(default_factory=dict[str, Any])
+    # The bindings the chain was evaluated under, in the one canonical binding
+    # scalar type (``Environment.bindings``). This used to be ``dict[str, Any]``
+    # holding a *lossy* rewrite of them: the producer ran each value through the
+    # narrowing that exists for ``ChainStep.value``, so a bool binding came back
+    # as the string "True" and an int came back as a float. A binding is a
+    # binding; there is one spelling of its value.
+    bindings_used: dict[str, str | int | float | bool] = field(
+        default_factory=dict[str, str | int | float | bool]
+    )
     unresolved_dependencies: list[ConceptId] = field(default_factory=list[ConceptId])
 
     def __post_init__(self) -> None:

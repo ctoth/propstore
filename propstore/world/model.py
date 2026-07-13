@@ -320,7 +320,7 @@ def chain_query(
         target_concept_id=to_concept_id(target_concept_id),
         result=result,
         steps=steps,
-        bindings_used={key: _as_scalar(value) for key, value in bindings.items()},
+        bindings_used=dict(bindings),
         unresolved_dependencies=[
             to_concept_id(concept_id) for concept_id in unresolved_conflicted
         ],

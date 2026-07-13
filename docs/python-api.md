@@ -288,7 +288,7 @@ Returned by `chain_query()`. A multi-step derivation trace through the parameter
 | `target_concept_id` | `str` | The target concept. |
 | `result` | `ValueResult \| DerivedResult` | The final result for the target. |
 | `steps` | `list[ChainStep]` | Ordered derivation steps. |
-| `bindings_used` | `dict[str, Any]` | Condition bindings that were active. |
+| `bindings_used` | `dict[str, str \| int \| float \| bool]` | Condition bindings that were active, in the same scalar type they were passed in. |
 | `unresolved_dependencies` | `list[str]` | Concepts that could not be resolved. |
 
 ### SyntheticClaim
