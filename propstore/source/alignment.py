@@ -81,11 +81,11 @@ def alignment_slug(value: str) -> str:
 def _proposal_field(proposal: object, key: str) -> object:
     """Read one field from a proposal mapping as ``object``.
 
-    Proposals arrive as a genuinely untyped dict / JSON surface. This is the one
-    narrowing point that reads a named field without committing to element types
-    (mirrors ``conflict_detector.models.payload_get``); every value it yields is
-    immediately narrowed by ``str(...)`` or ``isinstance`` at the call site, so no
-    ``Any`` escapes into the module.
+    Proposals arrive as a genuinely untyped dict / JSON surface (LLM output).
+    This is the one narrowing point that reads a named field without committing
+    to element types; every value it yields is immediately narrowed by
+    ``str(...)`` or ``isinstance`` at the call site, so no ``Any`` escapes into
+    the module.
     """
 
     getter = getattr(proposal, "get", None)

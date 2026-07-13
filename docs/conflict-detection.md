@@ -21,7 +21,7 @@ The detection order matters: value compatibility is checked first (yielding `COM
 
 The orchestrator (`conflict_detector/orchestrator.py:detect_conflicts`) coordinates the full pipeline:
 
-1. **Build type registries.** A condition registry is constructed from the concept registry, and a shared `ConditionSolver` is built for the run.
+1. **Build type registries.** The detector takes the canonical typed inputs — `Concept` charter documents keyed by concept id, `FormDefinition` keyed by form name, and `ParameterizationEdge` keyed by output concept (there is no untyped concept-registry dict) — and a shared `ConditionSolver` is built for the run from the CEL registry.
 
 2. **Run type-specific detectors.** Four detectors run in sequence, each sharing the condition solver:
    - Parameter claim conflicts (`conflict_detector/parameter_claims.py`)

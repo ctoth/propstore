@@ -30,12 +30,16 @@ from propstore.conflict_detector import (
     detect_transitive_conflicts,
 )
 from propstore.conflict_detector.models import ConflictClaim
+from propstore.core.graph_types import ParameterizationEdge
+from propstore.core.id_types import to_concept_id, to_concept_ids
+from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
 from propstore.families.claims import ClaimType
 from propstore.conflict_detector.parameterization_conflicts import (
     detect_parameterization_conflicts,
 )
 from propstore.context_lifting import LiftingSystem
 from propstore.dimensions import UnitConversion
+from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
 from propstore.families.forms import FormDefinition
 
@@ -52,20 +56,48 @@ def _frequency_form() -> FormDefinition:
     )
 
 
+_ConceptEntry = tuple[Concept, tuple[ParameterizationEdge, ...]]
+
+
 def _concept(
     concept_id: str,
     *,
     form: str = "quantity",
     parameterizations: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    data: dict[str, Any] = {
-        "artifact_id": concept_id,
-        "canonical_name": concept_id,
-        "form": form,
+) -> _ConceptEntry:
+    """Typed fixture: a canonical Concept plus its parameterization edges."""
+
+    concept = Concept(
+        concept_id=concept_id,
+        canonical_name=concept_id,
+        lexical_entry=LexicalEntry(
+            identifier=f"entry:{concept_id}",
+            canonical_form=LexicalForm(written_rep=concept_id, language="en"),
+            senses=(LexicalSense(reference=OntologyReference(uri=f"u:{concept_id}")),),
+            physical_dimension_form=form,
+        ),
+    )
+    edges = tuple(
+        ParameterizationEdge(
+            output_concept_id=to_concept_id(concept_id),
+            input_concept_ids=to_concept_ids(relationship["inputs"]),
+            sympy=relationship["sympy"],
+            exactness=relationship.get("exactness"),
+            conditions=to_cel_exprs(relationship.get("conditions") or ()),
+        )
+        for relationship in (parameterizations or ())
+    )
+    return concept, edges
+
+
+def _inputs(
+    registry: dict[str, _ConceptEntry],
+) -> tuple[dict[str, Concept], dict[str, tuple[ParameterizationEdge, ...]]]:
+    concepts = {concept_id: entry[0] for concept_id, entry in registry.items()}
+    parameterizations = {
+        concept_id: entry[1] for concept_id, entry in registry.items() if entry[1]
     }
-    if parameterizations is not None:
-        data["parameterization_relationships"] = parameterizations
-    return data
+    return concepts, parameterizations
 
 
 def _claim(payload: dict[str, Any]) -> ConflictClaim:
@@ -114,7 +146,8 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
     }
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        records = detect_parameterization_conflicts(by_concept, concept_registry, [])
+        concepts, parameterizations = _inputs(concept_registry)
+        records = detect_parameterization_conflicts(by_concept, concepts, parameterizations, [])
 
     param_warnings = [
         warning
@@ -150,8 +183,9 @@ def test_same_value_different_units_no_conflict() -> None:
             ],
         ),
     }
+    concepts, parameterizations = _inputs(concept_registry)
     records = detect_parameterization_conflicts(
-        by_concept, concept_registry, [], forms=forms
+        by_concept, concepts, parameterizations, [], forms=forms
     )
     assert records == []
 
@@ -175,8 +209,9 @@ def test_different_value_different_units_conflict() -> None:
             ],
         ),
     }
+    concepts, parameterizations = _inputs(concept_registry)
     records = detect_parameterization_conflicts(
-        by_concept, concept_registry, [], forms=forms
+        by_concept, concepts, parameterizations, [], forms=forms
     )
     # 0.5 kHz -> 500 Hz (SI) -> derived 250, direct 100: conflict; value_b proves SI.
     assert len(records) == 1
@@ -222,7 +257,8 @@ def test_single_hop_conflict_carries_derived_conditions() -> None:
             ],
         ),
     }
-    records = detect_parameterization_conflicts(by_concept, concept_registry, [])
+    concepts, parameterizations = _inputs(concept_registry)
+    records = detect_parameterization_conflicts(by_concept, concepts, parameterizations, [])
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
     assert [str(condition) for condition in records[0].conditions_b] == [
@@ -256,7 +292,14 @@ def test_single_hop_conflict_requires_lifted_contexts() -> None:
             Context(context_id="ctx_direct", name="direct"),
         ),
     )
-    records = detect_conflicts(claims, concept_registry, {}, lifting_system=lifting_system)
+    concepts, parameterizations = _inputs(concept_registry)
+    records = detect_conflicts(
+        claims,
+        concepts,
+        {},
+        lifting_system=lifting_system,
+        parameterizations=parameterizations,
+    )
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
 
@@ -294,7 +337,10 @@ def test_transitive_propagation_normalizes_units() -> None:
         _param_claim("claim_b_direct", "concept_b", 200.0),
         _param_claim("claim_c_direct", "concept_c", 300.0),
     ]
-    conflicts = detect_transitive_conflicts(claims, concept_registry, forms=forms)
+    concepts, parameterizations = _inputs(concept_registry)
+    conflicts = detect_transitive_conflicts(
+        claims, concepts, parameterizations, forms=forms
+    )
     # 0.1 kHz -> 100 Hz; chain 100*2=200, 200+100=300 == direct 300: no conflict.
     param_conflicts = [
         record
@@ -340,8 +386,9 @@ def test_transitive_conflict_detection_is_order_independent() -> None:
         _param_claim("in_a", "concept_in", 10.0),
         _param_claim("out_direct", "concept_out", 25.0),
     ]
-    first_records = detect_transitive_conflicts(forward, concept_registry)
-    second_records = detect_transitive_conflicts(reverse, concept_registry)
+    concepts, parameterizations = _inputs(concept_registry)
+    first_records = detect_transitive_conflicts(forward, concepts, parameterizations)
+    second_records = detect_transitive_conflicts(reverse, concepts, parameterizations)
     assert len(first_records) == 1
     assert len(second_records) == 1
     assert first_records[0].warning_class == ConflictClass.PARAM_CONFLICT
@@ -379,6 +426,8 @@ def test_runtime_error_from_sympy_parameterization_propagates() -> None:
             side_effect=RuntimeError("boom"),
         ):
             with pytest.raises(RuntimeError, match="boom"):
-                detect_parameterization_conflicts(by_concept, concept_registry, [])
+                detect_parameterization_conflicts(
+                    by_concept, *_inputs(concept_registry), []
+                )
     finally:
         parse_cached.cache_clear()

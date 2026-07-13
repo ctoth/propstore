@@ -75,8 +75,13 @@ def _check_transitive_consistency(store: WorldStore) -> WorldConsistencyReport:
 
     compiled = model.compiled_graph(store)
     conflict_claims = [ConflictClaim.from_claim(claim) for claim in compiled.claims]
-    concept_registry, _cel_registry = conflict_inputs_for_store(store)
-    records = detect_transitive_conflicts(conflict_claims, concept_registry)
+    inputs = conflict_inputs_for_store(store)
+    records = detect_transitive_conflicts(
+        conflict_claims,
+        inputs.concepts,
+        inputs.parameterizations,
+        forms=inputs.forms,
+    )
     return WorldConsistencyReport(
         transitive=True,
         conflicts=tuple(

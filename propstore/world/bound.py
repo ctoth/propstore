@@ -52,6 +52,8 @@ from propstore.core.labels import (
     merge_labels,
 )
 from propstore.families.claims import Claim, ClaimType, ClaimVariable
+from propstore.families.concepts import Concept
+from propstore.families.forms import FormDefinition
 from propstore.families.relations import Stance
 from propstore.world.types import (
     ATMSConceptInterventionPlan,
@@ -152,7 +154,7 @@ def _claim_id_of(claim: ActiveClaimInput | Claim) -> str | None:
 
 @dataclass(frozen=True)
 class _ConflictInputs:
-    """Per-instance memo of the concept + CEL registry for conflict revalidation.
+    """Per-instance memo of the typed conflict-detector inputs.
 
     Invariant for the lifetime of a ``BoundWorld`` (the store is set once and
     never rebound), so it is built lazily on the first ``.conflicts()`` miss and
@@ -160,38 +162,30 @@ class _ConflictInputs:
     their own cache (see the overlay-safety note in the conflicts-cache test).
     """
 
-    concept_registry: dict[str, dict[str, Any]]
+    concepts: dict[str, Concept]
+    forms: dict[str, FormDefinition]
+    parameterizations: dict[str, tuple[ParameterizationEdge, ...]]
     cel_registry: dict[str, ConceptInfo]
 
 
-def conflict_inputs_for_store(
-    store: WorldStore,
-) -> tuple[dict[str, dict[str, Any]], dict[str, ConceptInfo]]:
-    """Build the concept + CEL registry the conflict detector reads."""
+def conflict_inputs_for_store(store: WorldStore) -> _ConflictInputs:
+    """The typed inputs the conflict detector reads — canonical documents,
+    no registry-dict spelling."""
 
-    registry: dict[str, dict[str, Any]] = {}
-    for concept in store.all_concepts():
-        concept_id = str(concept.concept_id)
-        entry: dict[str, Any] = {
-            "id": concept_id,
-            "artifact_id": concept_id,
-            "canonical_name": concept.canonical_name,
-            "status": concept.status.value,
-        }
-        relationships = [
-            {
-                "inputs": [str(input_id) for input_id in edge.input_concept_ids],
-                "sympy": edge.sympy,
-                "exactness": None if edge.exactness is None else edge.exactness.value,
-                "conditions": [str(condition) for condition in edge.conditions],
-            }
-            for edge in store.parameterizations_for(concept_id)
-        ]
-        if relationships:
-            entry["parameterization_relationships"] = relationships
-        registry[concept_id] = entry
-    cel_registry = dict(store.condition_solver().registry)
-    return registry, cel_registry
+    concepts = {str(concept.concept_id): concept for concept in store.all_concepts()}
+    forms = {form.name: form for form in store.all_forms()}
+    parameterizations: dict[str, list[ParameterizationEdge]] = {}
+    for edge in store.all_parameterizations():
+        parameterizations.setdefault(str(edge.output_concept_id), []).append(edge)
+    return _ConflictInputs(
+        concepts=concepts,
+        forms=forms,
+        parameterizations={
+            concept_id: tuple(edges)
+            for concept_id, edges in parameterizations.items()
+        },
+        cel_registry=dict(store.condition_solver().registry),
+    )
 
 
 def recomputed_conflicts(
@@ -206,16 +200,18 @@ def recomputed_conflicts(
     if len(claims) < 2:
         return []
     conflict_claims = [ConflictClaim.from_claim(claim) for claim in claims]
-    if precomputed_inputs is None:
-        concept_registry, cel_registry = conflict_inputs_for_store(store)
-    else:
-        concept_registry = precomputed_inputs.concept_registry
-        cel_registry = precomputed_inputs.cel_registry
+    inputs = (
+        precomputed_inputs
+        if precomputed_inputs is not None
+        else conflict_inputs_for_store(store)
+    )
     return detect_conflicts(
         conflict_claims,
-        concept_registry,
-        cel_registry,
+        inputs.concepts,
+        inputs.cel_registry,
         lifting_system=lifting_system,
+        forms=inputs.forms,
+        parameterizations=inputs.parameterizations,
     )
 
 
@@ -526,11 +522,7 @@ class BoundWorld(BeliefSpace):
 
     def _get_or_build_conflict_inputs(self) -> _ConflictInputs:
         if self._conflict_inputs_cache is None:
-            concept_registry, cel_registry = conflict_inputs_for_store(self._store)
-            self._conflict_inputs_cache = _ConflictInputs(
-                concept_registry=concept_registry,
-                cel_registry=cel_registry,
-            )
+            self._conflict_inputs_cache = conflict_inputs_for_store(self._store)
         return self._conflict_inputs_cache
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRecord]:

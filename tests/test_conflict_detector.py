@@ -40,8 +40,15 @@ from propstore.conflict_detector.models import (
     coerce_conflict_class,
 )
 from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.dimensions import UnitConversion
 from propstore.families.claims import Claim, ClaimType, ClaimVariable
+from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
 
 
@@ -365,15 +372,17 @@ def _frequency_form() -> FormDefinition:
     )
 
 
-def _frequency_concept_registry() -> dict[str, dict[str, object]]:
-    return {
-        "c1": {
-            "artifact_id": "c1",
-            "canonical_name": "c1",
-            "form": "frequency",
-            "_form_definition": _frequency_form(),
-        }
-    }
+def _frequency_concept() -> Concept:
+    return Concept(
+        concept_id="c1",
+        canonical_name="c1",
+        lexical_entry=LexicalEntry(
+            identifier="entry:c1",
+            canonical_form=LexicalForm(written_rep="c1", language="en"),
+            senses=(LexicalSense(reference=OntologyReference(uri="u:c1")),),
+            physical_dimension_form="frequency",
+        ),
+    )
 
 
 def _parameter_claim(claim_id: str, value: float, unit: str) -> ConflictClaim:
@@ -389,8 +398,9 @@ def _parameter_claim(claim_id: str, value: float, unit: str) -> ConflictClaim:
 def test_detect_conflicts_unit_aware_same_value_no_conflict() -> None:
     records = detect_conflicts(
         [_parameter_claim("a", 200.0, "Hz"), _parameter_claim("b", 0.2, "kHz")],
-        _frequency_concept_registry(),
+        {"c1": _frequency_concept()},
         {},
+        forms={"frequency": _frequency_form()},
     )
     assert records == []
 
@@ -398,8 +408,9 @@ def test_detect_conflicts_unit_aware_same_value_no_conflict() -> None:
 def test_detect_conflicts_unit_aware_real_difference_reports_conflict() -> None:
     records = detect_conflicts(
         [_parameter_claim("a", 200.0, "Hz"), _parameter_claim("b", 300.0, "Hz")],
-        _frequency_concept_registry(),
+        {"c1": _frequency_concept()},
         {},
+        forms={"frequency": _frequency_form()},
     )
     assert len(records) == 1
     assert isinstance(records[0], ConflictRecord)

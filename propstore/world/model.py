@@ -76,6 +76,7 @@ from propstore.derived_schema import (
 from propstore.families.claims import Claim, ClaimStatus
 from propstore.families.concepts import Concept
 from propstore.families.diagnostics import BuildDiagnostic
+from propstore.families.forms import FormDefinition
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.world.bound import BoundWorld
@@ -566,6 +567,9 @@ class WorldQuery(WorldStore):
 
     def all_concepts(self) -> Sequence[Concept]:
         return select_concepts(self._session)
+
+    def all_forms(self) -> Sequence[FormDefinition]:
+        return select_forms(self._session)
 
     def resolve_alias(self, alias: str) -> str | None:
         # The charter rewrite authors no concept-alias projection, so there is no

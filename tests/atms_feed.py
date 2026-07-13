@@ -35,6 +35,7 @@ from propstore.core.graph_types import ParameterizationEdge, RelationEdge
 from propstore.core.labels import binding_condition_to_cel, compile_environment_assumptions
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
+from propstore.families.forms import FormDefinition
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.world.bound import BoundWorld
@@ -128,10 +129,14 @@ class InMemoryWorldStore:
     conflict_records: tuple[ConflictRecord, ...] = ()
     stances: tuple[Stance, ...] = ()
     micropublications: tuple[Micropublication, ...] = ()
+    forms: tuple[FormDefinition, ...] = ()
     solver: ConditionSolver = field(default_factory=lambda: ConditionSolver({}))
 
     def all_concepts(self) -> Sequence[Concept]:
         return self.concepts
+
+    def all_forms(self) -> Sequence[FormDefinition]:
+        return self.forms
 
     def claims_for(self, concept_id: str | None) -> Sequence[Claim]:
         if concept_id is None:

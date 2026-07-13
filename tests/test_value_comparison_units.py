@@ -8,9 +8,14 @@ from __future__ import annotations
 
 from condition_ir import KindType
 
+from propstore.conflict_detector.models import ConflictClaim
 from propstore.dimensions import UnitConversion
 from propstore.families.forms import FormDefinition
 from propstore.value_comparison import values_compatible
+
+
+def _claim(claim_id: str, value: float, unit: str) -> ConflictClaim:
+    return ConflictClaim(claim_id=claim_id, value=value, unit=unit)
 
 
 def _frequency_form() -> FormDefinition:
@@ -31,8 +36,8 @@ def test_values_compatible_different_units_same_value() -> None:
     assert values_compatible(
         None,
         None,
-        claim_a={"value": 200, "unit": "Hz"},
-        claim_b={"value": 0.2, "unit": "kHz"},
+        claim_a=_claim("a", 200.0, "Hz"),
+        claim_b=_claim("b", 0.2, "kHz"),
         forms=forms,
         concept_form="frequency",
     )
@@ -43,8 +48,8 @@ def test_values_compatible_different_units_different_value() -> None:
     assert not values_compatible(
         None,
         None,
-        claim_a={"value": 200, "unit": "Hz"},
-        claim_b={"value": 0.3, "unit": "kHz"},
+        claim_a=_claim("a", 200.0, "Hz"),
+        claim_b=_claim("b", 0.3, "kHz"),
         forms=forms,
         concept_form="frequency",
     )
@@ -55,6 +60,6 @@ def test_values_compatible_no_forms_fallback() -> None:
     assert not values_compatible(
         None,
         None,
-        claim_a={"value": 200, "unit": "Hz"},
-        claim_b={"value": 0.2, "unit": "kHz"},
+        claim_a=_claim("a", 200.0, "Hz"),
+        claim_b=_claim("b", 0.2, "kHz"),
     )

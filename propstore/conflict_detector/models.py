@@ -77,19 +77,6 @@ class ConflictClaim:
         return replace(self, conditions=(*self.conditions, source_condition))
 
 
-# ``payload_get`` reads a field from the still-dict-shaped concept-registry
-# entries and parameterization relationships (a genuinely untyped surface owned
-# by the concept side) without committing to element types. Claims no longer
-# pass through here — :meth:`ConflictClaim.from_claim` is attribute access.
-
-
-def payload_get(obj: object, key: str) -> object:
-    getter = getattr(obj, "get", None)
-    if callable(getter):
-        return getter(key)
-    return None
-
-
 class ConflictClass(Enum):
     COMPATIBLE = "COMPATIBLE"
     UNKNOWN = "UNKNOWN"

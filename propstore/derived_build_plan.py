@@ -36,6 +36,7 @@ from propstore.compiler.ir import ClaimCheckedBundle
 from propstore.conflict_detector import detect_conflicts
 from propstore.conflict_detector.models import ConflictClaim, ConflictClass, ConflictRecord
 from propstore.context_lifting import LiftingSystem
+from propstore.core.graph_types import ParameterizationEdge
 from propstore.families.claims import Claim
 from propstore.families.concepts import Concept
 from propstore.families.conflicts import ConflictProjection
@@ -46,6 +47,7 @@ from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.semantic_passes.types import PassDiagnostic
+from propstore.world.queries import derive_parameterizations
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -147,18 +149,15 @@ def _conflict_claims(
     ]
 
 
-def _concept_registry(concepts: tuple[Concept, ...]) -> dict[str, Mapping[str, object]]:
-    """The minimal id-keyed concept registry the conflict detector validates.
+def _parameterizations_by_output(
+    claims: tuple[Claim, ...],
+) -> dict[str, tuple[ParameterizationEdge, ...]]:
+    """Canonical parameterization edges derived from EQUATION claims, by output."""
 
-    The detector requires each entry to carry ``id`` / ``artifact_id``; the kinds
-    and forms it needs for value typing come from the CEL registry, so the entries
-    stay minimal rather than mirroring concept content.
-    """
-
-    return {
-        concept.concept_id: {"id": concept.concept_id, "artifact_id": concept.concept_id}
-        for concept in concepts
-    }
+    grouped: dict[str, list[ParameterizationEdge]] = {}
+    for edge in derive_parameterizations(claims):
+        grouped.setdefault(str(edge.output_concept_id), []).append(edge)
+    return {concept_id: tuple(edges) for concept_id, edges in grouped.items()}
 
 
 def _conflict_row(record: ConflictRecord, *, index: int) -> ConflictProjection:
@@ -187,9 +186,11 @@ def _compile_conflicts(
     )
     records = detect_conflicts(
         conflict_claims,
-        _concept_registry(checked.concepts),
+        {str(concept.concept_id): concept for concept in checked.concepts},
         checked.compilation_context.cel_registry,
         lifting_system=lifting_system,
+        forms=dict(checked.form_registry),
+        parameterizations=_parameterizations_by_output(checked.claims),
     )
     return tuple(
         _conflict_row(record, index=index) for index, record in enumerate(records)

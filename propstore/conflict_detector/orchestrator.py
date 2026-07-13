@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from condition_ir import (
     ConceptInfo,
@@ -32,12 +32,14 @@ from condition_ir import (
     with_synthetic_concepts,
 )
 
+from propstore.core.graph_types import ParameterizationEdge
+from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
 
 from .algorithms import detect_algorithm_conflicts
 from .equations import detect_equation_conflicts
 from .measurements import detect_measurement_conflicts
-from .models import ConflictClaim, ConflictRecord, payload_get
+from .models import ConflictClaim, ConflictRecord
 from .parameter_claims import detect_parameter_conflicts
 from .parameterization_conflicts import detect_parameterization_conflicts
 
@@ -77,14 +79,21 @@ class LiftingDecisionCache:
 
 def detect_conflicts(
     claims: Sequence[ConflictClaim],
-    concept_registry: Mapping[str, Mapping[str, Any]],
+    concepts: Mapping[str, Concept],
     cel_registry: Mapping[str, ConceptInfo],
     lifting_system: LiftingSystem | None = None,
+    *,
+    forms: Mapping[str, FormDefinition] | None = None,
+    parameterizations: Mapping[str, Sequence[ParameterizationEdge]] | None = None,
 ) -> list[ConflictRecord]:
-    """Detect conflicts between claims binding to the same concept."""
+    """Detect conflicts between claims binding to the same concept.
+
+    ``concepts`` / ``forms`` / ``parameterizations`` are the canonical typed
+    inputs (charter documents and graph edges); unit-aware comparison and
+    parameterization derivation run exactly when the caller supplies them.
+    """
 
     records: list[ConflictRecord] = []
-    _validate_conflict_concept_registry(concept_registry)
 
     source_names = sorted(
         {claim.source_paper for claim in claims if claim.source_paper}
@@ -121,14 +130,13 @@ def detect_conflicts(
         solver=condition_solver,
     )
 
-    forms = _forms_from_conflict_concept_registry(concept_registry)
     parameter_records, by_concept = detect_parameter_conflicts(
         expanded_claims,
         registry,
         lifting_system=lifting_system,
         solver=condition_solver,
         forms=forms,
-        concept_forms=_concept_forms_from_conflict_concept_registry(concept_registry),
+        concept_forms=_concept_form_names(concepts),
     )
     records.extend(parameter_records)
     records.extend(
@@ -158,7 +166,8 @@ def detect_conflicts(
     records.extend(
         detect_parameterization_conflicts(
             by_concept,
-            concept_registry,
+            concepts,
+            parameterizations if parameterizations is not None else {},
             expanded_claims,
             lifting_system=lifting_system,
             forms=forms,
@@ -287,69 +296,14 @@ def _lifting_rule_applies(
     )
 
 
-def _forms_from_conflict_concept_registry(
-    concept_registry: Mapping[str, Mapping[str, Any]],
-) -> dict[str, FormDefinition]:
-    forms: dict[str, FormDefinition] = {}
-    for value in concept_registry.values():
-        form_name = value.get("form")
-        form_definition = value.get("_form_definition")
-        if isinstance(form_name, str) and isinstance(form_definition, FormDefinition):
-            forms.setdefault(form_name, form_definition)
-    return forms
+def _concept_form_names(concepts: Mapping[str, Concept]) -> dict[str, str]:
+    """Concept id → physical-dimension form name, read off the charter."""
 
-
-def _concept_forms_from_conflict_concept_registry(
-    concept_registry: Mapping[str, Mapping[str, Any]],
-) -> dict[str, str]:
     concept_forms: dict[str, str] = {}
-    for key, value in concept_registry.items():
-        form_name = value.get("form")
-        if not isinstance(form_name, str):
+    for concept_id, concept in concepts.items():
+        entry = concept.lexical_entry
+        if entry is None or entry.physical_dimension_form is None:
             continue
-        _add_concept_form_key(concept_forms, key, form_name)
-        for id_key in ("artifact_id", "id"):
-            _add_concept_form_key(concept_forms, value.get(id_key), form_name)
-        for logical_id in value.get("logical_ids") or ():
-            namespace = payload_get(logical_id, "namespace")
-            local_value = payload_get(logical_id, "value")
-            if isinstance(local_value, str):
-                _add_concept_form_key(concept_forms, local_value, form_name)
-            if isinstance(namespace, str) and isinstance(local_value, str):
-                _add_concept_form_key(
-                    concept_forms, f"{namespace}:{local_value}", form_name
-                )
+        concept_forms.setdefault(concept_id, entry.physical_dimension_form)
+        concept_forms.setdefault(concept.concept_id, entry.physical_dimension_form)
     return concept_forms
-
-
-def _add_concept_form_key(
-    target: dict[str, str], key: object, form_name: str
-) -> None:
-    if isinstance(key, str) and key:
-        target.setdefault(key, form_name)
-
-
-def _validate_conflict_concept_registry(
-    concept_registry: Mapping[str, Mapping[str, Any]],
-) -> None:
-    entries_by_id: dict[str, dict[str, object]] = {}
-    for key, value in concept_registry.items():
-        concept_id = value.get("artifact_id") or value.get("id")
-        if not isinstance(concept_id, str) or not concept_id:
-            raise ValueError(
-                f"invalid concept registry entry for key '{key}': missing artifact_id/id"
-            )
-        normalized = {
-            str(field_name): field_value
-            for field_name, field_value in value.items()
-            if not str(field_name).startswith("_")
-        }
-        normalized.setdefault("artifact_id", concept_id)
-        existing = entries_by_id.get(concept_id)
-        if existing is not None:
-            if existing != normalized:
-                raise ValueError(
-                    f"conflicting concept registry entries for concept id '{concept_id}'"
-                )
-            continue
-        entries_by_id[concept_id] = normalized

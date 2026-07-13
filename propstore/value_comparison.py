@@ -4,8 +4,8 @@ Compares claim values as intervals. When a form is supplied and the claims carry
 ``unit`` fields, both intervals are normalized to SI (via
 ``propstore.dimensions``) before comparison, so ``200 Hz`` and ``0.2 kHz`` read as
 equal. A claim is anything exposing ``value`` / ``lower_bound`` / ``upper_bound``
-/ ``unit`` as attributes or mapping keys (dict or struct), so this stays usable
-across the entity layers without a DTO.
+/ ``unit`` as attributes (``ConflictClaim`` and ``DerivedConflictValue`` both
+do), so this stays usable across the entity layers without a DTO.
 """
 
 from __future__ import annotations
@@ -21,11 +21,8 @@ Interval = tuple[float, float, float]
 
 
 def _claim_field(claim: object, key: str) -> object:
-    """Read ``key`` from a claim that may be a mapping or a struct/object."""
+    """Read ``key`` off a claim-shaped object by attribute access."""
 
-    getter = getattr(claim, "get", None)
-    if callable(getter):
-        return getter(key)
     return getattr(claim, key, None)
 
 

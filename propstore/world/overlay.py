@@ -37,6 +37,7 @@ from propstore.core.graph_types import CompiledWorldGraph
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
+from propstore.families.forms import FormDefinition
 from propstore.families.relations import Stance
 from propstore.world.bound import BoundWorld, recomputed_conflicts
 from propstore.world.types import (
@@ -173,6 +174,9 @@ class _GraphOverlayStore:
 
     def all_concepts(self) -> Sequence[Concept]:
         return self._base.all_concepts()
+
+    def all_forms(self) -> Sequence[FormDefinition]:
+        return self._base.all_forms()
 
     def all_parameterizations(self) -> Sequence[ParameterizationEdge]:
         return self._base.all_parameterizations()

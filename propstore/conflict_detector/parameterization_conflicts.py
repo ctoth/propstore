@@ -1,6 +1,7 @@
 """Parameterization-derived conflict detection.
 
-A concept may carry authored ``parameterization_relationships`` — a SymPy
+A concept may be parameterized by other concepts — a canonical
+:class:`~propstore.core.graph_types.ParameterizationEdge` carries the SymPy
 expression deriving its value from input concepts. When direct claims exist both
 for an input and for the output, the output's derived value can disagree with its
 directly-claimed value; that disagreement is a :attr:`ConflictClass.PARAM_CONFLICT`
@@ -28,7 +29,7 @@ import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from itertools import product
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from condition_ir import CelExpr, to_cel_exprs
 from human_to_sympy import (
@@ -37,7 +38,10 @@ from human_to_sympy import (
     evaluate_numeric,
 )
 
+from propstore.core.exactness_types import Exactness
+from propstore.core.graph_types import ParameterizationEdge
 from propstore.dimensions import normalize_to_si
+from propstore.families.concepts import Concept
 from propstore.parameterization import build_parameterization_groups
 from propstore.value_comparison import (
     DEFAULT_TOLERANCE,
@@ -48,17 +52,18 @@ from propstore.value_comparison import (
 
 from .collectors import collect_parameter_claims
 from .context import claim_context, classify_pair_context
-from .models import ConflictClass, ConflictClaim, ConflictRecord, payload_get
+from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.families.forms import FormDefinition
     from propstore.context_lifting import LiftingSystem
 
 
-# The concept registry is a genuinely untyped stored JSON/YAML payload; ``Any``
-# is the codebase's sanctioned boundary spelling for it (cf. ``models.py`` /
-# ``orchestrator.py``). Every value read out of it is narrowed before use.
-ConceptRegistry = Mapping[str, Mapping[str, Any]]
+# Typed detector inputs: the canonical ``Concept`` charter documents keyed by
+# concept id, and the canonical parameterization edges keyed by output concept.
+# There is no registry-dict spelling and no ``_ParameterizationEdge`` mirror.
+ConceptIndex = Mapping[str, Concept]
+ParameterizationIndex = Mapping[str, Sequence[ParameterizationEdge]]
 _RecordKey = tuple[
     str, str, tuple[str, ...], str, tuple[CelExpr, ...], str | None, str
 ]
@@ -77,14 +82,6 @@ class DerivedConflictValue:
     unit: str | None = None
 
 
-@dataclass(frozen=True)
-class _ParameterizationEdge:
-    inputs: tuple[str, ...]
-    sympy: str
-    conditions: tuple[str, ...]
-    exactness: str
-
-
 class _Sentinel(enum.Enum):
     INCOHERENT_CONTEXT = "INCOHERENT_CONTEXT"
 
@@ -99,98 +96,50 @@ _KNOWN_EVALUATION_ERRORS = (
 )
 
 
-# --- Concept-registry narrowing ------------------------------------------------
-# The concept registry is a genuinely untyped stored payload. These helpers are
-# the single narrowing points that read concept fields and return concrete types.
+# --- Typed concept/edge access ---------------------------------------------
+# The detector reads the canonical Concept charter and ParameterizationEdge
+# directly; there is no registry dict and no narrowing layer.
 
 
-def _string_sequence(value: Any) -> tuple[str, ...]:
-    """Coerce an untyped stored list field to a tuple of strings.
-
-    The value flows from an untyped concept-registry ``.get``; ``or ()``
-    guards a missing field.
-    """
-
-    return tuple(str(item) for item in (value or ()))
-
-
-def _iter_unique_concepts(
-    concept_registry: ConceptRegistry,
-) -> list[tuple[str, Mapping[str, Any]]]:
-    unique: list[tuple[str, Mapping[str, Any]]] = []
-    seen_ids: set[str] = set()
-    for concept_data in concept_registry.values():
-        raw_id = concept_data.get("artifact_id") or concept_data.get("id")
-        if not isinstance(raw_id, str) or not raw_id or raw_id in seen_ids:
-            continue
-        seen_ids.add(raw_id)
-        unique.append((raw_id, concept_data))
-    return unique
+def _concept_aliases(concepts: ConceptIndex, concept_id: str) -> tuple[str, ...]:
+    concept = concepts.get(concept_id)
+    if concept is None:
+        return ()
+    name = concept.canonical_name
+    if name and _SAFE_SYMBOL_RE.match(name):
+        return (name,)
+    return ()
 
 
-def _concept_symbol_candidates(concept_data: Mapping[str, Any]) -> tuple[str, ...]:
-    candidates: list[str] = []
-    seen: set[str] = set()
-
-    def add(candidate: object) -> None:
-        if not isinstance(candidate, str) or not candidate or candidate in seen:
-            return
-        if not _SAFE_SYMBOL_RE.match(candidate):
-            return
-        seen.add(candidate)
-        candidates.append(candidate)
-
-    add(concept_data.get("canonical_name"))
-    for logical_id in concept_data.get("logical_ids") or ():
-        add(payload_get(logical_id, "value"))
-    return tuple(candidates)
-
-
-def _concept_aliases(concept_registry: ConceptRegistry, concept_id: str) -> tuple[str, ...]:
-    entry = concept_registry.get(concept_id)
-    return _concept_symbol_candidates(entry) if isinstance(entry, Mapping) else ()
-
-
-def _registry_form_name(concept_registry: ConceptRegistry, concept_id: str) -> str | None:
-    entry = concept_registry.get(concept_id)
-    if not isinstance(entry, Mapping):
+def _concept_form_name(concepts: ConceptIndex, concept_id: str) -> str | None:
+    concept = concepts.get(concept_id)
+    if concept is None or concept.lexical_entry is None:
         return None
-    form = entry.get("form")
-    return form if isinstance(form, str) else None
+    return concept.lexical_entry.physical_dimension_form
 
 
-def _concept_edges(
-    concept_data: Mapping[str, Any], *, exactness_filter: frozenset[str] | None
-) -> list[_ParameterizationEdge]:
-    edges: list[_ParameterizationEdge] = []
-    for relationship in concept_data.get("parameterization_relationships") or ():
-        raw_exactness = payload_get(relationship, "exactness")
-        exactness = raw_exactness if isinstance(raw_exactness, str) else ""
-        if exactness_filter is not None and exactness not in exactness_filter:
-            continue
-        inputs = _string_sequence(payload_get(relationship, "inputs"))
-        sympy_expr = payload_get(relationship, "sympy")
-        if not inputs or not isinstance(sympy_expr, str):
-            continue
-        edges.append(
-            _ParameterizationEdge(
-                inputs=inputs,
-                sympy=sympy_expr,
-                conditions=_string_sequence(payload_get(relationship, "conditions")),
-                exactness=exactness,
-            )
-        )
-    return edges
+def _edge_inputs(edge: ParameterizationEdge) -> tuple[str, ...]:
+    return tuple(str(concept_id) for concept_id in edge.input_concept_ids)
 
 
-def _parameterization_edges(
-    concept_registry: ConceptRegistry, *, exactness_filter: frozenset[str] | None
-) -> dict[str, list[_ParameterizationEdge]]:
-    edges: dict[str, list[_ParameterizationEdge]] = {}
-    for concept_id, concept_data in _iter_unique_concepts(concept_registry):
-        concept_edges = _concept_edges(concept_data, exactness_filter=exactness_filter)
-        if concept_edges:
-            edges[concept_id] = concept_edges
+def _filtered_edges(
+    parameterizations: ParameterizationIndex,
+    *,
+    exactness_filter: frozenset[Exactness],
+) -> dict[str, list[ParameterizationEdge]]:
+    """The evaluable edge subset: a sympy expression, inputs, allowed exactness."""
+
+    edges: dict[str, list[ParameterizationEdge]] = {}
+    for concept_id, concept_edges in parameterizations.items():
+        kept = [
+            edge
+            for edge in concept_edges
+            if edge.sympy
+            and edge.input_concept_ids
+            and edge.exactness in exactness_filter
+        ]
+        if kept:
+            edges[concept_id] = kept
     return edges
 
 
@@ -201,7 +150,7 @@ def _normalize_claim_value(
     value: float,
     claim: ConflictClaim,
     concept_id: str,
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
     forms: Mapping[str, FormDefinition] | None,
 ) -> float:
     if forms is None:
@@ -209,7 +158,7 @@ def _normalize_claim_value(
     unit = claim.unit
     if unit is None:
         return value
-    form_name = _registry_form_name(concept_registry, concept_id)
+    form_name = _concept_form_name(concepts, concept_id)
     if form_name is None or form_name not in forms:
         return value
     form_def = forms[form_name]
@@ -224,14 +173,14 @@ def _value_or_none(evaluation: NumericEvaluation) -> float | None:
     return None
 
 
-def _evaluate_parameterization_with_registry(
+def _evaluate_parameterization(
     sympy_expr: str,
     input_values: dict[str, float],
     output_concept_id: str,
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
 ) -> float | None:
     rewritten = sympy_expr
-    for alias in _concept_aliases(concept_registry, output_concept_id):
+    for alias in _concept_aliases(concepts, output_concept_id):
         rewritten = re.sub(
             rf"(?<![A-Za-z0-9_]){re.escape(alias)}(?![A-Za-z0-9_])",
             "__out__",
@@ -242,7 +191,7 @@ def _evaluate_parameterization_with_registry(
     for index, (concept_id, value) in enumerate(input_values.items()):
         safe_symbol = f"__in_{index}__"
         safe_values[safe_symbol] = value
-        for alias in _concept_aliases(concept_registry, concept_id):
+        for alias in _concept_aliases(concepts, concept_id):
             rewritten = re.sub(
                 rf"(?<![A-Za-z0-9_]){re.escape(alias)}(?![A-Za-z0-9_])",
                 safe_symbol,
@@ -308,7 +257,7 @@ def _merge_conditions(*groups: Iterable[CelExpr]) -> tuple[CelExpr, ...]:
 def _direct_state_for_claim(
     concept_id: str,
     claim: ConflictClaim,
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
     forms: Mapping[str, FormDefinition] | None,
 ) -> DerivedConflictValue | None:
     interval = extract_interval(claim)
@@ -317,7 +266,7 @@ def _direct_state_for_claim(
     center, lo, hi = interval
     if abs(hi - lo) >= DEFAULT_TOLERANCE:
         return None
-    normalized = _normalize_claim_value(center, claim, concept_id, concept_registry, forms)
+    normalized = _normalize_claim_value(center, claim, concept_id, concepts, forms)
     return DerivedConflictValue(
         concept_id=concept_id,
         value=normalized,
@@ -332,13 +281,13 @@ def _direct_state_for_claim(
 def _direct_states_for_concept(
     concept_id: str,
     claims: Sequence[ConflictClaim],
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
     forms: Mapping[str, FormDefinition] | None,
 ) -> list[DerivedConflictValue]:
     states: list[DerivedConflictValue] = []
     seen: set[tuple[str, str, tuple[CelExpr, ...], str | None]] = set()
     for claim in claims:
-        state = _direct_state_for_claim(concept_id, claim, concept_registry, forms)
+        state = _direct_state_for_claim(concept_id, claim, concepts, forms)
         if state is None:
             continue
         key = (
@@ -354,11 +303,9 @@ def _direct_states_for_concept(
     return states
 
 
-def _quantity_inputs_only(
-    inputs: Sequence[str], concept_registry: ConceptRegistry
-) -> bool:
+def _quantity_inputs_only(inputs: Sequence[str], concepts: ConceptIndex) -> bool:
     for concept_id in inputs:
-        form = _registry_form_name(concept_registry, concept_id)
+        form = _concept_form_name(concepts, concept_id)
         if form in (None, "", "category", "structural", "boolean"):
             return False
     return True
@@ -369,18 +316,18 @@ def _derive_state(
     sympy_expr: str,
     input_states: Sequence[DerivedConflictValue],
     edge_conditions: Sequence[CelExpr],
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
     lifting_system: LiftingSystem | None,
     *,
     warn_on_known_failure: bool,
 ) -> DerivedConflictValue | None:
     input_values = {state.concept_id: state.value for state in input_states}
     try:
-        derived_value = _evaluate_parameterization_with_registry(
+        derived_value = _evaluate_parameterization(
             sympy_expr,
             input_values,
             concept_id,
-            concept_registry,
+            concepts,
         )
         if derived_value is None:
             raise ValueError("parameterization evaluation returned no result")
@@ -485,9 +432,9 @@ def _compare_direct_claim_against_derived(
     derived_state: DerivedConflictValue,
     lifting_system: LiftingSystem | None,
     forms: Mapping[str, FormDefinition] | None,
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
 ) -> None:
-    concept_form = _registry_form_name(concept_registry, concept_id)
+    concept_form = _concept_form_name(concepts, concept_id)
     if values_compatible(
         direct_claim.value,
         derived_state.value,
@@ -522,7 +469,8 @@ def _compare_direct_claim_against_derived(
 
 def detect_parameterization_conflicts(
     by_concept: dict[str, list[ConflictClaim]],
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
+    parameterizations: ParameterizationIndex,
     claims: Sequence[ConflictClaim],
     *,
     lifting_system: LiftingSystem | None = None,
@@ -531,39 +479,44 @@ def detect_parameterization_conflicts(
     records: list[ConflictRecord] = []
     all_param_claims = by_concept or collect_parameter_claims(claims)
     seen_record_keys: set[_RecordKey] = set()
-    edges = _parameterization_edges(concept_registry, exactness_filter=frozenset({"exact"}))
+    edges = _filtered_edges(
+        parameterizations, exactness_filter=frozenset({Exactness.EXACT})
+    )
 
-    for concept_id, _concept_data in _iter_unique_concepts(concept_registry):
-        concept_edges = edges.get(concept_id)
-        if not concept_edges:
-            continue
+    for concept_id, concept_edges in sorted(edges.items()):
         direct_claims = all_param_claims.get(concept_id, [])
         if not direct_claims:
             continue
 
         for edge in concept_edges:
-            if not _quantity_inputs_only(edge.inputs, concept_registry):
+            inputs = _edge_inputs(edge)
+            if not _quantity_inputs_only(inputs, concepts):
                 continue
             input_state_lists = [
                 _direct_states_for_concept(
                     input_id,
                     all_param_claims.get(input_id, []),
-                    concept_registry,
+                    concepts,
                     forms,
                 )
-                for input_id in edge.inputs
+                for input_id in inputs
             ]
             if any(not states for states in input_state_lists):
                 continue
 
-            edge_conditions = to_cel_exprs(sorted(edge.conditions))
+            sympy_expr = edge.sympy
+            if sympy_expr is None:
+                continue
+            edge_conditions = to_cel_exprs(
+                sorted(str(condition) for condition in edge.conditions)
+            )
             for input_states in product(*input_state_lists):
                 derived_state = _derive_state(
                     concept_id,
-                    edge.sympy,
+                    sympy_expr,
                     input_states,
                     edge_conditions,
-                    concept_registry,
+                    concepts,
                     lifting_system,
                     warn_on_known_failure=True,
                 )
@@ -578,7 +531,7 @@ def detect_parameterization_conflicts(
                         derived_state=derived_state,
                         lifting_system=lifting_system,
                         forms=forms,
-                        concept_registry=concept_registry,
+                        concepts=concepts,
                     )
     return records
 
@@ -599,7 +552,8 @@ def _state_key(state: DerivedConflictValue) -> _StateKey:
 
 def _detect_transitive_conflicts_for_claims(
     claims: Sequence[ConflictClaim],
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
+    parameterizations: ParameterizationIndex,
     by_concept: dict[str, list[ConflictClaim]],
     *,
     lifting_system: LiftingSystem | None = None,
@@ -608,16 +562,17 @@ def _detect_transitive_conflicts_for_claims(
     records: list[ConflictRecord] = []
     seen_record_keys: set[_RecordKey] = set()
 
-    param_edges = _parameterization_edges(
-        concept_registry, exactness_filter=frozenset({"exact", "approximate"})
+    param_edges = _filtered_edges(
+        parameterizations,
+        exactness_filter=frozenset({Exactness.EXACT, Exactness.APPROXIMATE}),
     )
     group_edges: dict[str, Iterable[str]] = {
         concept_id: [
-            input_id for edge in concept_edges for input_id in edge.inputs
+            input_id for edge in concept_edges for input_id in _edge_inputs(edge)
         ]
         for concept_id, concept_edges in param_edges.items()
     }
-    for concept_id, _concept_data in _iter_unique_concepts(concept_registry):
+    for concept_id in concepts:
         group_edges.setdefault(concept_id, ())
     groups = build_parameterization_groups(group_edges)
 
@@ -629,7 +584,7 @@ def _detect_transitive_conflicts_for_claims(
         seen_states: dict[str, set[_StateKey]] = {}
         for concept_id in group:
             states = _direct_states_for_concept(
-                concept_id, by_concept.get(concept_id, []), concept_registry, forms
+                concept_id, by_concept.get(concept_id, []), concepts, forms
             )
             if states:
                 resolved[concept_id] = list(states)
@@ -643,19 +598,25 @@ def _detect_transitive_conflicts_for_claims(
             iteration += 1
             for concept_id in sorted(group):
                 for edge in param_edges.get(concept_id, []):
-                    if not _quantity_inputs_only(edge.inputs, concept_registry):
+                    inputs = _edge_inputs(edge)
+                    sympy_expr = edge.sympy
+                    if sympy_expr is None:
                         continue
-                    if any(input_id not in resolved for input_id in edge.inputs):
+                    if not _quantity_inputs_only(inputs, concepts):
                         continue
-                    edge_conditions = to_cel_exprs(sorted(edge.conditions))
-                    ordered_input_states = [resolved[input_id] for input_id in edge.inputs]
+                    if any(input_id not in resolved for input_id in inputs):
+                        continue
+                    edge_conditions = to_cel_exprs(
+                        sorted(str(condition) for condition in edge.conditions)
+                    )
+                    ordered_input_states = [resolved[input_id] for input_id in inputs]
                     for input_states in product(*ordered_input_states):
                         derived_state = _derive_state(
                             concept_id,
-                            edge.sympy,
+                            sympy_expr,
                             input_states,
                             edge_conditions,
-                            concept_registry,
+                            concepts,
                             lifting_system,
                             warn_on_known_failure=False,
                         )
@@ -686,7 +647,7 @@ def _detect_transitive_conflicts_for_claims(
                         derived_state=derived_state,
                         lifting_system=lifting_system,
                         forms=forms,
-                        concept_registry=concept_registry,
+                        concepts=concepts,
                     )
 
     return records
@@ -694,7 +655,8 @@ def _detect_transitive_conflicts_for_claims(
 
 def detect_transitive_conflicts(
     claims: Sequence[ConflictClaim],
-    concept_registry: ConceptRegistry,
+    concepts: ConceptIndex,
+    parameterizations: ParameterizationIndex,
     *,
     lifting_system: LiftingSystem | None = None,
     forms: Mapping[str, FormDefinition] | None = None,
@@ -710,7 +672,8 @@ def detect_transitive_conflicts(
     by_concept = collect_parameter_claims(claims)
     return _detect_transitive_conflicts_for_claims(
         claims,
-        concept_registry,
+        concepts,
+        parameterizations,
         by_concept,
         lifting_system=lifting_system,
         forms=forms,
