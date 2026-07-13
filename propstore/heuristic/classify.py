@@ -34,6 +34,7 @@ from typing import Any
 import msgspec
 from doxa import Opinion
 
+from propstore.heuristic.relatable import RelatableClaim
 from propstore.core.base_rates import BaseRateUnresolved
 from propstore.heuristic.calibrate import CategoryPriorRegistry, categorical_to_opinion
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -409,8 +410,8 @@ def _build_stance_dict(
 
 
 def _directional_prompt(
-    source_claim: dict[str, Any],
-    target_claim: dict[str, Any],
+    source_claim: RelatableClaim,
+    target_claim: RelatableClaim,
     *,
     source_label: str,
     target_label: str,
@@ -418,11 +419,11 @@ def _directional_prompt(
 ) -> str:
     return _DIRECTIONAL_CLASSIFICATION_PROMPT.format(
         source_label=source_label,
-        source_paper=source_claim.get("source_paper", "unknown"),
-        source_statement=source_claim["text"],
+        source_paper=source_claim.source_paper or "unknown",
+        source_statement=source_claim.text,
         target_label=target_label,
-        target_paper=target_claim.get("source_paper", "unknown"),
-        target_statement=target_claim["text"],
+        target_paper=target_claim.source_paper or "unknown",
+        target_statement=target_claim.text,
         enrichment_context=enrichment_context,
     )
 
@@ -439,8 +440,8 @@ def _llm_call_id(*, model_name: str, prompt: str, response_text: str) -> str:
 async def _classify_one_direction(
     litellm: Any,
     *,
-    source_claim: dict[str, Any],
-    target_claim: dict[str, Any],
+    source_claim: RelatableClaim,
+    target_claim: RelatableClaim,
     source_label: str,
     target_label: str,
     model_name: str,
@@ -469,29 +470,29 @@ async def _classify_one_direction(
         except (ConnectionError, TimeoutError, OSError, ValueError) as exc:
             logging.warning(
                 "Stance classification failed for %s vs %s: %s",
-                source_claim["id"],
-                target_claim["id"],
+                source_claim.claim_id,
+                target_claim.claim_id,
                 exc,
             )
             return _build_error_stance(
-                target_claim["id"],
+                target_claim.claim_id,
                 model_name,
                 embedding_model,
                 embedding_distance,
                 "classification failed",
-                perspective_source_claim_id=source_claim["id"],
+                perspective_source_claim_id=source_claim.claim_id,
                 prompt=prompt,
             )
 
     response_text = _response_content_text(response)
     if response_text is None:
         return _build_error_stance(
-            target_claim["id"],
+            target_claim.claim_id,
             model_name,
             embedding_model,
             embedding_distance,
             "missing response content",
-            perspective_source_claim_id=source_claim["id"],
+            perspective_source_claim_id=source_claim.claim_id,
             prompt=prompt,
         )
 
@@ -501,24 +502,24 @@ async def _classify_one_direction(
         result = msgspec.json.decode(text, type=dict[str, Any])
     except msgspec.ValidationError:
         return _build_error_stance(
-            target_claim["id"],
+            target_claim.claim_id,
             model_name,
             embedding_model,
             embedding_distance,
             "non-object response",
-            perspective_source_claim_id=source_claim["id"],
+            perspective_source_claim_id=source_claim.claim_id,
             prompt=prompt,
             raw_response=text,
             llm_call_id=call_id,
         )
     except msgspec.DecodeError:
         return _build_error_stance(
-            target_claim["id"],
+            target_claim.claim_id,
             model_name,
             embedding_model,
             embedding_distance,
             "JSON parse failed",
-            perspective_source_claim_id=source_claim["id"],
+            perspective_source_claim_id=source_claim.claim_id,
             prompt=prompt,
             raw_response=text,
             llm_call_id=call_id,
@@ -526,14 +527,14 @@ async def _classify_one_direction(
 
     return _build_stance_dict(
         result,
-        target_claim["id"],
+        target_claim.claim_id,
         model_name,
         embedding_model,
         embedding_distance,
         reference_distances,
         calibration_counts,
         category_prior_registry,
-        perspective_source_claim_id=source_claim["id"],
+        perspective_source_claim_id=source_claim.claim_id,
         prompt=prompt,
         raw_response=result,
         llm_call_id=call_id,
@@ -541,8 +542,8 @@ async def _classify_one_direction(
 
 
 async def classify_stance_async(
-    claim_a: dict[str, Any],
-    claim_b: dict[str, Any],
+    claim_a: RelatableClaim,
+    claim_b: RelatableClaim,
     model_name: str,
     semaphore: asyncio.Semaphore,
     *,
@@ -604,7 +605,7 @@ async def classify_stance_async(
 
 
 def classify_stance(
-    claim_a: dict[str, Any], claim_b: dict[str, Any], model_name: str
+    claim_a: RelatableClaim, claim_b: RelatableClaim, model_name: str
 ) -> list[dict[str, Any]]:
     """Classify the epistemic relationship between two claims (sync wrapper)."""
 

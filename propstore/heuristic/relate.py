@@ -17,20 +17,34 @@ import asyncio
 from collections.abc import Callable, Coroutine, Sequence
 from typing import Any, Protocol, TypeVar
 
+from msgspec.structs import replace
+
+from propstore.core.store_results import ClaimSimilarityHit
 from propstore.heuristic.classify import classify_stance_async
+from propstore.heuristic.relatable import RelatableClaim
 
 _T = TypeVar("_T")
 
 
 class ClaimRelationStore(Protocol):
+    """What the relation heuristics need from a store — typed, end to end.
+
+    Every method used to return ``dict[str, Any]``, and every value they carried
+    already had a canonical type: a claim is a ``Claim`` charter document and a
+    similarity candidate is a :class:`ClaimSimilarityHit`.
+    ``registered_embedding_models`` returns model names because that is all the
+    caller reads; the raw registry rows stay behind ``families.embeddings``,
+    where the SQL boundary actually is.
+    """
+
     def load_embedding_extension(self) -> None: ...
-    def get_registered_models(self) -> list[dict[str, Any]]: ...
-    def get_claim_text(self, claim_id: str) -> dict[str, Any] | None: ...
-    def get_claim_texts(self, claim_ids: Sequence[str]) -> dict[str, dict[str, Any]]: ...
+    def registered_embedding_models(self) -> list[str]: ...
+    def get_claim(self, claim_id: str) -> RelatableClaim | None: ...
+    def get_claims(self, claim_ids: Sequence[str]) -> dict[str, RelatableClaim]: ...
     def all_claim_ids(self) -> list[str]: ...
     def find_similar(
         self, claim_id: str, model_name: str, *, top_k: int
-    ) -> list[dict[str, Any]]: ...
+    ) -> list[ClaimSimilarityHit]: ...
 
 
 def run_async(coro: Coroutine[Any, Any, _T]) -> _T:
@@ -82,12 +96,10 @@ def dedup_pairs(
 
 
 def _shared_concept_ids_from_pair(
-    claim_a: dict[str, Any], claim_b: dict[str, Any]
+    claim_a: RelatableClaim, claim_b: RelatableClaim
 ) -> list[str]:
-    a_cid = claim_a.get("concept_id")
-    b_cid = claim_b.get("concept_id")
-    if a_cid and b_cid and a_cid == b_cid:
-        return [str(a_cid)]
+    if claim_a.concept_id and claim_a.concept_id == claim_b.concept_id:
+        return [str(claim_a.concept_id)]
     return []
 
 
@@ -107,25 +119,32 @@ async def relate_claim_async(
     store.load_embedding_extension()
 
     if embedding_model is None:
-        models = store.get_registered_models()
+        models = store.registered_embedding_models()
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
-        embedding_model = str(models[0]["model_name"])
+        embedding_model = models[0]
 
-    claim_a = store.get_claim_text(claim_id)
-    if not claim_a:
+    claim_a = store.get_claim(claim_id)
+    if claim_a is None:
         raise ValueError(f"Claim {claim_id} not found")
 
     candidates = store.find_similar(claim_id, embedding_model, top_k=top_k)
 
-    candidate_claims: list[dict[str, Any]] = []
+    candidate_claims: list[RelatableClaim] = []
     candidate_distances: dict[str, float] = {}
     for candidate in candidates:
-        claim_b = store.get_claim_text(candidate["id"])
-        if claim_b:
-            claim_b["concept_id"] = candidate.get("concept_id")
-            candidate_claims.append(claim_b)
-            candidate_distances[candidate["id"]] = candidate.get("distance", 1.0)
+        claim_b = store.get_claim(str(candidate.claim_id))
+        if claim_b is None:
+            continue
+        # The candidate's concept comes from the similarity hit, not the claim
+        # document: it is what the search actually matched on.
+        candidate_claims.append(
+            replace(
+                claim_b,
+                concept_id=None if candidate.concept_id is None else str(candidate.concept_id),
+            )
+        )
+        candidate_distances[str(candidate.claim_id)] = candidate.distance
 
     tasks = [
         classify_stance_async(
@@ -134,7 +153,7 @@ async def relate_claim_async(
             model_name,
             semaphore,
             embedding_model=embedding_model,
-            embedding_distance=candidate_distances.get(claim_b["id"]),
+            embedding_distance=candidate_distances.get(claim_b.claim_id),
             shared_concept_ids=_shared_concept_ids_from_pair(claim_a, claim_b),
         )
         for claim_b in candidate_claims
@@ -175,16 +194,16 @@ async def relate_all_async(
     store.load_embedding_extension()
 
     if embedding_model is None:
-        models = store.get_registered_models()
+        models = store.registered_embedding_models()
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
-        embedding_model = str(models[0]["model_name"])
+        embedding_model = models[0]
 
     all_claim_ids = store.all_claim_ids()
     total = len(all_claim_ids)
-    text_cache = store.get_claim_texts(all_claim_ids)
+    text_cache = store.get_claims(all_claim_ids)
 
-    raw_candidates: list[tuple[str, list[dict[str, Any]]]] = []
+    raw_candidates: list[tuple[str, list[ClaimSimilarityHit]]] = []
     candidate_ids_needed: set[str] = set()
     concept_ids: dict[str, str | None] = {}
     for claim_id in all_claim_ids:
@@ -196,24 +215,27 @@ async def relate_all_async(
             continue
         raw_candidates.append((claim_id, candidates))
         for candidate in candidates:
-            concept_ids[candidate["id"]] = candidate.get("concept_id")
-            if candidate["id"] not in text_cache:
-                candidate_ids_needed.add(candidate["id"])
+            candidate_id = str(candidate.claim_id)
+            concept_ids[candidate_id] = (
+                None if candidate.concept_id is None else str(candidate.concept_id)
+            )
+            if candidate_id not in text_cache:
+                candidate_ids_needed.add(candidate_id)
 
     if candidate_ids_needed:
-        text_cache.update(store.get_claim_texts(list(candidate_ids_needed)))
+        text_cache.update(store.get_claims(list(candidate_ids_needed)))
 
-    directed_pairs: list[tuple[dict[str, Any], dict[str, Any], float]] = []
+    directed_pairs: list[tuple[RelatableClaim, RelatableClaim, float]] = []
     for claim_id, candidates in raw_candidates:
         claim_a = text_cache[claim_id]
         for candidate in candidates:
-            claim_b = text_cache.get(candidate["id"])
-            if claim_b:
-                directed_pairs.append((claim_a, claim_b, candidate.get("distance", 1.0)))
+            claim_b = text_cache.get(str(candidate.claim_id))
+            if claim_b is not None:
+                directed_pairs.append((claim_a, claim_b, candidate.distance))
 
-    raw_id_pairs = [(a["id"], b["id"], dist) for a, b, dist in directed_pairs]
+    raw_id_pairs = [(a.claim_id, b.claim_id, dist) for a, b, dist in directed_pairs]
     deduped = dedup_pairs(raw_id_pairs)
-    pairs: list[tuple[dict[str, Any], dict[str, Any], float, float | None]] = [
+    pairs: list[tuple[RelatableClaim, RelatableClaim, float, float | None]] = [
         (text_cache[a_id], text_cache[b_id], forward_dist, reverse_dist)
         for a_id, b_id, forward_dist, reverse_dist in deduped
         if a_id in text_cache and b_id in text_cache
@@ -236,8 +258,8 @@ async def relate_all_async(
             embedding_model=embedding_model,
             embedding_distance=forward_dist,
             shared_concept_ids=_shared_concept_ids_from_pair(
-                {**a, "concept_id": concept_ids.get(a["id"])},
-                {**b, "concept_id": concept_ids.get(b["id"])},
+                replace(a, concept_id=concept_ids.get(a.claim_id)),
+                replace(b, concept_id=concept_ids.get(b.claim_id)),
             ),
             reference_distances=reference_distances,
         )
@@ -259,7 +281,7 @@ async def relate_all_async(
             chunk_pairs, results, strict=True
         ):
             for index, stance in enumerate(stance_pair):
-                source_id = claim_a["id"] if index == 0 else claim_b["id"]
+                source_id = claim_a.claim_id if index == 0 else claim_b.claim_id
                 stance = {**stance, "perspective_source_claim_id": source_id}
                 all_stances.setdefault(source_id, []).append(stance)
                 if stance["type"] != "none":

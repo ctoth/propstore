@@ -8,9 +8,11 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.heuristic.relatable import RelatableClaim
 
-def _claim(id_: str, text: str) -> dict[str, str]:
-    return {"id": id_, "text": text, "source_paper": f"paper-{id_}"}
+
+def _claim(id_: str, text: str) -> RelatableClaim:
+    return RelatableClaim(claim_id=id_, text=text, source_paper=f"paper-{id_}")
 
 
 def _response(payload: dict[str, object]) -> MagicMock:

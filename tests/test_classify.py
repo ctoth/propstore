@@ -19,6 +19,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.heuristic.relatable import RelatableClaim
 from propstore.heuristic.calibrate import CalibrationSource, CategoryPrior, CategoryPriorRegistry
 from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.stances import VALID_STANCE_TYPES
@@ -28,8 +29,10 @@ from propstore.stances import VALID_STANCE_TYPES
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_claim(id_: str, text: str = "some claim", source: str = "paper") -> dict:
-    return {"id": id_, "text": text, "source_paper": source}
+def _make_claim(
+    id_: str, text: str = "some claim", source: str = "paper"
+) -> RelatableClaim:
+    return RelatableClaim(claim_id=id_, text=text, source_paper=source)
 
 
 def _mock_bidirectional_response(forward: dict, reverse: dict) -> MagicMock:

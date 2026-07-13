@@ -8,41 +8,48 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
-from typing import Any
 
 import pytest
 
+from propstore.core.store_results import ClaimSimilarityHit
+from propstore.heuristic.relatable import RelatableClaim
+
 
 class _Store:
+    """The one implementation of ClaimRelationStore — now typed, like the protocol."""
+
     def __init__(self) -> None:
         self._claims = {
-            "claim-a": {"id": "claim-a", "text": "A says alpha.", "source_paper": "paper-a"},
-            "claim-b": {"id": "claim-b", "text": "B says beta.", "source_paper": "paper-b"},
+            "claim-a": RelatableClaim(
+                claim_id="claim-a", text="A says alpha.", source_paper="paper-a"
+            ),
+            "claim-b": RelatableClaim(
+                claim_id="claim-b", text="B says beta.", source_paper="paper-b"
+            ),
         }
 
     def load_embedding_extension(self) -> None:
         return None
 
-    def get_registered_models(self) -> list[dict[str, Any]]:
-        return [{"model_name": "embedder"}]
+    def registered_embedding_models(self) -> list[str]:
+        return ["embedder"]
 
-    def get_claim_text(self, claim_id: str) -> dict[str, Any] | None:
-        claim = self._claims.get(claim_id)
-        return dict(claim) if claim is not None else None
+    def get_claim(self, claim_id: str) -> RelatableClaim | None:
+        return self._claims.get(claim_id)
 
-    def get_claim_texts(self, claim_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
-        return {cid: dict(self._claims[cid]) for cid in claim_ids if cid in self._claims}
+    def get_claims(self, claim_ids: Sequence[str]) -> dict[str, RelatableClaim]:
+        return {cid: self._claims[cid] for cid in claim_ids if cid in self._claims}
 
     def all_claim_ids(self) -> list[str]:
         return list(self._claims)
 
     def find_similar(
         self, claim_id: str, model_name: str, *, top_k: int
-    ) -> list[dict[str, Any]]:
+    ) -> list[ClaimSimilarityHit]:
         if claim_id == "claim-a":
-            return [{"id": "claim-b", "distance": 0.3}]
+            return [ClaimSimilarityHit(claim_id="claim-b", distance=0.3)]
         if claim_id == "claim-b":
-            return [{"id": "claim-a", "distance": 0.4}]
+            return [ClaimSimilarityHit(claim_id="claim-a", distance=0.4)]
         return []
 
 
@@ -50,14 +57,14 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
     from propstore.heuristic import relate
 
     async def classify_stance_async(
-        claim_a: dict[str, Any],
-        claim_b: dict[str, Any],
+        claim_a: RelatableClaim,
+        claim_b: RelatableClaim,
         *_args: object,
         **_kwargs: object,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         return [
             {
-                "target": claim_b["id"],
+                "target": claim_b.claim_id,
                 "type": "supports",
                 "strength": "strong",
                 "note": "forward",
@@ -65,7 +72,7 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
                 "resolution": {},
             },
             {
-                "target": claim_a["id"],
+                "target": claim_a.claim_id,
                 "type": "undercuts",
                 "strength": "weak",
                 "note": "reverse",

@@ -4,9 +4,11 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from propstore.heuristic.relatable import RelatableClaim
 
-def _claim(id_: str) -> dict[str, str]:
-    return {"id": id_, "text": f"{id_} text", "source_paper": "paper"}
+
+def _claim(id_: str) -> RelatableClaim:
+    return RelatableClaim(claim_id=id_, text=f"{id_} text", source_paper="paper")
 
 
 def _response(payload: dict[str, object]) -> MagicMock:
