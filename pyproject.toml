@@ -25,6 +25,8 @@ dependencies = [
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray.git@df4580e1f4c3671159e057ade6d1411512196808",
     "quire",
+    "sqlalchemy>=2.0",
+    "sqlalchemy-fts5",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
@@ -76,6 +78,7 @@ markers = [
 
 [tool.uv.sources]
 quire = { git = "https://github.com/ctoth/quire", rev = "b3258064d84795eb8ae930cfe5c3fdd6cbe18a03" }
+sqlalchemy-fts5 = { git = "https://github.com/ctoth/sqlalchemy-fts5", rev = "ac6d05968f2f3bcf61c20a09efa41de4a605560d" }
 
 [dependency-groups]
 dev = [
