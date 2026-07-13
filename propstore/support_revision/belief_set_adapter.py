@@ -3,9 +3,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, TypeGuard
+from typing import Any
 
 from belief_set import (
     TOP,
@@ -29,6 +29,13 @@ from belief_set import (
     revise,
 )
 
+from propstore.reporting import json_ready
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    IntegrityConstraintSpec,
+    LiteralsConstraint,
+    TopConstraint,
+)
 from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
@@ -62,7 +69,7 @@ class FormalDecision:
     # values are also written into ``report.trace`` as provenance payload;
     # consumers read these fields, never the trace.
     profile_atom_ids: tuple[tuple[str, ...], ...] = ()
-    integrity_constraint: Mapping[str, Any] | None = None
+    integrity_constraint: IntegrityConstraintSpec | None = None
 
 
 def is_formal_budget_error(exc: BaseException) -> bool:
@@ -230,7 +237,7 @@ def decide_ic_merge(
     max_alphabet_size: int,
     trace_metadata: Mapping[str, Any] | None = None,
     profile_atom_ids: tuple[tuple[str, ...], ...] = (),
-    integrity_constraint_payload: Mapping[str, Any] | None = None,
+    integrity_constraint_payload: IntegrityConstraintSpec | None = None,
 ) -> FormalDecision:
     operator = ICMergeOperator(str(merge_operator))
     outcome = merge_belief_profile(
@@ -283,7 +290,7 @@ def decide_ic_merge(
 def decide_ic_merge_profile(
     *,
     profile_atom_ids: tuple[tuple[str, ...], ...],
-    integrity_constraint: Mapping[str, Any],
+    integrity_constraint: IntegrityConstraintSpec,
     merge_operator: str = ICMergeOperator.SIGMA.value,
     max_alphabet_size: int,
 ) -> FormalDecision:
@@ -297,16 +304,16 @@ def decide_ic_merge_profile(
     return decide_ic_merge(
         alphabet,
         profile,
-        _integrity_constraint_formula(integrity_constraint),
+        integrity_constraint_formula(integrity_constraint),
         merge_operator=merge_operator,
         max_alphabet_size=max_alphabet_size,
         trace_metadata={
             "profile_atom_ids": [list(atom_ids) for atom_ids in profile_atom_ids],
             "profile_hash": _plain_hash([list(atom_ids) for atom_ids in profile_atom_ids]),
-            "integrity_constraint": dict(integrity_constraint),
+            "integrity_constraint": json_ready(integrity_constraint),
         },
         profile_atom_ids=profile_atom_ids,
-        integrity_constraint_payload=dict(integrity_constraint),
+        integrity_constraint_payload=integrity_constraint,
     )
 
 
@@ -342,34 +349,26 @@ def selected_world_atom_ids(decision: FormalDecision) -> tuple[tuple[str, ...], 
     )
 
 
-def _integrity_constraint_formula(payload: Mapping[str, Any]) -> Formula:
-    kind = str(payload.get("kind") or "")
-    if kind == "top":
-        return TOP
-    atom_id = payload.get("atom_id")
-    if kind == "atom" and atom_id is not None:
-        return Atom(str(atom_id))
-    if kind == "literals":
-        required = _literal_ids(payload.get("required") or ())
-        forbidden = _literal_ids(payload.get("forbidden") or ())
-        return conjunction(
-            *(Atom(atom_id) for atom_id in required),
-            *(negate(Atom(atom_id)) for atom_id in forbidden),
-        )
-    raise ValueError(
-        "IC merge integrity_constraint must be {'kind': 'top'}, "
-        "{'kind': 'atom', 'atom_id': ...}, or {'kind': 'literals', ...}"
-    )
+def integrity_constraint_formula(spec: IntegrityConstraintSpec) -> Formula:
+    """Compile the authored constraint into the belief-set ``Formula``.
 
+    The boundary crossing is a call: ``belief_set`` owns ``Formula``, propstore
+    owns what the user authored. The union is discriminated by the type system
+    here rather than by reading a ``"kind"`` string out of a mapping, so an
+    unknown shape cannot reach this function at all — it fails when the document
+    is decoded.
+    """
 
-def _is_sequence(value: object) -> TypeGuard[Sequence[Any]]:
-    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
-
-
-def _literal_ids(value: object) -> tuple[str, ...]:
-    if not _is_sequence(value):
-        raise ValueError("IC merge literal lists must be sequences")
-    return tuple(str(atom_id) for atom_id in value)
+    match spec:
+        case TopConstraint():
+            return TOP
+        case AtomConstraint(atom_id=atom_id):
+            return Atom(atom_id)
+        case LiteralsConstraint(required=required, forbidden=forbidden):
+            return conjunction(
+                *(Atom(atom_id) for atom_id in required),
+                *(negate(Atom(atom_id)) for atom_id in forbidden),
+            )
 
 
 def _decision_report(

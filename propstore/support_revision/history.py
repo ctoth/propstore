@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeGuard
+from typing import Any, TypeGuard, cast
 
 import msgspec
 
@@ -12,11 +12,14 @@ from quire.canonical import canonical_json_bytes
 from quire.documents import convert_document_value, to_document_builtins
 from msgspec.structs import replace as replace_struct
 
+from propstore.policies import PolicyProfile
+from propstore.reporting import json_ready
 from propstore.support_revision.explanation_types import RevisionAtomDetail
+from propstore.support_revision.operator_inputs import OperatorInput
 from propstore.support_revision.state import EpistemicState
 
 EPistemicSnapshotVersion = "propstore.epistemic_snapshot.v2"
-TransitionJournalVersion = "propstore.transition_journal.v3"
+TransitionJournalVersion = "propstore.transition_journal.v4"
 
 
 class JournalOperator(Enum):
@@ -31,9 +34,6 @@ def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
     return isinstance(value, Mapping)
 
 
-def _is_sequence(value: object) -> TypeGuard[Sequence[Any]]:
-    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
-
 
 def _as_mapping(value: object) -> Mapping[str, Any]:
     return value if _is_mapping(value) else {}
@@ -45,23 +45,51 @@ def _required_mapping(value: object, field_name: str) -> Mapping[str, Any]:
     return value
 
 
-def _to_plain_data(value: Any) -> Any:
-    to_dict = getattr(value, "to_dict", None)
-    if callable(to_dict):
-        return to_dict()
+def _without_nulls(value: object) -> object:
+    """Drop unset optional fields so they cannot reach the fingerprint.
+
+    An absent field and a field explicitly set to ``null`` are the same fact,
+    and encoders are free to elide one and emit the other: the charter's JSON
+    drops an optional field left at ``None`` that the in-memory lowering keeps.
+    A fingerprint that changes depending on which encoder produced the payload
+    is not fingerprinting the content — it is fingerprinting the serializer.
+
+    Inside a journal entry a ``null`` is never data: every mapping the entry
+    reaches (``trace``, ``journal_metadata``) carries ids, hashes, and lists,
+    so eliding nulls loses nothing. A payload whose ``null`` is meaningful must
+    not be fingerprinted through this function.
+    """
+
     if _is_mapping(value):
-        return {str(key): _to_plain_data(item) for key, item in value.items()}
-    if _is_sequence(value):
-        return [_to_plain_data(item) for item in value]
+        return {
+            str(key): _without_nulls(item)
+            for key, item in value.items()
+            if item is not None
+        }
+    if isinstance(value, list):
+        return [_without_nulls(item) for item in cast("list[Any]", value)]
     return value
 
 
 def _stable_hash(payload: Mapping[str, Any]) -> str:
-    return hashlib.sha256(canonical_json_bytes(_to_plain_data(payload))).hexdigest()
+    """Fingerprint a journal payload through the one canonical lowering.
+
+    This used to prefer a value's own ``to_dict()`` when it had one, so a type
+    carrying a hand-written encoder was hashed through *that* rather than
+    through its fields — and a ``to_dict`` that emitted derived extras (a
+    content hash, a derived id) made the fingerprint disagree with the document
+    the codec actually stores. ``json_ready`` lowers every value the same way,
+    and :func:`_without_nulls` removes the unset optionals, so what is hashed is
+    what is written — by whichever encoder writes it.
+    """
+
+    return hashlib.sha256(
+        canonical_json_bytes(_without_nulls(json_ready(payload)))
+    ).hexdigest()
 
 
 def _canonical_text(payload: Mapping[str, Any]) -> str:
-    return canonical_json_bytes(_to_plain_data(payload)).decode("ascii")
+    return canonical_json_bytes(json_ready(payload)).decode("ascii")
 
 
 def _journal_operator(value: JournalOperator | str) -> JournalOperator:
@@ -171,7 +199,7 @@ class TransitionOperation(
             None if self.input_atom_id is None else str(self.input_atom_id),
         )
         object.__setattr__(self, "target_atom_ids", tuple(str(item) for item in self.target_atom_ids))
-        object.__setattr__(self, "parameters", _to_plain_data(dict(self.parameters)))
+        object.__setattr__(self, "parameters", json_ready(dict(self.parameters)))
 
     def to_dict(self) -> dict[str, Any]:
         return dict(_required_mapping(to_document_builtins(self), "operation"))
@@ -187,13 +215,13 @@ class TransitionJournalEntry(
     operation: TransitionOperation
     policy_id: str
     operator: JournalOperator
-    operator_input: dict[str, Any]
+    operator_input: OperatorInput
     version_policy_snapshot: dict[str, str]
     state_out: EpistemicSnapshot
     explanation: dict[str, RevisionAtomDetail] = msgspec.field(
         default_factory=dict[str, RevisionAtomDetail]
     )
-    policy: dict[str, Any] = msgspec.field(default_factory=dict[str, Any])
+    policy: PolicyProfile | None = None
     schema_version: str = TransitionJournalVersion
     content_hash: str = ""
 
@@ -202,15 +230,13 @@ class TransitionJournalEntry(
             raise ValueError(f"unsupported transition journal version: {self.schema_version}")
         object.__setattr__(self, "policy_id", str(self.policy_id))
         object.__setattr__(self, "operator", _journal_operator(self.operator))
-        object.__setattr__(self, "operator_input", _to_plain_data(dict(self.operator_input)))
         object.__setattr__(
             self,
             "version_policy_snapshot",
             _version_policy_snapshot(self.version_policy_snapshot),
         )
-        canonical_json_bytes(_to_plain_data(self.operator_input))
-        canonical_json_bytes(_to_plain_data(self.version_policy_snapshot))
-        object.__setattr__(self, "policy", _to_plain_data(dict(self.policy)))
+        canonical_json_bytes(json_ready(self.operator_input))
+        canonical_json_bytes(json_ready(self.version_policy_snapshot))
         object.__setattr__(
             self,
             "explanation",
@@ -240,11 +266,11 @@ class TransitionJournalEntry(
         operation: TransitionOperation,
         policy_id: str,
         operator: JournalOperator,
-        operator_input: Mapping[str, Any],
+        operator_input: OperatorInput,
         version_policy_snapshot: Mapping[str, str],
         state_out: EpistemicState,
         explanation: Mapping[str, RevisionAtomDetail],
-        policy_payload: Mapping[str, Any] | None = None,
+        policy_payload: PolicyProfile | None = None,
     ) -> TransitionJournalEntry:
         journal_state_out = _state_with_journal_event_policy(
             state_out,
@@ -255,11 +281,11 @@ class TransitionJournalEntry(
             operation=operation,
             policy_id=policy_id,
             operator=operator,
-            operator_input=dict(operator_input),
+            operator_input=operator_input,
             version_policy_snapshot=dict(version_policy_snapshot),
             state_out=EpistemicSnapshot.from_state(journal_state_out),
             explanation=dict(explanation),
-            policy={} if policy_payload is None else dict(policy_payload),
+            policy=policy_payload,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -304,14 +330,13 @@ class ChainIntegrityReport:
 class ReplayDivergence:
     entry_index: int
     operator: JournalOperator
-    operator_input: Mapping[str, Any]
+    operator_input: OperatorInput
     expected_state_hash: str
     actual_state_hash: str
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "entry_index", int(self.entry_index))
         object.__setattr__(self, "operator", _journal_operator(self.operator))
-        object.__setattr__(self, "operator_input", _to_plain_data(dict(self.operator_input)))
         object.__setattr__(self, "expected_state_hash", str(self.expected_state_hash))
         object.__setattr__(self, "actual_state_hash", str(self.actual_state_hash))
 
@@ -417,8 +442,8 @@ class SemanticFieldDelta:
     def __post_init__(self) -> None:
         object.__setattr__(self, "surface", str(self.surface))
         object.__setattr__(self, "key", str(self.key))
-        object.__setattr__(self, "old_value", _to_plain_data(self.old_value))
-        object.__setattr__(self, "new_value", _to_plain_data(self.new_value))
+        object.__setattr__(self, "old_value", json_ready(self.old_value))
+        object.__setattr__(self, "new_value", json_ready(self.new_value))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -516,8 +541,8 @@ def _mapping_deltas(
 ) -> tuple[SemanticFieldDelta, ...]:
     deltas: list[SemanticFieldDelta] = []
     for key in sorted(set(source) | set(target)):
-        old_value = _to_plain_data(source.get(key))
-        new_value = _to_plain_data(target.get(key))
+        old_value = json_ready(source.get(key))
+        new_value = json_ready(target.get(key))
         if old_value != new_value:
             deltas.append(SemanticFieldDelta(surface, key, old_value, new_value))
     return tuple(deltas)
@@ -538,7 +563,7 @@ def _assertion_provenance(state_payload: Mapping[str, Any]) -> dict[str, Any]:
             continue
         if atom.get("type") != "assertion":
             continue
-        provenance[str(atom.get("atom_id"))] = _to_plain_data(
+        provenance[str(atom.get("atom_id"))] = json_ready(
             atom.get("source_claims") or ()
         )
     return provenance
@@ -550,7 +575,7 @@ def _dependencies(state_payload: Mapping[str, Any]) -> dict[str, Any]:
     for field_name in ("support_sets", "essential_support"):
         field_data = _as_mapping(base.get(field_name))
         for atom_id, value in field_data.items():
-            dependencies[f"{atom_id}.{field_name}"] = _to_plain_data(value)
+            dependencies[f"{atom_id}.{field_name}"] = json_ready(value)
     return dependencies
 
 
@@ -566,7 +591,7 @@ def _assert_current_value(state_payload: Mapping[str, Any], delta: SemanticField
         current = _assertion_provenance(state_payload).get(delta.key)
     elif delta.surface == "dependency":
         current = _dependencies(state_payload).get(delta.key)
-    if _to_plain_data(current) != delta.old_value:
+    if json_ready(current) != delta.old_value:
         raise ValueError(f"semantic diff old value mismatch for {delta.surface}.{delta.key}")
 
 

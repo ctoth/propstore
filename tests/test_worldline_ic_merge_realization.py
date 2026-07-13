@@ -6,6 +6,18 @@ import pytest
 
 from belief_set import Atom, TOP, disjunction
 
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    LiteralsConstraint,
+    TopConstraint,
+)
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    ReviseInput,
+)
 from propstore.core.environment import AssumptionRef
 from propstore.reporting import json_ready
 from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
@@ -30,7 +42,7 @@ _POLICY = {
 def test_ic_merge_decision_report_records_profile_multiset_and_integrity_constraint() -> None:
     decision = decide_ic_merge_profile(
         profile_atom_ids=(("atom:a",), ("atom:a",), ("atom:b",)),
-        integrity_constraint={"kind": "atom", "atom_id": "atom:a"},
+        integrity_constraint=AtomConstraint(atom_id="atom:a"),
         merge_operator="sigma",
         max_alphabet_size=4,
     )
@@ -43,7 +55,7 @@ def test_ic_merge_decision_report_records_profile_multiset_and_integrity_constra
 def test_ic_merge_decision_report_records_selected_worlds_hash() -> None:
     decision = decide_ic_merge_profile(
         profile_atom_ids=(("atom:a",), ("atom:b",)),
-        integrity_constraint={"kind": "atom", "atom_id": "atom:a"},
+        integrity_constraint=AtomConstraint(atom_id="atom:a"),
         merge_operator="sigma",
         max_alphabet_size=4,
     )
@@ -58,7 +70,7 @@ def test_ic_merge_decision_report_records_selected_worlds_hash() -> None:
 def test_ic_merge_decision_report_records_formal_operator_family() -> None:
     decision = decide_ic_merge_profile(
         profile_atom_ids=(("atom:a",), ("atom:b",)),
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator="gmax",
         max_alphabet_size=4,
     )
@@ -71,13 +83,13 @@ def test_ic_merge_decision_report_records_formal_operator_family() -> None:
 def test_ic_merge_decision_preserves_duplicate_profile_members() -> None:
     duplicate_decision = decide_ic_merge_profile(
         profile_atom_ids=(("atom:a",), ("atom:a",), ("atom:b",)),
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator="sigma",
         max_alphabet_size=4,
     )
     unique_decision = decide_ic_merge_profile(
         profile_atom_ids=(("atom:a",), ("atom:b",)),
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator="sigma",
         max_alphabet_size=4,
     )
@@ -162,11 +174,10 @@ def test_selected_world_with_unknown_formal_atom_fails_typed() -> None:
         _dispatch_merge(
             state,
             profile_atom_ids=[[unknown_atom_id], [atom_ids["a"]]],
-            integrity_constraint={
-                "kind": "literals",
-                "required": [unknown_atom_id],
-                "forbidden": [atom_ids["a"]],
-            },
+            integrity_constraint=LiteralsConstraint(
+                required=(unknown_atom_id,),
+                forbidden=(atom_ids["a"],),
+            ),
         )
 
     assert exc_info.value.reason == "unmapped_formal_atom"
@@ -181,20 +192,12 @@ def test_unsatisfiable_integrity_constraint_preserves_formal_decision() -> None:
         _dispatch_merge(
             state,
             profile_atom_ids=[[atom_ids["a"]]],
-            integrity_constraint={
-                "kind": "literals",
-                "required": [atom_ids["a"]],
-                "forbidden": [atom_ids["a"]],
-            },
+            integrity_constraint=LiteralsConstraint(required=(atom_ids["a"],), forbidden=(atom_ids["a"],)),
         )
 
     assert exc_info.value.reason == "unsatisfiable_integrity_constraint"
     assert exc_info.value.decision_report is not None
-    assert exc_info.value.integrity_constraint == {
-        "kind": "literals",
-        "required": [atom_ids["a"]],
-        "forbidden": [atom_ids["a"]],
-    }
+    assert exc_info.value.integrity_constraint == LiteralsConstraint(required=(atom_ids["a"],), forbidden=(atom_ids["a"],))
 
 
 def test_unrealizable_merge_failure_event_preserves_selected_world_hash() -> None:
@@ -238,8 +241,10 @@ def test_ic_merge_journal_replay_reconstructs_realized_state() -> None:
 def test_ic_merge_replay_rejects_profile_drift() -> None:
     journal = _realizable_ic_merge_journal()
     entry = journal.entries[0]
-    drifted_input = dict(entry.operator_input)
-    drifted_input["profile_atom_ids"] = [[entry.operation.target_atom_ids[0]]]
+    drifted_input = replace(
+        entry.operator_input,
+        profile_atom_ids=((entry.operation.target_atom_ids[0],),),
+    )
     # Re-stamp the drifted entry (content_hash="") so it is internally consistent
     # and replay() must catch the semantic drift, not the constructor.
     drifted = TransitionJournal(
@@ -255,12 +260,13 @@ def test_ic_merge_replay_rejects_profile_drift() -> None:
 def test_ic_merge_replay_rejects_integrity_constraint_drift() -> None:
     journal = _realizable_ic_merge_journal()
     entry = journal.entries[0]
-    drifted_input = dict(entry.operator_input)
-    drifted_input["integrity_constraint"] = {
-        "kind": "literals",
-        "required": [entry.operation.target_atom_ids[1]],
-        "forbidden": [entry.operation.target_atom_ids[0]],
-    }
+    drifted_input = replace(
+        entry.operator_input,
+        integrity_constraint=LiteralsConstraint(
+            required=(entry.operation.target_atom_ids[1],),
+            forbidden=(entry.operation.target_atom_ids[0],),
+        ),
+    )
     # Re-stamp the drifted entry (content_hash="") so it is internally consistent
     # and replay() must catch the semantic drift, not the constructor.
     drifted = TransitionJournal(
@@ -301,11 +307,7 @@ def test_worldline_capture_serializes_ic_merge_event() -> None:
     query = WorldlineRevisionQuery(
         operation="ic_merge",
         profile_atom_ids=((atom_ids["a"],), (atom_ids["b"],)),
-        integrity_constraint={
-            "kind": "literals",
-            "required": [atom_ids["a"]],
-            "forbidden": [atom_ids["b"]],
-        },
+        integrity_constraint=LiteralsConstraint(required=(atom_ids["a"],), forbidden=(atom_ids["b"],)),
         merge_parent_commits=("left", "right"),
         operator="sigma",
         max_alphabet_size=8,
@@ -328,11 +330,7 @@ def _dispatch_realizable_merge(state, atom_ids: dict[str, str]):
     return _dispatch_merge(
         state,
         profile_atom_ids=[[atom_ids["a"]], [atom_ids["b"]]],
-        integrity_constraint={
-            "kind": "literals",
-            "required": [atom_ids["a"]],
-            "forbidden": [atom_ids["b"]],
-        },
+        integrity_constraint=LiteralsConstraint(required=(atom_ids["a"],), forbidden=(atom_ids["b"],)),
     )
 
 
@@ -340,12 +338,7 @@ def _dispatch_merge(state, *, profile_atom_ids, integrity_constraint):
     return dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
-        operator_input={
-            "profile_atom_ids": profile_atom_ids,
-            "integrity_constraint": integrity_constraint,
-            "merge_operator": "sigma",
-            "max_alphabet_size": 8,
-        },
+        operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in profile_atom_ids), integrity_constraint=integrity_constraint, merge_operator="sigma", max_alphabet_size=8),
         policy=_POLICY,
     )
 
@@ -354,27 +347,22 @@ def _dispatch_unsatisfiable_merge(state, atom_ids: dict[str, str]):
     return _dispatch_merge(
         state,
         profile_atom_ids=[[atom_ids["a"]]],
-        integrity_constraint={
-            "kind": "literals",
-            "required": [atom_ids["a"]],
-            "forbidden": [atom_ids["a"]],
-        },
+        integrity_constraint=LiteralsConstraint(required=(atom_ids["a"],), forbidden=(atom_ids["a"],)),
     )
 
 
 def _realizable_ic_merge_journal() -> TransitionJournal:
     state, atom_ids = _merge_state()
-    operator_input = {
-        "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
-        "merge_parent_commits": ["left", "right"],
-        "integrity_constraint": {
-            "kind": "literals",
-            "required": [atom_ids["a"]],
-            "forbidden": [atom_ids["b"]],
-        },
-        "merge_operator": "sigma",
-        "max_alphabet_size": 8,
-    }
+    operator_input = ICMergeInput(
+        profile_atom_ids=((atom_ids["a"],), (atom_ids["b"],)),
+        merge_parent_commits=("left", "right"),
+        integrity_constraint=LiteralsConstraint(
+            required=(atom_ids["a"],),
+            forbidden=(atom_ids["b"],),
+        ),
+        merge_operator="sigma",
+        max_alphabet_size=8,
+    )
     state_out = dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
@@ -388,7 +376,7 @@ def _realizable_ic_merge_journal() -> TransitionJournal:
                 operation=TransitionOperation(
                     name="ic_merge",
                     target_atom_ids=(atom_ids["a"], atom_ids["b"]),
-                    parameters=operator_input,
+                    parameters={"operator": operator_input.merge_operator},
                 ),
                 operator=JournalOperator.IC_MERGE,
                 operator_input=operator_input,

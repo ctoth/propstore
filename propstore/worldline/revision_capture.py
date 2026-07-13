@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, TypeGuard
+from typing import Any
 
-from quire.documents import to_document_builtins
 
+from propstore.policies import PolicyProfile
 from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR, DEFAULT_MAX_ALPHABET_SIZE
 from propstore.support_revision.dispatch import dispatch
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    OperatorInput,
+    ReviseInput,
+)
 from propstore.support_revision.history import (
     JournalOperator,
     TransitionJournal,
@@ -20,10 +28,6 @@ from propstore.worldline.revision_types import (
     WorldlineRevisionResult,
     WorldlineRevisionState,
 )
-
-def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
-    return isinstance(value, Mapping)
-
 
 _MAX_CANDIDATES = 1024
 _POLICY_ID = "propstore-worldline-journal-v1"
@@ -114,10 +118,9 @@ def capture_journal(
     operations: Sequence[Any],
     *,
     policy_id: str = _POLICY_ID,
-    policy_payload: Mapping[str, Any] | None = None,
+    policy_payload: PolicyProfile | None = None,
 ) -> TransitionJournal:
     state = _initial_epistemic_state(bound)
-    captured_policy_payload = {} if policy_payload is None else dict(policy_payload)
     entries: list[TransitionJournalEntry] = []
     for operation_query in operations:
         operator, operation, operator_input = _journal_operator_input(
@@ -140,7 +143,7 @@ def capture_journal(
                 version_policy_snapshot=_VERSION_POLICY_SNAPSHOT,
                 state_out=state_out,
                 explanation={},
-                policy_payload=captured_policy_payload,
+                policy_payload=policy_payload,
             )
         )
         state = state_out
@@ -214,7 +217,7 @@ def _initial_epistemic_state(bound: Any) -> EpistemicState:
 def _journal_operator_input(
     state: EpistemicState,
     revision_query: Any,
-) -> tuple[JournalOperator, TransitionOperation, Mapping[str, Any]]:
+) -> tuple[JournalOperator, TransitionOperation, OperatorInput]:
     operation = str(revision_query.operation)
     if operation == "expand":
         atom = _normalize_query_atom(state, revision_query.atom)
@@ -225,11 +228,7 @@ def _journal_operator_input(
                 input_atom_id=atom.atom_id,
                 target_atom_ids=(),
             ),
-            {
-                "formula": to_document_builtins(atom),
-                "max_candidates": _MAX_CANDIDATES,
-                "conflicts": {},
-            },
+            ExpandInput(formula=atom, max_candidates=_MAX_CANDIDATES),
         )
     if operation == "contract":
         targets = tuple(_query_target_atom_ids(revision_query.target))
@@ -240,10 +239,7 @@ def _journal_operator_input(
                 input_atom_id=None,
                 target_atom_ids=targets,
             ),
-            {
-                "targets": targets,
-                "max_candidates": _MAX_CANDIDATES,
-            },
+            ContractInput(targets=targets, max_candidates=_MAX_CANDIDATES),
         )
     if operation == "revise":
         atom = _normalize_query_atom(state, revision_query.atom)
@@ -255,11 +251,14 @@ def _journal_operator_input(
                 input_atom_id=atom.atom_id,
                 target_atom_ids=tuple(conflicts.get(atom.atom_id, ())),
             ),
-            {
-                "formula": to_document_builtins(atom),
-                "max_candidates": _MAX_CANDIDATES,
-                "conflicts": conflicts,
-            },
+            ReviseInput(
+                formula=atom,
+                max_candidates=_MAX_CANDIDATES,
+                conflicts={
+                    str(atom_id): tuple(targets)
+                    for atom_id, targets in conflicts.items()
+                },
+            ),
         )
     if operation == "iterated_revise":
         atom = _normalize_query_atom(state, revision_query.atom)
@@ -273,38 +272,39 @@ def _journal_operator_input(
                 target_atom_ids=targets,
                 parameters={"operator": operator},
             ),
-            {
-                "formula": to_document_builtins(atom),
-                "targets": targets,
-                "revision_operator": operator,
-                "max_candidates": _MAX_CANDIDATES,
-            },
+            IteratedReviseInput(
+                formula=atom,
+                targets=targets,
+                revision_operator=operator,
+                max_candidates=_MAX_CANDIDATES,
+            ),
         )
     if operation == "ic_merge":
         profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in revision_query.profile_atom_ids)
         if not profile_atom_ids:
             raise ValueError("IC merge journal capture requires profile_atom_ids")
         integrity_constraint = revision_query.integrity_constraint
-        if not _is_mapping(integrity_constraint):
+        if integrity_constraint is None:
             raise ValueError("IC merge journal capture requires integrity_constraint")
         merge_parent_commits = tuple(revision_query.merge_parent_commits or state.scope.merge_parent_commits)
-        merge_operator = revision_query.operator or "sigma"
-        max_alphabet_size = revision_query.max_alphabet_size or DEFAULT_MAX_ALPHABET_SIZE
         target_atom_ids = tuple(dict.fromkeys(atom_id for profile in profile_atom_ids for atom_id in profile))
-        operator_input: dict[str, Any] = {
-            "profile_atom_ids": profile_atom_ids,
-            "merge_parent_commits": merge_parent_commits,
-            "integrity_constraint": dict(integrity_constraint),
-            "merge_operator": merge_operator,
-            "max_alphabet_size": max_alphabet_size,
-        }
+        operator_input = ICMergeInput(
+            profile_atom_ids=profile_atom_ids,
+            merge_parent_commits=merge_parent_commits,
+            integrity_constraint=integrity_constraint,
+            merge_operator=revision_query.operator or "sigma",
+            max_alphabet_size=revision_query.max_alphabet_size or DEFAULT_MAX_ALPHABET_SIZE,
+        )
         return (
             JournalOperator.IC_MERGE,
             TransitionOperation(
                 name=operation,
                 input_atom_id=None,
                 target_atom_ids=target_atom_ids,
-                parameters=operator_input,
+                # The merge operator is the operation's descriptive parameter; the
+                # full input rides typed on the entry's ``operator_input`` and is
+                # not duplicated here.
+                parameters={"operator": operator_input.merge_operator},
             ),
             operator_input,
         )

@@ -10,6 +10,18 @@ from hypothesis import strategies as st
 from msgspec.structs import replace as replace_struct
 from quire.documents import to_document_builtins
 
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    LiteralsConstraint,
+    TopConstraint,
+)
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    ReviseInput,
+)
 from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims import ClaimType
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -66,12 +78,7 @@ def test_transition_journal_records_state_policy_operator_and_replay_hashes() ->
         operation=operation,
         policy_id="policy:revision/default",
         operator=JournalOperator.ITERATED_REVISE,
-        operator_input={
-            "formula": to_document_builtins(new_atom),
-            "max_candidates": 8,
-            "revision_operator": "restrained",
-            "targets": [ids["legacy"]],
-        },
+        operator_input=IteratedReviseInput(formula=new_atom, revision_operator="restrained", max_candidates=8),
         version_policy_snapshot={
             "revision_policy_version": "revision.v1",
             "ranking_policy_version": "ranking.v1",
@@ -188,3 +195,26 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
             legacy_id: EntrenchmentReason(support_count=1),
         },
     )
+
+
+def test_journal_entry_fingerprint_ignores_unset_optional_fields() -> None:
+    """An unset optional field must not reach the fingerprint.
+
+    A field left at ``None`` and a field simply absent are the same fact, and
+    encoders disagree about which they emit: the charter's JSON drops an unset
+    optional that the in-memory lowering keeps. If nulls reached the hash, the
+    same entry would fingerprint two ways depending on which encoder produced
+    the payload — which is how a stored journal came to fail its own hash check.
+    """
+    from propstore.support_revision.history import _stable_hash
+
+    with_null = {"a": 1, "b": None, "nested": {"x": None, "y": 2}, "items": [{"z": None}]}
+    without_null = {"a": 1, "nested": {"y": 2}, "items": [{}]}
+
+    assert _stable_hash(with_null) == _stable_hash(without_null)
+
+
+def test_journal_entry_fingerprint_still_separates_real_content() -> None:
+    from propstore.support_revision.history import _stable_hash
+
+    assert _stable_hash({"a": 1}) != _stable_hash({"a": 2})

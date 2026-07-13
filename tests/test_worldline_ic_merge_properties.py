@@ -6,6 +6,18 @@ from hypothesis import strategies as st
 
 from belief_set import Atom, TOP, disjunction
 
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    LiteralsConstraint,
+    TopConstraint,
+)
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    ReviseInput,
+)
 from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -35,7 +47,7 @@ def test_ic0_ic_atom_not_present_in_profile_is_still_realized(count: int, ic_ind
     next_state = _dispatch_merge(
         state,
         profile_atom_ids=[[]],
-        integrity_constraint={"kind": "atom", "atom_id": ic_atom_id},
+        integrity_constraint=AtomConstraint(atom_id=ic_atom_id),
         merge_operator="sigma",
     )
 
@@ -52,7 +64,7 @@ def test_ic2_consistent_profile_and_ic_realizes_their_conjunction(count: int, me
     next_state = _dispatch_merge(
         state,
         profile_atom_ids=[list(atom_ids)],
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator=merge_operator,
     )
 
@@ -84,7 +96,7 @@ def test_ic0_realized_success_satisfies_integrity_constraint(
         next_state = _dispatch_merge(
             state,
             profile_atom_ids=_profile_from_indexes(profile_indexes, atom_ids),
-            integrity_constraint={"kind": "atom", "atom_id": ic_atom_id},
+            integrity_constraint=AtomConstraint(atom_id=ic_atom_id),
             merge_operator=merge_operator,
         )
     except RevisionMergeRequiredFailure:
@@ -102,7 +114,7 @@ def test_successful_realization_partitions_projected_merge_alphabet(count: int, 
     next_state = _dispatch_merge(
         state,
         profile_atom_ids=[list(atom_ids)],
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator=merge_operator,
     )
 
@@ -125,13 +137,13 @@ def test_profile_multiset_hash_preserves_duplicate_entries(count: int) -> None:
 
     duplicate = decide_ic_merge_profile(
         profile_atom_ids=((atom_id,), (atom_id,)),
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator="sigma",
         max_alphabet_size=8,
     )
     unique = decide_ic_merge_profile(
         profile_atom_ids=((atom_id,),),
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator="sigma",
         max_alphabet_size=8,
     )
@@ -144,12 +156,12 @@ def test_profile_multiset_hash_preserves_duplicate_entries(count: int) -> None:
 @given(count=st.integers(min_value=1, max_value=5))
 def test_ic_merge_journal_replay_matches_direct_dispatch(count: int) -> None:
     state, atom_ids = _state_with_atoms(count)
-    operator_input = {
-        "profile_atom_ids": [list(atom_ids)],
-        "integrity_constraint": {"kind": "top"},
-        "merge_operator": "sigma",
-        "max_alphabet_size": 32,
-    }
+    operator_input = ICMergeInput(
+        profile_atom_ids=(tuple(atom_ids),),
+        integrity_constraint=TopConstraint(),
+        merge_operator="sigma",
+        max_alphabet_size=32,
+    )
     direct = dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
@@ -163,7 +175,7 @@ def test_ic_merge_journal_replay_matches_direct_dispatch(count: int) -> None:
                 operation=TransitionOperation(
                     name="ic_merge",
                     target_atom_ids=tuple(atom_ids),
-                    parameters=operator_input,
+                    parameters={"operator": operator_input.merge_operator},
                 ),
                 operator=JournalOperator.IC_MERGE,
                 operator_input=operator_input,
@@ -189,24 +201,19 @@ def test_event_hash_changes_when_ic_or_policy_changes(count: int) -> None:
     first = _dispatch_merge(
         state,
         profile_atom_ids=[list(atom_ids)],
-        integrity_constraint={"kind": "atom", "atom_id": atom_ids[0]},
+        integrity_constraint=AtomConstraint(atom_id=atom_ids[0]),
         merge_operator="sigma",
     )
     second = _dispatch_merge(
         state,
         profile_atom_ids=[list(atom_ids)],
-        integrity_constraint={"kind": "atom", "atom_id": atom_ids[1]},
+        integrity_constraint=AtomConstraint(atom_id=atom_ids[1]),
         merge_operator="sigma",
     )
     third = dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
-        operator_input={
-            "profile_atom_ids": [list(atom_ids)],
-            "integrity_constraint": {"kind": "atom", "atom_id": atom_ids[0]},
-            "merge_operator": "sigma",
-            "max_alphabet_size": 32,
-        },
+        operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in [list(atom_ids)]), integrity_constraint=AtomConstraint(atom_id=atom_ids[0]), merge_operator="sigma", max_alphabet_size=8),
         policy={**_POLICY, "revision_policy_version": "revision.v2"},
     )
 
@@ -227,7 +234,7 @@ def test_mapping_totality_succeeds_iff_selected_atoms_are_known(count: int) -> N
     next_state = _dispatch_merge(
         state,
         profile_atom_ids=[[atom_ids[0]]],
-        integrity_constraint={"kind": "atom", "atom_id": atom_ids[0]},
+        integrity_constraint=AtomConstraint(atom_id=atom_ids[0]),
         merge_operator="sigma",
     )
     assert atom_ids[0] in next_state.accepted_atom_ids
@@ -236,7 +243,7 @@ def test_mapping_totality_succeeds_iff_selected_atoms_are_known(count: int) -> N
         _dispatch_merge(
             state,
             profile_atom_ids=[[unknown_atom_id]],
-            integrity_constraint={"kind": "atom", "atom_id": unknown_atom_id},
+            integrity_constraint=AtomConstraint(atom_id=unknown_atom_id),
             merge_operator="sigma",
         )
 
@@ -275,7 +282,7 @@ def test_generated_ic_merge_path_does_not_call_assignment_selection_merge(monkey
     next_state = _dispatch_merge(
         state,
         profile_atom_ids=[list(atom_ids)],
-        integrity_constraint={"kind": "top"},
+        integrity_constraint=TopConstraint(),
         merge_operator="sigma",
     )
 
@@ -292,12 +299,7 @@ def _dispatch_merge(
     return dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
-        operator_input={
-            "profile_atom_ids": profile_atom_ids,
-            "integrity_constraint": integrity_constraint,
-            "merge_operator": merge_operator,
-            "max_alphabet_size": 32,
-        },
+        operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in profile_atom_ids), integrity_constraint=integrity_constraint, merge_operator=merge_operator, max_alphabet_size=8),
         policy=_POLICY,
     )
 

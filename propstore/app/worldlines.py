@@ -420,7 +420,7 @@ def build_worldline_journal(
             journal = capture_journal(
                 bound,
                 (revision_query,),
-                policy_payload=policy_profile_from_render_policy(policy).to_dict(),
+                policy_payload=policy_profile_from_render_policy(policy),
             )
         except ValueError as exc:
             raise WorldlineValidationError(str(exc)) from exc

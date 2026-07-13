@@ -31,6 +31,7 @@ from propstore.core.relations import (
     RoleBindingSet,
 )
 from propstore.support_revision.dispatch import dispatch
+from propstore.support_revision.operator_inputs import OperatorInput, ReviseInput
 from propstore.support_revision.history import (
     EpistemicSnapshot,
     JournalOperator,
@@ -202,7 +203,7 @@ def make_journal_entry(
     state_in: EpistemicState,
     operation: TransitionOperation,
     operator: JournalOperator,
-    operator_input: Mapping[str, Any],
+    operator_input: OperatorInput,
     state_out: EpistemicState,
     policy_id: str = "synthetic-policy-v1",
     policy: Mapping[str, str] = _DEFAULT_POLICY,
@@ -229,16 +230,10 @@ def single_chapter_journal(
     The journal is constructed by *running the operators*, not by stuffing
     the expected answer into ``state_out`` and reading it back.
     """
-    from quire.documents import to_document_builtins
-
     state = initial_state
     entries: list[TransitionJournalEntry] = []
     for atom in revision_atoms:
-        operator_input: dict[str, Any] = {
-            "formula": to_document_builtins(atom),
-            "max_candidates": 8,
-            "conflicts": {},
-        }
+        operator_input = ReviseInput(formula=atom, max_candidates=8)
         next_state = dispatch(
             JournalOperator.REVISE,
             state_in=state.to_canonical_dict(),

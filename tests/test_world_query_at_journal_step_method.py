@@ -12,6 +12,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    LiteralsConstraint,
+    TopConstraint,
+)
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    ReviseInput,
+)
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context

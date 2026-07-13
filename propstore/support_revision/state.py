@@ -21,6 +21,7 @@ from propstore.core.id_types import (
 )
 from propstore.core.labels import Label
 from propstore.reporting import json_ready
+from propstore.support_revision.integrity_constraints import IntegrityConstraintSpec
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
     RevisionAtomDetail,
@@ -258,7 +259,7 @@ class RevisionMergeRequiredFailure(ValueError):
         parent_commits: tuple[str, ...] = (),
         decision_report: FormalRevisionDecisionReport | None = None,
         profile_atom_ids: tuple[tuple[str, ...], ...] = (),
-        integrity_constraint: Mapping[str, Any] | None = None,
+        integrity_constraint: IntegrityConstraintSpec | None = None,
         selected_worlds_hash: str | None = None,
         event: RevisionEvent | None = None,
     ) -> None:
@@ -266,7 +267,7 @@ class RevisionMergeRequiredFailure(ValueError):
         self.parent_commits = tuple(str(commit) for commit in parent_commits)
         self.decision_report = decision_report
         self.profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in profile_atom_ids)
-        self.integrity_constraint = None if integrity_constraint is None else dict(integrity_constraint)
+        self.integrity_constraint = integrity_constraint
         self.selected_worlds_hash = None if selected_worlds_hash is None else str(selected_worlds_hash)
         self.event = event
         message = "merge point requires IC merge" if self.reason == "merge_required" else self.reason

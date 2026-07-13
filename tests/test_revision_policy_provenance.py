@@ -4,6 +4,18 @@ from msgspec.structs import replace
 
 from quire.documents import to_document_builtins
 
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    LiteralsConstraint,
+    TopConstraint,
+)
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    ReviseInput,
+)
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     JournalOperator,
@@ -52,11 +64,7 @@ def test_dispatch_rejects_empty_policy_version_values() -> None:
         dispatch(
             JournalOperator.REVISE,
             state_in=state.to_canonical_dict(),
-            operator_input={
-                "formula": to_document_builtins(atom),
-                "max_candidates": 8,
-                "conflicts": {},
-            },
+            operator_input=ReviseInput(formula=atom, max_candidates=8),
             policy={
                 "revision_policy_version": "",
                 "ranking_policy_version": "",
@@ -73,11 +81,7 @@ def test_replay_rejects_policy_version_mismatch_before_semantic_replay() -> None
     base, entrenchment, _ = _base_with_shared_support()
     state_in = make_epistemic_state(base, entrenchment)
     atom = make_assertion_atom("policy_mismatch")
-    operator_input = {
-        "formula": to_document_builtins(atom),
-        "max_candidates": 8,
-        "conflicts": {},
-    }
+    operator_input = ReviseInput(formula=atom, max_candidates=8)
     state_out = dispatch(
         JournalOperator.REVISE,
         state_in=state_in.to_canonical_dict(),

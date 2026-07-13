@@ -1,8 +1,21 @@
 from __future__ import annotations
 
 import pytest
+from quire.documents import DocumentSchemaError, convert_document_value
 from quire.documents import to_document_builtins
 
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    LiteralsConstraint,
+    TopConstraint,
+)
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    ReviseInput,
+)
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import JournalOperator
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
@@ -60,12 +73,7 @@ def test_dispatch_iterated_revise_at_merge_point_raises_typed_merge_required_fai
         dispatch(
             JournalOperator.ITERATED_REVISE,
             state_in=state.to_canonical_dict(),
-            operator_input={
-                "formula": to_document_builtins(atom),
-                "targets": (),
-                "revision_operator": "restrained",
-                "max_candidates": 8,
-            },
+            operator_input=IteratedReviseInput(formula=atom, revision_operator="restrained", max_candidates=None, targets=tuple(())),
             policy=_POLICY,
         )
 
@@ -73,21 +81,27 @@ def test_dispatch_iterated_revise_at_merge_point_raises_typed_merge_required_fai
 
 
 def test_ic_merge_requires_explicit_integrity_constraint() -> None:
-    base, entrenchment, _, _ = _history_sensitive_base()
-    state = make_epistemic_state(base, entrenchment)
+    # An IC merge with no integrity constraint is now *unrepresentable*: the
+    # constraint is a required field of the typed input, so a journal recording
+    # one cannot be decoded and the case can never reach dispatch. This used to
+    # be a `reason="missing_integrity_constraint"` failure raised half-way
+    # through a replay.
+    with pytest.raises(TypeError, match="integrity_constraint"):
+        ICMergeInput(  # type: ignore[call-arg]
+            profile_atom_ids=(("atom:left",), ("atom:right",)),
+            max_alphabet_size=8,
+        )
 
-    with pytest.raises(RevisionMergeRequiredFailure) as exc_info:
-        dispatch(
-            JournalOperator.IC_MERGE,
-            state_in=state.to_canonical_dict(),
-            operator_input={
+    with pytest.raises(DocumentSchemaError, match="integrity_constraint"):
+        convert_document_value(
+            {
+                "operator": "ic_merge",
                 "profile_atom_ids": [["atom:left"], ["atom:right"]],
                 "max_alphabet_size": 8,
             },
-            policy=_POLICY,
+            ICMergeInput,
+            source="ic merge operator input",
         )
-
-    assert exc_info.value.reason == "missing_integrity_constraint"
 
 
 def test_ic_merge_dispatch_calls_formal_adapter_with_profile_and_constraint(monkeypatch) -> None:
@@ -108,12 +122,8 @@ def test_ic_merge_dispatch_calls_formal_adapter_with_profile_and_constraint(monk
         dispatch(
             JournalOperator.IC_MERGE,
             state_in=state.to_canonical_dict(),
-            operator_input={
-                "profile_atom_ids": [["atom:left"], ["atom:right"]],
-                "integrity_constraint": {"kind": "top"},
-                "max_alphabet_size": 8,
-            },
+            operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in [["atom:left"], ["atom:right"]]), integrity_constraint=TopConstraint(), max_alphabet_size=8),
             policy=_POLICY,
         )
 
-    assert calls == [((("atom:left",), ("atom:right",)), {"kind": "top"}, "sigma", 8)]
+    assert calls == [((("atom:left",), ("atom:right",)), TopConstraint(), "sigma", 8)]

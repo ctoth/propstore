@@ -4,6 +4,18 @@ from msgspec.structs import replace
 
 from msgspec.structs import replace as replace_struct
 
+from propstore.support_revision.integrity_constraints import (
+    AtomConstraint,
+    LiteralsConstraint,
+    TopConstraint,
+)
+from propstore.support_revision.operator_inputs import (
+    ContractInput,
+    ExpandInput,
+    ICMergeInput,
+    IteratedReviseInput,
+    ReviseInput,
+)
 from propstore.core.environment import AssumptionRef
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -154,16 +166,7 @@ def _realized_ic_merge_state(accepted, rejected, *, support_sets=None) -> Episte
     return dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
-        operator_input={
-            "profile_atom_ids": [[accepted.atom_id], [rejected.atom_id]],
-            "integrity_constraint": {
-                "kind": "literals",
-                "required": [accepted.atom_id],
-                "forbidden": [rejected.atom_id],
-            },
-            "merge_operator": "sigma",
-            "max_alphabet_size": 8,
-        },
+        operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in [[accepted.atom_id], [rejected.atom_id]]), integrity_constraint=LiteralsConstraint(required=tuple([accepted.atom_id]), forbidden=tuple([rejected.atom_id])), merge_operator="sigma", max_alphabet_size=8),
         policy={
             "revision_policy_version": "revision.v1",
             "ranking_policy_version": "ranking.v1",

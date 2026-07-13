@@ -29,15 +29,15 @@ from propstore.core.assertions.refs import (
 )
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
-from propstore.world.types import (
+from assignment_selection import MergeOperator
+
+from propstore.core.reasoning import (
     ArgumentationSemantics,
-    MergeOperator,
     ReasoningBackend,
-    RenderPolicy,
     normalize_argumentation_semantics,
-    normalize_merge_operator,
     normalize_reasoning_backend,
 )
+from propstore.core.render_policy import RenderPolicy, normalize_merge_operator
 
 _PROFILE_VERSION = "propstore.policy_profile.v1"
 

@@ -14,8 +14,8 @@ storage layer, declare these as typed fields.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
+from propstore.support_revision.integrity_constraints import IntegrityConstraintSpec
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineDependencies,
@@ -41,7 +41,7 @@ class WorldlineRevisionQuery:
     conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
     operator: str | None = None
     profile_atom_ids: tuple[tuple[str, ...], ...] = ()
-    integrity_constraint: dict[str, Any] | None = None
+    integrity_constraint: IntegrityConstraintSpec | None = None
     merge_parent_commits: tuple[str, ...] = ()
     max_alphabet_size: int | None = None
 
