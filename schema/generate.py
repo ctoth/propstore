@@ -17,7 +17,6 @@ RESOURCE_SCHEMA_DIR = SCHEMA_DIR.parent / "propstore" / "_resources" / "schemas"
 
 SCHEMAS = [
     ("claim.linkml.yaml", "claim.schema.json"),
-    ("concept_registry.linkml.yaml", "concept_registry.schema.json"),
 ]
 
 
