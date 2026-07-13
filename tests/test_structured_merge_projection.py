@@ -10,6 +10,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.stances import StanceType
 from propstore.aspic_bridge.translate import StanceInput
 from propstore.merge.structured_merge import (
     build_branch_structured_summary,
@@ -19,7 +20,7 @@ from tests.merge_helpers import obs_claim
 
 
 def _rebuts(source: str, target: str) -> StanceInput:
-    return {"claim_id": source, "target_claim_id": target, "stance_type": "rebuts"}
+    return StanceInput(claim_id=source, target_claim_id=target, stance_type=StanceType.REBUTS)
 
 
 def test_branch_structured_summary_reads_branch_stances() -> None:

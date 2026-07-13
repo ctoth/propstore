@@ -9,8 +9,6 @@ authored stance; the active graph carries the ``Stance`` charter directly.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
 
 from propstore.aspic_bridge.translate import StanceInput
 from propstore.core.active_claims import ActiveClaim
@@ -34,11 +32,11 @@ def _stance_to_input(stance: Stance) -> StanceInput | None:
         return None
     if stance.stance_type is None:
         return None
-    return {
-        "claim_id": str(stance.source_claim_id),
-        "target_claim_id": str(stance.target_claim_id),
-        "stance_type": stance.stance_type.value,
-    }
+    return StanceInput(
+        claim_id=str(stance.source_claim_id),
+        target_claim_id=str(stance.target_claim_id),
+        stance_type=stance.stance_type,
+    )
 
 
 def extract_stance_rows(
@@ -84,11 +82,6 @@ def _reported(claim_id: str) -> CanonicalJustification:
     )
 
 
-def _stance_field(stance: Mapping[str, Any], key: str) -> str | None:
-    value = stance.get(key)
-    return None if value is None else str(value)
-
-
 def extract_justifications(
     store: StanceStore,
     active_by_id: dict[str, ActiveClaim],
@@ -116,13 +109,11 @@ def extract_justifications(
         _reported(claim_id) for claim_id in sorted(active_by_id)
     ]
     for row in stance_rows:
-        stance_type = _stance_field(row, "stance_type")
+        stance_type = row.stance_type.value
         if stance_type not in _SUPPORT_RELATION_VALUES:
             continue
-        source_id = _stance_field(row, "claim_id")
-        target_id = _stance_field(row, "target_claim_id")
-        if source_id is None or target_id is None:
-            continue
+        source_id = row.claim_id
+        target_id = row.target_claim_id
         justifications.append(
             CanonicalJustification(
                 justification_id=f"{stance_type}:{source_id}->{target_id}",

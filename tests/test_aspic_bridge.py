@@ -13,6 +13,8 @@ from argumentation.core.dung import grounded_extension
 from argumentation.structured.aspic.aspic import GroundAtom, Literal, conc
 from argumentation.structured.aspic.datalog_grounding import GroundRuleOrigin  # noqa: F401
 
+from propstore.stances import StanceType
+from propstore.aspic_bridge.translate import StanceInput
 from propstore.aspic_bridge import (
     build_bridge_csaf,
     build_preference_config,
@@ -118,7 +120,7 @@ def test_empty_premise_non_reported_justification_is_rejected() -> None:
 def test_rebut_produces_symmetric_contradictories() -> None:
     literals = claims_to_literals([_claim("a"), _claim("b")])
     cfn = stances_to_contrariness(
-        [{"claim_id": "a", "target_claim_id": "b", "stance_type": "rebuts"}],
+        [StanceInput(claim_id="a", target_claim_id="b", stance_type=StanceType.REBUTS)],
         literals,
         frozenset(),
     )
@@ -131,7 +133,7 @@ def test_rebut_produces_symmetric_contradictories() -> None:
 def test_supersedes_produces_asymmetric_contrary() -> None:
     literals = claims_to_literals([_claim("a"), _claim("b")])
     cfn = stances_to_contrariness(
-        [{"claim_id": "a", "target_claim_id": "b", "stance_type": "supersedes"}],
+        [StanceInput(claim_id="a", target_claim_id="b", stance_type=StanceType.SUPERSEDES)],
         literals,
         frozenset(),
     )
@@ -146,12 +148,7 @@ def test_undercut_targets_the_named_defeasible_rule() -> None:
     _strict, defeasible = justifications_to_rules([_support("a", "b")], literals)
     cfn = stances_to_contrariness(
         [
-            {
-                "claim_id": "attacker",
-                "target_claim_id": "b",
-                "stance_type": "undercuts",
-                "target_justification_id": "supports:a->b",
-            }
+            StanceInput(claim_id="attacker", target_claim_id="b", stance_type=StanceType.UNDERCUTS, target_justification_id="supports:a->b")
         ],
         literals,
         defeasible,
@@ -166,7 +163,7 @@ def test_undercut_without_rule_id_is_ambiguous_with_multiple_rules() -> None:
     _strict, defeasible = justifications_to_rules([_support("a", "b"), _support("c", "b")], literals)
     with pytest.raises(ValueError, match="target_justification_id"):
         stances_to_contrariness(
-            [{"claim_id": "attacker", "target_claim_id": "b", "stance_type": "undercuts"}],
+            [StanceInput(claim_id="attacker", target_claim_id="b", stance_type=StanceType.UNDERCUTS)],
             literals,
             defeasible,
         )
@@ -229,7 +226,7 @@ def test_framework_is_a_valid_dung_af() -> None:
     csaf = build_bridge_csaf(
         claims,
         [_reported("a"), _reported("b")],
-        [{"claim_id": "a", "target_claim_id": "b", "stance_type": "rebuts"}],
+        [StanceInput(claim_id="a", target_claim_id="b", stance_type=StanceType.REBUTS)],
         bundle=_bundle(),
     )
     assert csaf.framework.attacks is not None
@@ -248,8 +245,8 @@ def test_rebut_stronger_claim_wins() -> None:
         claims,
         [_reported("a"), _reported("b")],
         [
-            {"claim_id": "a", "target_claim_id": "b", "stance_type": "rebuts"},
-            {"claim_id": "b", "target_claim_id": "a", "stance_type": "rebuts"},
+            StanceInput(claim_id="a", target_claim_id="b", stance_type=StanceType.REBUTS),
+            StanceInput(claim_id="b", target_claim_id="a", stance_type=StanceType.REBUTS),
         ],
         bundle=_bundle(),
     )
@@ -265,7 +262,7 @@ def test_query_claim_collects_arguments_for_and_against() -> None:
         "goal",
         claims,
         [_reported("goal"), _reported("anti")],
-        [{"claim_id": "anti", "target_claim_id": "goal", "stance_type": "rebuts"}],
+        [StanceInput(claim_id="anti", target_claim_id="goal", stance_type=StanceType.REBUTS)],
         bundle=_bundle(),
     )
     assert any(conc(argument).atom.arguments[-1] == "goal" for argument in result.arguments_for)

@@ -19,7 +19,6 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any
 
 from argumentation.core.dung import ArgumentationFramework
 from argumentation.frameworks.af_merging import (
@@ -35,7 +34,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.merge.merge_claims import MergeClaim
-from propstore.stances import coerce_stance_type
+from propstore.stances import StanceType
 from propstore.structured_projection import (
     StructuredProjection,
     compute_structured_justified_arguments,
@@ -59,9 +58,8 @@ class MergeStanceRow:
 
     claim_id: str
     target_claim_id: str
-    stance_type: str
+    stance_type: StanceType
     target_justification_id: str | None = None
-    attributes_json: str = "{}"
 
 
 @dataclass(frozen=True)
@@ -164,62 +162,42 @@ def _merge_active_claim(claim: MergeClaim, branch: str) -> ActiveClaim:
     )
 
 
-def _stance_attributes_json(stance: Mapping[str, Any]) -> str:
-    reserved = {"claim_id", "target_claim_id", "stance_type", "target_justification_id"}
-    attributes = {
-        str(key): value
-        for key, value in stance.items()
-        if str(key) not in reserved and value is not None
-    }
-    return json.dumps(attributes, sort_keys=True, default=str)
-
-
 def _canonical_stances(
     stances: Sequence[StanceInput],
     in_scope: frozenset[str],
 ) -> tuple[MergeStanceRow, ...]:
     rows: list[MergeStanceRow] = []
     for stance in stances:
-        claim_id = stance.get("claim_id")
-        target_claim_id = stance.get("target_claim_id")
-        stance_type = coerce_stance_type(stance.get("stance_type"))
-        if claim_id is None or target_claim_id is None or stance_type is None:
+        if stance.claim_id not in in_scope or stance.target_claim_id not in in_scope:
             continue
-        if str(claim_id) not in in_scope or str(target_claim_id) not in in_scope:
-            continue
-        target_justification = stance.get("target_justification_id")
         rows.append(
             MergeStanceRow(
-                claim_id=str(claim_id),
-                target_claim_id=str(target_claim_id),
-                stance_type=stance_type.value,
-                target_justification_id=(
-                    None if target_justification is None else str(target_justification)
-                ),
-                attributes_json=_stance_attributes_json(stance),
+                claim_id=stance.claim_id,
+                target_claim_id=stance.target_claim_id,
+                stance_type=stance.stance_type,
+                target_justification_id=stance.target_justification_id,
             )
         )
     rows.sort(
         key=lambda row: (
             row.claim_id,
             row.target_claim_id,
-            row.stance_type,
+            row.stance_type.value,
             row.target_justification_id or "",
-            row.attributes_json,
         )
     )
     return tuple(rows)
 
 
-def _stance_input_from_row(row: MergeStanceRow) -> dict[str, Any]:
-    stance: dict[str, Any] = {
-        "claim_id": row.claim_id,
-        "target_claim_id": row.target_claim_id,
-        "stance_type": row.stance_type,
-    }
-    if row.target_justification_id is not None:
-        stance["target_justification_id"] = row.target_justification_id
-    return stance
+def _stance_input_from_row(row: MergeStanceRow) -> StanceInput:
+    """Attribute access. The row already carries exactly these fields, typed."""
+
+    return StanceInput(
+        claim_id=row.claim_id,
+        target_claim_id=row.target_claim_id,
+        stance_type=row.stance_type,
+        target_justification_id=row.target_justification_id,
+    )
 
 
 def _content_signature(
@@ -241,9 +219,8 @@ def _content_signature(
         {
             "claim_id": row.claim_id,
             "target_claim_id": row.target_claim_id,
-            "stance_type": row.stance_type,
+            "stance_type": row.stance_type.value,
             "target_justification_id": row.target_justification_id,
-            "attributes": row.attributes_json,
         }
         for row in stance_rows
     ]

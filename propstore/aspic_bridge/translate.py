@@ -20,7 +20,6 @@ the stance vocabulary is :class:`~propstore.stances.StanceType`.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, TypeAlias
 
 from argumentation.core.preference import strict_partial_order_closure
 from argumentation.structured.aspic.aspic import (
@@ -41,10 +40,28 @@ from propstore.core.literal_keys import (
     LiteralKey,
     claim_key,
 )
-from propstore.preference import MetadataStrengthVector, metadata_strength_vector
-from propstore.stances import StanceType, coerce_stance_type
+import msgspec
 
-StanceInput: TypeAlias = Mapping[str, Any]
+from propstore.preference import MetadataStrengthVector, metadata_strength_vector
+from propstore.stances import StanceType
+
+
+class StanceInput(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+    """One authored stance, as the ASPIC+ bridge consumes it.
+
+    This was ``TypeAlias = Mapping[str, Any]`` — a bare dict wearing a type
+    alias — and every producer manufactured it from an already-typed value:
+    ``Stance`` (the charter) and ``MergeStanceRow`` both carry these fields, and
+    both stringified them on the way in. ``stance_type`` in particular made a
+    round trip, ``StanceType`` -> ``.value`` -> ``coerce_stance_type`` -> back to
+    ``StanceType``, in adjacent frames. There is no untyped stance anywhere in
+    the system; the dict was the only thing pretending otherwise.
+    """
+
+    claim_id: str
+    target_claim_id: str
+    stance_type: StanceType
+    target_justification_id: str | None = None
 
 
 def _claim_context_id(claim: ActiveClaim) -> str:
@@ -55,15 +72,6 @@ def _claim_context_id(claim: ActiveClaim) -> str:
 
 def _claim_literal_key(claim: ActiveClaim) -> IstLiteralKey:
     return claim_key(str(claim.claim_id), context_id=_claim_context_id(claim))
-
-
-def _stance_field(stance: StanceInput, key: str) -> str | None:
-    value = stance.get(key)
-    return None if value is None else str(value)
-
-
-def _stance_type(stance: StanceInput) -> StanceType | None:
-    return coerce_stance_type(stance.get("stance_type"))
 
 
 def _literal_key_for_proposition(
@@ -178,11 +186,9 @@ def stances_to_contrariness(
     authored_directional: set[tuple[Literal, Literal]] = set()
 
     for stance in stances:
-        stance_type = _stance_type(stance)
-        source_id = _stance_field(stance, "claim_id")
-        target_id = _stance_field(stance, "target_claim_id")
-        if source_id is None or target_id is None:
-            continue
+        stance_type = stance.stance_type
+        source_id = stance.claim_id
+        target_id = stance.target_claim_id
         src_key = _literal_key_for_proposition(source_id, literals)
         tgt_key = _literal_key_for_proposition(target_id, literals)
         if src_key not in literals or tgt_key not in literals:
@@ -227,7 +233,7 @@ def _add_undercut_contraries(
     origins: Mapping[Rule, GroundRuleOrigin],
     contrary_pairs: set[tuple[Literal, Literal]],
 ) -> None:
-    target_justification_id = _stance_field(stance, "target_justification_id")
+    target_justification_id = stance.target_justification_id
     matching_rules = [
         rule for rule in defeasible_rules if rule.consequent == tgt and rule.name is not None
     ]
@@ -274,12 +280,10 @@ def preference_sensitive_stance_pairs(
 
     pairs: set[tuple[Literal, Literal]] = set()
     for stance in stances:
-        if _stance_type(stance) not in (StanceType.SUPERSEDES, StanceType.UNDERMINES):
+        if stance.stance_type not in (StanceType.SUPERSEDES, StanceType.UNDERMINES):
             continue
-        source_id = _stance_field(stance, "claim_id")
-        target_id = _stance_field(stance, "target_claim_id")
-        if source_id is None or target_id is None:
-            continue
+        source_id = stance.claim_id
+        target_id = stance.target_claim_id
         src_key = _literal_key_for_proposition(source_id, literals)
         tgt_key = _literal_key_for_proposition(target_id, literals)
         if src_key not in literals or tgt_key not in literals:
