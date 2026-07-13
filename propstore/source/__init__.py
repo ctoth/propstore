@@ -14,7 +14,7 @@ may also import the submodules directly.
 from __future__ import annotations
 
 from .alignment import (
-    align_sources,
+    align_repository_snapshots,
     build_alignment_artifact,
     classify_relation,
     concept_proposal_branch,
@@ -65,7 +65,7 @@ from .status import (
 __all__ = [
     "PromotionBlockedProjectionRows",
     "PromotionResult",
-    "align_sources",
+    "align_repository_snapshots",
     "build_alignment_artifact",
     "classify_relation",
     "compile_all_source_promotion_blocked_projection_rows",

@@ -1,25 +1,10 @@
-"""The ``ConceptAlignmentArtifact`` entity — a vocabulary-reconciliation proposal.
+"""Durable typed proposals for concept alignment across imported snapshots.
 
-When several sources each propose their own name for what may be the same concept,
-the heuristic layer reconciles them. The reconciliation is *not* a source mutation:
-it is a **proposal artifact** (CLAUDE.md layer 3) that records every candidate, the
-partial argumentation framework relating them, and the skeptical/credulous
-acceptance verdicts — leaving the final accept/reject/promote decision to an
-explicit later step (Phase 8 source subsystem). Nothing here collapses the rival
-proposals; the artifact holds them all.
-
-Charter discipline (PLAN.md §12, CLAUDE.md): there is ONE canonical
-``ConceptAlignmentArtifact`` charter. Its nested pieces — :class:`AlignmentArgument`,
-:class:`AlignmentFramework`, :class:`AlignmentQueries`, :class:`AlignmentDecision`
-— are single-spelling ``msgspec.Struct`` value types carried as JSON document
-fields, exactly as the lemon entities are carried on :class:`~propstore.families.concepts.Concept`.
-There is no ``*Document`` / ``*Record`` / ``*Row`` mirror and no ``to_payload`` /
-``from_payload`` conversion: the git document, the sidecar columns, and the
-serialized contract all fall out of these annotations.
-
-The argumentation math (building the framework, classifying relations by lemon
-identity, computing acceptance) lives in :mod:`propstore.source.alignment`; this
-module owns only the artifact's shape.
+An alignment artifact records rival concepts exactly as they exist on pinned
+repository-import commits.  It is an open partial-argumentation proposal: no
+concept is merged, promoted, or treated as truth by authoring this document.
+The nested value objects are the document shape; there is no proposal payload,
+record mirror, or conversion layer.
 """
 
 from __future__ import annotations
@@ -32,10 +17,9 @@ from quire.artifacts import BranchPlacement, FlatYamlPlacement
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.refs import single_field_ref_type
 
-# The proposal branch for concept-alignment artifacts. Alignment is a
-# heuristic-layer reconciliation *proposal* (CLAUDE.md layer 3); it lives on a
-# dedicated proposal branch and never on the canonical corpus until an explicit
-# accept+promote writes a source concept.
+from propstore.core.lemon import LexicalEntry, OntologyReference
+
+
 CONCEPT_ALIGNMENT_BRANCH = BranchPlacement(
     policy="fixed", fixed_branch="proposal/concepts"
 )
@@ -62,7 +46,6 @@ CONCEPT_ALIGNMENT_PLACEMENT: FlatYamlPlacement[object, ConceptAlignmentRef] = (
         branch=CONCEPT_ALIGNMENT_BRANCH,
     )
 )
-"""Store each alignment proposal at ``merge/concepts/<slug>.yaml`` on its branch."""
 
 
 def _empty_operator_scores() -> dict[str, dict[str, int]]:
@@ -70,25 +53,23 @@ def _empty_operator_scores() -> dict[str, dict[str, int]]:
 
 
 class AlignmentArgument(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
-    """One source's proposed concept, as an argument in the alignment framework."""
+    """One typed imported concept and the commits that make it reproducible."""
 
     id: str
-    source: str
-    local_handle: str
-    proposed_name: str
-    proposed_uri: str
-    definition: str
-    form: str
+    repository_origin: str
+    source_commit: str
+    import_branch: str
+    import_commit: str
+    concept_id: str
+    canonical_name: str
+    ontology_reference: OntologyReference | None = None
+    lexical_entry: LexicalEntry | None = None
+    definition: str | None = None
+    form: str | None = None
 
 
 class AlignmentFramework(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
-    """The three-way partition of ordered argument pairs (a partial AF).
-
-    Mirrors :class:`argumentation.frameworks.partial_af.PartialArgumentationFramework`:
-    ``attacks`` are conflicting proposals, ``ignorance`` are pairs the heuristic
-    cannot decide (honest non-commitment), and ``non_attacks`` are compatible or
-    self pairs. The three sets partition ``arguments x arguments``.
-    """
+    """The attack/ignorance/non-attack partition of ordered argument pairs."""
 
     attacks: tuple[tuple[str, str], ...] = ()
     ignorance: tuple[tuple[str, str], ...] = ()
@@ -96,7 +77,7 @@ class AlignmentFramework(msgspec.Struct, frozen=True, forbid_unknown_fields=True
 
 
 class AlignmentQueries(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
-    """Render-time acceptance verdicts over the alignment framework."""
+    """Acceptance results computed directly by the argumentation substrate."""
 
     skeptical_acceptance: tuple[str, ...] = ()
     credulous_acceptance: tuple[str, ...] = ()
@@ -106,12 +87,7 @@ class AlignmentQueries(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
 
 
 class AlignmentDecision(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
-    """The (deferred) human decision over an alignment cluster.
-
-    An artifact is born ``open``: the heuristic proposes, it never commits. A later
-    explicit step records ``decided`` (accept/reject) and finally ``promoted`` with
-    the canonical concept URI. No accept/reject value is fabricated by the build.
-    """
+    """A deferred human decision; imported-snapshot proposals begin open."""
 
     status: str = "open"
     accepted: tuple[str, ...] = ()
@@ -122,18 +98,13 @@ class AlignmentDecision(msgspec.Struct, frozen=True, forbid_unknown_fields=True)
 @charter(
     key="concept_alignment",
     name="concept_alignment_framework",
-    contract_version="2026.06.29",
+    contract_version="2026.07.12",
     placement=CONCEPT_ALIGNMENT_PLACEMENT,
     accessor="concept_alignments",
     identity_field="alignment_id",
 )
 class ConceptAlignmentArtifact(CharterDoc):
-    """A PAF-backed vocabulary-reconciliation proposal over rival concept names.
-
-    The class *is* the document: ``alignment_id`` is the cluster identity; the
-    nested arguments/framework/queries/decision project to JSON sidecar columns.
-    The artifact is a proposal — authoring it never mutates any source concept.
-    """
+    """A durable open PAF proposal over independently addressable concepts."""
 
     alignment_id: Annotated[str, charter_field(primary_key=True)]
     kind: str = "concept_alignment_framework"

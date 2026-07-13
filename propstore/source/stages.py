@@ -69,6 +69,13 @@ class SourceImportNormalizedWrites:
 
 
 @dataclass(frozen=True)
+class AlignRepositorySnapshotsRequest:
+    """Explicit import branches to pin and align as committed KB snapshots."""
+
+    import_branches: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class SourcePromotionPlan:
     """The canonical charters a source promotion will commit to ``master``.
 

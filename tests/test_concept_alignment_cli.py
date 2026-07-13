@@ -1,51 +1,84 @@
-"""CLI adapter tests for the ``pks concept`` alignment lifecycle (Phase 10-1).
+"""End-to-end imported-snapshot alignment through the presentation boundary."""
 
-Ports the reference ``test_concept_alignment_cli`` to the rewrite owner API: the
-``concept align`` / ``concept decide`` / ``concept promote`` adapters drive the
-repository-bound lifecycle in :mod:`propstore.source.alignment` through the root
-``cli`` lazy registry. Sources are seeded through the rewrite source owner
-functions (``init_source_branch`` / ``commit_source_concept_proposal``) rather than
-the source CLI, mirroring ``test_concept_alignment_promotion`` which owns the
-non-CLI lifecycle assertions.
-"""
 from __future__ import annotations
 
 from pathlib import Path
 
 from click.testing import CliRunner, Result
+from condition_ir import KindType
 
 from propstore.cli import cli
-from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.alignment import ConceptAlignmentRef
-from propstore.families.identity.concepts import derive_concept_artifact_id
-from propstore.repository import Repository
-from propstore.source import (
-    init_source_branch,
-    source_branch_name,
+from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.families.alignment import ConceptAlignmentArtifact, ConceptAlignmentRef
+from propstore.families.concepts import Concept
+from propstore.families.forms import FormDefinition
+from propstore.importing.repository_import import (
+    RepositoryImportResult,
+    commit_repository_import,
+    plan_repository_import,
 )
-from propstore.source.concepts import commit_source_concept_proposal
+from propstore.provenance import ProvenanceStatus, read_provenance_note
+from propstore.repository import Repository
+
+
+_SHARED_URI = "https://example.org/shared#inertia"
 
 
 def _alignment_slug(cluster_id: str) -> str:
-    """The storage slug of an ``align:<slug>`` cluster id (CLI output token)."""
-
-    return cluster_id.split(":", 1)[1] if ":" in cluster_id else cluster_id
+    return cluster_id.split(":", 1)[1]
 
 
-def _seed_source(repo: Repository, name: str) -> None:
-    init_source_branch(
-        repo,
-        name,
-        kind=SourceKind.ACADEMIC_PAPER,
-        origin_type=SourceOriginType.MANUAL,
-        origin_value=name,
+def _lexical_entry(identifier: str, name: str, ontology_uri: str) -> LexicalEntry:
+    return LexicalEntry(
+        identifier=identifier,
+        canonical_form=LexicalForm(written_rep=name, language="en"),
+        senses=(LexicalSense(reference=OntologyReference(uri=ontology_uri)),),
+        physical_dimension_form="quantity",
     )
-    commit_source_concept_proposal(
-        repo,
-        name,
-        local_name="gravity",
-        definition="Acceleration due to gravity.",
-        form="quantity",
+
+
+def _author_source(root: Path, *, repository_name: str) -> Repository:
+    repo = Repository.init(root / repository_name / "knowledge")
+    repo.families.form.save(
+        "quantity",
+        FormDefinition(
+            name="quantity",
+            kind=KindType.QUANTITY,
+            dimensions={"M": 1},
+            unit_symbol="kg",
+        ),
+        message="form",
+    )
+    mass_uri = f"https://example.org/{repository_name}#mass"
+    repo.families.concept.save(
+        "concept:mass",
+        Concept(
+            concept_id="concept:mass",
+            canonical_name="Mass",
+            definition=f"Mass according to {repository_name}.",
+            ontology_reference=OntologyReference(uri=mass_uri),
+            lexical_entry=_lexical_entry("mass", "Mass", mass_uri),
+        ),
+        message="mass",
+    )
+    repo.families.concept.save(
+        "concept:inertia",
+        Concept(
+            concept_id="concept:inertia",
+            canonical_name="Inertia",
+            definition=f"Inertia according to {repository_name}.",
+            ontology_reference=OntologyReference(uri=_SHARED_URI),
+            lexical_entry=_lexical_entry("inertia", "Inertia", _SHARED_URI),
+        ),
+        message="inertia",
+    )
+    return repo
+
+
+def _import(destination: Repository, source: Repository) -> RepositoryImportResult:
+    return commit_repository_import(
+        destination,
+        plan_repository_import(destination, source.root.parent),
     )
 
 
@@ -53,51 +86,113 @@ def _invoke(repo: Repository, args: list[str]) -> Result:
     return CliRunner().invoke(cli, ["-C", str(repo.root), "concept", *args])
 
 
-def test_align_decide_promote_writes_canonical_concept(tmp_path: Path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    _seed_source(repo, "paper_a")
-    _seed_source(repo, "paper_b")
+def test_align_pins_imported_snapshots_and_writes_deterministic_open_proposal(
+    tmp_path: Path,
+) -> None:
+    destination = Repository.init(tmp_path / "destination" / "knowledge")
+    source_a = _author_source(tmp_path, repository_name="repo-a")
+    source_b = _author_source(tmp_path, repository_name="repo-b")
+    import_a = _import(destination, source_a)
+    import_b = _import(destination, source_b)
+    git = destination.require_git()
+    master_before = git.branch_sha(git.primary_branch_name())
 
-    align = _invoke(
-        repo,
+    first = _invoke(
+        destination,
         [
             "align",
-            "--sources",
-            source_branch_name("paper_a"),
-            "--sources",
-            source_branch_name("paper_b"),
+            "--imports",
+            import_b.target_branch,
+            "--imports",
+            import_a.target_branch,
         ],
     )
-    assert align.exit_code == 0, align.output
-    assert "align:" in align.output
-    cluster_id = align.output.strip().split()[-1]
 
+    assert first.exit_code == 0, first.output
+    cluster_id = first.output.strip().split()[-1]
     slug = _alignment_slug(cluster_id)
-    artifact = repo.families.concept_alignments.require(ConceptAlignmentRef(slug))
-    first_arg = artifact.arguments[0].id
+    artifact = destination.families.concept_alignments.require(
+        ConceptAlignmentRef(slug)
+    )
+    assert artifact.decision.status == "open"
+    assert len(artifact.arguments) == 4
+    assert git.branch_sha(git.primary_branch_name()) == master_before
 
-    decide = _invoke(repo, ["decide", cluster_id, "--accept", first_arg])
-    assert decide.exit_code == 0, decide.output
+    expected_snapshots = {
+        str(source_a.root): import_a,
+        str(source_b.root): import_b,
+    }
+    for argument in artifact.arguments:
+        imported = expected_snapshots[argument.repository_origin]
+        assert argument.source_commit == imported.source_commit
+        assert argument.import_branch == imported.target_branch
+        assert argument.import_commit == imported.commit_sha
+        assert argument.concept_id.startswith("ps:concept:")
+        assert argument.ontology_reference is not None
+        assert argument.lexical_entry is not None
+        assert argument.form == "quantity"
 
-    promote = _invoke(repo, ["promote", cluster_id])
-    assert promote.exit_code == 0, promote.output
+    mass_arguments = [
+        argument for argument in artifact.arguments if argument.canonical_name == "Mass"
+    ]
+    assert len(mass_arguments) == 2
+    assert mass_arguments[0].concept_id != mass_arguments[1].concept_id
+    assert (
+        mass_arguments[0].id,
+        mass_arguments[1].id,
+    ) in artifact.framework.non_attacks
 
-    concept_id = derive_concept_artifact_id("gravity")
-    concept = repo.families.concept.require(concept_id)
-    assert concept.canonical_name == "gravity"
+    inertia_arguments = [
+        argument
+        for argument in artifact.arguments
+        if argument.canonical_name == "Inertia"
+    ]
+    assert len(inertia_arguments) == 2
+    assert {
+        (inertia_arguments[0].id, inertia_arguments[1].id),
+        (inertia_arguments[1].id, inertia_arguments[0].id),
+    }.issubset(set(artifact.framework.attacks))
 
-    reloaded = repo.families.concept_alignments.require(ConceptAlignmentRef(slug))
-    assert reloaded.decision.status == "promoted"
+    for imported in (import_a, import_b):
+        provenance = read_provenance_note(git.raw_repo, imported.commit_sha)
+        assert provenance is not None
+        assert provenance.status is ProvenanceStatus.STATED
+        assert provenance.derived_from == (imported.source_commit,)
+
+    encoded_first = ConceptAlignmentArtifact.__charter__.document_codec().encode(
+        artifact
+    )
+    second = _invoke(
+        destination,
+        [
+            "align",
+            "--imports",
+            import_a.target_branch,
+            "--imports",
+            import_b.target_branch,
+        ],
+    )
+    assert second.exit_code == 0, second.output
+    repeated = destination.families.concept_alignments.require(
+        ConceptAlignmentRef(slug)
+    )
+    assert repeated == artifact
+    assert (
+        ConceptAlignmentArtifact.__charter__.document_codec().encode(repeated)
+        == encoded_first
+    )
+    assert git.branch_sha(git.primary_branch_name()) == master_before
 
 
-def test_promote_without_accept_fails(tmp_path: Path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    _seed_source(repo, "paper_a")
+def test_align_requires_two_explicit_import_branches(tmp_path: Path) -> None:
+    destination = Repository.init(tmp_path / "destination" / "knowledge")
+    source = _author_source(tmp_path, repository_name="repo-a")
+    imported = _import(destination, source)
 
-    align = _invoke(repo, ["align", "--sources", source_branch_name("paper_a")])
-    assert align.exit_code == 0, align.output
-    cluster_id = align.output.strip().split()[-1]
+    result = _invoke(
+        destination,
+        ["align", "--imports", imported.target_branch],
+    )
 
-    promote = _invoke(repo, ["promote", cluster_id])
-    assert promote.exit_code != 0
-    assert "No accepted alternatives" in promote.output
+    assert result.exit_code != 0
+    assert "at least two branches" in result.output

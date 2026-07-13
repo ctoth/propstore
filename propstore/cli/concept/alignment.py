@@ -1,13 +1,5 @@
-"""``pks concept`` alignment-lifecycle command adapters.
+"""Presentation adapters for durable concept-alignment proposals."""
 
-``align`` / ``decide`` / ``promote`` over the repository-bound alignment lifecycle
-in :mod:`propstore.source.alignment`. These are the propose→decide→promote steps:
-``align`` records a proposal artifact (no source mutation), ``decide`` records an
-accept/reject decision, and ``promote`` is the single proposal→source boundary.
-The adapters parse flags into the owner-function arguments and render the returned
-:class:`~propstore.families.alignment.ConceptAlignmentArtifact`; the alignment math
-and storage semantics live in the owner module.
-"""
 from __future__ import annotations
 
 import click
@@ -16,26 +8,31 @@ from propstore.cli.concept import concept
 from propstore.cli.helpers import CliContext, fail, require_repo
 from propstore.cli.output import emit, emit_success
 from propstore.source.alignment import (
-    align_sources,
+    align_repository_snapshots,
     decide_alignment,
     promote_alignment,
 )
+from propstore.source.stages import AlignRepositorySnapshotsRequest
 
 
 @concept.command("align")
 @click.option(
-    "--sources",
-    "sources",
+    "--imports",
+    "import_branches",
     multiple=True,
     required=True,
-    help="A source branch to align (repeat for each, e.g. --sources source/a).",
+    help="A committed repository-import branch to align; repeat for each branch.",
 )
 @click.pass_obj
-def concept_align(obj: CliContext, sources: tuple[str, ...]) -> None:
-    """Propose a concept alignment across several source branches."""
+def concept_align(obj: CliContext, import_branches: tuple[str, ...]) -> None:
+    """Create an open alignment proposal over pinned imported KB snapshots."""
 
     repo = require_repo(obj)
-    artifact = align_sources(repo, list(sources))
+    request = AlignRepositorySnapshotsRequest(import_branches=import_branches)
+    try:
+        artifact = align_repository_snapshots(repo, request)
+    except (FileNotFoundError, ValueError) as exc:
+        fail(str(exc))
     emit(f"Created alignment proposal {artifact.alignment_id}")
 
 
@@ -70,7 +67,7 @@ def concept_decide(
 @click.argument("cluster_id")
 @click.pass_obj
 def concept_promote(obj: CliContext, cluster_id: str) -> None:
-    """Promote an accepted alignment alternative into a canonical concept."""
+    """Promote an explicitly accepted alternative."""
 
     repo = require_repo(obj)
     try:
