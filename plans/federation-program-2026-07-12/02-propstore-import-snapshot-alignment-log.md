@@ -61,3 +61,93 @@ Commit:
 
 Next slice:
 - Typed pinned-snapshot concept alignment.
+
+## Iteration 2 - `pinned imported concept alignment`
+
+Slice read:
+- `propstore/source/alignment.py`
+- `propstore/families/alignment.py`
+- `propstore/cli/concept/alignment.py`
+- `propstore/source/stages.py`
+- Quire `BoundFamily.pin` / `PinnedBoundFamily`
+- repository-import provenance notes
+
+Surfaces:
+- loose proposal mapping lifecycle in `propstore.source.alignment`
+  - Disposition: delete
+  - Owner after cleanup: typed `AlignmentArgument` values owned by the alignment family.
+  - Action: delete `_proposal_field`, mapping classifiers, name-minted ontology references, and `build_alignment_artifact`'s mapping input.
+  - Evidence: these mappings cross the semantic boundary and cannot record the required pinned import provenance.
+- `align_sources`
+  - Disposition: delete
+  - Owner after cleanup: repository-snapshot alignment workflow in `propstore.source.alignment`.
+  - Action: remove source-branch parsing and read typed concepts from explicitly supplied pinned import branches.
+  - Evidence: source-branch parsing is not repository-import provenance and the plan forbids deriving provenance from branch names.
+- alignment document argument fields
+  - Disposition: rewrite
+  - Owner after cleanup: `propstore.families.alignment.AlignmentArgument`.
+  - Action: carry repository origin, source commit, import branch/commit, concept id, ontology reference, lexical entry, canonical name, definition, and form.
+  - Evidence: the current document stores loose-proposal vocabulary and omits snapshot provenance.
+- decision and promotion lifecycle
+  - Disposition: keep
+  - Owner after cleanup: existing alignment owner functions.
+  - Action: preserve the established capability while changing it to read the typed argument's canonical concept fields directly.
+  - Evidence: these functions act on durable alignment artifacts and do not create the forbidden import-alignment representation.
+- CLI `concept align`
+  - Disposition: rewrite
+  - Owner after cleanup: presentation-only typed request construction plus the alignment owner call.
+  - Action: accept explicit import branches; do not parse provenance in the CLI.
+
+Gate results:
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 tests/test_alignment_classification.py tests/test_concept_alignment_cli.py tests/test_concept_alignment_promotion.py tests/test_repository_import.py` - 25 passed in 9.00s (`logs/test-runs/pytest-20260712-184102.log`).
+- Pass: `uv run pyright propstore` - 0 errors.
+- Pass: focused Ruff gate.
+- Pass: forbidden alignment and import-identity searches - zero hits.
+- Pass: `git diff --check`.
+
+Commit:
+- `732b4393 Align pinned repository import snapshots`.
+
+Next slice:
+- Fixed-point searches and full named gates.
+
+## Iteration 3 - `requested-scope fixed point`
+
+Slice read:
+- every production and test path named by Slice 2
+- `propstore/source/__init__.py` deletion fallout
+- `plans/federation-program-2026-07-12/02-propstore-import-snapshot-alignment.md`
+
+Surfaces:
+- imported snapshot normalization
+  - Disposition: keep
+  - Owner after cleanup: `propstore.importing.snapshot_passes`.
+  - Action: no further change after the repository-origin identity and typed-reference gates passed.
+  - Evidence: rival same-named concepts remain independently addressable; claim, variable, context, and stance references stay valid on their import branches.
+- pinned snapshot alignment
+  - Disposition: keep
+  - Owner after cleanup: `propstore.source.alignment` using typed family and provenance APIs directly.
+  - Action: no further change after deterministic artifact, provenance, attack, and master-isolation gates passed.
+  - Evidence: forbidden production searches are zero-hit and the full named runtime gates pass.
+- alignment document
+  - Disposition: keep
+  - Owner after cleanup: `propstore.families.alignment`.
+  - Action: no further change; every required provenance and concept field is a typed document field.
+- CLI alignment command
+  - Disposition: keep
+  - Owner after cleanup: presentation-only request construction and rendering.
+  - Action: no further change; provenance resolution and storage semantics remain in the alignment owner.
+
+Gate results:
+- Pass: final logged focused pytest - 25 passed in 10.01s (`logs/test-runs/pytest-20260712-200925.log`).
+- Pass: `uv run pyright propstore` - 0 errors, 0 warnings.
+- Pass: focused Ruff gate.
+- Pass: forbidden alignment surfaces - zero hits.
+- Pass: forbidden import-identity surfaces - zero hits.
+- Pass: `git diff --check`.
+
+Commit:
+- Implementation commits `e9502380` and `732b4393`; this fixed-point record is committed separately.
+
+Next slice:
+- None in the requested scope. Slice 2 reached fixed point.

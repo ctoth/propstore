@@ -1,6 +1,6 @@
 # Slice 2 - Align Imported KB Snapshots
 
-Status: queued. Activate `protocols:cleanup-refactor` before mutation.
+Status: complete. Executed under `protocols:cleanup-refactor`.
 
 ## Outcome
 
@@ -50,3 +50,17 @@ Two committed Propstore repositories import onto distinct pinned import branches
 ## Completion
 
 One committed Propstore slice proving committed KB snapshots can enter defeasible alignment. No promotion, graph composition, reasoning, or transport work belongs here.
+
+Completed 2026-07-12:
+
+- repository-origin namespaced import identity committed at `e9502380`;
+- typed pinned-snapshot alignment committed at `732b4393`;
+- two committed KBs imported onto distinct branches and produced one durable,
+  open partial-argumentation proposal while master remained unchanged;
+- repeated alignment produced byte-identical semantic documents;
+- same-named concepts with distinct ontology identities remained independent;
+- shared ontology identity with conflicting definitions produced symmetric attacks;
+- import provenance remained `STATED` and retained each source commit;
+- logged focused pytest: 25 passed in 10.01s;
+- `uv run pyright propstore`: 0 errors;
+- focused Ruff, forbidden-surface searches, and `git diff --check`: passed.
