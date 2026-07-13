@@ -30,7 +30,11 @@ from propstore.source.status import SourceStatusState
 @source.command("init")
 @click.argument("name")
 @click.option("--kind", "kind_name", required=True, help="Source kind (e.g. academic_paper).")
-@click.option("--origin-type", required=True, help="How the source was located (doi/file/manual).")
+@click.option(
+    "--origin-type",
+    required=True,
+    help="How the source was located (doi/file/manual/url).",
+)
 @click.option("--origin-value", required=True, help="The origin locator value.")
 @click.option(
     "--content-file",

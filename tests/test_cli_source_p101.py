@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from click.testing import CliRunner
 from condition_ir import KindType
@@ -35,6 +36,23 @@ from propstore.source.common import (
 from propstore.uri import verify_ni_uri
 
 _RUNNER = CliRunner()
+
+_ADDITIONAL_SOURCE_KINDS = (
+    "chat_message",
+    "dataset_release",
+    "encyclopedia_article",
+    "forum_message",
+    "handbook_chapter",
+    "issue_comment",
+    "legal_document",
+    "monograph_chapter",
+    "reference_entry",
+    "software_revision",
+    "technical_report",
+    "technical_specification",
+    "textbook_chapter",
+    "web_page_snapshot",
+)
 
 
 def _init_repo(tmp_path: Path) -> Repository:
@@ -137,6 +155,63 @@ def test_source_init_accepts_mailing_list_message_with_content_digest(
     assert verify_ni_uri(source.origin.content_ref, content)
 
 
+@pytest.mark.parametrize("source_kind", _ADDITIONAL_SOURCE_KINDS)
+def test_source_init_accepts_closed_source_vocabulary(
+    tmp_path: Path, source_kind: str
+) -> None:
+    repo = _init_repo(tmp_path)
+
+    result = _invoke(
+        repo,
+        "init",
+        "demo",
+        "--kind",
+        source_kind,
+        "--origin-type",
+        "manual",
+        "--origin-value",
+        "fixture",
+    )
+
+    assert result.exit_code == 0, result.output
+    source = load_source_document(Repository.find(repo.root), "demo")
+    assert source.kind.value == source_kind
+
+
+def test_source_init_accepts_immutable_encyclopedia_article_url(
+    tmp_path: Path,
+) -> None:
+    repo = _init_repo(tmp_path)
+    content = b"Wikipedia article revision content"
+    article = tmp_path / "article.wikitext"
+    article.write_bytes(content)
+    revision_url = "https://en.wikipedia.org/w/index.php?title=Logic&oldid=1324583158"
+
+    result = _invoke(
+        repo,
+        "init",
+        "Wikipedia_Logic_1324583158",
+        "--kind",
+        "encyclopedia_article",
+        "--origin-type",
+        "url",
+        "--origin-value",
+        revision_url,
+        "--content-file",
+        str(article),
+    )
+
+    assert result.exit_code == 0, result.output
+    source = load_source_document(
+        Repository.find(repo.root), "Wikipedia_Logic_1324583158"
+    )
+    assert source.kind.value == "encyclopedia_article"
+    assert source.origin.type == "url"
+    assert source.origin.value == revision_url
+    assert source.origin.content_ref is not None
+    assert verify_ni_uri(source.origin.content_ref, content)
+
+
 def test_source_init_rejects_unknown_kind(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     result = _invoke(
@@ -152,6 +227,23 @@ def test_source_init_rejects_unknown_kind(tmp_path: Path) -> None:
     )
     assert result.exit_code != 0
     assert "Unsupported source kind" in result.output
+
+
+def test_source_init_rejects_unknown_origin_type(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    result = _invoke(
+        repo,
+        "init",
+        "demo",
+        "--kind",
+        "encyclopedia_article",
+        "--origin-type",
+        "mutable_web_location",
+        "--origin-value",
+        "https://example.org/wiki/Logic",
+    )
+    assert result.exit_code != 0
+    assert "Unsupported source origin type" in result.output
 
 
 # ---------------------------------------------------------------------------

@@ -13,13 +13,28 @@ from enum import StrEnum
 
 class SourceKind(StrEnum):
     ACADEMIC_PAPER = "academic_paper"
+    CHAT_MESSAGE = "chat_message"
+    DATASET_RELEASE = "dataset_release"
+    ENCYCLOPEDIA_ARTICLE = "encyclopedia_article"
+    FORUM_MESSAGE = "forum_message"
+    HANDBOOK_CHAPTER = "handbook_chapter"
+    ISSUE_COMMENT = "issue_comment"
+    LEGAL_DOCUMENT = "legal_document"
     MAILING_LIST_MESSAGE = "mailing_list_message"
+    MONOGRAPH_CHAPTER = "monograph_chapter"
+    REFERENCE_ENTRY = "reference_entry"
+    SOFTWARE_REVISION = "software_revision"
+    TECHNICAL_REPORT = "technical_report"
+    TECHNICAL_SPECIFICATION = "technical_specification"
+    TEXTBOOK_CHAPTER = "textbook_chapter"
+    WEB_PAGE_SNAPSHOT = "web_page_snapshot"
 
 
 class SourceOriginType(StrEnum):
     DOI = "doi"
     FILE = "file"
     MANUAL = "manual"
+    URL = "url"
 
 
 VALID_SOURCE_KINDS = frozenset(kind.value for kind in SourceKind)

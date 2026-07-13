@@ -190,8 +190,29 @@ Key subcommands:
 - `pks source promote <name>`
 - `pks source sync <name> [--output-dir DIR]`
 
-Source kinds are a closed vocabulary: `academic_paper` or
-`mailing_list_message`. Unknown kinds are rejected.
+Source kinds are a closed vocabulary. Unknown kinds are rejected.
+
+| Kind | Source unit |
+|------|-------------|
+| `academic_paper` | One scholarly paper |
+| `chat_message` | One durably identified chat message |
+| `dataset_release` | One versioned dataset release |
+| `encyclopedia_article` | One article revision, including a Wikipedia revision |
+| `forum_message` | One independently identified forum post |
+| `handbook_chapter` | One chapter in an edited reference handbook |
+| `issue_comment` | One issue or pull-request message |
+| `legal_document` | One statute, regulation, judgment, or administrative decision |
+| `mailing_list_message` | One message identified by its message ID |
+| `monograph_chapter` | One chapter in a research monograph |
+| `reference_entry` | One dictionary, glossary, lexicon, or reference entry |
+| `software_revision` | One immutable commit, tag, or release snapshot |
+| `technical_report` | One institutional, government, or industry report |
+| `technical_specification` | One standard, RFC, protocol, or design specification |
+| `textbook_chapter` | One chapter in a pedagogical textbook |
+| `web_page_snapshot` | One immutable capture of a web page |
+
+Origin types are also closed: `doi`, `file`, `manual`, or `url`. URL origins
+should identify an immutable revision when the source system provides one.
 
 `--context <ctx-id>` on `add-claim` stamps every claim in the batch
 that does not already declare an inline `context:` with the supplied
@@ -200,6 +221,7 @@ default. Inline context always wins.
 ```bash
 uv run pks source init Demo_2026 --kind academic_paper --origin-type file --origin-value Demo_2026.pdf
 uv run pks source init Federation_2026_07_12 --kind mailing_list_message --origin-type file --origin-value federation/2026-07-12.eml --content-file federation-2026-07-12.eml
+uv run pks source init Wikipedia_Logic_1324583158 --kind encyclopedia_article --origin-type url --origin-value "https://en.wikipedia.org/w/index.php?title=Logic&oldid=1324583158" --content-file Logic-1324583158.wikitext
 uv run pks source write-notes Demo_2026 --file ../research/papers/Demo_2026/notes.md
 uv run pks source write-metadata Demo_2026 --file ../research/papers/Demo_2026/metadata.json
 uv run pks source propose-concept Demo_2026 --name pitch --definition "Fundamental frequency of voiced speech" --form frequency
