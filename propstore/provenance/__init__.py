@@ -39,15 +39,7 @@ from quire.notes import NotesRef, read_git_note, write_git_note
 
 from propstore.provenance._jsonld import JSONLD_CONTEXT as _CONTEXT
 from propstore.provenance._jsonld import URI_SCHEME_PREFIXES as _GRAPH_NAME_PREFIXES
-from propstore.provenance.records import (
-    ExternalInferenceProvenanceRecord,
-    ExternalStatementAttitude,
-    ExternalStatementProvenanceRecord,
-    ImportRunProvenanceRecord,
-    LicenseProvenanceRecord,
-    ProjectionFrameProvenanceRecord,
-    SourceVersionProvenanceRecord,
-)
+from propstore.provenance.records import ProjectionFrameProvenanceRecord
 
 
 def _utc_timestamp() -> str:
@@ -88,17 +80,33 @@ class ProvenanceStatus(StrEnum):
     VACUOUS = "vacuous"
 
 
-class ProvenanceWitness(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+class ProvenanceWitness(
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    omit_defaults=True,
+):
     """One witness in a provenance chain.
 
     ``source_artifact_code`` is the Buneman-style where pointer; ``method`` and
     ``asserter`` are the Carroll/SWP-style warrant metadata.
+    ``source_version_id`` and ``source_content_hash`` pin *which* version of that
+    source was witnessed: the where pointer names the source, the hash names its
+    bytes. Both are optional because a witness may honestly not know them — an
+    absent hash is ``None``, never a fabricated digest.
+
+    ``omit_defaults`` keeps an unknown pin *absent* from the named graph rather
+    than serializing it as an explicit ``null``: a witness that never knew the
+    source version says nothing about it, and notes written before the pins
+    existed stay byte-identical.
     """
 
     asserter: str
     timestamp: str
     source_artifact_code: str
     method: str
+    source_version_id: str | None = None
+    source_content_hash: str | None = None
 
 
 class Provenance(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
@@ -146,12 +154,16 @@ def _dedupe_sorted(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(sorted(set(values)))
 
 
-def _witness_key(witness: ProvenanceWitness) -> tuple[str, str, str, str]:
+def _witness_key(witness: ProvenanceWitness) -> tuple[str, str, str, str, str, str]:
+    # Two witnesses that name the same source at different versions are distinct
+    # witnesses, so the pinning fields are part of the dedupe key.
     return (
         witness.asserter,
         witness.method,
         witness.source_artifact_code,
         witness.timestamp,
+        witness.source_version_id or "",
+        witness.source_content_hash or "",
     )
 
 
@@ -207,7 +219,7 @@ def compose_provenance(*records: Provenance, operation: str) -> Provenance:
 
     status = max(records, key=lambda item: _STATUS_RANK[item.status.value]).status
     witnesses: list[ProvenanceWitness] = []
-    witness_keys: set[tuple[str, str, str, str]] = set()
+    witness_keys: set[tuple[str, str, str, str, str, str]] = set()
     derived_from: list[str] = []
     operations: list[str] = []
 
@@ -460,16 +472,10 @@ def stamp_file(
 __all__ = [
     "PROVENANCE_NOTES",
     "PROVENANCE_NOTES_REF",
-    "ExternalInferenceProvenanceRecord",
-    "ExternalStatementAttitude",
-    "ExternalStatementProvenanceRecord",
-    "ImportRunProvenanceRecord",
-    "LicenseProvenanceRecord",
     "ProjectionFrameProvenanceRecord",
     "Provenance",
     "ProvenanceStatus",
     "ProvenanceWitness",
-    "SourceVersionProvenanceRecord",
     "compose_provenance",
     "decode_named_graph",
     "encode_named_graph",

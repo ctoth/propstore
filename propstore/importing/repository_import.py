@@ -17,9 +17,7 @@ and the contract refuses to let an import launder a row into ``measured`` /
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 
 import msgspec
@@ -36,11 +34,6 @@ from propstore.provenance import (
     ProvenanceStatus,
     ProvenanceWitness,
     write_provenance_note,
-)
-from propstore.provenance.records import (
-    ImportRunProvenanceRecord,
-    LicenseProvenanceRecord,
-    SourceVersionProvenanceRecord,
 )
 from propstore.repository import Repository, RepositoryNotFound
 from propstore.source.common import (
@@ -147,6 +140,10 @@ def _attach_import_provenance(
 # ---------------------------------------------------------------------------
 
 
+_IMPORTER_ID = "urn:propstore:agent:repository-import"
+_IMPORT_METHOD = "repository-import"
+
+
 def _empty_str_list() -> list[str]:
     return []
 
@@ -169,7 +166,6 @@ class RepositoryImportPlan:
     writes: dict[str, PlannedSemanticWrite]
     deletes: list[str]
     touched_paths: list[str]
-    import_run: ImportRunProvenanceRecord
     warnings: list[str] = field(default_factory=_empty_str_list)
 
 
@@ -203,27 +199,30 @@ def _iter_semantic_paths(repository: Repository, *, commit: str) -> dict[str, by
     }
 
 
-def _import_run_record(
-    *,
-    source_repository: str,
-    source_commit: str,
-) -> ImportRunProvenanceRecord:
-    source_digest = hashlib.sha256(source_repository.encode("utf-8")).hexdigest()
-    source = SourceVersionProvenanceRecord(
-        source_id=f"urn:propstore:repository:{source_digest}",
-        version_id=source_commit,
-        content_hash=f"git:{source_commit}",
-    )
-    license_record = LicenseProvenanceRecord(
-        license_id="urn:propstore:license:unspecified",
-        label="Unspecified",
-    )
-    return ImportRunProvenanceRecord(
-        run_id=f"urn:propstore:repository-import:{source_commit}",
-        importer_id="urn:propstore:agent:repository-import",
-        imported_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        source=source,
-        license=license_record,
+def _import_provenance(plan: RepositoryImportPlan, *, commit_sha: str) -> Provenance:
+    """The provenance named graph for one committed repository import.
+
+    The witness pins the exact source bytes: ``source_artifact_code`` is the
+    where pointer (the source repository), and the version/content hash name the
+    committed snapshot it was read from. ``stated`` is the only honest status —
+    an import never observed or calibrated anything.
+    """
+
+    return Provenance(
+        status=ProvenanceStatus.STATED,
+        graph_name=f"urn:propstore:repository-import:{commit_sha}",
+        witnesses=(
+            ProvenanceWitness(
+                asserter=_IMPORTER_ID,
+                timestamp=utc_now(),
+                source_artifact_code=plan.source_repository,
+                method=_IMPORT_METHOD,
+                source_version_id=plan.source_commit,
+                source_content_hash=f"git:{plan.source_commit}",
+            ),
+        ),
+        derived_from=(plan.source_commit,),
+        operations=(_IMPORT_METHOD,),
     )
 
 
@@ -285,10 +284,6 @@ def plan_repository_import(
         writes=writes,
         deletes=deletes,
         touched_paths=touched_paths,
-        import_run=_import_run_record(
-            source_repository=str(source_repository.root),
-            source_commit=source_commit,
-        ),
         warnings=warnings,
     )
 
@@ -341,20 +336,7 @@ def commit_repository_import(
     write_provenance_note(
         git.raw_repo,
         commit_sha,
-        Provenance(
-            status=ProvenanceStatus.STATED,
-            graph_name=f"urn:propstore:repository-import:{commit_sha}",
-            witnesses=(
-                ProvenanceWitness(
-                    asserter=plan.import_run.importer_id,
-                    timestamp=plan.import_run.imported_at,
-                    source_artifact_code=plan.source_repository,
-                    method="repository-import",
-                ),
-            ),
-            derived_from=(plan.source_commit,),
-            operations=("repository-import",),
-        ),
+        _import_provenance(plan, commit_sha=commit_sha),
     )
 
     return RepositoryImportResult(

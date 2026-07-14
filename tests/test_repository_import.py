@@ -303,12 +303,23 @@ def test_import_attaches_stated_provenance_note(tmp_path: Path) -> None:
         destination, plan_repository_import(destination, source.root.parent)
     )
 
+    source_commit = source.require_git().head_sha()
     provenance = read_provenance_note(destination.require_git().raw_repo, result.commit_sha)
     assert provenance is not None
     assert provenance.status is ProvenanceStatus.STATED
     assert provenance.operations == ("repository-import",)
-    assert provenance.derived_from == (source.require_git().head_sha(),)
-    assert provenance.witnesses[0].method == "repository-import"
+    assert provenance.derived_from == (source_commit,)
+
+    # The witness pins the exact source bytes. Until 2026-07-14 the import built an
+    # ImportRunProvenanceRecord carrying the source version and content hash, then
+    # hand-copied two fields out of it into the witness and dropped the rest — so
+    # every import note recorded who and when, but never *what content* it read.
+    witness = provenance.witnesses[0]
+    assert witness.method == "repository-import"
+    assert witness.asserter == "urn:propstore:agent:repository-import"
+    assert witness.source_artifact_code == str(source.root)
+    assert witness.source_version_id == source_commit
+    assert witness.source_content_hash == f"git:{source_commit}"
 
 
 def test_import_is_convergent_under_repeated_commits(tmp_path: Path) -> None:

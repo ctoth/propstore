@@ -132,6 +132,46 @@ def test_named_graph_payload_canonicalizes_sets_but_preserves_operation_order() 
     assert payload["provenance"]["operations"] == ["projection", "import"]
 
 
+def test_witness_source_pin_round_trips_and_stays_absent_when_unknown() -> None:
+    """A witness may pin the exact source bytes it read (added 2026-07-14).
+
+    An unknown pin is *absent* from the payload rather than an explicit ``null``:
+    honest ignorance says nothing, and notes written before the pins existed stay
+    byte-identical.
+    """
+
+    pinned = ProvenanceWitness(
+        asserter="urn:propstore:agent:repository-import",
+        timestamp="2026-07-14T00:00:00Z",
+        source_artifact_code="/repos/upstream/knowledge",
+        method="repository-import",
+        source_version_id="def456",
+        source_content_hash="git:def456",
+    )
+    provenance = Provenance(
+        status=ProvenanceStatus.STATED,
+        witnesses=(pinned, _witness("unpinned")),
+        graph_name="urn:propstore:provenance:pinned",
+    )
+
+    encoded = encode_named_graph(provenance)
+    # The carrier canonicalizes witnesses by witness key, so compare as a set.
+    assert set(decode_named_graph(encoded).witnesses) == {pinned, _witness("unpinned")}
+
+    witnesses = json.loads(encoded)["provenance"]["witnesses"]
+    pinned_payload = next(
+        witness for witness in witnesses if witness["method"] == "repository-import"
+    )
+    assert pinned_payload["source_version_id"] == "def456"
+    assert pinned_payload["source_content_hash"] == "git:def456"
+
+    unpinned_payload = next(
+        witness for witness in witnesses if witness["method"] == "stated"
+    )
+    assert "source_version_id" not in unpinned_payload
+    assert "source_content_hash" not in unpinned_payload
+
+
 def test_git_notes_round_trip_named_graph_content() -> None:
     repo = MemoryRepo()
     claim_blob = Blob.from_string(b"claim payload")

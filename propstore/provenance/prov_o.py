@@ -1,114 +1,96 @@
-"""One-way PROV-O JSON-LD export for typed provenance records.
+"""One-way PROV-O JSON-LD export for typed provenance.
 
 Moreau and Missier 2013 define PROV-O's core classes around entities,
-activities, and agents. Propstore keeps its internal mutation model typed and
-projects to these PROV-O nodes only at export boundaries.
+activities, and agents. Propstore keeps its internal model typed and projects to
+these PROV-O nodes only at export boundaries; nothing reads PROV-O back.
+
+The stored carrier is :class:`~propstore.provenance.Provenance`, so
+:func:`provenance_to_prov_o` is the export that matters: the named graph becomes
+a ``prov:Entity`` and each of its witnesses becomes the ``prov:Activity`` that
+generated it, associated with the ``prov:Agent`` that asserted it.
+:class:`~propstore.provenance.records.ProjectionFrameProvenanceRecord` is
+exported too because the argumentation projection boundary holds it as a typed
+field rather than as provenance on a git note.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from propstore.provenance._jsonld import JSONLD_CONTEXT as _CONTEXT
-from propstore.provenance.records import (
-    ExternalInferenceProvenanceRecord,
-    ExternalStatementAttitude,
-    ExternalStatementProvenanceRecord,
-    ImportRunProvenanceRecord,
-    LicenseProvenanceRecord,
-    ProjectionFrameProvenanceRecord,
-    SourceVersionProvenanceRecord,
-)
+from propstore.provenance._jsonld import URI_SCHEME_PREFIXES as _URI_PREFIXES
+from propstore.provenance.records import ProjectionFrameProvenanceRecord
+
+if TYPE_CHECKING:
+    from propstore.provenance import Provenance, ProvenanceWitness
 
 
-def to_prov_o(record: object) -> dict[str, Any]:
-    if isinstance(record, SourceVersionProvenanceRecord):
-        return _document(_source_version_nodes(record))
-    if isinstance(record, LicenseProvenanceRecord):
-        return _document(_license_nodes(record))
-    if isinstance(record, ImportRunProvenanceRecord):
-        return _document(_import_run_nodes(record))
-    if isinstance(record, ProjectionFrameProvenanceRecord):
-        return _document(_projection_frame_nodes(record))
-    if isinstance(record, ExternalStatementProvenanceRecord):
-        return _document(_external_statement_nodes(record))
-    if isinstance(record, ExternalInferenceProvenanceRecord):
-        return _document(_external_inference_nodes(record))
-    raise TypeError(f"unsupported PROV-O record type: {type(record).__name__}")
+def to_prov_o(record: ProjectionFrameProvenanceRecord) -> dict[str, Any]:
+    """Export one projection frame as a PROV-O activity document."""
+
+    return _document(_projection_frame_nodes(record))
 
 
-def provenance_to_prov_o(provenance: object) -> dict[str, Any]:
-    from propstore.provenance import Provenance
+def provenance_to_prov_o(provenance: Provenance) -> dict[str, Any]:
+    """Export a stored provenance named graph as a PROV-O document.
 
-    if not isinstance(provenance, Provenance):
-        raise TypeError(
-            f"unsupported PROV-O provenance type: {type(provenance).__name__}"
-        )
+    Each witness is projected as the activity that generated the entity. A
+    witness's ``asserter`` and ``source_artifact_code`` are free-form (an agent
+    urn, but also bare names like ``propstore``, branch names, and filesystem
+    paths), and a JSON-LD ``@id`` must be an IRI — so the asserter is linked as a
+    ``prov:Agent`` node only when it is one, and carried as a literal otherwise.
+    Nothing here fabricates an identifier for a value that does not have one.
+    """
+
     graph_name = provenance.graph_name or "urn:propstore:provenance:anonymous"
-    node: dict[str, Any] = {
+    entity: dict[str, Any] = {
         "@id": graph_name,
         "@type": "prov:Entity",
         "ps:status": provenance.status.value,
     }
     if provenance.derived_from:
-        node["prov:wasDerivedFrom"] = [
+        entity["prov:wasDerivedFrom"] = [
             {"@id": value} for value in provenance.derived_from
         ]
     if provenance.operations:
-        node["ps:operation"] = list(provenance.operations)
-    return _document([node])
+        entity["ps:operation"] = list(provenance.operations)
+
+    nodes: list[dict[str, Any]] = [entity]
+    generated_by: list[dict[str, str]] = []
+    for index, witness in enumerate(provenance.witnesses):
+        activity_id = f"{graph_name}#witness-{index}"
+        generated_by.append({"@id": activity_id})
+        nodes.extend(_witness_nodes(witness, activity_id=activity_id))
+    if generated_by:
+        entity["prov:wasGeneratedBy"] = generated_by
+    return _document(nodes)
+
+
+def _witness_nodes(
+    witness: ProvenanceWitness,
+    *,
+    activity_id: str,
+) -> list[dict[str, Any]]:
+    activity: dict[str, Any] = {
+        "@id": activity_id,
+        "@type": "prov:Activity",
+        "prov:startedAtTime": witness.timestamp,
+        "ps:method": witness.method,
+        "ps:sourceArtifactCode": witness.source_artifact_code,
+    }
+    if witness.source_version_id is not None:
+        activity["ps:versionId"] = witness.source_version_id
+    if witness.source_content_hash is not None:
+        activity["ps:contentHash"] = witness.source_content_hash
+    if not witness.asserter.startswith(_URI_PREFIXES):
+        activity["ps:asserter"] = witness.asserter
+        return [activity]
+    activity["prov:wasAssociatedWith"] = {"@id": witness.asserter}
+    return [activity, {"@id": witness.asserter, "@type": "prov:Agent"}]
 
 
 def _document(graph: list[dict[str, Any]]) -> dict[str, Any]:
     return {"@context": dict(_CONTEXT), "@graph": graph}
-
-
-def _source_version_nodes(
-    record: SourceVersionProvenanceRecord,
-) -> list[dict[str, Any]]:
-    node: dict[str, Any] = {
-        "@id": record.source_id,
-        "@type": "prov:Entity",
-        "ps:versionId": record.version_id,
-        "ps:contentHash": record.content_hash,
-    }
-    if record.retrieval_uri is not None:
-        node["prov:hadPrimarySource"] = {"@id": record.retrieval_uri}
-    if record.retrieved_at is not None:
-        node["prov:generatedAtTime"] = record.retrieved_at
-    return [node]
-
-
-def _license_nodes(record: LicenseProvenanceRecord) -> list[dict[str, Any]]:
-    node: dict[str, Any] = {
-        "@id": record.license_id,
-        "@type": "prov:Entity",
-        "ps:label": record.label,
-    }
-    if record.uri is not None:
-        node["prov:hadPrimarySource"] = {"@id": record.uri}
-    return [node]
-
-
-def _import_run_nodes(record: ImportRunProvenanceRecord) -> list[dict[str, Any]]:
-    return [
-        {
-            "@id": record.run_id,
-            "@type": "prov:Activity",
-            "prov:startedAtTime": record.imported_at,
-            "prov:used": [
-                {"@id": record.source.source_id},
-                {"@id": record.license.license_id},
-            ],
-            "prov:wasAssociatedWith": {"@id": record.importer_id},
-        },
-        {
-            "@id": record.importer_id,
-            "@type": "prov:Agent",
-        },
-        *_source_version_nodes(record.source),
-        *_license_nodes(record.license),
-    ]
 
 
 def _projection_frame_nodes(
@@ -124,39 +106,5 @@ def _projection_frame_nodes(
                 {"@id": assertion_id}
                 for assertion_id in record.source_assertion_ids
             ],
-        }
-    ]
-
-
-def _external_statement_nodes(
-    record: ExternalStatementProvenanceRecord,
-) -> list[dict[str, Any]]:
-    node: dict[str, Any] = {
-        "@id": record.statement_id,
-        "@type": "prov:Entity",
-        "ps:locator": record.locator,
-    }
-    if record.attitude is ExternalStatementAttitude.QUOTED:
-        node["prov:wasQuotedFrom"] = {"@id": record.source.source_id}
-    else:
-        node["prov:wasAttributedTo"] = {
-            "@id": record.authority_id or record.source.source_id
-        }
-    return [node, *_source_version_nodes(record.source)]
-
-
-def _external_inference_nodes(
-    record: ExternalInferenceProvenanceRecord,
-) -> list[dict[str, Any]]:
-    return [
-        {
-            "@id": record.inference_id,
-            "@type": "prov:Activity",
-            "ps:engine": record.engine,
-            "prov:startedAtTime": record.inferred_at,
-            "prov:used": [
-                {"@id": premise} for premise in record.premise_statement_ids
-            ],
-            "prov:generated": {"@id": record.conclusion_statement_id},
         }
     ]
