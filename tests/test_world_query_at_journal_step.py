@@ -4,13 +4,12 @@ Properties covered here:
 - P5: Dixon-shape behavioural equivalence between ``at_journal_step`` and direct
   re-execution of the journal via ``support_revision.dispatch``.
 - P6: step-bounds validation — IndexError on out-of-range step.
-- rebind observability: ``rebind=True`` produces an observable ``bound`` artifact.
 - heavy fixture path: the heavy variant surfaces registered stances/conflicts and
   caches by ``(commit, claim_ids)``.
 
 The synthetic belief space is a *real* protocol implementation
-(``SyntheticBeliefSpace`` in ``tests/fixtures/journal.py``). It has real
-``claims_by_ids`` and ``bind_for_view`` — no silent no-ops.
+(``SyntheticBeliefSpace`` in ``tests/fixtures/journal.py``). It has a real
+``claims_by_ids`` — no silent no-ops.
 """
 
 from __future__ import annotations
@@ -156,33 +155,6 @@ def test_p5_oracle_actually_calls_dispatch(monkeypatch) -> None:
     call_count["n"] = 0
     _ = direct_dispatch(journal, 1)
     assert call_count["n"] == 2, "direct_dispatch(j,1) must dispatch exactly twice"
-
-
-# ---------- rebind observability ----------
-
-
-def test_rebind_produces_observable_bound_artifact() -> None:
-    atom = make_assertion_atom(
-        relation_local="rebind_rel",
-        subject="rebind_subj",
-        value="rebind_val",
-        source_claim_local_ids=("rebind_src",),
-    )
-    # Non-empty bindings so the @scope_policy degrade rule does not force
-    # rebind=False (an empty scope would legitimately degrade).
-    scope = RevisionScope(bindings={"rebind_binding": 1.0}, context_id=None)
-    initial = make_state(atoms=(), accepted_atom_ids=(), scope=scope)
-    journal = single_chapter_journal(initial_state=initial, revision_atoms=(atom,))
-    space = synthetic_belief_space_with(atom)
-
-    flat = at_journal_step(space, journal, 0, rebind=False)
-    rebound = at_journal_step(space, journal, 0, rebind=True)
-
-    assert flat.bound is None
-    assert rebound.bound is not None
-    # The rebind path carries the projected claim ids as its restriction set.
-    assert getattr(rebound.bound, "restricted_to") == frozenset(flat.claim_ids())
-    assert flat.claim_ids() == rebound.claim_ids()
 
 
 # ---------- heavy fixture path ----------

@@ -106,28 +106,13 @@ def make_assertion_atom(
 # Synthetic belief space — a *real* BeliefSpaceQuery, not a fake
 
 
-@dataclass(frozen=True)
-class SyntheticBoundView:
-    """Observable artifact of binding under a scope.
-
-    Carries the bound environment so tests can assert ``rebind=True`` actually
-    produced a different shape than ``rebind=False``.
-    """
-
-    bindings: Mapping[str, Any]
-    context_id: str | None
-    restricted_to: frozenset[str]
-
-
 @dataclass
 class SyntheticBeliefSpace:
     """In-memory belief space satisfying the bridge's surface contract.
 
-    The bridge calls ``claims_by_ids`` and ``bind_for_view`` — both are real
-    here. No method silently no-ops; ``bind_for_view`` returns a real
-    ``SyntheticBoundView`` with all binding state observable. ``rows`` holds the
-    canonical charter :class:`~propstore.families.claims.Claim` — no ``ClaimRow``
-    second spelling.
+    The bridge calls ``claims_by_ids`` — real here, no silent no-op. ``rows``
+    holds the canonical charter :class:`~propstore.families.claims.Claim` — no
+    ``ClaimRow`` second spelling.
     """
 
     rows: dict[str, Claim] = field(default_factory=dict[str, Claim])
@@ -139,19 +124,6 @@ class SyntheticBeliefSpace:
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         return {cid: self.rows[cid] for cid in claim_ids if cid in self.rows}
-
-    def bind_for_view(
-        self,
-        *,
-        bindings: Mapping[str, Any],
-        context_id: str | None,
-        restricted_to: frozenset[str],
-    ) -> SyntheticBoundView:
-        return SyntheticBoundView(
-            bindings=dict(bindings),
-            context_id=context_id,
-            restricted_to=restricted_to,
-        )
 
 
 def synthetic_belief_space_with(*atoms: AssertionAtom) -> SyntheticBeliefSpace:

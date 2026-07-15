@@ -2,7 +2,7 @@
 
 Per quire/plans/worldline-journal-bridge-2026-05-02.md sections 4 + 11.
 
-The bridge exposes ``at_journal_step(belief_space, journal, k, *, rebind, heavy)``
+The bridge exposes ``at_journal_step(belief_space, journal, k, *, heavy)``
 returning a :class:`~propstore.world.types.ClaimView`. The function is
 parameterized over a :class:`BeliefSpaceQuery` Protocol — both
 :class:`~propstore.world.model.WorldQuery` and the synthetic test belief space
@@ -25,7 +25,7 @@ Substrate boundary (CLAUDE.md): the belief space returns charter
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.scope_policy import scope_policy
@@ -40,26 +40,16 @@ if TYPE_CHECKING:
 class BeliefSpaceQuery(Protocol):
     """Surface a belief space must expose for the bridge.
 
-    :class:`~propstore.world.model.WorldQuery` implements ``claims_by_ids``; the
-    synthetic test fixture implements both ``claims_by_ids`` and
-    ``bind_for_view``.
+    :class:`~propstore.world.model.WorldQuery` and the synthetic test fixture
+    both implement ``claims_by_ids``.
     """
 
     def claims_by_ids(self, claim_ids: set[str]) -> Mapping[str, Claim]: ...
-
-    def bind_for_view(
-        self,
-        *,
-        bindings: Mapping[str, Any],
-        context_id: str | None,
-        restricted_to: frozenset[str],
-    ) -> object: ...
 
 
 @scope_policy(
     extract_from="journal",
     extract_step="k",
-    degrade={"rebind": ("bindings",)},
     require={"heavy": ("commit",)},
 )
 def at_journal_step(
@@ -67,7 +57,6 @@ def at_journal_step(
     journal: TransitionJournal,
     k: int,
     *,
-    rebind: bool = False,
     heavy: bool = False,
 ) -> ClaimView:
     """Project the claims accepted at step ``k`` of the journal.
@@ -81,18 +70,11 @@ def at_journal_step(
     Parameters
     ----------
     belief_space:
-        Object exposing ``claims_by_ids`` (and, for ``rebind=True``,
-        ``bind_for_view``). ``WorldQuery`` satisfies this.
+        Object exposing ``claims_by_ids``. ``WorldQuery`` satisfies this.
     journal:
         The captured ``TransitionJournal``.
     k:
         Step index, 0-based.
-    rebind:
-        If ``True``, the returned ``ClaimView`` carries an observable ``bound``
-        artifact so callers can re-derive against the snapshot's scope. The
-        ``@scope_policy`` decorator (see
-        :mod:`propstore.support_revision.scope_policy`) governs degradation when
-        scope fields are absent.
     heavy:
         If ``True``, dispatch to :mod:`propstore.world.journal_replay` for
         re-derived stances and conflicts. Requires ``scope.commit``.
@@ -116,14 +98,4 @@ def at_journal_step(
     claim_ids = snapshot_to_claim_ids(snap)
     rows = belief_space.claims_by_ids(claim_ids)
     scope = snap.state.scope
-    bound: object | None = None
-    if rebind:
-        # Real binding: bind_for_view returns an observable artifact carrying the
-        # bindings/context/restricted_to set so callers can verify the rebind
-        # path actually rebound. No silent no-op.
-        bound = belief_space.bind_for_view(
-            bindings=scope.bindings,
-            context_id=None if scope.context_id is None else str(scope.context_id),
-            restricted_to=frozenset(claim_ids),
-        )
-    return ClaimView(claims=rows, scope=scope, bound=bound)
+    return ClaimView(claims=rows, scope=scope)

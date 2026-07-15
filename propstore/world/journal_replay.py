@@ -176,7 +176,6 @@ def replay_at_step(
         view = ClaimView(
             claims=rows,
             scope=scope,
-            bound=None,
             stances=fixture.stances,
             conflicts=fixture.conflicts,
         )
@@ -196,7 +195,6 @@ def _claim_view_from_space(
     return ClaimView(
         claims=rows,
         scope=scope,
-        bound=None,
         stances=stances,
         conflicts=conflicts,
     )

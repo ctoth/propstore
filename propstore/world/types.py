@@ -500,10 +500,8 @@ class ClaimView:
 
     Carries the claim-id-keyed charter :class:`~propstore.families.claims.Claim`
     rows projected from a journal step, the snapshot's ``RevisionScope`` (so
-    callers know what bindings/context the view is taken under), an optional
-    ``bound`` artifact (populated when ``rebind=True`` so the rebind path is
-    observably distinct from the flat view), plus optional tuples of stances and
-    conflicts populated only by the heavy variant.
+    callers know what bindings/context the view is taken under), plus optional
+    tuples of stances and conflicts populated only by the heavy variant.
 
     Single canonical type (CLAUDE.md substrate boundary): ``claims`` holds the
     charter ``Claim`` — there is no ``ClaimRow`` second spelling — and
@@ -513,7 +511,6 @@ class ClaimView:
 
     claims: Mapping[str, Claim]
     scope: RevisionScope
-    bound: object | None = None
     stances: tuple[Stance, ...] = field(default_factory=tuple)
     conflicts: tuple[ConflictRecord, ...] = field(default_factory=tuple)
 

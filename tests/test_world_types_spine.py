@@ -73,7 +73,7 @@ def test_claim_view_is_landed_by_journal_step_bridge() -> None:
     from propstore.world.types import ClaimView
 
     fields = ClaimView.__dataclass_fields__
-    assert set(fields) == {"claims", "scope", "bound", "stances", "conflicts"}
+    assert set(fields) == {"claims", "scope", "stances", "conflicts"}
     empty = ClaimView(claims={}, scope=RevisionScope(bindings={}, context_id=None))
     assert empty.claim_ids() == set()
     assert empty.stances == ()

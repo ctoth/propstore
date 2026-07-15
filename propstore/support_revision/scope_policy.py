@@ -9,9 +9,8 @@ snapshots can declare per-kwarg policy:
 
 - ``degrade={kwarg: (required_fields,)}`` — when ``kwarg`` is truthy and
   any required field is unset, force ``kwarg=False`` and emit a
-  ``UserWarning``. Use when the fallback (``kwarg=False``) gives a
-  *meaningful* answer (e.g. ``rebind=True → rebind=False`` still returns
-  a correct claim view).
+  ``UserWarning``. Use when the fallback (``kwarg=False``) still gives a
+  *meaningful* answer, so silently dropping the richer variant is safe.
 - ``require={kwarg: (required_fields,)}`` — when ``kwarg`` is truthy and
   any required field is unset, raise ``ValueError``. Use when no
   fallback gives a meaningful answer (e.g. ``heavy=True`` without

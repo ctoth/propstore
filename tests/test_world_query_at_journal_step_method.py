@@ -38,7 +38,6 @@ from propstore.support_revision.history import (
 from propstore.support_revision.state import RevisionScope
 from propstore.world import WorldQuery
 from propstore.world.journal_replay import reset_cache
-from propstore.world.model import _BoundView
 from tests.fixtures.journal import (
     make_assertion_atom,
     make_journal_entry,
@@ -165,24 +164,5 @@ def test_world_query_method_heavy_replay_populates_stances_and_conflicts(
         assert {
             (str(c.claim_a_id), str(c.claim_b_id)) for c in view.conflicts
         } == {("cl1", "cl2")}
-    finally:
-        world.close()
-
-
-def test_world_query_method_rebind_returns_bound_view(tmp_path: Path) -> None:
-    # Non-empty bindings so the @scope_policy degrade rule keeps rebind on.
-    scope = RevisionScope(bindings={"rebind_binding": 1.0}, context_id="ctx1")
-    journal = single_chapter_journal(
-        initial_state=make_state(atoms=(), accepted_atom_ids=(), scope=scope),
-        revision_atoms=(_atom("cl1", 1),),
-    )
-    world = WorldQuery(_repo(tmp_path, "cl1"))
-    try:
-        flat = world.at_journal_step(journal, 0, rebind=False)
-        rebound = world.at_journal_step(journal, 0, rebind=True)
-        assert flat.bound is None
-        assert isinstance(rebound.bound, _BoundView)
-        assert rebound.bound.restricted_to == frozenset({"cl1"})
-        assert flat.claim_ids() == rebound.claim_ids() == {"cl1"}
     finally:
         world.close()

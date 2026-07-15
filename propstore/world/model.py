@@ -27,17 +27,16 @@ What does NOT live here:
   When it lands it implements the ``WorldStore`` protocol and its ``bind`` /
   ``chain_query`` / ``intervene`` / ``observe`` methods delegate straight to the
   functions here.
-* The git-journal / worldline bridge (``at_journal_step`` / ``bind_for_view``) —
-  Phase 8 (``support_revision``).
+* The git-journal / worldline bridge (``at_journal_step``) — Phase 8
+  (``support_revision``).
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from causal_models import InterventionWorld, ObservationWorld, Value
 from condition_ir import ConditionSolver, to_cel_exprs, with_standard_synthetic_bindings
@@ -58,7 +57,7 @@ from propstore.core.graph_types import (
     ParameterizationEdge,
     RelationEdge,
 )
-from propstore.core.id_types import to_concept_id, to_context_id
+from propstore.core.id_types import to_concept_id
 from propstore.core.labels import (
     compile_environment_assumptions,
     environment_assumption_ids,
@@ -415,21 +414,6 @@ def _admits_claim(policy: RenderPolicy, claim: Claim) -> bool:
     return True
 
 
-@dataclass(frozen=True)
-class _BoundView:
-    """Observable artifact returned by ``WorldQuery.bind_for_view``.
-
-    Exists so ``at_journal_step(..., rebind=True)`` returns a
-    :class:`~propstore.world.types.ClaimView` whose ``bound`` field is observably
-    non-None and distinct from the flat ``rebind=False`` view. Carries the live
-    :class:`~propstore.world.bound.BoundWorld` plus the claim-id restriction set
-    the snapshot implies.
-    """
-
-    bound: BoundWorld
-    restricted_to: frozenset[str]
-
-
 class WorldQuery(WorldStore):
     """Concrete repo-backed reader over the materialized world sidecar.
 
@@ -633,7 +617,6 @@ class WorldQuery(WorldStore):
         journal: TransitionJournal,
         k: int,
         *,
-        rebind: bool = False,
         heavy: bool = False,
     ) -> ClaimView:
         """Project the claims accepted at step ``k`` of the journal.
@@ -651,27 +634,7 @@ class WorldQuery(WorldStore):
         """
         from propstore.world.bridge import at_journal_step as _at_journal_step
 
-        return _at_journal_step(self, journal, k, rebind=rebind, heavy=heavy)
-
-    def bind_for_view(
-        self,
-        *,
-        bindings: Mapping[str, Any],
-        context_id: str | None,
-        restricted_to: frozenset[str],
-    ) -> _BoundView:
-        """Rebind under a snapshot's scope, restricted to a claim-id set.
-
-        Returns a real :class:`~propstore.world.bound.BoundWorld` so callers of
-        ``at_journal_step(..., rebind=True)`` see an observably-different view
-        than the flat ``rebind=False`` path. The ``restricted_to`` set is carried
-        on the returned view so the bridge tests can observe it.
-        """
-        environment = Environment(
-            bindings=dict(bindings),
-            context_id=None if context_id is None else to_context_id(context_id),
-        )
-        return _BoundView(bound=self.bind(environment), restricted_to=restricted_to)
+        return _at_journal_step(self, journal, k, heavy=heavy)
 
     def claims_with_policy(
         self, concept_id: str | None, policy: RenderPolicy
