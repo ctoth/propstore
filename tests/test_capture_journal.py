@@ -31,6 +31,7 @@ from tests.fixtures.journal import (
     direct_dispatch,
     make_assertion_atom,
     make_state,
+    single_chapter_journal,
     synthetic_belief_space_with,
 )
 
@@ -377,6 +378,96 @@ def test_owner_build_worldline_journal_and_at_step_round_trip(tmp_path: Path) ->
     step_report = worldline_at_step(repo, WorldlineAtStepRequest(name="wl", step=0))
     assert step_report.step == 0
     assert "cl1" in step_report.claim_ids
+    # The flat (non-heavy) path re-derives no stances/conflicts.
+    assert step_report.stances == ()
+    assert step_report.conflicts == ()
+
+
+def _repo_two_rivals_with_rebut(tmp_path: Path) -> Repository:
+    """Two rival parameter claims on one concept, with cl1 rebutting cl2.
+
+    The two claims carry different values on the same concept (a conflict) and
+    an authored rebutting stance, so the heavy replay has both a stance and a
+    conflict to surface within the accepted claim set.
+    """
+    from propstore.families.claims import Claim, ClaimType
+    from propstore.families.concepts import Concept
+    from propstore.families.contexts import Context
+    from propstore.families.relations import Stance
+    from propstore.stances import StanceType
+
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.families.concept.save(
+        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
+    )
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
+    for seq, claim_id in enumerate(("cl1", "cl2")):
+        repo.families.claim.save(
+            claim_id,
+            Claim(
+                claim_id=claim_id,
+                context_id="ctx1",
+                claim_type=ClaimType.PARAMETER,
+                output_concept="c1",
+                value=float(10 * (seq + 1)),
+            ),
+            message="m",
+        )
+    repo.families.stance.save(
+        "s1",
+        Stance(
+            stance_id="s1",
+            source_claim_id="cl1",
+            target_claim_id="cl2",
+            stance_type=StanceType.REBUTS,
+            confidence=0.9,
+        ),
+        message="m",
+    )
+    return repo
+
+
+def _rival_atom(claim_id: str, ix: int):
+    return make_assertion_atom(
+        relation_local=f"rival_rel_{ix}",
+        subject=f"rival_subject_{ix}",
+        value=f"rival_value_{ix}",
+        source_claim_ids=(claim_id,),
+    )
+
+
+def test_owner_at_step_heavy_surfaces_stances_and_conflicts(tmp_path: Path) -> None:
+    from propstore.app.worldlines import WorldlineAtStepRequest, worldline_at_step
+    from propstore.support_revision.state import RevisionScope
+    from propstore.world.journal_replay import reset_cache
+
+    reset_cache()
+    repo = _repo_two_rivals_with_rebut(tmp_path)
+    head = repo.git.head_sha()
+    assert head is not None
+    scope = RevisionScope(bindings={}, context_id=None, commit=head)
+    journal = single_chapter_journal(
+        initial_state=make_state(atoms=(), accepted_atom_ids=(), scope=scope),
+        revision_atoms=(_rival_atom("cl1", 1), _rival_atom("cl2", 2)),
+    )
+    definition = WorldlineDefinition(id="wl", name="wl", targets=["Speed"])
+    definition.journal = journal
+    repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
+
+    report = worldline_at_step(
+        repo, WorldlineAtStepRequest(name="wl", step=1, heavy=True)
+    )
+    assert report.claim_ids == ("cl1", "cl2")
+    # cl1 rebuts cl2, and the two rival values conflict on concept c1 — both fall
+    # within the accepted set, so the heavy report surfaces each.
+    assert {
+        (str(s.source_claim_id), str(s.target_claim_id)) for s in report.stances
+    } == {("cl1", "cl2")}
+    assert {
+        (str(c.claim_a_id), str(c.claim_b_id)) for c in report.conflicts
+    } == {("cl1", "cl2")}
 
 
 def test_owner_build_journal_without_revision_is_a_validation_error(
@@ -449,6 +540,35 @@ def test_cli_build_journal_and_at_step_round_trip(tmp_path: Path) -> None:
     )
     assert at_step.exit_code == 0, at_step.output
     assert "cl1" in at_step.output
+
+
+def test_cli_at_step_heavy_prints_stances_and_conflicts(tmp_path: Path) -> None:
+    from click.testing import CliRunner
+
+    from propstore.cli import cli
+    from propstore.support_revision.state import RevisionScope
+    from propstore.world.journal_replay import reset_cache
+
+    reset_cache()
+    repo = _repo_two_rivals_with_rebut(tmp_path)
+    head = repo.git.head_sha()
+    assert head is not None
+    scope = RevisionScope(bindings={}, context_id=None, commit=head)
+    journal = single_chapter_journal(
+        initial_state=make_state(atoms=(), accepted_atom_ids=(), scope=scope),
+        revision_atoms=(_rival_atom("cl1", 1), _rival_atom("cl2", 2)),
+    )
+    definition = WorldlineDefinition(id="wl", name="wl", targets=["Speed"])
+    definition.journal = journal
+    repo.families.worldlines.save(WorldlineRef("wl"), definition, message="seed")
+
+    result = CliRunner().invoke(
+        cli, ["-C", str(repo.root), "worldline", "at-step", "wl", "1", "--heavy"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "cl1" in result.output
+    assert "stance: cl1" in result.output
+    assert "conflict: cl1 vs cl2" in result.output
 
 
 def test_cli_at_step_without_journal_is_nonzero(tmp_path: Path) -> None:

@@ -38,7 +38,11 @@ def worldline_build_journal(obj: CliContext, name: str) -> None:
 @click.option("--heavy", is_flag=True, help="Rebuild step view with heavy replay")
 @click.pass_obj
 def worldline_at_step(obj: CliContext, name: str, step: int, heavy: bool) -> None:
-    """Print claim ids accepted at a journal step."""
+    """Print claim ids accepted at a journal step.
+
+    With ``--heavy`` also print the stances and conflicts that fall within the
+    accepted claim set.
+    """
     repo = require_repo(obj)
     try:
         report = run_worldline_at_step(
@@ -48,3 +52,11 @@ def worldline_at_step(obj: CliContext, name: str, step: int, heavy: bool) -> Non
         fail(exc)
     for claim_id in report.claim_ids:
         emit(claim_id)
+    for stance in report.stances:
+        stance_type = "?" if stance.stance_type is None else stance.stance_type.value
+        emit(f"stance: {stance.source_claim_id} {stance_type} {stance.target_claim_id}")
+    for conflict in report.conflicts:
+        emit(
+            f"conflict: {conflict.claim_a_id} vs {conflict.claim_b_id} "
+            f"on {conflict.concept_id} ({conflict.warning_class.value})"
+        )

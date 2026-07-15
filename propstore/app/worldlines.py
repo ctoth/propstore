@@ -56,6 +56,8 @@ from propstore.worldline.runner import run_worldline
 from propstore.worldline.runner import worldline_is_stale as _render_is_stale
 
 if TYPE_CHECKING:
+    from propstore.conflict_detector import ConflictRecord
+    from propstore.families.relations import Stance
     from propstore.repository import Repository
 
 
@@ -179,6 +181,12 @@ class WorldlineAtStepReport:
     name: str
     step: int
     claim_ids: tuple[str, ...]
+    # Populated only by the heavy variant, which re-derives the stances and
+    # conflicts that fall within the accepted claim set (charter ``Stance`` /
+    # ``ConflictRecord`` directly — no second spelling). The flat path leaves
+    # both empty.
+    stances: tuple[Stance, ...] = ()
+    conflicts: tuple[ConflictRecord, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -454,6 +462,8 @@ def worldline_at_step(
         name=request.name,
         step=request.step,
         claim_ids=tuple(sorted(view.claim_ids())),
+        stances=view.stances,
+        conflicts=view.conflicts,
     )
 
 
