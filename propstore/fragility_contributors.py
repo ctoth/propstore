@@ -12,9 +12,10 @@ Grounding seam (CLAUDE.md substrate boundary): the gunray *complement encoder*
 and the per-predicate negation decode that the grounding-family scores once rode
 are not present in the rewrite substrate yet, so :func:`project_grounded_rules` is
 called without a complement encoder and :func:`_decode_grounded_predicate` is the
-local no-complement decode. The grounding/bridge families' end-to-end tests are
-deferred until the non-empty grounding authoring surface lands (see
-``docs/gaps.md``); the ATMS / discovery / conflict families do not touch it.
+local no-complement decode. Authored predicates, rules, superiorities, claims, and
+concepts already produce non-empty :class:`GroundedRulesBundle` values; the
+grounding/bridge collectors consume those bundles while treating undecorated
+section predicate ids as positive literals.
 """
 
 from __future__ import annotations
@@ -135,9 +136,8 @@ def _decode_grounded_predicate(predicate_id: str) -> tuple[str, bool]:
 
     The gunray complement encoder that once carried per-predicate negation is not
     present in the rewrite substrate; without it a section predicate id is taken
-    as a positive literal name. This keeps the grounding-family collectors
-    importable and type-correct while their non-empty grounding path stays
-    deferred (``docs/gaps.md``).
+    as a positive literal name. Non-empty authored grounding bundles use this
+    positive-only decode in the grounding-family collectors.
     """
 
     return predicate_id, False

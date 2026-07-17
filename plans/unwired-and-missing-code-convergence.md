@@ -106,7 +106,7 @@ Purpose: ensure later work is not justified by stale skips or descriptions.
   only if a specific uncovered behavior is identified.
 - [x] Correct ASPIC module prose that says `build_aspic_projection` is absent.
 - [x] Correct relation prose claiming reverse distances survive classification.
-- [ ] Correct grounding/fragility prose claiming non-empty grounding authoring is
+- [x] Correct grounding/fragility prose claiming non-empty grounding authoring is
   absent.
 - [ ] Replace or delete the three empty fragility placeholder test classes only
   after driving the existing collectors with a real non-empty production bundle.
