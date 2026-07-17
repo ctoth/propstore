@@ -7,9 +7,9 @@ atom, source-assertion provenance, support label/quality, and the Dung framework
 over argument ids. The CSAF is the package's own type, used directly (CLAUDE.md
 substrate boundary): there is no propstore mirror and no coercer.
 
-The store-reading entrypoint (``build_aspic_projection(store, …)``) that reads
-stance/justification rows and an optional active world graph is deferred to the
-world layer (Phase 7); only the pure CSAF→projection map lives here.
+``build_aspic_projection(store, …)`` reads stance/justification rows and an
+optional active world graph, builds the bridge CSAF, and applies the same pure
+CSAF→projection map.
 """
 
 from __future__ import annotations
