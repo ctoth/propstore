@@ -118,6 +118,29 @@ def _concept_form_name(concepts: ConceptIndex, concept_id: str) -> str | None:
     return concept.lexical_entry.physical_dimension_form
 
 
+def _concept_unit_symbol(
+    concepts: ConceptIndex,
+    forms: Mapping[str, FormDefinition] | None,
+    concept_id: str,
+) -> str | None:
+    """The SI unit a state for *concept_id* is expressed in, or None if unknown.
+
+    Every :class:`DerivedConflictValue` holds an SI-normalized value: direct
+    states normalize at injection (:func:`_normalize_claim_value`) and derived
+    states compose SI inputs through a dimensionally-consistent expression. So a
+    state's unit is its concept's canonical form unit — not the authored unit of
+    any one claim. When the concept has no resolvable form the unit is honestly
+    unknown, and stays ``None`` rather than defaulting to a guess.
+    """
+
+    if forms is None:
+        return None
+    form_name = _concept_form_name(concepts, concept_id)
+    if form_name is None or form_name not in forms:
+        return None
+    return forms[form_name].unit_symbol
+
+
 def _edge_inputs(edge: ParameterizationEdge) -> tuple[str, ...]:
     return tuple(str(concept_id) for concept_id in edge.input_concept_ids)
 
@@ -275,6 +298,7 @@ def _direct_state_for_claim(
         context_id=claim_context(claim),
         derivation_chain=f"{concept_id}={normalized}(claim:{claim.claim_id})",
         hop_count=0,
+        unit=_concept_unit_symbol(concepts, forms, concept_id),
     )
 
 
@@ -317,6 +341,7 @@ def _derive_state(
     input_states: Sequence[DerivedConflictValue],
     edge_conditions: Sequence[CelExpr],
     concepts: ConceptIndex,
+    forms: Mapping[str, FormDefinition] | None,
     lifting_system: LiftingSystem | None,
     *,
     warn_on_known_failure: bool,
@@ -368,6 +393,7 @@ def _derive_state(
         context_id=merged_context,
         derivation_chain=f"{chain_parts} -> {sympy_expr} -> {concept_id}={derived_value}",
         hop_count=max(state.hop_count for state in input_states) + 1,
+        unit=_concept_unit_symbol(concepts, forms, concept_id),
     )
 
 
@@ -416,8 +442,8 @@ def _append_parameterization_record(
             warning_class=warning_class,
             conditions_a=sorted(direct_claim.conditions),
             conditions_b=list(derived_state.conditions),
-            value_a=value_str(direct_claim.value, claim=direct_claim),
-            value_b=str(derived_state.value),
+            value_a=value_str(direct_claim.value, claim=direct_claim, with_unit=True),
+            value_b=value_str(derived_state.value, claim=derived_state, with_unit=True),
             derivation_chain=derived_state.derivation_chain,
         )
     )
@@ -517,6 +543,7 @@ def detect_parameterization_conflicts(
                     input_states,
                     edge_conditions,
                     concepts,
+                    forms,
                     lifting_system,
                     warn_on_known_failure=True,
                 )
@@ -617,6 +644,7 @@ def _detect_transitive_conflicts_for_claims(
                             input_states,
                             edge_conditions,
                             concepts,
+                            forms,
                             lifting_system,
                             warn_on_known_failure=False,
                         )

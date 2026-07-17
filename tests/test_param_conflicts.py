@@ -218,9 +218,49 @@ def test_different_value_different_units_conflict() -> None:
         by_concept, concepts, parameterizations, [], forms=forms
     )
     # 0.5 kHz -> 500 Hz (SI) -> derived 250, direct 100: conflict; value_b proves SI.
+    # freq_output's form ("quantity") is not in `forms`, so the derived state's
+    # unit is honestly unknown and the record renders the bare SI number.
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
     assert records[0].value_b == "250.0"
+
+
+def test_conflict_record_renders_both_sides_with_their_units() -> None:
+    """A record's two sides are in different unit systems; both must say which.
+
+    ``value_a`` is the authored claim (kHz here); ``value_b`` is the derived
+    value, which is always SI. Rendering both unlabelled made a genuine conflict
+    read as the uninterpretable "0.1 vs 250.0".
+    """
+
+    forms = {"frequency": _frequency_form()}
+    by_concept = {
+        "freq_input": [_claim({"id": "claim_khz", "value": 0.5, "unit": "kHz"})],
+        "freq_output": [_claim({"id": "claim_out", "value": 0.1, "unit": "kHz"})],
+    }
+    concept_registry = {
+        "freq_input": _concept("freq_input", form="frequency"),
+        "freq_output": _concept(
+            "freq_output",
+            form="frequency",
+            parameterizations=[
+                {
+                    "exactness": "exact",
+                    "inputs": ["freq_input"],
+                    "sympy": "Eq(freq_output, freq_input / 2)",
+                }
+            ],
+        ),
+    }
+    concepts, parameterizations = _inputs(concept_registry)
+    records = detect_parameterization_conflicts(
+        by_concept, concepts, parameterizations, [], forms=forms
+    )
+    # 0.5 kHz -> 500 Hz -> derived 250 Hz; direct 0.1 kHz -> 100 Hz: conflict.
+    assert len(records) == 1
+    assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
+    assert records[0].value_a == "0.1 kHz"
+    assert records[0].value_b == "250.0 Hz"
 
 
 def test_single_hop_conflict_carries_derived_conditions() -> None:

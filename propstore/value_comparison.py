@@ -124,9 +124,25 @@ def values_compatible(
     return value_a == value_b
 
 
-def value_str(value: object, claim: object | None = None) -> str:
-    """Render a claim's value as a string."""
+def value_str(value: object, claim: object | None = None, *, with_unit: bool = False) -> str:
+    """Render a claim's value as a string.
 
+    With ``with_unit``, the claim's unit is appended when it carries one. Use it
+    wherever the two rendered sides are not in the same unit system — a
+    parameterization record compares an authored value against an SI-normalized
+    derived one, so unlabelled numbers there read as disagreeing when they do
+    not. Comparisons between two authored claims are already symmetric and pass
+    the default.
+    """
+
+    rendered = _value_str(value, claim)
+    if not with_unit or claim is None:
+        return rendered
+    unit = _as_unit(_claim_field(claim, "unit"))
+    return f"{rendered} {unit}" if unit else rendered
+
+
+def _value_str(value: object, claim: object | None) -> str:
     if claim is not None:
         interval = extract_interval(claim)
         if interval is not None:
