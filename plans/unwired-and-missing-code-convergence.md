@@ -105,7 +105,7 @@ Purpose: ensure later work is not justified by stale skips or descriptions.
 - [x] Delete the obsolete skipped ATMS resolution placeholder; add a real test
   only if a specific uncovered behavior is identified.
 - [x] Correct ASPIC module prose that says `build_aspic_projection` is absent.
-- [ ] Correct relation prose claiming reverse distances survive classification.
+- [x] Correct relation prose claiming reverse distances survive classification.
 - [ ] Correct grounding/fragility prose claiming non-empty grounding authoring is
   absent.
 - [ ] Replace or delete the three empty fragility placeholder test classes only

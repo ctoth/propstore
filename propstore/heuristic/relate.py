@@ -5,10 +5,12 @@ handles pair selection, bulk fetching, deduplication, and async orchestration.
 
 Embedding-neighbour searches are directed: A's nearest-neighbour distance to B is
 not interchangeable with B's distance to A. :func:`dedup_pairs` keeps one
-unordered pair for LLM cost control but preserves both directed distances rather
-than collapsing them to ``min(forward, reverse)``. Every classified stance keeps
-its ``perspective_source_claim_id`` so the two directions never collapse into one
-(CLAUDE.md non-commitment).
+unordered pair for LLM cost control and retains both directed distances for the
+corpus reference-distance pool. The classification call currently receives the
+representative forward distance for both directional results; the reverse
+distance does not survive as direction-specific stance evidence. Every classified
+stance does keep its ``perspective_source_claim_id`` so the two directions never
+collapse into one (CLAUDE.md non-commitment).
 """
 
 from __future__ import annotations
