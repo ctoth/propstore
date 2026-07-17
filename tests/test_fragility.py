@@ -10,21 +10,22 @@ Porting notes (Phase 7b-3 rewrite):
   canonical provenance-paired :class:`OpinionWithProvenance`, so the old
   "rejects a provenance-free opinion" case is now enforced by the type rather
   than a runtime check and is dropped.
-* The grounding/bridge families require the rule-authoring document surface
-  (``propstore.families.documents.rules``) and the gunray complement encoder,
-  neither of which is present in the rewrite substrate yet, so those classes are
-  skipped (see ``docs/gaps.md`` / ``docs/rewrite/deferred-tests.md``).
+* The grounding/bridge families consume the typed ``DefeasibleRule`` grounding
+  surface directly. Undecorated section predicates retain the production
+  positive-only decode until a complement encoder exists.
 """
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import gunray
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.core.graph_types import ParameterizationEdge
+from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
 from propstore.fragility import (
     AssumptionTarget,
     FragilityReport,
@@ -38,7 +39,10 @@ from propstore.fragility import (
     RankingPolicy,
     combine_fragility,
     collect_assumption_interventions,
+    collect_bridge_undercut_interventions,
     collect_conflict_interventions,
+    collect_ground_fact_interventions,
+    collect_grounded_rule_interventions,
     collect_missing_measurement_interventions,
     detect_interactions,
     rank_fragility,
@@ -47,6 +51,8 @@ from propstore.fragility import (
     weighted_epistemic_score,
 )
 from propstore.fragility_contributors import _in_extension
+from propstore.grounding.grounder import ground
+from propstore.grounding.predicates import PredicateRegistry
 from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
@@ -475,32 +481,62 @@ class TestConflictInterventions:
         assert ranked[0].target.kind is InterventionKind.CONFLICT
 
 
-@pytest.mark.skip(
-    reason="grounding family needs propstore.families.documents.rules (rule-authoring "
-    "documents) and the gunray complement encoder, absent in the rewrite substrate; "
-    "deferred (docs/gaps.md, docs/rewrite/deferred-tests.md)."
-)
-class TestGroundFactInterventions:
-    def test_deferred(self) -> None:
-        pytest.skip("grounding authoring surface deferred")
+def test_non_empty_grounding_bundle_drives_fragility_collectors() -> None:
+    variable = Term(kind="var", name="X")
+    bundle = ground(
+        (
+            DefeasibleRule(
+                rule_id="rule:birds-fly",
+                kind="defeasible",
+                head=Atom(predicate="flies", terms=(variable,)),
+                body=(
+                    BodyLiteral(
+                        kind="positive",
+                        atom=Atom(predicate="bird", terms=(variable,)),
+                    ),
+                ),
+            ),
+            DefeasibleRule(
+                rule_id="rule:penguins-do-not-fly",
+                kind="proper_defeater",
+                head=Atom(predicate="flies", terms=(variable,), negated=True),
+                body=(
+                    BodyLiteral(
+                        kind="positive",
+                        atom=Atom(predicate="penguin", terms=(variable,)),
+                    ),
+                ),
+            ),
+        ),
+        (
+            gunray.GroundAtom(predicate="bird", arguments=("tweety",)),
+            gunray.GroundAtom(predicate="penguin", arguments=("tweety",)),
+        ),
+        PredicateRegistry.from_documents(()),
+    )
 
+    fact_interventions = collect_ground_fact_interventions(bundle)
+    rule_interventions = collect_grounded_rule_interventions(bundle)
+    bridge_interventions = collect_bridge_undercut_interventions(bundle, (), [], ())
 
-@pytest.mark.skip(
-    reason="grounded-rule family needs propstore.families.documents.rules and the gunray "
-    "complement encoder, absent in the rewrite substrate; deferred (docs/gaps.md)."
-)
-class TestGroundedRuleInterventions:
-    def test_deferred(self) -> None:
-        pytest.skip("grounding authoring surface deferred")
-
-
-@pytest.mark.skip(
-    reason="bridge-undercut family needs propstore.families.documents.rules to author the "
-    "rule input it scores; absent in the rewrite substrate; deferred (docs/gaps.md)."
-)
-class TestBridgeUndercutInterventions:
-    def test_deferred(self) -> None:
-        pytest.skip("grounding authoring surface deferred")
+    assert fact_interventions
+    assert all(
+        item.target.kind is InterventionKind.GROUND_FACT
+        and item.target.family is InterventionFamily.GROUNDING
+        for item in fact_interventions
+    )
+    assert rule_interventions
+    assert all(
+        item.target.kind is InterventionKind.GROUNDED_RULE
+        and item.target.family is InterventionFamily.GROUNDING
+        for item in rule_interventions
+    )
+    assert bridge_interventions
+    assert all(
+        item.target.kind is InterventionKind.BRIDGE_UNDERCUT
+        and item.target.family is InterventionFamily.BRIDGE
+        for item in bridge_interventions
+    )
 
 
 class TestInteractions:

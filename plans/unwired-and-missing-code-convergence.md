@@ -108,7 +108,7 @@ Purpose: ensure later work is not justified by stale skips or descriptions.
 - [x] Correct relation prose claiming reverse distances survive classification.
 - [x] Correct grounding/fragility prose claiming non-empty grounding authoring is
   absent.
-- [ ] Replace or delete the three empty fragility placeholder test classes only
+- [x] Replace or delete the three empty fragility placeholder test classes only
   after driving the existing collectors with a real non-empty production bundle.
 - [ ] Remove stale “embedding deferred” labels while retaining genuine optional
   `sqlite_vec` dependency skips.
