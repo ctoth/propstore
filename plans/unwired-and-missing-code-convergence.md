@@ -112,7 +112,7 @@ Purpose: ensure later work is not justified by stale skips or descriptions.
   after driving the existing collectors with a real non-empty production bundle.
 - [x] Remove stale “embedding deferred” labels while retaining genuine optional
   `sqlite_vec` dependency skips.
-- [ ] Rewrite the PrAF/grounding skipped-test description so it names the actual
+- [x] Rewrite the PrAF/grounding skipped-test description so it names the actual
   missing propagation seam rather than claiming low-level budget capture is absent.
 
 Gate:
