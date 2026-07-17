@@ -102,7 +102,7 @@ Decision required before the named optional surfaces:
 
 Purpose: ensure later work is not justified by stale skips or descriptions.
 
-- [ ] Delete the obsolete skipped ATMS resolution placeholder; add a real test
+- [x] Delete the obsolete skipped ATMS resolution placeholder; add a real test
   only if a specific uncovered behavior is identified.
 - [ ] Correct ASPIC module prose that says `build_aspic_projection` is absent.
 - [ ] Correct relation prose claiming reverse distances survive classification.

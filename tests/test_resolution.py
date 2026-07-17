@@ -4,8 +4,7 @@ Exercises ``propstore.world.resolution.resolve`` and its strategy helpers over
 in-memory belief-space doubles. The ARGUMENTATION backends reuse the built
 analyzers (claim-graph / ASPIC+ / structured / PrAF) and are driven here through
 monkeypatched analyzer entry points so the dispatch logic is tested in isolation
-from a concrete store. The ATMS strategy and any BoundWorld/concrete-store path
-are deferred to later world-layer slices (see the skip markers below).
+from a concrete store.
 """
 
 from __future__ import annotations
@@ -563,11 +562,3 @@ def test_assignment_selection_merge_branch_filter_narrows_sources() -> None:
     # the merge consensus.
     assert result.status is ValueStatus.RESOLVED
     assert result.value == 10.0
-
-
-# --- ATMS strategy (deferred to 7a-world-B2) --------------------------------
-
-
-@pytest.mark.skip(reason="ATMS engine lands in 7a-world-B2")
-def test_atms_support_resolution() -> None:  # pragma: no cover - deferred
-    raise NotImplementedError
