@@ -9,8 +9,9 @@ exercise the same behaviours over ``Repository.init`` -> author charters ->
 
 The reader satisfies the ``WorldStore`` protocol and reuses the ``world.model``
 C3 free-function glue (``bind`` / ``chain_query`` / ``intervene`` / ``observe``)
-unchanged; the embedding-similarity cases are deferred to Phase 10 (no sqlite-vec
-index in this slice) and assert the honest-empty contract here.
+unchanged. The embedding-similarity fixture here has no sqlite-vec index and
+asserts the honest-empty contract; indexed behavior has its optional-dependency
+coverage in ``test_embed_similar.py``.
 """
 
 from __future__ import annotations
@@ -275,7 +276,7 @@ def test_all_relationships_is_empty(world: WorldQuery) -> None:
     assert list(world.all_relationships()) == []
 
 
-# ── embedding similarity (deferred to Phase 10) ──────────────────────────────
+# ── embedding similarity without an index ────────────────────────────────────
 
 
 def test_similar_claims_honest_empty(world: WorldQuery) -> None:
