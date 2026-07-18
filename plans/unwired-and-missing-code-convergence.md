@@ -47,15 +47,29 @@ during implementation.
 
 ### Q1. Canonical claim scalar
 
-Recommended: preserve the four JSON scalar classes `str | bool | int | float`,
-with `None` for absence. Preserve boolean separately from integer and preserve
-integer rather than silently converting it to float.
+Decision — 2026-07-18:
 
-Decision required:
-
-- exact scalar set;
-- tagged JSON storage versus discriminator plus typed columns;
-- whether the standalone LinkML/JSON schemas remain supported contracts.
+- Propstore's canonical scalar API is `str | bool | int | float`, with `None`
+  representing absence. Integers are signed 64-bit values. Floats are finite
+  IEEE-754 binary64 values. Boolean remains distinct from integer, and integer is
+  never silently converted to float.
+- Propstore owns those scalar semantics. Quire owns the generic charter-derived
+  storage mechanism: each present value is MessagePack-encoded into one BLOB
+  column, while absence is SQL `NULL`. Encoded MessagePack `nil` is not a second
+  spelling of absence.
+- The MessagePack bytes are derived sidecar projection state. They are not input
+  to artifact identity, content hashes, or canonical Git document serialization.
+  Domain and authoring APIs continue to expose native scalar values, not a
+  wrapper, payload, or codec DTO.
+- No discriminator-plus-typed-column representation, Propstore-local codec
+  adapter, or parallel scalar storage path is permitted.
+- The standalone Claim LinkML source and its generated/package JSON schemas are
+  retired as supported contracts. This decision is specific to the Claim schema;
+  it does not automatically retire unrelated schema resources.
+- CBOR is reserved for a future durable external binary wire contract if one is
+  explicitly required. Protobuf and ASN.1 are rejected for this boundary because
+  their schema/code-generation and encoding-profile ownership is disproportionate
+  to one derived scalar column.
 
 ### Q2. Incomplete reasoning policy
 
@@ -130,7 +144,7 @@ ATMS test or any consumer-specific workaround.
 
 ### A1. Prove and encode the scalar contract
 
-- [ ] Resolve Q1.
+- [x] Resolve Q1.
 - [ ] Add source-to-world round-trip tests for string category, boolean, integer,
   float, and absent value.
 - [ ] Change `SourceClaimDocument.value` and canonical `Claim.value` together.
