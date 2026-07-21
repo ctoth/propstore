@@ -1,7 +1,7 @@
 # Condition Registry Convergence Plan
 
 Date: 2026-07-21
-Status: in progress; completion audit found one compiler registry widening
+Status: completed after production-surface audit
 Control surface: `protocols:cleanup-refactor`
 
 This plan supersedes only the still-open CEL-registry ownership work in:
@@ -473,17 +473,17 @@ Active boundary:
 
 Execution order:
 
-- [ ] Import `ConceptInfo` at the module boundary and change the structural
+- [x] Import `ConceptInfo` at the module boundary and change the structural
   invariant function parameter to `condition_registry: Mapping[str, ConceptInfo]`.
-- [ ] Delete the local `ConceptInfo` import and the reconstructed
+- [x] Delete the local `ConceptInfo` import and the reconstructed
   `typed_registry`; pass `condition_registry` directly to condition-ir consumers.
-- [ ] Prove the forbidden local widening is absent:
+- [x] Prove the forbidden local widening is absent:
 
   ```powershell
   rg -n 'typed_registry|cel_registry: Mapping\[str, object\]' propstore/compiler/workflows.py
   ```
 
-- [ ] Run the focused repair gates:
+- [x] Run the focused repair gates:
 
   ```powershell
   powershell -File scripts/run_logged_pytest.ps1 -Label condition-registry-audit tests/test_compiler_workflows.py tests/test_compilation_context.py tests/test_claim_conditions.py -q
@@ -492,19 +492,19 @@ Execution order:
   uv run lint-imports
   ```
 
-- [ ] Commit the kept source repair as:
+- [x] Commit the kept source repair as:
 
   ```text
   refactor(compiler): consume checked condition registry directly
   ```
 
-- [ ] Rerun all seven convergence searches and the full logged suite:
+- [x] Rerun all seven convergence searches and the full logged suite:
 
   ```powershell
   powershell -File scripts/run_logged_pytest.ps1 -Label condition-registry-full-audit
   ```
 
-- [ ] Update this plan and the uncommitted fixed-point record with the audited
+- [x] Update this plan and the uncommitted fixed-point record with the audited
   evidence, then commit the completion record as:
 
   ```text
@@ -514,3 +514,16 @@ Execution order:
 The previous final-gate results remain historical evidence for the earlier
 tree. Completion now additionally requires every audit-repair checkbox above
 and its post-repair full-suite gate.
+
+Audit result (2026-07-21):
+
+- The compiler consumes `CompilationContext.condition_registry` directly as
+  `Mapping[str, ConceptInfo]`; no object widening, local narrowing block, or
+  reconstructed registry remains. Kept source commit `d383169f`.
+- The audit search and all seven convergence searches have zero hits.
+- 18 focused tests passed; log
+  `logs/test-runs/condition-registry-audit-20260721-161810.log`.
+- Changed-file Ruff passed; package Pyright passed with 0 errors; all 3 import
+  contracts were kept.
+- The post-repair full suite passed 1738 tests with 2 skipped; log
+  `logs/test-runs/condition-registry-full-audit-20260721-162023.log`.
