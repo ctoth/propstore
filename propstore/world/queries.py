@@ -41,6 +41,11 @@ from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
+from propstore.families.temporal import (
+    DescriptionTemporalAnchorDoc,
+    HappensBeforeEdgeDoc,
+    TemporalFrameDoc,
+)
 
 if TYPE_CHECKING:
     from quire.sqlalchemy_store import DerivedSession
@@ -236,6 +241,52 @@ def select_coreference_merge_arguments(
     return [
         CoreferenceMergeArgumentDoc.__charter__.document_from_model(
             row, CoreferenceMergeArgumentDoc
+        )
+        for row in session.scalars(select(model))
+    ]
+
+
+# ── temporal frames / anchors / happens-before edges ─────────────────────────
+
+
+def select_temporal_frames(session: DerivedSession) -> list[TemporalFrameDoc]:
+    """Every authored temporal frame in the sidecar."""
+
+    model = session.schema.model("temporal_frame")
+    return [
+        TemporalFrameDoc.__charter__.document_from_model(row, TemporalFrameDoc)
+        for row in session.scalars(select(model))
+    ]
+
+
+def select_description_temporal_anchors(
+    session: DerivedSession,
+) -> list[DescriptionTemporalAnchorDoc]:
+    """Every authored description-temporal anchor in the sidecar."""
+
+    model = session.schema.model("description_temporal_anchor")
+    return [
+        DescriptionTemporalAnchorDoc.__charter__.document_from_model(
+            row, DescriptionTemporalAnchorDoc
+        )
+        for row in session.scalars(select(model))
+    ]
+
+
+def select_happens_before_edges(
+    session: DerivedSession,
+) -> list[HappensBeforeEdgeDoc]:
+    """Every authored happens-before edge in the sidecar.
+
+    Returns EVERY row — rival cyclic edges both come back (non-commitment; the
+    order verdict is a per-query decision made by the app layer, never a
+    read-time filter).
+    """
+
+    model = session.schema.model("happens_before_edge")
+    return [
+        HappensBeforeEdgeDoc.__charter__.document_from_model(
+            row, HappensBeforeEdgeDoc
         )
         for row in session.scalars(select(model))
     ]

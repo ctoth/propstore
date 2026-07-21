@@ -50,6 +50,11 @@ from propstore.families.sources import (
     SourceMicropublicationsDocument,
     SourceStancesDocument,
 )
+from propstore.families.temporal import (
+    DescriptionTemporalAnchorDoc,
+    HappensBeforeEdgeDoc,
+    TemporalFrameDoc,
+)
 from propstore.worldline.definition import WorldlineDefinition
 
 # Re-exported here so the source subsystem can use ``propstore.families.registry``
@@ -67,7 +72,7 @@ from propstore.families.rules import RuleProposalRef as RuleProposalRef
 # ``propstore.families.registry`` as the one import site for the worldline ref.
 from propstore.worldline.definition import WorldlineRef as WorldlineRef
 
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.21")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.21.1")
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
 # The charter-bearing document classes, in authoring order. The registry's
@@ -92,6 +97,9 @@ _CHARTER_MODELS = (
     CoreferenceMergeArgumentDoc,
     Justification,
     Micropublication,
+    TemporalFrameDoc,
+    DescriptionTemporalAnchorDoc,
+    HappensBeforeEdgeDoc,
     SourceDocument,
     SourceConceptsDocument,
     SourceClaimsDocument,
@@ -151,6 +159,9 @@ class PropstoreFamily(StrEnum):
     PROPOSAL_COREFERENCE = "proposal_coreference"
     JUSTIFICATION = "justification"
     MICROPUBLICATION = "micropublication"
+    TEMPORAL_FRAME = "temporal_frame"
+    DESCRIPTION_TEMPORAL_ANCHOR = "description_temporal_anchor"
+    HAPPENS_BEFORE_EDGE = "happens_before_edge"
     SOURCE_DOCUMENTS = "source_documents"
     SOURCE_CONCEPTS = "source_concepts"
     SOURCE_CLAIMS = "source_claims"

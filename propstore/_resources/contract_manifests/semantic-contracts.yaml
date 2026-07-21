@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.21
+  contract_version: 2026.07.21.1
   body:
     families:
     - contract_version: 2026.06.28
@@ -191,6 +191,15 @@ contracts:
     - contract_version: 2026.07.13
       key: micropublication
       name: micropublication
+    - contract_version: 2026.07.21
+      key: temporal_frame
+      name: temporal_frame
+    - contract_version: 2026.07.21
+      key: description_temporal_anchor
+      name: description_temporal_anchor
+    - contract_version: 2026.07.21
+      key: happens_before_edge
+      name: happens_before_edge
     - contract_version: 2026.06.29
       key: source_documents
       name: source_documents
@@ -425,6 +434,38 @@ contracts:
     identity_field: rule_id
     key: defeasible_rule
 - kind: family
+  name: description_temporal_anchor
+  contract_version: 2026.07.21
+  body:
+    accessor: description_temporal_anchor
+    artifact_family: description_temporal_anchor
+    artifact_family_contract:
+      doc_type: propstore.families.temporal.DescriptionTemporalAnchorDocModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: description_temporal_anchor
+        ref_field: self
+    artifact_family_contract_version: 2026.07.21
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: description_temporal_anchor
+      source_field: claim_id
+      target_family: claim
+      target_field: claim_id
+    - many: false
+      required: false
+      source_family: description_temporal_anchor
+      source_field: frame_id
+      target_family: temporal_frame
+      target_field: frame_id
+    identity_field: anchor_id
+    key: description_temporal_anchor
+- kind: family
   name: form
   contract_version: 2026.06.28
   body:
@@ -444,6 +485,38 @@ contracts:
     foreign_keys: []
     identity_field: name
     key: form
+- kind: family
+  name: happens_before_edge
+  contract_version: 2026.07.21
+  body:
+    accessor: happens_before_edge
+    artifact_family: happens_before_edge
+    artifact_family_contract:
+      doc_type: propstore.families.temporal.HappensBeforeEdgeDocModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: happens_before_edge
+        ref_field: self
+    artifact_family_contract_version: 2026.07.21
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: happens_before_edge
+      source_field: earlier_claim_id
+      target_family: claim
+      target_field: claim_id
+    - many: false
+      required: false
+      source_family: happens_before_edge
+      source_field: later_claim_id
+      target_family: claim
+      target_field: claim_id
+    identity_field: edge_id
+    key: happens_before_edge
 - kind: family
   name: justification
   contract_version: 2026.06.29
@@ -911,6 +984,26 @@ contracts:
     identity_field: stance_id
     key: stance
 - kind: family
+  name: temporal_frame
+  contract_version: 2026.07.21
+  body:
+    accessor: temporal_frame
+    artifact_family: temporal_frame
+    artifact_family_contract:
+      doc_type: propstore.families.temporal.TemporalFrameDocModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: temporal_frame
+        ref_field: self
+    artifact_family_contract_version: 2026.07.21
+    foreign_keys: []
+    identity_field: frame_id
+    key: temporal_frame
+- kind: family
   name: worldlines
   contract_version: 2026.07.13
   body:
@@ -1040,4 +1133,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.21
+  contract_version: 2026.07.21.1
