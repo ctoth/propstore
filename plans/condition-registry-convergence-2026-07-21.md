@@ -1,7 +1,7 @@
 # Condition Registry Convergence Plan
 
 Date: 2026-07-21
-Status: completed
+Status: in progress; completion audit found one compiler registry widening
 Control surface: `protocols:cleanup-refactor`
 
 This plan supersedes only the still-open CEL-registry ownership work in:
@@ -458,3 +458,59 @@ The plan is complete only when:
 - unrelated pre-existing worktree paths remain untouched;
 - the uncommitted fixed-point record names all evidence and commits;
 - every item above is complete or explicitly deferred by the user.
+
+## Completion audit repair - direct compiler registry consumption
+
+Reopened on 2026-07-21 after a production-surface audit found that
+`_enforce_cel_structural_invariants` widened the already-typed
+`CompilationContext.condition_registry` to `Mapping[str, object]` and rebuilt a
+filtered `typed_registry`. That local narrowing block contradicts the direct
+checked-owner target and must be deleted before this plan is complete.
+
+Active boundary:
+
+- `propstore/compiler/workflows.py`
+
+Execution order:
+
+- [ ] Import `ConceptInfo` at the module boundary and change the structural
+  invariant function parameter to `condition_registry: Mapping[str, ConceptInfo]`.
+- [ ] Delete the local `ConceptInfo` import and the reconstructed
+  `typed_registry`; pass `condition_registry` directly to condition-ir consumers.
+- [ ] Prove the forbidden local widening is absent:
+
+  ```powershell
+  rg -n 'typed_registry|cel_registry: Mapping\[str, object\]' propstore/compiler/workflows.py
+  ```
+
+- [ ] Run the focused repair gates:
+
+  ```powershell
+  powershell -File scripts/run_logged_pytest.ps1 -Label condition-registry-audit tests/test_compiler_workflows.py tests/test_compilation_context.py tests/test_claim_conditions.py -q
+  uv run ruff check propstore/compiler/workflows.py
+  uv run pyright propstore
+  uv run lint-imports
+  ```
+
+- [ ] Commit the kept source repair as:
+
+  ```text
+  refactor(compiler): consume checked condition registry directly
+  ```
+
+- [ ] Rerun all seven convergence searches and the full logged suite:
+
+  ```powershell
+  powershell -File scripts/run_logged_pytest.ps1 -Label condition-registry-full-audit
+  ```
+
+- [ ] Update this plan and the uncommitted fixed-point record with the audited
+  evidence, then commit the completion record as:
+
+  ```text
+  docs(conditions): record audited convergence completion
+  ```
+
+The previous final-gate results remain historical evidence for the earlier
+tree. Completion now additionally requires every audit-repair checkbox above
+and its post-repair full-suite gate.
