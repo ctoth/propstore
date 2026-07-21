@@ -1,7 +1,7 @@
 # Condition Registry Convergence Plan
 
 Date: 2026-07-21
-Status: implementation and fixed-point closeout complete; final convergence gates pending
+Status: completed
 Control surface: `protocols:cleanup-refactor`
 
 This plan supersedes only the still-open CEL-registry ownership work in:
@@ -410,7 +410,6 @@ This slice changes records, not architecture.
 Result (2026-07-21): all seven prior search gates have zero hits, the four
 historical plans carry dated supersession notes, and the uncommitted
 fixed-point record names the commits, logs, zero residual hits, and next action.
-Final convergence gates remain pending and are not reported as complete.
 
 Commit:
 
@@ -430,6 +429,22 @@ powershell -File scripts/run_logged_pytest.ps1 -Label condition-registry-full
 ```
 
 Then rerun Ruff only over the union of Python paths changed by this plan.
+
+Final result (2026-07-21):
+
+- 230 focused tests passed; log
+  `logs/test-runs/condition-registry-focused-20260721-160437.log`.
+- Package Pyright passed with 0 errors; all 3 import contracts were kept.
+- The first full run exposed 11 stale full-suite fixtures. After classifying and
+  repairing those test-only edges, the six-file fallout suite passed 48 tests;
+  log `logs/test-runs/condition-registry-full-fallout-20260721-160846.log`.
+- The final full suite passed 1738 tests with 2 skipped; log
+  `logs/test-runs/condition-registry-full-20260721-160922.log`.
+- Ruff passed over the exact 31 surviving Python paths changed by this plan.
+- All seven forbidden searches had zero hits on the final tree. The checked-in
+  contract manifest passed its currentness and version-compatibility tests.
+- The test-only fallout repair was kept as commit `f6329f7e` after the four
+  planned source/record slices.
 
 The plan is complete only when:
 
