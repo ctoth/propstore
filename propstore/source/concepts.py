@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from cel_parser import Ident, ParseError, parse
 from quire.documents import decode_document_path
 
 from propstore.families.concepts import Concept
@@ -90,6 +91,14 @@ def normalize_source_concepts_document(
         if not all((local_name, proposed_name, definition, form)):
             raise ValueError(
                 f"concept #{index} is missing local_name/proposed_name/definition/form"
+            )
+        try:
+            parsed_name = parse(proposed_name)
+        except ParseError:
+            parsed_name = None
+        if not isinstance(parsed_name, Ident) or parsed_name.name != proposed_name:
+            raise ValueError(
+                f"concept #{index} proposed_name {proposed_name!r} is not a CEL identifier"
             )
         validate_form_name(form, repo)
         registry_match = primary_branch_concept_match(

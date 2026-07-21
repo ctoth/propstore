@@ -81,6 +81,32 @@ def test_concept_pipeline_builds_registry() -> None:
     assert "c1" in result.output.by_id
 
 
+def test_concept_pipeline_preserves_identity_symbol_and_lexical_form() -> None:
+    concept = Concept(
+        concept_id="ps:concept:frequency",
+        canonical_name="frequency",
+        lexical_entry=LexicalEntry(
+            identifier="entry:frequency",
+            canonical_form=LexicalForm(
+                written_rep="Fundamental frequency", language="en"
+            ),
+            senses=(
+                LexicalSense(
+                    reference=OntologyReference(uri="ps:concept:frequency")
+                ),
+            ),
+        ),
+    )
+    result = run_concept_pipeline([LoadedConcept(concept=concept)])
+
+    assert isinstance(result.output, ConceptCheckedRegistry)
+    checked = result.output.by_id["ps:concept:frequency"]
+    assert checked.concept_id == "ps:concept:frequency"
+    assert checked.canonical_name == "frequency"
+    assert checked.lexical_entry is not None
+    assert checked.lexical_entry.canonical_form.written_rep == "Fundamental frequency"
+
+
 def test_concept_pipeline_duplicate_id_short_circuits() -> None:
     concepts = [
         LoadedConcept(concept=Concept(concept_id="c1", canonical_name="A")),
@@ -89,6 +115,34 @@ def test_concept_pipeline_duplicate_id_short_circuits() -> None:
     result = run_concept_pipeline(concepts)
     assert result.output is None
     assert any(d.code == "concept.id.duplicate" for d in result.errors)
+
+
+def test_concept_pipeline_invalid_canonical_name_short_circuits() -> None:
+    result = run_concept_pipeline(
+        [
+            LoadedConcept(
+                concept=Concept(
+                    concept_id="ps:concept:draft_concept",
+                    canonical_name="Draft Concept",
+                )
+            )
+        ]
+    )
+
+    assert result.output is None
+    assert any(d.code == "concept.canonical_name.invalid" for d in result.errors)
+
+
+def test_concept_pipeline_duplicate_canonical_name_short_circuits() -> None:
+    result = run_concept_pipeline(
+        [
+            LoadedConcept(concept=Concept(concept_id="c1", canonical_name="shared")),
+            LoadedConcept(concept=Concept(concept_id="c2", canonical_name="shared")),
+        ]
+    )
+
+    assert result.output is None
+    assert any(d.code == "concept.canonical_name.duplicate" for d in result.errors)
 
 
 def test_concept_pipeline_dangling_form_is_warning_not_abort() -> None:

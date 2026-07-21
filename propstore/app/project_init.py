@@ -262,7 +262,7 @@ def _concept_from_seed(seed: _SeedConcept, provenance: Provenance) -> Concept:
     )
     return Concept(
         concept_id=seed.artifact_id,
-        canonical_name=seed.name,
+        canonical_name=seed.ref,
         definition=seed.definition,
         lexical_entry=entry,
     )

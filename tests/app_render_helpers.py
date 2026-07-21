@@ -39,7 +39,7 @@ def _speed_concept() -> Concept:
     )
     return Concept(
         concept_id="speed",
-        canonical_name="Speed",
+        canonical_name="speed",
         definition="How fast something moves.",
         lexical_entry=entry,
     )
@@ -56,14 +56,25 @@ def build_demo_repo(tmp_path: Path) -> Repository:
     )
     repo.families.concept.save("speed", _speed_concept(), message="m")
     repo.families.concept.save(
-        "distance", Concept(concept_id="distance", canonical_name="Distance"), message="m"
+        "distance", Concept(concept_id="distance", canonical_name="distance"), message="m"
     )
     repo.families.concept.save(
         "draftconcept",
         Concept(
             concept_id="draftconcept",
-            canonical_name="Draft Concept",
+            canonical_name="draft_concept",
             status=ConceptStatus.DRAFT,
+            lexical_entry=LexicalEntry(
+                identifier="draft_concept",
+                canonical_form=LexicalForm(
+                    written_rep="Draft Concept", language="en"
+                ),
+                senses=(
+                    LexicalSense(
+                        reference=OntologyReference(uri="ex:draft_concept")
+                    ),
+                ),
+            ),
         ),
         message="m",
     )

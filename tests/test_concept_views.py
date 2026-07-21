@@ -18,6 +18,7 @@ from propstore.app.concepts import (
 from propstore.app.concepts.display import ConceptDisplayError
 from propstore.app.rendering import AppRenderPolicyRequest, build_render_policy
 from propstore.app.view_state import ViewState
+from propstore.families.concepts import Concept
 from propstore.world import RenderPolicy, WorldQuery
 from tests.app_render_helpers import build_demo_repo
 
@@ -36,7 +37,7 @@ def test_concept_view_known(tmp_path: Path) -> None:
     repo = build_demo_repo(tmp_path)
     with WorldQuery(repo) as world:
         report = build_concept_view(world, "speed", policy=_default_policy())
-    assert report.canonical_name == "Speed"
+    assert report.canonical_name == "speed"
     assert report.form.state is ViewState.KNOWN
     assert report.form.form_name == "velocity"
     assert report.status.state is ViewState.KNOWN
@@ -46,9 +47,14 @@ def test_concept_view_known(tmp_path: Path) -> None:
 
 def test_concept_view_resolves_by_name(tmp_path: Path) -> None:
     repo = build_demo_repo(tmp_path)
+    repo.families.concept.save(
+        "ps:concept:velocity",
+        Concept(concept_id="ps:concept:velocity", canonical_name="velocity"),
+        message="m",
+    )
     with WorldQuery(repo) as world:
-        report = build_concept_view(world, "Speed", policy=_default_policy())
-    assert report.concept_id == "speed"
+        report = build_concept_view(world, "velocity", policy=_default_policy())
+    assert report.concept_id == "ps:concept:velocity"
 
 
 def test_concept_form_missing_without_lexical_entry(tmp_path: Path) -> None:

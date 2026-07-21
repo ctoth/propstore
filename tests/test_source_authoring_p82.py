@@ -100,6 +100,19 @@ def test_concept_proposal_is_stored_as_proposed(tmp_path: Path) -> None:
     assert entry.registry_match is None
 
 
+def test_concept_proposal_rejects_non_cel_proposed_name(tmp_path: Path) -> None:
+    repo = _new_source(tmp_path)
+
+    with pytest.raises(ValueError, match="proposed_name.*is not a CEL identifier"):
+        commit_source_concept_proposal(
+            repo,
+            _SOURCE,
+            local_name="Draft Concept",
+            definition="a draft concept",
+            form="dimensionless",
+        )
+
+
 def test_concept_proposal_rejects_unknown_form_when_forms_exist(
     tmp_path: Path,
 ) -> None:

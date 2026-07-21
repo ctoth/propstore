@@ -19,6 +19,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from cel_parser import Ident, ParseError, parse
+
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
 from propstore.families.registry import PropstoreFamily
@@ -111,6 +113,7 @@ class ConceptCheckPass:
         errors: list[PassDiagnostic] = []
         warnings: list[PassDiagnostic] = []
         by_id: dict[str, Concept] = {}
+        by_canonical_name: dict[str, Concept] = {}
 
         for loaded in value.concepts:
             concept = loaded.concept
@@ -144,6 +147,38 @@ class ConceptCheckPass:
                     )
                 )
                 continue
+            try:
+                parsed_name = parse(concept.canonical_name)
+            except ParseError:
+                parsed_name = None
+            if (
+                not isinstance(parsed_name, Ident)
+                or parsed_name.name != concept.canonical_name
+            ):
+                errors.append(
+                    _diagnostic(
+                        "error",
+                        "concept.canonical_name.invalid",
+                        (
+                            f"concept '{concept.concept_id}' canonical name "
+                            f"'{concept.canonical_name}' is not a CEL identifier"
+                        ),
+                        loaded,
+                        self.name,
+                    )
+                )
+                continue
+            if concept.canonical_name in by_canonical_name:
+                errors.append(
+                    _diagnostic(
+                        "error",
+                        "concept.canonical_name.duplicate",
+                        f"duplicate concept canonical name '{concept.canonical_name}'",
+                        loaded,
+                        self.name,
+                    )
+                )
+                continue
             entry = concept.lexical_entry
             if (
                 entry is not None
@@ -163,6 +198,7 @@ class ConceptCheckPass:
                     )
                 )
             by_id[concept.concept_id] = concept
+            by_canonical_name[concept.canonical_name] = concept
 
         diagnostics = tuple(errors) + tuple(warnings)
         if errors:

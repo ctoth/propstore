@@ -59,9 +59,11 @@ def test_initialize_project_seeds_description_kind_concepts(tmp_path: Path) -> N
     repo = Repository.find(root)
 
     measurement = _load_concept(repo, "ps:concept:measurement")
-    assert measurement.canonical_name == "Measurement"
+    assert measurement.concept_id == "ps:concept:measurement"
+    assert measurement.canonical_name == "measurement"
     entry = measurement.lexical_entry
     assert entry is not None
+    assert entry.canonical_form.written_rep == "Measurement"
     sense = entry.senses[0]
     assert sense.provenance is not None
     assert sense.provenance.status is ProvenanceStatus.STATED
