@@ -28,9 +28,12 @@ from propstore.core.lemon import (
     DescriptionKindMergeProtocol,
     DescriptionTemporalAnchor,
     GradedEntailment,
+    HappensBeforeAccount,
     HappensBeforeEdge,
     LexicalSense,
     OntologyReference,
+    OrderingEvidenceKind,
+    OrderingLink,
     ParticipantSlot,
     ProtoAgentProperty,
     ProtoPatientProperty,
@@ -505,54 +508,125 @@ def test_cross_frame_allen_query_raises() -> None:
 
 
 def test_authored_edges_transitively_order_across_frames() -> None:
-    """(4) Authored happens-before edges + transitivity yield BEFORE / AFTER cross-frame."""
+    """(4) Mechanism-backed edges + transitivity yield BEFORE / AFTER cross-frame."""
 
     a_before_b = HappensBeforeEdge(
         edge_id="e:ab",
         earlier_claim_id="ps:claim:a",
         later_claim_id="ps:claim:b",
+        account=HappensBeforeAccount.MESSAGE,
         provenance=_provenance("happens-before"),
     )
     b_before_c = HappensBeforeEdge(
         edge_id="e:bc",
         earlier_claim_id="ps:claim:b",
         later_claim_id="ps:claim:c",
+        account=HappensBeforeAccount.MESSAGE,
         provenance=_provenance("happens-before"),
     )
     edges = (a_before_b, b_before_c)
 
-    assert (
-        temporal_order("ps:claim:a", "ps:claim:c", anchors=(), edges=edges)
-        is TemporalOrderVerdict.BEFORE
-    )
-    assert (
-        temporal_order("ps:claim:c", "ps:claim:a", anchors=(), edges=edges)
-        is TemporalOrderVerdict.AFTER
+    forward = temporal_order("ps:claim:a", "ps:claim:c", anchors=(), edges=edges)
+    assert forward.verdict is TemporalOrderVerdict.BEFORE
+    assert tuple(link.edge_id for link in forward.forward_path) == ("e:ab", "e:bc")
+    assert all(
+        link.kind is OrderingEvidenceKind.AUTHORED_POSIT
+        for link in forward.forward_path
     )
 
+    backward = temporal_order("ps:claim:c", "ps:claim:a", anchors=(), edges=edges)
+    assert backward.verdict is TemporalOrderVerdict.AFTER
+    assert tuple(link.edge_id for link in backward.backward_path) == ("e:ab", "e:bc")
 
-def test_cyclic_edges_are_conflicted() -> None:
-    """(5) Rival orderings (a->b and b->a) surface as CONFLICTED, never tie-broken."""
+
+def test_stated_edges_never_compose() -> None:
+    """A STATED posit orders only its own endpoints: two tellings chained would
+    assert an order neither teller committed to (mirrors causal STATED)."""
 
     edges = (
         HappensBeforeEdge(
             edge_id="e:ab",
             earlier_claim_id="ps:claim:a",
             later_claim_id="ps:claim:b",
+            account=HappensBeforeAccount.STATED,
+            provenance=_provenance("happens-before"),
+        ),
+        HappensBeforeEdge(
+            edge_id="e:bc",
+            earlier_claim_id="ps:claim:b",
+            later_claim_id="ps:claim:c",
+            account=HappensBeforeAccount.STATED,
+            provenance=_provenance("happens-before"),
+        ),
+    )
+
+    chained = temporal_order("ps:claim:a", "ps:claim:c", anchors=(), edges=edges)
+    assert chained.verdict is TemporalOrderVerdict.UNKNOWN
+
+    direct = temporal_order("ps:claim:a", "ps:claim:b", anchors=(), edges=edges)
+    assert direct.verdict is TemporalOrderVerdict.BEFORE
+    assert direct.forward_path == (
+        OrderingLink(
+            earlier_claim_id="ps:claim:a",
+            later_claim_id="ps:claim:b",
+            kind=OrderingEvidenceKind.AUTHORED_POSIT,
+            edge_id="e:ab",
+            account=HappensBeforeAccount.STATED,
+        ),
+    )
+
+
+def test_stated_edge_does_not_chain_with_mechanism_edges() -> None:
+    """STATED does not compose with ANY link kind, not just other tellings."""
+
+    edges = (
+        HappensBeforeEdge(
+            edge_id="e:ab",
+            earlier_claim_id="ps:claim:a",
+            later_claim_id="ps:claim:b",
+            account=HappensBeforeAccount.STATED,
+            provenance=_provenance("happens-before"),
+        ),
+        HappensBeforeEdge(
+            edge_id="e:bc",
+            earlier_claim_id="ps:claim:b",
+            later_claim_id="ps:claim:c",
+            account=HappensBeforeAccount.MESSAGE,
+            provenance=_provenance("happens-before"),
+        ),
+    )
+
+    assert (
+        temporal_order("ps:claim:a", "ps:claim:c", anchors=(), edges=edges).verdict
+        is TemporalOrderVerdict.UNKNOWN
+    )
+
+
+def test_cyclic_edges_are_conflicted_with_both_paths_witnessed() -> None:
+    """(5) Rival orderings (a->b and b->a) surface as CONFLICTED, never tie-broken,
+    and the judgment carries both witnessing paths."""
+
+    edges = (
+        HappensBeforeEdge(
+            edge_id="e:ab",
+            earlier_claim_id="ps:claim:a",
+            later_claim_id="ps:claim:b",
+            account=HappensBeforeAccount.MESSAGE,
             provenance=_provenance("happens-before"),
         ),
         HappensBeforeEdge(
             edge_id="e:ba",
             earlier_claim_id="ps:claim:b",
             later_claim_id="ps:claim:a",
+            account=HappensBeforeAccount.MESSAGE,
             provenance=_provenance("happens-before"),
         ),
     )
 
-    assert (
-        temporal_order("ps:claim:a", "ps:claim:b", anchors=(), edges=edges)
-        is TemporalOrderVerdict.CONFLICTED
-    )
+    judgment = temporal_order("ps:claim:a", "ps:claim:b", anchors=(), edges=edges)
+    assert judgment.verdict is TemporalOrderVerdict.CONFLICTED
+    assert tuple(link.edge_id for link in judgment.forward_path) == ("e:ab",)
+    assert tuple(link.edge_id for link in judgment.backward_path) == ("e:ba",)
 
 
 def test_overlapping_same_frame_intervals_are_concurrent() -> None:
@@ -574,20 +648,22 @@ def test_overlapping_same_frame_intervals_are_concurrent() -> None:
         provenance=_provenance("temporal-anchor"),
     )
 
-    assert (
-        temporal_order(
-            "ps:claim:left",
-            "ps:claim:right",
-            anchors=(left, right),
-            edges=(),
-            assume_complete=False,
-        )
-        is TemporalOrderVerdict.CONCURRENT
+    judgment = temporal_order(
+        "ps:claim:left",
+        "ps:claim:right",
+        anchors=(left, right),
+        edges=(),
+        assume_complete=False,
     )
+    assert judgment.verdict is TemporalOrderVerdict.CONCURRENT_PROVEN
+    assert judgment.proven_frame_id == "clock-A"
 
 
-def test_cross_frame_no_edges_is_unknown_but_concurrent_when_complete() -> None:
-    """(7) Cross-frame with no evidence: UNKNOWN by default, CONCURRENT when declared complete."""
+def test_cross_frame_no_edges_is_unknown_but_assumed_concurrent_when_complete() -> None:
+    """(7) Cross-frame with no evidence: UNKNOWN by default; declaring the evidence
+    set complete yields CONCURRENT_ASSUMED — a DIFFERENT verdict from bounds-proven
+    concurrency, because an assumed concurrency is defeasible (one new edge destroys
+    it) while a proven one is monotone."""
 
     left = DescriptionTemporalAnchor(
         claim_id="ps:claim:left",
@@ -608,7 +684,7 @@ def test_cross_frame_no_edges_is_unknown_but_concurrent_when_complete() -> None:
     assert (
         temporal_order(
             "ps:claim:left", "ps:claim:right", anchors=anchors, edges=()
-        )
+        ).verdict
         is TemporalOrderVerdict.UNKNOWN
     )
     assert (
@@ -618,9 +694,90 @@ def test_cross_frame_no_edges_is_unknown_but_concurrent_when_complete() -> None:
             anchors=anchors,
             edges=(),
             assume_complete=True,
-        )
-        is TemporalOrderVerdict.CONCURRENT
+        ).verdict
+        is TemporalOrderVerdict.CONCURRENT_ASSUMED
     )
+
+
+def test_posit_contradicting_frame_bounds_is_conflicted() -> None:
+    """A posited order that comparable coordinates positively refute is a RIVAL
+    ordering (coordinate-vs-posit), surfaced as CONFLICTED with the refuting frame
+    named — never a silent win for the posit."""
+
+    frame = _frame("clock-A")
+    left = DescriptionTemporalAnchor(
+        claim_id="ps:claim:left",
+        frame=frame,
+        valid_from=0.0,
+        valid_until=10.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    right = DescriptionTemporalAnchor(
+        claim_id="ps:claim:right",
+        frame=frame,
+        valid_from=5.0,
+        valid_until=15.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    posit = HappensBeforeEdge(
+        edge_id="e:posit",
+        earlier_claim_id="ps:claim:left",
+        later_claim_id="ps:claim:right",
+        account=HappensBeforeAccount.MESSAGE,
+        provenance=_provenance("happens-before"),
+    )
+
+    judgment = temporal_order(
+        "ps:claim:left",
+        "ps:claim:right",
+        anchors=(left, right),
+        edges=(posit,),
+    )
+    assert judgment.verdict is TemporalOrderVerdict.CONFLICTED
+    assert tuple(link.edge_id for link in judgment.forward_path) == ("e:posit",)
+    assert judgment.refuting_frame_id == "clock-A"
+
+
+def test_mixed_coordinate_and_posit_path_is_kind_auditable() -> None:
+    """A BEFORE chained through frame coordinates AND a message posit shows both
+    evidence kinds in its witnessing path — the closure never launders them."""
+
+    frame = _frame("clock-A")
+    x = DescriptionTemporalAnchor(
+        claim_id="ps:claim:x",
+        frame=frame,
+        valid_from=0.0,
+        valid_until=1.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    y = DescriptionTemporalAnchor(
+        claim_id="ps:claim:y",
+        frame=frame,
+        valid_from=2.0,
+        valid_until=3.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    message = HappensBeforeEdge(
+        edge_id="e:yz",
+        earlier_claim_id="ps:claim:y",
+        later_claim_id="ps:claim:z",
+        account=HappensBeforeAccount.MESSAGE,
+        provenance=_provenance("happens-before"),
+    )
+
+    judgment = temporal_order(
+        "ps:claim:x",
+        "ps:claim:z",
+        anchors=(x, y),
+        edges=(message,),
+    )
+    assert judgment.verdict is TemporalOrderVerdict.BEFORE
+    assert tuple(link.kind for link in judgment.forward_path) == (
+        OrderingEvidenceKind.COORDINATE_DERIVED,
+        OrderingEvidenceKind.AUTHORED_POSIT,
+    )
+    assert judgment.forward_path[0].frame_id == "clock-A"
+    assert judgment.forward_path[1].edge_id == "e:yz"
 
 
 def test_one_sided_bounds_construct_but_misorder_raises() -> None:
@@ -658,6 +815,7 @@ def test_happens_before_edge_rejects_self_loop() -> None:
             edge_id="e:self",
             earlier_claim_id="ps:claim:a",
             later_claim_id="ps:claim:a",
+            account=HappensBeforeAccount.MESSAGE,
             provenance=_provenance("happens-before"),
         )
 

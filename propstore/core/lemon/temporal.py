@@ -7,8 +7,19 @@ The temporal layer has two composed pieces:
    — a message receive, a human "X then Y", a cross-frame synchronization point.
    It is a claim-shaped piece of evidence, never a global fact; ordering across
    incommensurable clocks exists only insofar as such evidence supplies it.
-   Concurrency (provably no invariant order) is a first-class verdict distinct
-   from ignorance (insufficient evidence).
+   Every edge declares its :class:`HappensBeforeAccount`; transitive chaining is
+   licensed only by mechanism-backed accounts (mirroring
+   ``causal_transitivity_allowed`` in :mod:`description_kinds`) — a merely STATED
+   order never composes, because chaining two tellings would assert an order
+   neither teller committed to. Concurrency (provably no invariant order) is a
+   first-class verdict distinct from ignorance (insufficient evidence), and the
+   two ways of reaching it are distinct verdicts too: ``CONCURRENT_PROVEN``
+   (positive proof from bounds — monotone under new edges of the supplied kinds)
+   vs ``CONCURRENT_ASSUMED`` (absence of order re-read as concurrency under a
+   declared-complete evidence set — defeasible; one new edge destroys it).
+   Verdicts are returned inside a :class:`TemporalOrderJudgment` carrying the
+   witnessing :class:`OrderingLink` paths, so a reader can always see whether an
+   order (or a conflict) rests on frame coordinates, on posits, or on a mixture.
 
 2. **Declared-frame TIMEPOINT projections.** A :class:`TemporalFrame` is the
    declaration that one timeline (one machine's clock, one sensor, one human
@@ -125,6 +136,30 @@ class DescriptionTemporalAnchor(msgspec.Struct, frozen=True, forbid_unknown_fiel
             )
 
 
+class HappensBeforeAccount(StrEnum):
+    """The kind of evidence a happens-before posit rests on.
+
+    Mirrors :class:`CausalAccount`'s composition discipline
+    (``causal_transitivity_allowed`` in :mod:`description_kinds`): transitive
+    chaining is licensed only by mechanism-backed accounts. ``MESSAGE`` (a
+    send/receive pair) and ``SYNCHRONIZATION`` (an explicit cross-frame sync
+    point) compose — they are Lamport's actual relation. ``STATED`` (a telling,
+    "X then Y") orders exactly its own endpoints and NEVER participates in a
+    chain: composing two tellings would assert an order neither teller committed
+    to. To make a telling composable, re-author it under a mechanism-backed
+    account and take responsibility for the mechanism.
+    """
+
+    STATED = "stated"
+    MESSAGE = "message"
+    SYNCHRONIZATION = "synchronization"
+
+
+_COMPOSING_ACCOUNTS = frozenset(
+    {HappensBeforeAccount.MESSAGE, HappensBeforeAccount.SYNCHRONIZATION}
+)
+
+
 class HappensBeforeEdge(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     """Provenance-bearing evidence that one description strictly precedes another.
 
@@ -132,12 +167,16 @@ class HappensBeforeEdge(msgspec.Struct, frozen=True, forbid_unknown_fields=True)
     receive, a human "X then Y", a cross-frame sync point — never a global fact.
     It is the primitive from which cross-frame order is derived, consistent with
     ``docs/event-semantics.md``'s deflationary position: there is no view-from-
-    nowhere timeline, only the ordering that evidence supplies.
+    nowhere timeline, only the ordering that evidence supplies. The mandatory
+    ``account`` declares what the posit rests on and thereby whether it may be
+    chained (see :class:`HappensBeforeAccount`); there is no default, because
+    defaulting an epistemic commitment would fabricate one.
     """
 
     edge_id: str
     earlier_claim_id: str
     later_claim_id: str
+    account: HappensBeforeAccount
     provenance: Provenance
 
     def __post_init__(self) -> None:
@@ -150,18 +189,78 @@ class HappensBeforeEdge(msgspec.Struct, frozen=True, forbid_unknown_fields=True)
 class TemporalOrderVerdict(StrEnum):
     """Outcome of a happens-before order query between two descriptions.
 
-    ``CONCURRENT`` (provably no invariant order — Lamport 1978) is a DIFFERENT
-    verdict from ``UNKNOWN`` (insufficient evidence): the whole point of the
-    rebuild. ``CONFLICTED`` means the supplied evidence derives both ``a -> b``
-    and ``b -> a``; rival orderings are data (non-commitment principle), surfaced
-    rather than silently tie-broken.
+    Concurrency and ignorance are distinct, and so are the two BASES for
+    concurrency — because belief revision treats them differently:
+
+    - ``CONCURRENT_PROVEN``: positive proof (same-frame bounds rule out both
+      orderings). Monotone: adding edges cannot retract the bounds; it can only
+      CONTRADICT them, which surfaces as ``CONFLICTED``, never as a silent flip.
+    - ``CONCURRENT_ASSUMED``: absence of order re-read as concurrency under a
+      per-query ``assume_complete`` declaration. Defeasible: one new edge
+      destroys it.
+
+    ``CONFLICTED`` means rival orderings — either the evidence derives both
+    ``a -> b`` and ``b -> a``, or a derived order is positively refuted by frame
+    coordinates. Rival orderings are data (non-commitment principle), surfaced
+    with their witnessing paths rather than silently tie-broken.
     """
 
     BEFORE = "before"
     AFTER = "after"
-    CONCURRENT = "concurrent"
+    CONCURRENT_PROVEN = "concurrent_proven"
+    CONCURRENT_ASSUMED = "concurrent_assumed"
     CONFLICTED = "conflicted"
     UNKNOWN = "unknown"
+
+
+class OrderingEvidenceKind(StrEnum):
+    """What one link in a witnessing path is grounded in.
+
+    ``COORDINATE_DERIVED`` links are grounded in comparable bounds within one
+    declared frame; ``AUTHORED_POSIT`` links are happens-before evidence edges.
+    These are epistemically different arrows — a conflict between them is a
+    different animal from a conflict between two posits, and the judgment keeps
+    the difference visible instead of laundering it through a closure.
+    """
+
+    COORDINATE_DERIVED = "coordinate_derived"
+    AUTHORED_POSIT = "authored_posit"
+
+
+class OrderingLink(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+    """One auditable step in a witnessing path.
+
+    ``edge_id``/``account`` are set iff the link is an authored posit;
+    ``frame_id`` is set iff the link is derived from one frame's coordinates.
+    """
+
+    earlier_claim_id: str
+    later_claim_id: str
+    kind: OrderingEvidenceKind
+    edge_id: str | None = None
+    account: HappensBeforeAccount | None = None
+    frame_id: str | None = None
+
+
+class TemporalOrderJudgment(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+    """A temporal-order verdict together with the evidence that witnesses it.
+
+    ``forward_path`` witnesses left-before-right, ``backward_path`` witnesses
+    right-before-left (present when the corresponding order was derived, which
+    for ``CONFLICTED`` may be both, or one path plus ``refuting_frame_id`` — the
+    frame whose coordinates positively rule the derived direction out).
+    ``proven_frame_id`` is the frame whose bounds prove ``CONCURRENT_PROVEN``.
+    Nothing here is ever persisted: the judgment is recomputed per query from
+    live anchors and edges, so revision that defeats an edge upstream reaches
+    every verdict that leaned on it at the next query — there is no snapshotted
+    closure to go stale.
+    """
+
+    verdict: TemporalOrderVerdict
+    forward_path: tuple[OrderingLink, ...] = ()
+    backward_path: tuple[OrderingLink, ...] = ()
+    refuting_frame_id: str | None = None
+    proven_frame_id: str | None = None
 
 
 _RELATION_EXPRESSIONS: dict[AllenRelation, CelExpr] = {
@@ -278,21 +377,146 @@ def description_temporal_relation(
     return AllenVerdict.UNDECIDED
 
 
-def _transitive_closure(
-    edges: set[tuple[str, str]],
-) -> set[tuple[str, str]]:
-    """Reflexive step omitted: the transitive closure of directed edges."""
+def _link_sort_key(link: OrderingLink) -> tuple[str, str, str]:
+    return (link.later_claim_id, link.kind.value, link.edge_id or "")
 
-    closure = set(edges)
-    changed = True
-    while changed:
-        changed = False
-        for a, b in tuple(closure):
-            for c, d in tuple(closure):
-                if b == c and (a, d) not in closure:
-                    closure.add((a, d))
-                    changed = True
-    return closure
+
+def _build_links(
+    anchors: tuple[DescriptionTemporalAnchor, ...],
+    edges: tuple[HappensBeforeEdge, ...],
+) -> tuple[OrderingLink, ...]:
+    """All ordering links: coordinate-derived (same-frame Allen BEFORE that
+    HOLDS, through the canonical Allen path — never a hand-rolled float compare)
+    plus one link per authored posit.
+
+    Derived-link construction is quadratic in same-frame anchors and each pair
+    costs a solver query; a log-scale consumer should supply authored MESSAGE
+    edges rather than thousands of bounded anchors.
+    """
+
+    links: list[OrderingLink] = []
+    for a in anchors:
+        for b in anchors:
+            if a.claim_id == b.claim_id or a.frame.frame_id != b.frame.frame_id:
+                continue
+            if (
+                description_temporal_relation(a, b, AllenRelation.BEFORE)
+                is AllenVerdict.HOLDS
+            ):
+                links.append(
+                    OrderingLink(
+                        earlier_claim_id=a.claim_id,
+                        later_claim_id=b.claim_id,
+                        kind=OrderingEvidenceKind.COORDINATE_DERIVED,
+                        frame_id=a.frame.frame_id,
+                    )
+                )
+    for edge in edges:
+        links.append(
+            OrderingLink(
+                earlier_claim_id=edge.earlier_claim_id,
+                later_claim_id=edge.later_claim_id,
+                kind=OrderingEvidenceKind.AUTHORED_POSIT,
+                edge_id=edge.edge_id,
+                account=edge.account,
+            )
+        )
+    return tuple(links)
+
+
+def _link_composes(link: OrderingLink) -> bool:
+    """Whether a link may participate in a chain (see HappensBeforeAccount)."""
+
+    if link.kind is OrderingEvidenceKind.COORDINATE_DERIVED:
+        return True
+    return link.account in _COMPOSING_ACCOUNTS
+
+
+def _find_path(
+    start: str,
+    goal: str,
+    links: tuple[OrderingLink, ...],
+) -> tuple[OrderingLink, ...] | None:
+    """A witnessing path start -> goal, or None.
+
+    BFS (shortest, deterministic by sorted link keys) over COMPOSABLE links
+    only; a non-composing (STATED) link can witness the pair solely as a direct,
+    length-one path. No closure is materialized anywhere — reachability is
+    answered per query in O(links), and the path itself is the audit trail.
+    """
+
+    adjacency: dict[str, list[OrderingLink]] = {}
+    for link in sorted(filter(_link_composes, links), key=_link_sort_key):
+        adjacency.setdefault(link.earlier_claim_id, []).append(link)
+
+    parent: dict[str, OrderingLink] = {}
+    visited = {start}
+    queue = [start]
+    while queue:
+        node = queue.pop(0)
+        if node == goal:
+            path: list[OrderingLink] = []
+            while node != start:
+                link = parent[node]
+                path.append(link)
+                node = link.earlier_claim_id
+            return tuple(reversed(path))
+        for link in adjacency.get(node, ()):
+            if link.later_claim_id not in visited:
+                visited.add(link.later_claim_id)
+                parent[link.later_claim_id] = link
+                queue.append(link.later_claim_id)
+
+    direct_stated = sorted(
+        (
+            link
+            for link in links
+            if not _link_composes(link)
+            and link.earlier_claim_id == start
+            and link.later_claim_id == goal
+        ),
+        key=_link_sort_key,
+    )
+    if direct_stated:
+        return (direct_stated[0],)
+    return None
+
+
+def _bounds_refutations(
+    left_claim_id: str,
+    right_claim_id: str,
+    anchors: tuple[DescriptionTemporalAnchor, ...],
+) -> tuple[str | None, str | None, str | None]:
+    """(frame refuting left-before, frame refuting left-after, frame refuting both).
+
+    A same-frame anchor pair whose bounds make BEFORE (resp. AFTER) FAIL is a
+    positive, coordinate-grounded refutation of that ordering. A pair failing
+    both is positive proof of concurrency (no invariant order), valid even
+    open-world. First witnessing frame in anchor order wins (deterministic).
+    """
+
+    refutes_before: str | None = None
+    refutes_after: str | None = None
+    refutes_both: str | None = None
+    lefts = [a for a in anchors if a.claim_id == left_claim_id]
+    rights = [a for a in anchors if a.claim_id == right_claim_id]
+    for left in lefts:
+        for right in rights:
+            if left.frame.frame_id != right.frame.frame_id:
+                continue
+            before = description_temporal_relation(left, right, AllenRelation.BEFORE)
+            after = description_temporal_relation(left, right, AllenRelation.AFTER)
+            if before is AllenVerdict.FAILS and refutes_before is None:
+                refutes_before = left.frame.frame_id
+            if after is AllenVerdict.FAILS and refutes_after is None:
+                refutes_after = left.frame.frame_id
+            if (
+                before is AllenVerdict.FAILS
+                and after is AllenVerdict.FAILS
+                and refutes_both is None
+            ):
+                refutes_both = left.frame.frame_id
+    return refutes_before, refutes_after, refutes_both
 
 
 def temporal_order(
@@ -302,77 +526,64 @@ def temporal_order(
     anchors: tuple[DescriptionTemporalAnchor, ...],
     edges: tuple[HappensBeforeEdge, ...],
     assume_complete: bool = False,
-) -> TemporalOrderVerdict:
+) -> TemporalOrderJudgment:
     """Order two descriptions from happens-before evidence and frame-local bounds.
 
-    Same-frame anchor pairs contribute derived happens-before edges through the
-    canonical Allen path (a BEFORE that ``HOLDS`` -> a derived ``a -> b`` edge);
-    these join the authored edges and the transitive closure is taken. If the
-    closure orders the pair both ways -> ``CONFLICTED``; only left->right ->
-    ``BEFORE``; only right->left -> ``AFTER``.
+    Pure per-query function: links are rebuilt and paths re-searched from the
+    supplied ``anchors``/``edges`` on every call. Nothing persists a derived
+    order — an edge defeated upstream is simply absent from the next call, so
+    revision reaches every verdict. Storage, when it exists, holds only
+    AUTHORED edges; a derived order must never be written back.
 
-    With no ordering derivable, overlapping same-frame bounds that positively rule
-    out both BEFORE and AFTER give ``CONCURRENT`` (valid even open-world). Failing
-    that, ``assume_complete=True`` is a per-query *declaration* that the supplied
-    edge set captures all communication — the vector-clock/Lamport completeness
-    assumption made explicit and auditable, exactly like a render-policy
-    assumption — and reads the silence as ``CONCURRENT``. The default,
-    ``assume_complete=False``, is the open-world honest-ignorance reading and
-    returns ``UNKNOWN``.
+    Verdict logic: a witnessing path each way (composable links chain; STATED
+    posits witness only their own endpoints); both ways -> ``CONFLICTED``; a
+    path positively refuted by some frame's coordinates -> ``CONFLICTED`` (a
+    posit contradicting comparable bounds is a rival ordering, not a winner);
+    one unrefuted path -> ``BEFORE``/``AFTER``. With no path: bounds failing
+    both orderings in one frame -> ``CONCURRENT_PROVEN``; else
+    ``assume_complete=True`` — the per-query, auditable vector-clock/Lamport
+    completeness declaration — reads silence as ``CONCURRENT_ASSUMED``; else
+    ``UNKNOWN`` (open-world honest ignorance, the default).
     """
 
-    directed: set[tuple[str, str]] = {
-        (edge.earlier_claim_id, edge.later_claim_id) for edge in edges
-    }
+    links = _build_links(anchors, edges)
+    forward = _find_path(left_claim_id, right_claim_id, links)
+    backward = _find_path(right_claim_id, left_claim_id, links)
+    refutes_before, refutes_after, refutes_both = _bounds_refutations(
+        left_claim_id, right_claim_id, anchors
+    )
 
-    same_frame_pairs = [
-        (a, b)
-        for a in anchors
-        for b in anchors
-        if a.claim_id != b.claim_id and a.frame.frame_id == b.frame.frame_id
-    ]
-    for a, b in same_frame_pairs:
-        if description_temporal_relation(a, b, AllenRelation.BEFORE) is AllenVerdict.HOLDS:
-            directed.add((a.claim_id, b.claim_id))
-
-    closure = _transitive_closure(directed)
-    left_before_right = (left_claim_id, right_claim_id) in closure
-    right_before_left = (right_claim_id, left_claim_id) in closure
-
-    if left_before_right and right_before_left:
-        return TemporalOrderVerdict.CONFLICTED
-    if left_before_right:
-        return TemporalOrderVerdict.BEFORE
-    if right_before_left:
-        return TemporalOrderVerdict.AFTER
-
-    if _bounds_prove_concurrent(left_claim_id, right_claim_id, anchors):
-        return TemporalOrderVerdict.CONCURRENT
-
+    if forward is not None and backward is not None:
+        return TemporalOrderJudgment(
+            verdict=TemporalOrderVerdict.CONFLICTED,
+            forward_path=forward,
+            backward_path=backward,
+        )
+    if forward is not None and refutes_before is not None:
+        return TemporalOrderJudgment(
+            verdict=TemporalOrderVerdict.CONFLICTED,
+            forward_path=forward,
+            refuting_frame_id=refutes_before,
+        )
+    if backward is not None and refutes_after is not None:
+        return TemporalOrderJudgment(
+            verdict=TemporalOrderVerdict.CONFLICTED,
+            backward_path=backward,
+            refuting_frame_id=refutes_after,
+        )
+    if forward is not None:
+        return TemporalOrderJudgment(
+            verdict=TemporalOrderVerdict.BEFORE, forward_path=forward
+        )
+    if backward is not None:
+        return TemporalOrderJudgment(
+            verdict=TemporalOrderVerdict.AFTER, backward_path=backward
+        )
+    if refutes_both is not None:
+        return TemporalOrderJudgment(
+            verdict=TemporalOrderVerdict.CONCURRENT_PROVEN,
+            proven_frame_id=refutes_both,
+        )
     if assume_complete:
-        return TemporalOrderVerdict.CONCURRENT
-    return TemporalOrderVerdict.UNKNOWN
-
-
-def _bounds_prove_concurrent(
-    left_claim_id: str,
-    right_claim_id: str,
-    anchors: tuple[DescriptionTemporalAnchor, ...],
-) -> bool:
-    """True iff some same-frame anchor pair positively rules out both orderings.
-
-    Overlapping bounded intervals are positive proof of concurrency (no invariant
-    order), so this holds even under the open-world reading.
-    """
-
-    lefts = [a for a in anchors if a.claim_id == left_claim_id]
-    rights = [a for a in anchors if a.claim_id == right_claim_id]
-    for left in lefts:
-        for right in rights:
-            if left.frame.frame_id != right.frame.frame_id:
-                continue
-            before = description_temporal_relation(left, right, AllenRelation.BEFORE)
-            after = description_temporal_relation(left, right, AllenRelation.AFTER)
-            if before is AllenVerdict.FAILS and after is AllenVerdict.FAILS:
-                return True
-    return False
+        return TemporalOrderJudgment(verdict=TemporalOrderVerdict.CONCURRENT_ASSUMED)
+    return TemporalOrderJudgment(verdict=TemporalOrderVerdict.UNKNOWN)
