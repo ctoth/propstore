@@ -97,7 +97,9 @@ def _repo(tmp_path: Path) -> Repository:
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     return repo
 
 

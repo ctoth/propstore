@@ -13,4 +13,6 @@ import pytest
 def test_praf_argument_enumeration_budget_surfaces_partial_result() -> None:
     """Production PrAF-facing results must expose an incomplete grounding bundle."""
 
-    raise AssertionError("unskipped when Propstore propagates incomplete grounding status")
+    raise AssertionError(
+        "unskipped when Propstore propagates incomplete grounding status"
+    )

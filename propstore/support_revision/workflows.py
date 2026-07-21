@@ -45,7 +45,9 @@ class IteratedRevisionReport:
     operator: str
 
 
-def _bind_revision_world(store: WorldStore, request: RevisionWorldRequest) -> BoundWorld:
+def _bind_revision_world(
+    store: WorldStore, request: RevisionWorldRequest
+) -> BoundWorld:
     from propstore.world.model import bind
 
     return bind(
@@ -53,7 +55,9 @@ def _bind_revision_world(store: WorldStore, request: RevisionWorldRequest) -> Bo
         Environment(
             bindings=dict(request.bindings),
             context_id=(
-                None if request.context_id is None else to_context_id(request.context_id)
+                None
+                if request.context_id is None
+                else to_context_id(request.context_id)
             ),
         ),
     )
@@ -63,7 +67,9 @@ def revision_base(store: WorldStore, request: RevisionWorldRequest) -> BeliefBas
     return _bind_revision_world(store, request).revision_base()
 
 
-def revision_entrenchment(store: WorldStore, request: RevisionWorldRequest) -> EntrenchmentReport:
+def revision_entrenchment(
+    store: WorldStore, request: RevisionWorldRequest
+) -> EntrenchmentReport:
     return _bind_revision_world(store, request).revision_entrenchment()
 
 

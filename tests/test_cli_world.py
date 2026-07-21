@@ -13,6 +13,7 @@ Ported and adapted from the reference ``test_revision_cli`` /
 ``test_revision_phase1_cli`` / ``test_cli_render_policy_flags``; cases whose owner
 does not exist in the rewrite are noted in the worker report under "deferred".
 """
+
 from __future__ import annotations
 
 import json
@@ -40,15 +41,29 @@ def _repo(tmp_path: Path) -> Repository:
             Concept(concept_id=concept_id, canonical_name=concept_id),
             message="m",
         )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.claim.save(
         "aa_pa",
-        Claim(claim_id="aa_pa", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="A", value=2.0),
+        Claim(
+            claim_id="aa_pa",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="A",
+            value=2.0,
+        ),
         message="m",
     )
     repo.families.claim.save(
         "ab_pb",
-        Claim(claim_id="ab_pb", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="B", value=3.0),
+        Claim(
+            claim_id="ab_pb",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="B",
+            value=3.0,
+        ),
         message="m",
     )
     repo.families.claim.save(
@@ -78,17 +93,34 @@ def _repo(tmp_path: Path) -> Repository:
     )
     repo.families.claim.save(
         "s1",
-        Claim(claim_id="s1", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="speed", value=10.0),
+        Claim(
+            claim_id="s1",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="speed",
+            value=10.0,
+        ),
         message="m",
     )
     repo.families.claim.save(
         "s2",
-        Claim(claim_id="s2", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="speed", value=20.0),
+        Claim(
+            claim_id="s2",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="speed",
+            value=20.0,
+        ),
         message="m",
     )
     repo.families.stance.save(
         "st1",
-        Stance(stance_id="st1", source_claim_id="s1", target_claim_id="s2", stance_type=StanceType.REBUTS),
+        Stance(
+            stance_id="st1",
+            source_claim_id="s1",
+            target_claim_id="s2",
+            stance_type=StanceType.REBUTS,
+        ),
         message="m",
     )
     return repo
@@ -210,7 +242,9 @@ def test_hypothetical_overlay_reports_change(repo: Repository) -> None:
         [
             "hypothetical",
             "--add",
-            json.dumps({"id": "syn_a", "concept_id": "A", "type": "parameter", "value": 100.0}),
+            json.dumps(
+                {"id": "syn_a", "concept_id": "A", "type": "parameter", "value": 100.0}
+            ),
         ],
     )
     assert result.exit_code == 0, result.output
@@ -413,7 +447,11 @@ def test_export_graph_json_shape(repo: Repository) -> None:
     concept_ids = {n["id"] for n in data["nodes"] if n["node_type"] == "concept"}
     assert {"A", "B", "C"} <= concept_ids
     # The equation claim zz_eq parameterizes C from (A, B).
-    param = {(e["source"], e["target"]) for e in data["edges"] if e["edge_type"] == "parameterization"}
+    param = {
+        (e["source"], e["target"])
+        for e in data["edges"]
+        if e["edge_type"] == "parameterization"
+    }
     assert ("A", "C") in param
     assert ("B", "C") in param
 

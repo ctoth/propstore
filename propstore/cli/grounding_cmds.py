@@ -10,6 +10,7 @@ The ``explain`` subcommand from the legacy surface is intentionally absent: the
 rewrite grounding owner exposes no dialectical-tree / prose explanation builder,
 so there is no owner to adapt (reported as a gap rather than reimplemented).
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -72,7 +73,9 @@ def grounding_show(obj: CliContext) -> None:
 
     inspection = bundle.grounding_inspection
     rule_instances = (
-        tuple(format_ground_rule(instance) for instance in inspection.all_rule_instances)
+        tuple(
+            format_ground_rule(instance) for instance in inspection.all_rule_instances
+        )
         if inspection is not None
         else ()
     )

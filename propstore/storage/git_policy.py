@@ -11,7 +11,9 @@ from __future__ import annotations
 
 from quire.git_store import GitStorePolicy
 
-_GITIGNORE_CONTENT = "sidecar/\n*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n*.hash\n*.provenance\n"
+_GITIGNORE_CONTENT = (
+    "sidecar/\n*.sqlite\n*.sqlite-wal\n*.sqlite-shm\n*.hash\n*.provenance\n"
+)
 
 PROPSTORE_GIT_POLICY = GitStorePolicy(
     author=b"pks <pks@propstore>",
@@ -19,5 +21,11 @@ PROPSTORE_GIT_POLICY = GitStorePolicy(
     initial_files={".gitignore": _GITIGNORE_CONTENT.encode("utf-8")},
     initial_commit_message="Initialize knowledge repository",
     ignored_path_prefixes=("sidecar/",),
-    ignored_path_suffixes=(".sqlite", ".sqlite-wal", ".sqlite-shm", ".hash", ".provenance"),
+    ignored_path_suffixes=(
+        ".sqlite",
+        ".sqlite-wal",
+        ".sqlite-shm",
+        ".hash",
+        ".provenance",
+    ),
 )

@@ -252,7 +252,9 @@ def align_repository_snapshots(
 def save_alignment_artifact(artifact: ConceptAlignmentArtifact, path: Path) -> None:
     """Serialize an alignment artifact through its charter codec."""
 
-    path.write_bytes(ConceptAlignmentArtifact.__charter__.document_codec().encode(artifact))
+    path.write_bytes(
+        ConceptAlignmentArtifact.__charter__.document_codec().encode(artifact)
+    )
 
 
 def load_alignment_artifact(path: Path) -> ConceptAlignmentArtifact:

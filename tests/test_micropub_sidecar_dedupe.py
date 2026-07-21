@@ -30,10 +30,17 @@ def _base_repo(tmp_path: Path) -> Repository:
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.claim.save(
         "cl1",
-        Claim(claim_id="cl1", context_id="ctx1", claim_type=ClaimType.OBSERVATION, statement="x"),
+        Claim(
+            claim_id="cl1",
+            context_id="ctx1",
+            claim_type=ClaimType.OBSERVATION,
+            statement="x",
+        ),
         message="m",
     )
     return repo
@@ -83,5 +90,7 @@ def test_identical_payload_micropubs_dedupe_to_one_row(tmp_path: Path) -> None:
     assert report.derived_store is not None
     path = report.derived_store.path
 
-    artifact_ids = sorted(row[0] for row in _rows(path, "SELECT artifact_id FROM micropublication"))
+    artifact_ids = sorted(
+        row[0] for row in _rows(path, "SELECT artifact_id FROM micropublication")
+    )
     assert artifact_ids == ["ni:///sha-256;dup", "ni:///sha-256;other"]

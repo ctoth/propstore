@@ -211,9 +211,7 @@ def build_enrichment_context(
 
     if distance is None or distance >= threshold:
         return ""
-    parts = [
-        f"These claims are highly similar by embedding distance ({distance:.4f})."
-    ]
+    parts = [f"These claims are highly similar by embedding distance ({distance:.4f})."]
     if shared_concept_ids:
         parts.append(f"Shared concepts: {', '.join(shared_concept_ids)}")
     parts.append(
@@ -312,9 +310,7 @@ def _resolved_opinion(
     ):
         from propstore.heuristic.calibrate import CorpusCalibrator
 
-        corpus_cal = CorpusCalibrator(
-            reference_distances, corpus_base_rate=opinion.a
-        )
+        corpus_cal = CorpusCalibrator(reference_distances, corpus_base_rate=opinion.a)
         corpus_opinion = corpus_cal.to_opinion(embedding_distance)
         opinion = Opinion.fuse(opinion, corpus_opinion)
 

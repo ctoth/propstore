@@ -36,7 +36,12 @@ from provenance_semiring import (
     normalize_environments,
 )
 
-from propstore.core.id_types import AssumptionId, ContextId, to_assumption_id, to_context_id
+from propstore.core.id_types import (
+    AssumptionId,
+    ContextId,
+    to_assumption_id,
+    to_context_id,
+)
 
 if TYPE_CHECKING:
     from propstore.core.environment import AssumptionRef
@@ -68,7 +73,6 @@ __all__ = [
 SupportMetadata = Mapping[str, tuple["Label | None", SupportQuality]]
 
 
-
 def binding_condition_to_cel(key: str, value: Any) -> CelExpr:
     """Render a query binding into the CEL string the world model reasons over."""
 
@@ -93,7 +97,9 @@ def assumption_variable(assumption_id: AssumptionId | str) -> SourceVariableId:
     package). :func:`environment_assumption_ids` is the matching decode.
     """
 
-    return SourceVariableId(f"{_ASSUMPTION_VARIABLE_PREFIX}{to_assumption_id(assumption_id)}")
+    return SourceVariableId(
+        f"{_ASSUMPTION_VARIABLE_PREFIX}{to_assumption_id(assumption_id)}"
+    )
 
 
 def context_variable(context_id: ContextId | str) -> SourceVariableId:
@@ -216,7 +222,9 @@ def compile_environment_assumptions(
         )
 
     normalized_context_id = None if context_id is None else to_context_id(context_id)
-    context_source = str(normalized_context_id) if normalized_context_id is not None else "<context>"
+    context_source = (
+        str(normalized_context_id) if normalized_context_id is not None else "<context>"
+    )
     for cel in sorted(dict.fromkeys(to_cel_exprs(effective_assumptions))):
         compiled.append(
             AssumptionRef(

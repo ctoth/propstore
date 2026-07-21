@@ -76,12 +76,16 @@ def test_lexical_entry_identity_is_reference_stable(
     )
     same_reference = LexicalEntry(
         identifier=f"{entry_id}-variant",
-        canonical_form=LexicalForm(written_rep=f"{written_rep} variant", language=language),
+        canonical_form=LexicalForm(
+            written_rep=f"{written_rep} variant", language=language
+        ),
         senses=(LexicalSense(reference=OntologyReference(uri=reference_uri)),),
     )
 
     assert entry.references == same_reference.references
-    assert lexical_entry_identity_key(entry) != lexical_entry_identity_key(same_reference)
+    assert lexical_entry_identity_key(entry) != lexical_entry_identity_key(
+        same_reference
+    )
 
 
 @pytest.mark.property

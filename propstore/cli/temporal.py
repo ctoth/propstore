@@ -50,10 +50,18 @@ def temporal() -> None:
 
 @temporal.command("frame")
 @click.option("--frame-id", required=True, help="Identity of the declared frame.")
-@click.option("--description", required=True, help="What clock/sensor/narrative it declares.")
-@click.option("--provenance-status", type=_PROVENANCE_CHOICE, default=ProvenanceStatus.STATED.value)
+@click.option(
+    "--description", required=True, help="What clock/sensor/narrative it declares."
+)
+@click.option(
+    "--provenance-status",
+    type=_PROVENANCE_CHOICE,
+    default=ProvenanceStatus.STATED.value,
+)
 @click.pass_obj
-def temporal_frame(obj: CliContext, frame_id: str, description: str, provenance_status: str) -> None:
+def temporal_frame(
+    obj: CliContext, frame_id: str, description: str, provenance_status: str
+) -> None:
     """Declare a totally-ordered temporal frame."""
 
     repo = require_repo(obj)
@@ -72,7 +80,11 @@ def temporal_frame(obj: CliContext, frame_id: str, description: str, provenance_
 @click.option("--frame-id", required=True, help="The frame the claim is anchored in.")
 @click.option("--valid-from", type=float, default=None, help="Optional lower bound.")
 @click.option("--valid-until", type=float, default=None, help="Optional upper bound.")
-@click.option("--provenance-status", type=_PROVENANCE_CHOICE, default=ProvenanceStatus.STATED.value)
+@click.option(
+    "--provenance-status",
+    type=_PROVENANCE_CHOICE,
+    default=ProvenanceStatus.STATED.value,
+)
 @click.pass_obj
 def temporal_anchor(
     obj: CliContext,
@@ -108,7 +120,11 @@ def temporal_anchor(
     required=True,
     help="The evidence account (mandatory; no default).",
 )
-@click.option("--provenance-status", type=_PROVENANCE_CHOICE, default=ProvenanceStatus.STATED.value)
+@click.option(
+    "--provenance-status",
+    type=_PROVENANCE_CHOICE,
+    default=ProvenanceStatus.STATED.value,
+)
 @click.pass_obj
 def temporal_edge(
     obj: CliContext,
@@ -175,7 +191,9 @@ def _emit_path(label: str, path: tuple[OrderingLink, ...]) -> None:
         return
     emit(f"{label}:")
     for link in path:
-        emit(f"  {link.earlier_claim_id} -> {link.later_claim_id} [{_link_evidence(link)}]")
+        emit(
+            f"  {link.earlier_claim_id} -> {link.later_claim_id} [{_link_evidence(link)}]"
+        )
 
 
 def _link_evidence(link: OrderingLink) -> str:

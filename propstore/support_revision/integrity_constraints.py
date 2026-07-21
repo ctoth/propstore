@@ -51,7 +51,9 @@ class LiteralsConstraint(msgspec.Struct, frozen=True, tag_field="kind", tag="lit
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "required", tuple(str(item) for item in self.required))
-        object.__setattr__(self, "forbidden", tuple(str(item) for item in self.forbidden))
+        object.__setattr__(
+            self, "forbidden", tuple(str(item) for item in self.forbidden)
+        )
 
 
 IntegrityConstraintSpec = TopConstraint | AtomConstraint | LiteralsConstraint

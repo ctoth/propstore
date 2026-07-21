@@ -167,7 +167,9 @@ class JustifiableException:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_claim", str(self.target_claim))
-        object.__setattr__(self, "exception_pattern", to_cel_expr(self.exception_pattern))
+        object.__setattr__(
+            self, "exception_pattern", to_cel_expr(self.exception_pattern)
+        )
         object.__setattr__(
             self,
             "justification_claims",
@@ -229,7 +231,9 @@ class ContextualClaimResult:
     decidability_status: DecidabilityStatus
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "applicability", ClaimApplicability(self.applicability))
+        object.__setattr__(
+            self, "applicability", ClaimApplicability(self.applicability)
+        )
         object.__setattr__(self, "applied_exceptions", tuple(self.applied_exceptions))
         object.__setattr__(self, "defeats", tuple(self.defeats))
         object.__setattr__(self, "policy_issues", tuple(self.policy_issues))
@@ -520,7 +524,9 @@ def apply_exception_defeats_to_csaf(
         for exception in result.applied_exceptions:
             attacker_arguments: set[Argument] = set()
             for justification_claim in exception.justification_claims:
-                attacker_arguments.update(arguments_concluding(csaf, justification_claim))
+                attacker_arguments.update(
+                    arguments_concluding(csaf, justification_claim)
+                )
             if not attacker_arguments:
                 warnings.warn(
                     "CKR exception has no ASPIC argument for its justification claims; "
@@ -582,7 +588,9 @@ def _literal_concludes_claim(literal: Literal, claim_id: str) -> bool:
     return atom.predicate == "ist" and atom.arguments[-1:] == (claim_id,)
 
 
-def _compose_support_quality(left: SupportQuality, right: SupportQuality) -> SupportQuality:
+def _compose_support_quality(
+    left: SupportQuality, right: SupportQuality
+) -> SupportQuality:
     left = SupportQuality(left)
     right = SupportQuality(right)
     if left is right:

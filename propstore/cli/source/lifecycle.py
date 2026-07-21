@@ -29,7 +29,9 @@ from propstore.source.status import SourceStatusState
 
 @source.command("init")
 @click.argument("name")
-@click.option("--kind", "kind_name", required=True, help="Source kind (e.g. academic_paper).")
+@click.option(
+    "--kind", "kind_name", required=True, help="Source kind (e.g. academic_paper)."
+)
 @click.option(
     "--origin-type",
     required=True,
@@ -125,7 +127,11 @@ def source_status(obj: CliContext, name: str) -> None:
             continue
         for diagnostic in row.diagnostics:
             rows.append(
-                (row.claim_id, row.promotion_status, f"[{diagnostic.kind}] {diagnostic.message}")
+                (
+                    row.claim_id,
+                    row.promotion_status,
+                    f"[{diagnostic.kind}] {diagnostic.message}",
+                )
             )
     emit_table(("CLAIM ID", "STATUS", "MESSAGE"), rows)
 

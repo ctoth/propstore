@@ -348,7 +348,9 @@ def test_build_diagnostics_surfaced_on_opt_in(tmp_path: Path) -> None:
     )
     repo.families.claim.save(
         "cl1",
-        Claim(claim_id="cl1", context_id="ctx1", output_concept="c1", statement="untyped"),
+        Claim(
+            claim_id="cl1", context_id="ctx1", output_concept="c1", statement="untyped"
+        ),
         message="m",
     )
     with WorldQuery(repo) as world:
@@ -421,7 +423,9 @@ def test_parameterization_derived_from_equation_claims(tmp_path: Path) -> None:
         # group containing v is just {v}.
         assert world.group_members("v") == ["v"]
         assert world.concept_ids_for_group(0) == {"v"}
-        assert [str(e.output_concept_id) for e in world.parameterizations_for("v")] == ["v"]
+        assert [str(e.output_concept_id) for e in world.parameterizations_for("v")] == [
+            "v"
+        ]
 
 
 # ── historical query + schema validation ─────────────────────────────────────

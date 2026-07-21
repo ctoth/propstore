@@ -17,10 +17,15 @@ from propstore.support_revision.operator_inputs import (
 )
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import EpistemicSnapshot, JournalOperator
-from propstore.support_revision.iterated import advance_epistemic_state, make_epistemic_state
+from propstore.support_revision.iterated import (
+    advance_epistemic_state,
+    make_epistemic_state,
+)
 from propstore.support_revision.state import EpistemicState, RevisionRealizationFailure
 from propstore.support_revision.dispatch import dispatch
-from tests.support_revision.formal_realization_helpers import contract_via_formal_decision
+from tests.support_revision.formal_realization_helpers import (
+    contract_via_formal_decision,
+)
 from tests.test_revision_operators import _base_with_shared_support
 
 
@@ -42,7 +47,9 @@ def test_revision_episode_carries_typed_event_contract() -> None:
     )
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
-            atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
+            atom_id
+            for atom_id in entrenchment.ranked_atom_ids
+            if atom_id in result.accepted_atom_ids
         ),
         reasons=dict(entrenchment.reasons),
     )
@@ -81,7 +88,9 @@ def test_revision_event_survives_epistemic_state_snapshot_roundtrip() -> None:
     )
     next_entrenchment = EntrenchmentReport(
         ranked_atom_ids=tuple(
-            atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
+            atom_id
+            for atom_id in entrenchment.ranked_atom_ids
+            if atom_id in result.accepted_atom_ids
         ),
         reasons=dict(entrenchment.reasons),
     )

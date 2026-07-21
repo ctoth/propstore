@@ -72,7 +72,9 @@ class CoercedReference(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     provenance: Provenance
 
 
-def qualia_references(qualia: QualiaStructure, role: QualiaRole) -> tuple[QualiaReference, ...]:
+def qualia_references(
+    qualia: QualiaStructure, role: QualiaRole
+) -> tuple[QualiaReference, ...]:
     """Return the qualia references stored under ``role``."""
 
     return getattr(qualia, role.value)

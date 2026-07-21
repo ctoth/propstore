@@ -18,7 +18,11 @@ from dataclasses import dataclass
 
 from argumentation.structured.aspic.aspic import GroundAtom, Literal, Rule
 
-from propstore.context_lifting import LiftingDecision, LiftingDecisionStatus, LiftingMode
+from propstore.context_lifting import (
+    LiftingDecision,
+    LiftingDecisionStatus,
+    LiftingMode,
+)
 from propstore.core.id_types import to_claim_id, to_context_id
 from propstore.core.literal_keys import IstLiteralKey, LiteralKey
 
@@ -74,8 +78,12 @@ def project_lifting_decisions(
             to_context_id(decision.target_context),
             to_claim_id(decision.proposition_id),
         )
-        source_literal = projected_literals.setdefault(source_key, _literal_for_key(source_key))
-        target_literal = projected_literals.setdefault(target_key, _literal_for_key(target_key))
+        source_literal = projected_literals.setdefault(
+            source_key, _literal_for_key(source_key)
+        )
+        target_literal = projected_literals.setdefault(
+            target_key, _literal_for_key(target_key)
+        )
         records.append(
             LiftingProjectionRecord(
                 source_context_id=str(decision.source_context),

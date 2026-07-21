@@ -28,7 +28,9 @@ def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
 
 
 def _is_sequence(value: object) -> TypeGuard[Sequence[Any]]:
-    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
+    return isinstance(value, Sequence) and not isinstance(
+        value, (str, bytes, bytearray)
+    )
 
 
 class JsonReportMixin:

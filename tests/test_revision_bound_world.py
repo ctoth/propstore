@@ -16,9 +16,15 @@ from tests.support_revision.revision_assertion_helpers import make_assertion_ato
 def _operator_bound() -> BoundWorld:
     return build_bound(
         claims=[
-            ClaimSpec("legacy", "concept_legacy", value=1.0, conditions=("x == 1", "y == 2")),
-            ClaimSpec("dependent", "concept_dependent", value=2.0, conditions=("y == 2",)),
-            ClaimSpec("independent", "concept_independent", value=3.0, conditions=("x == 1",)),
+            ClaimSpec(
+                "legacy", "concept_legacy", value=1.0, conditions=("x == 1", "y == 2")
+            ),
+            ClaimSpec(
+                "dependent", "concept_dependent", value=2.0, conditions=("y == 2",)
+            ),
+            ClaimSpec(
+                "independent", "concept_independent", value=3.0, conditions=("x == 1",)
+            ),
         ],
         bindings={"x": 1, "y": 2},
     )
@@ -26,19 +32,29 @@ def _operator_bound() -> BoundWorld:
 
 def _atom_id_for_claim(bound: BoundWorld, claim_id: str) -> str:
     for atom in bound.revision_base().atoms:
-        if any(str(claim.claim_id) == claim_id for claim in getattr(atom, "source_claims", ())):
+        if any(
+            str(claim.claim_id) == claim_id
+            for claim in getattr(atom, "source_claims", ())
+        ):
             return atom.atom_id
     raise AssertionError(f"missing projected claim {claim_id}")
 
 
-def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_support() -> None:
+def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_support() -> (
+    None
+):
     from propstore.support_revision.entrenchment import compute_entrenchment
     from propstore.support_revision.projection import project_belief_base
 
     bound = build_bound(
         claims=[
             ClaimSpec("claim_unconditional", "concept_base", value=1.0),
-            ClaimSpec("claim_override_target", "concept_focus", value=2.0, conditions=("x == 1",)),
+            ClaimSpec(
+                "claim_override_target",
+                "concept_focus",
+                value=2.0,
+                conditions=("x == 1",),
+            ),
         ],
         bindings={"x": 1},
     )
@@ -46,7 +62,10 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
     override_atom_id = next(
         atom.atom_id
         for atom in base.atoms
-        if any(str(claim.claim_id) == "claim_override_target" for claim in atom.source_claims)
+        if any(
+            str(claim.claim_id) == "claim_override_target"
+            for claim in atom.source_claims
+        )
     )
 
     report = compute_entrenchment(

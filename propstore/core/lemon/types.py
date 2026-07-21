@@ -61,7 +61,9 @@ class LexicalEntry(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     physical_dimension_form: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "identifier", require_text(self.identifier, "identifier"))
+        object.__setattr__(
+            self, "identifier", require_text(self.identifier, "identifier")
+        )
         if not self.senses:
             raise ValueError("LexicalEntry requires at least one lexical sense")
         if self.physical_dimension_form is not None:

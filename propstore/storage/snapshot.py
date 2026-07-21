@@ -103,7 +103,9 @@ class RepositorySnapshot:
         if target_commit is None:
             branch_name = branch
             if branch_name is None:
-                branch_name = self.git.current_branch_name() or self.git.primary_branch_name()
+                branch_name = (
+                    self.git.current_branch_name() or self.git.primary_branch_name()
+                )
             target_commit = self.git.branch_sha(branch_name)
             if target_commit is None:
                 return None
@@ -142,7 +144,10 @@ class RepositorySnapshot:
 
         clean_roots = tuple(semantic_init_roots())
         tracked_paths = (
-            {tree_file.relpath for tree_file in git.iter_tree_files(commit=source_commit)}
+            {
+                tree_file.relpath
+                for tree_file in git.iter_tree_files(commit=source_commit)
+            }
             if clean and source_commit is not None
             else set[str]()
         )

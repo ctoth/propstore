@@ -5,6 +5,7 @@
 reader, calls the owner builder under a lifecycle render policy, and renders the
 typed report; typed owner failures map to clean exit codes via ``fail``.
 """
+
 from __future__ import annotations
 
 import click

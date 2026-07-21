@@ -218,7 +218,9 @@ def _form_bearing_concept_for_claim(claim: SourceClaimDocument) -> str | None:
 
     claim_type = claim.type.value if claim.type is not None else None
     if claim_type == "parameter":
-        return claim.concept if isinstance(claim.concept, str) and claim.concept else None
+        return (
+            claim.concept if isinstance(claim.concept, str) and claim.concept else None
+        )
     if claim_type == "measurement":
         return (
             claim.target_concept
@@ -295,13 +297,15 @@ def validate_source_claim_value_bounds(
         value_fields = _value_fields_for_claim(claim)
         if not value_fields:
             continue
-        form_name = master_concept_forms.get(concept_handle) or source_concept_forms.get(
+        form_name = master_concept_forms.get(
             concept_handle
-        )
+        ) or source_concept_forms.get(concept_handle)
         if form_name is None:
             continue
         form_def = forms.get(form_name)
-        if form_def is None or (form_def.min_value is None and form_def.max_value is None):
+        if form_def is None or (
+            form_def.min_value is None and form_def.max_value is None
+        ):
             continue
         label = claim.source_local_id or claim.id or "<unnamed>"
         for field_name, numeric in value_fields:
@@ -503,9 +507,9 @@ def commit_source_claim_proposal(
 
     for attempt in range(8):
         expected_head = current_source_branch_head(repo, source_name)
-        existing = load_source_claims_document(repo, source_name) or SourceClaimsDocument(
-            source=ClaimSourceDocument(paper=paper), claims=()
-        )
+        existing = load_source_claims_document(
+            repo, source_name
+        ) or SourceClaimsDocument(source=ClaimSourceDocument(paper=paper), claims=())
         kept: list[SourceClaimDocument] = []
         for claim in existing.claims:
             if claim.source_local_id == claim_id or claim.id == claim_id:

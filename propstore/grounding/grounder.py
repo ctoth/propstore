@@ -61,7 +61,9 @@ def ground(
         )
     except gunray.EnumerationExceeded as exc:
         partial_trace = exc.partial_trace
-        inspection = None if partial_trace is None else partial_trace.grounding_inspection
+        inspection = (
+            None if partial_trace is None else partial_trace.grounding_inspection
+        )
         return GroundedRulesBundle(
             source_rules=tuple(rules),
             source_facts=facts,
@@ -104,7 +106,9 @@ def _normalise_sections(raw_sections: gunray.DefeasibleSections) -> SectionMap:
     return MappingProxyType(normalised)
 
 
-def _sort_arguments(arguments: tuple[gunray.Argument, ...]) -> tuple[gunray.Argument, ...]:
+def _sort_arguments(
+    arguments: tuple[gunray.Argument, ...],
+) -> tuple[gunray.Argument, ...]:
     """Deterministically order arguments; fall back to string order for stand-ins."""
 
     try:

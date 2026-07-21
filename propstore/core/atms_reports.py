@@ -52,7 +52,9 @@ class ATMSOutKind(Enum):
 
     MISSING_SUPPORT = "missing_support"
     NOGOOD_PRUNED = "nogood_pruned"
-    PARAMETERIZATION_INPUT_TYPE_INCOMPATIBLE = "parameterization_input_type_incompatible"
+    PARAMETERIZATION_INPUT_TYPE_INCOMPATIBLE = (
+        "parameterization_input_type_incompatible"
+    )
 
 
 @dataclass(frozen=True)
@@ -169,8 +171,12 @@ class ATMSNodeRelevanceReport:
     witness_pairs: Mapping[str, Sequence[ATMSNodeWitnessPair]]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "relevant_queryables", _tuple(self.relevant_queryables))
-        object.__setattr__(self, "irrelevant_queryables", _tuple(self.irrelevant_queryables))
+        object.__setattr__(
+            self, "relevant_queryables", _tuple(self.relevant_queryables)
+        )
+        object.__setattr__(
+            self, "irrelevant_queryables", _tuple(self.irrelevant_queryables)
+        )
         object.__setattr__(
             self,
             "witness_pairs",

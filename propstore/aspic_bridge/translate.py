@@ -81,17 +81,22 @@ def _literal_key_for_proposition(
     matches = [
         key
         for key in literals
-        if isinstance(key, IstLiteralKey) and str(key.proposition_id) == str(proposition_id)
+        if isinstance(key, IstLiteralKey)
+        and str(key.proposition_id) == str(proposition_id)
     ]
     if not matches:
         return claim_key(str(proposition_id))
     if len(matches) > 1:
         contexts = ", ".join(sorted(str(key.context_id) for key in matches))
-        raise ValueError(f"claim {proposition_id!r} is ambiguous across contexts: {contexts}")
+        raise ValueError(
+            f"claim {proposition_id!r} is ambiguous across contexts: {contexts}"
+        )
     return matches[0]
 
 
-def claims_to_literals(active_claims: Sequence[ActiveClaim]) -> dict[LiteralKey, Literal]:
+def claims_to_literals(
+    active_claims: Sequence[ActiveClaim],
+) -> dict[LiteralKey, Literal]:
     """Map each claim to a positive ASPIC+ ``ist(c, p)`` literal."""
 
     return {
@@ -121,7 +126,9 @@ def justifications_to_rules(
                 f"{justification.justification_id!r} must be rejected or represented explicitly"
             )
 
-        conclusion_key = _literal_key_for_proposition(justification.conclusion_claim_id, literals)
+        conclusion_key = _literal_key_for_proposition(
+            justification.conclusion_claim_id, literals
+        )
         premise_keys = tuple(
             _literal_key_for_proposition(pid, literals)
             for pid in justification.premise_claim_ids
@@ -130,7 +137,9 @@ def justifications_to_rules(
             continue
         unknown_premises = [
             premise_id
-            for premise_id, premise_key in zip(justification.premise_claim_ids, premise_keys)
+            for premise_id, premise_key in zip(
+                justification.premise_claim_ids, premise_keys
+            )
             if premise_key not in literals
         ]
         if unknown_premises:
@@ -142,7 +151,14 @@ def justifications_to_rules(
         antecedents = tuple(literals[pid] for pid in premise_keys)
         consequent = literals[conclusion_key]
         if justification.rule_strength == "strict":
-            strict.append(Rule(antecedents=antecedents, consequent=consequent, kind="strict", name=None))
+            strict.append(
+                Rule(
+                    antecedents=antecedents,
+                    consequent=consequent,
+                    kind="strict",
+                    name=None,
+                )
+            )
         else:
             defeasible.append(
                 Rule(
@@ -180,7 +196,9 @@ def stances_to_contrariness(
         contradictory_pairs.add((rule_lit, rule_lit.contrary))
 
     contrary_pairs: set[tuple[Literal, Literal]] = set()
-    origins: Mapping[Rule, GroundRuleOrigin] = {} if rule_origins is None else rule_origins
+    origins: Mapping[Rule, GroundRuleOrigin] = (
+        {} if rule_origins is None else rule_origins
+    )
 
     authored_rebuts: set[tuple[Literal, Literal]] = set()
     authored_directional: set[tuple[Literal, Literal]] = set()
@@ -235,10 +253,14 @@ def _add_undercut_contraries(
 ) -> None:
     target_justification_id = stance.target_justification_id
     matching_rules = [
-        rule for rule in defeasible_rules if rule.consequent == tgt and rule.name is not None
+        rule
+        for rule in defeasible_rules
+        if rule.consequent == tgt and rule.name is not None
     ]
     if target_justification_id is not None:
-        exact_matches = [rule for rule in matching_rules if rule.name == target_justification_id]
+        exact_matches = [
+            rule for rule in matching_rules if rule.name == target_justification_id
+        ]
         if exact_matches:
             matching_rules = exact_matches
         else:
@@ -378,7 +400,11 @@ def build_preference_config(
                 premise_order.add((lit_a, lit_b))
             elif _dominates(vec_b, vec_a):
                 premise_order.add((lit_b, lit_a))
-            elif comparison == "democratic" and not vec_a.is_vacuous and not vec_b.is_vacuous:
+            elif (
+                comparison == "democratic"
+                and not vec_a.is_vacuous
+                and not vec_b.is_vacuous
+            ):
                 score_a = sum(vec_a.dimensions)
                 score_b = sum(vec_b.dimensions)
                 if score_a < score_b:

@@ -374,9 +374,7 @@ class SourceDocument(CharterDoc):
     kind: SourceKind
     origin: Annotated[SourceOriginDocument, charter_field(json=True)]
     trust: Annotated[SourceTrustDocument, charter_field(json=True)]
-    metadata: Annotated[
-        SourceMetadataDocument | None, charter_field(json=True)
-    ] = None
+    metadata: Annotated[SourceMetadataDocument | None, charter_field(json=True)] = None
     artifact_code: str | None = None
 
 
@@ -403,9 +401,7 @@ class SourceConceptsDocument(CharterDoc):
 class SourceClaimsDocument(CharterDoc):
     """The extracted claims for a source branch."""
 
-    claims: Annotated[
-        tuple[SourceClaimDocument, ...], charter_field(json=True)
-    ] = ()
+    claims: Annotated[tuple[SourceClaimDocument, ...], charter_field(json=True)] = ()
     source: Annotated[ClaimSourceDocument | None, charter_field(json=True)] = None
     produced_by: Annotated[
         ExtractionProvenanceDocument | None, charter_field(json=True)
@@ -492,15 +488,11 @@ class SourceFinalizeReportDocument(CharterDoc):
     calibration: Annotated[SourceFinalizeCalibrationDocument, charter_field(json=True)]
     micropub_status: str = "not_composed"
     claim_reference_errors: Annotated[tuple[str, ...], charter_field(json=True)] = ()
-    micropub_coverage_errors: Annotated[
-        tuple[str, ...], charter_field(json=True)
-    ] = ()
+    micropub_coverage_errors: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     justification_reference_errors: Annotated[
         tuple[str, ...], charter_field(json=True)
     ] = ()
-    stance_reference_errors: Annotated[
-        tuple[str, ...], charter_field(json=True)
-    ] = ()
+    stance_reference_errors: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     concept_alignment_candidates: Annotated[
         tuple[str, ...], charter_field(json=True)
     ] = ()

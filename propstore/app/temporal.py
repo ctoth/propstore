@@ -134,7 +134,9 @@ def declare_temporal_frame(
         description=description,
         provenance=provenance if provenance is not None else stated_provenance(),
     )
-    _repository(repo).author_frame(document, message=f"Declare temporal frame {frame_id}")
+    _repository(repo).author_frame(
+        document, message=f"Declare temporal frame {frame_id}"
+    )
     return TemporalFrameResult(frame_id=frame_id)
 
 
@@ -163,7 +165,9 @@ def anchor_description_claim(
         valid_from=valid_from,
         valid_until=valid_until,
     )
-    _repository(repo).author_anchor(document, message=f"Anchor claim {claim_id} in {frame_id}")
+    _repository(repo).author_anchor(
+        document, message=f"Anchor claim {claim_id} in {frame_id}"
+    )
     return TemporalAnchorResult(anchor_id=anchor_id)
 
 
@@ -240,7 +244,9 @@ def _repository(repo: Repository) -> TemporalRepository:
     return TemporalRepository(backend=repo.require_git())
 
 
-def _resolve_account(account: str) -> HappensBeforeAccount | UnknownHappensBeforeAccount:
+def _resolve_account(
+    account: str,
+) -> HappensBeforeAccount | UnknownHappensBeforeAccount:
     try:
         return HappensBeforeAccount(account)
     except ValueError:

@@ -103,8 +103,7 @@ def _projection_frame_nodes(
             "ps:backend": record.backend,
             "prov:startedAtTime": record.projected_at,
             "prov:wasDerivedFrom": [
-                {"@id": assertion_id}
-                for assertion_id in record.source_assertion_ids
+                {"@id": assertion_id} for assertion_id in record.source_assertion_ids
             ],
         }
     ]

@@ -75,7 +75,9 @@ class InterventionProvenance:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "family", InterventionFamily(self.family))
-        object.__setattr__(self, "source_ids", tuple(str(item) for item in self.source_ids))
+        object.__setattr__(
+            self, "source_ids", tuple(str(item) for item in self.source_ids)
+        )
         object.__setattr__(
             self,
             "subject_concept_ids",
@@ -174,7 +176,11 @@ class InterventionTarget:
     def __post_init__(self) -> None:
         object.__setattr__(self, "kind", InterventionKind(self.kind))
         object.__setattr__(self, "family", InterventionFamily(self.family))
-        object.__setattr__(self, "subject_id", None if self.subject_id is None else str(self.subject_id))
+        object.__setattr__(
+            self,
+            "subject_id",
+            None if self.subject_id is None else str(self.subject_id),
+        )
         object.__setattr__(self, "intervention_id", str(self.intervention_id))
         object.__setattr__(self, "description", str(self.description))
         object.__setattr__(self, "cost_tier", int(self.cost_tier))
@@ -224,8 +230,14 @@ class FragilityInteraction:
     subjects_affected: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "interaction_type", InteractionType(self.interaction_type))
-        object.__setattr__(self, "subjects_affected", tuple(str(item) for item in self.subjects_affected))
+        object.__setattr__(
+            self, "interaction_type", InteractionType(self.interaction_type)
+        )
+        object.__setattr__(
+            self,
+            "subjects_affected",
+            tuple(str(item) for item in self.subjects_affected),
+        )
 
 
 @dataclass(frozen=True)

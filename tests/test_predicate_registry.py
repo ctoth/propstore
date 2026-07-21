@@ -31,7 +31,9 @@ def test_from_documents_rejects_duplicate_id() -> None:
 
 
 def test_lookup_unknown_raises() -> None:
-    registry = _registry(Predicate(predicate_id="bird", arity=1, arg_types=("Concept",)))
+    registry = _registry(
+        Predicate(predicate_id="bird", arity=1, arg_types=("Concept",))
+    )
     with pytest.raises(PredicateNotRegisteredError):
         registry.lookup("nope")
 
@@ -45,25 +47,35 @@ def test_all_predicates_preserves_declaration_order() -> None:
 
 
 def test_validate_atom_arity_mismatch() -> None:
-    registry = _registry(Predicate(predicate_id="bird", arity=1, arg_types=("Concept",)))
+    registry = _registry(
+        Predicate(predicate_id="bird", arity=1, arg_types=("Concept",))
+    )
     with pytest.raises(PredicateArityMismatchError):
-        registry.validate_atom(PredicateAtom("bird", ("a", "b"), ("Concept", "Concept")))
+        registry.validate_atom(
+            PredicateAtom("bird", ("a", "b"), ("Concept", "Concept"))
+        )
 
 
 def test_validate_atom_argument_type_count_mismatch() -> None:
-    registry = _registry(Predicate(predicate_id="bird", arity=1, arg_types=("Concept",)))
+    registry = _registry(
+        Predicate(predicate_id="bird", arity=1, arg_types=("Concept",))
+    )
     with pytest.raises(PredicateArgKindError):
         registry.validate_atom(PredicateAtom("bird", ("a",), ("Concept", "Concept")))
 
 
 def test_validate_atom_argument_kind_mismatch() -> None:
-    registry = _registry(Predicate(predicate_id="bird", arity=1, arg_types=("Concept",)))
+    registry = _registry(
+        Predicate(predicate_id="bird", arity=1, arg_types=("Concept",))
+    )
     with pytest.raises(PredicateArgKindError):
         registry.validate_atom(PredicateAtom("bird", ("a",), ("Wrong",)))
 
 
 def test_validate_atom_accepts_matching() -> None:
-    registry = _registry(Predicate(predicate_id="bird", arity=1, arg_types=("Concept",)))
+    registry = _registry(
+        Predicate(predicate_id="bird", arity=1, arg_types=("Concept",))
+    )
     registry.validate_atom(PredicateAtom("bird", ("tweety",), ("Concept",)))
 
 
@@ -94,7 +106,10 @@ def test_parse_each_claim_kind() -> None:
     assert parse_derived_from("claim.attribute:value").attribute == "value"
     assert parse_derived_from("claim.condition:t>0").condition == "t>0"
     assert parse_derived_from("claim.role:about").role == "about"
-    assert parse_derived_from("claim.provenance:confidence").provenance_field == "confidence"
+    assert (
+        parse_derived_from("claim.provenance:confidence").provenance_field
+        == "confidence"
+    )
 
 
 @pytest.mark.parametrize(

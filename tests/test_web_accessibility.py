@@ -36,9 +36,7 @@ class _HtmlAudit(HTMLParser):
         self._current_text = ""
         self._current_header_count = 0
 
-    def handle_starttag(
-        self, tag: str, attrs: list[tuple[str, str | None]]
-    ) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self._stack.append(tag)
         if tag == "main":
             self.main_count += 1
@@ -85,9 +83,13 @@ def test_claim_page_has_accessible_document_structure(tmp_path: Path) -> None:
     assert audit.h1_texts == ["Claim p_missingval"]
     assert audit.title_text == "Claim p_missingval - propstore"
     assert audit.main_count == 1
-    assert {"Summary", "Render State", "Provenance", "Neighborhood", "Machine IDs"} <= set(
-        audit.h2_texts
-    )
+    assert {
+        "Summary",
+        "Render State",
+        "Provenance",
+        "Neighborhood",
+        "Machine IDs",
+    } <= set(audit.h2_texts)
     assert "Open semantic neighborhood for this claim" in audit.link_texts
     assert "missing" in html
     assert "vacuous" in html

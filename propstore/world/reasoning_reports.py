@@ -371,7 +371,9 @@ def list_world_algorithms(
     """Every authored algorithm claim, optionally filtered to one focus concept."""
 
     concept_filter = (
-        None if request.concept is None else _resolve_concept_target(world, request.concept)
+        None
+        if request.concept is None
+        else _resolve_concept_target(world, request.concept)
     )
     algorithms = [
         claim
@@ -546,11 +548,7 @@ def query_world_chain(
         ResolutionStrategy(request.strategy) if request.strategy is not None else None
     )
     result = world.chain_query(resolved, strategy, **dict(request.bindings))
-    value = (
-        result.result.value
-        if isinstance(result.result, DerivedResult)
-        else None
-    )
+    value = result.result.value if isinstance(result.result, DerivedResult) else None
     return WorldChainReport(
         target=_chain_concept_line(world, resolved),
         status=str(result.result.status),

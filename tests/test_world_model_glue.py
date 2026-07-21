@@ -36,7 +36,9 @@ def test_compiled_graph_lowers_store_to_graph() -> None:
 def test_active_graph_partitions_under_environment() -> None:
     store = _store_with(
         claims=(
-            ClaimSpec(claim_id="c1", concept_id="A", value=2.0, conditions=("region == 'eu'",)),
+            ClaimSpec(
+                claim_id="c1", concept_id="A", value=2.0, conditions=("region == 'eu'",)
+            ),
             ClaimSpec(claim_id="c2", concept_id="A", value=3.0),
         ),
     )
@@ -57,7 +59,9 @@ def test_bind_returns_bound_world_with_active_graph() -> None:
 def test_bind_merges_keyword_conditions() -> None:
     store = _store_with(
         claims=(
-            ClaimSpec(claim_id="c1", concept_id="A", value=2.0, conditions=("region == 'eu'",)),
+            ClaimSpec(
+                claim_id="c1", concept_id="A", value=2.0, conditions=("region == 'eu'",)
+            ),
         ),
     )
     bound = model.bind(store, region="eu")

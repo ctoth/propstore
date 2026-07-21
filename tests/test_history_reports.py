@@ -67,7 +67,9 @@ def test_build_diff_report_against_explicit_commit(tmp_path: Path) -> None:
     assert diff.modified == ()
 
 
-def test_log_report_classifies_operations_and_orders_recent_first(tmp_path: Path) -> None:
+def test_log_report_classifies_operations_and_orders_recent_first(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     git = repo.git
     assert git is not None

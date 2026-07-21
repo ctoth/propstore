@@ -139,7 +139,9 @@ def plan_predicate_proposal_promotion(
     branch = predicate_proposal_branch()
     proposal_tip = repo.require_git().branch_sha(branch)
     if proposal_tip is None:
-        return PredicateProposalPromotionPlan(branch=branch, proposal_tip=None, items=())
+        return PredicateProposalPromotionPlan(
+            branch=branch, proposal_tip=None, items=()
+        )
 
     available = tuple(
         ref.source_paper
@@ -199,9 +201,7 @@ def promote_predicate_proposals(
             None,
             item.source_paper,
         ):
-            raise PredicateProposalConflict(
-                item.predicate_id, existing.authoring_group
-            )
+            raise PredicateProposalConflict(item.predicate_id, existing.authoring_group)
         artifacts.append(
             PlannedCanonicalArtifact(
                 _canonical_ref(item.predicate_id),

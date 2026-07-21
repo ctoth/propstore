@@ -43,7 +43,9 @@ def _invoke(repo: Repository, args: list[str]) -> Result:
 
 def test_claim_embed_then_similar(tmp_path: Path) -> None:
     repo = build_demo_repo(tmp_path)
-    with patch("propstore.heuristic.embed.require_litellm", return_value=_fake_litellm()):
+    with patch(
+        "propstore.heuristic.embed.require_litellm", return_value=_fake_litellm()
+    ):
         embed = _invoke(repo, ["claim", "embed", "--model", "fake/model"])
     assert embed.exit_code == 0, embed.output
     assert "Embedded" in embed.output
@@ -63,7 +65,9 @@ def test_claim_similar_without_index_is_honest(tmp_path: Path) -> None:
 
 def test_concept_embed_then_similar(tmp_path: Path) -> None:
     repo = build_demo_repo(tmp_path)
-    with patch("propstore.heuristic.embed.require_litellm", return_value=_fake_litellm()):
+    with patch(
+        "propstore.heuristic.embed.require_litellm", return_value=_fake_litellm()
+    ):
         embed = _invoke(repo, ["concept", "embed", "--model", "fake/model"])
     assert embed.exit_code == 0, embed.output
     assert "Embedded" in embed.output

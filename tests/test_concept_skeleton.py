@@ -145,9 +145,7 @@ def test_blocked_concept_present_in_sidecar_but_filtered_at_render(
     NO change to storage.
     """
 
-    repo.author(
-        Concept(concept_id="concept:ok", canonical_name="OK"), message="ok"
-    )
+    repo.author(Concept(concept_id="concept:ok", canonical_name="OK"), message="ok")
     repo.author(
         Concept(
             concept_id="concept:blk",

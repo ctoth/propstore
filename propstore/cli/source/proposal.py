@@ -30,11 +30,20 @@ def _parse_comma_values(raw: str | None) -> tuple[str, ...]:
 
 @source.command("propose-concept")
 @click.argument("name")
-@click.option("--concept-name", "concept_name", required=True, help="Source-local concept handle.")
+@click.option(
+    "--concept-name", "concept_name", required=True, help="Source-local concept handle."
+)
 @click.option("--definition", required=True, help="Concept definition.")
-@click.option("--form", "form_name", required=True, help="Concept form (must be a known form).")
+@click.option(
+    "--form", "form_name", required=True, help="Concept form (must be a known form)."
+)
 @click.option("--values", default=None, help="Comma-separated category values.")
-@click.option("--closed", is_flag=True, default=False, help="Mark the value set exhaustive (extensible: false).")
+@click.option(
+    "--closed",
+    is_flag=True,
+    default=False,
+    help="Mark the value set exhaustive (extensible: false).",
+)
 @click.pass_obj
 def propose_concept(
     obj: CliContext,
@@ -75,11 +84,19 @@ def propose_concept(
 @source.command("propose-claim")
 @click.argument("name")
 @click.option("--id", "claim_id", required=True, help="Source-local claim handle.")
-@click.option("--type", "claim_type", required=True, help="Claim type (observation/parameter/…).")
+@click.option(
+    "--type", "claim_type", required=True, help="Claim type (observation/parameter/…)."
+)
 @click.option("--context", required=True, help="Context id the claim is asserted in.")
 @click.option("--statement", default=None)
-@click.option("--concept", default=None, help="Single concept handle (parameter/measurement subject).")
-@click.option("--concept-ref", "concept_refs", multiple=True, help="Additional concept handle(s).")
+@click.option(
+    "--concept",
+    default=None,
+    help="Single concept handle (parameter/measurement subject).",
+)
+@click.option(
+    "--concept-ref", "concept_refs", multiple=True, help="Additional concept handle(s)."
+)
 @click.option("--condition", "conditions", multiple=True, help="CEL condition(s).")
 @click.option("--value", type=float, default=None)
 @click.option("--lower-bound", type=float, default=None)
@@ -150,9 +167,13 @@ def propose_claim(
 
 @source.command("propose-justification")
 @click.argument("name")
-@click.option("--id", "just_id", required=True, help="Source-local justification handle.")
+@click.option(
+    "--id", "just_id", required=True, help="Source-local justification handle."
+)
 @click.option("--conclusion", required=True, help="Conclusion claim handle.")
-@click.option("--premises", required=True, help="Comma-separated premise claim handle(s).")
+@click.option(
+    "--premises", required=True, help="Comma-separated premise claim handle(s)."
+)
 @click.option("--rule-kind", required=True)
 @click.option("--rule-strength", default=None, help="strict or defeasible.")
 @click.option("--page", type=int, default=None)
@@ -200,16 +221,16 @@ def propose_justification(
         attack_target_justification_id=attack_target_justification_id,
         attack_target_premise_index=attack_target_premise_index,
     )
-    emit_success(
-        f"Proposed justification '{just_id}' ({justification.rule_kind})"
-    )
+    emit_success(f"Proposed justification '{just_id}' ({justification.rule_kind})")
 
 
 @source.command("propose-stance")
 @click.argument("name")
 @click.option("--source-claim", required=True, help="Asserting claim handle.")
 @click.option("--target", required=True, help="Target claim handle.")
-@click.option("--type", "stance_type", required=True, help="Stance type (supports/rebuts/…).")
+@click.option(
+    "--type", "stance_type", required=True, help="Stance type (supports/rebuts/…)."
+)
 @click.option("--strength", default=None)
 @click.option("--note", default=None)
 @click.pass_obj

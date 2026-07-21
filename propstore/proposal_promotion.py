@@ -28,15 +28,11 @@ TransactionT = TypeVar("TransactionT")
 class UnknownProposalPath(ValueError):
     """A promotion was asked for a proposal that is not on the proposal branch."""
 
-    def __init__(
-        self, requested_path: str, available: tuple[str, ...]
-    ) -> None:
+    def __init__(self, requested_path: str, available: tuple[str, ...]) -> None:
         self.requested_path = requested_path
         self.available = available
         rendered = ", ".join(available) if available else "<none>"
-        super().__init__(
-            f"Unknown proposal {requested_path!r}; available: {rendered}"
-        )
+        super().__init__(f"Unknown proposal {requested_path!r}; available: {rendered}")
 
 
 class ProposalAlreadyPromoted(ValueError):
@@ -48,6 +44,7 @@ class ProposalAlreadyPromoted(ValueError):
         super().__init__(
             f"Proposal {artifact_id!r} was already promoted from {promoted_from_sha}"
         )
+
 
 RefT_contra = TypeVar("RefT_contra", contravariant=True)
 DocT_contra = TypeVar("DocT_contra", contravariant=True)

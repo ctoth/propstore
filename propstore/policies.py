@@ -311,9 +311,7 @@ def policy_assertions(
             roles={
                 "profile": profile.profile_id,
                 "required_attitude": profile.source_trust.required_attitude,
-                "unsigned_graph_policy": (
-                    profile.source_trust.unsigned_graph_policy
-                ),
+                "unsigned_graph_policy": (profile.source_trust.unsigned_graph_policy),
             },
         ),
         _policy_assertion(

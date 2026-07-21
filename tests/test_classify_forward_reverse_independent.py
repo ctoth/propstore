@@ -46,7 +46,9 @@ def test_classify_forward_reverse_independent_llm_calls() -> None:
     )
     with patch("propstore.heuristic.classify._require_litellm") as require_litellm:
         litellm = MagicMock()
-        litellm.acompletion = AsyncMock(side_effect=[forward_response, reverse_response])
+        litellm.acompletion = AsyncMock(
+            side_effect=[forward_response, reverse_response]
+        )
         require_litellm.return_value = litellm
 
         results = asyncio.run(
@@ -67,7 +69,10 @@ def test_classify_forward_reverse_independent_llm_calls() -> None:
 
     assert [stance["target"] for stance in results] == ["b", "a"]
     assert [stance["type"] for stance in results] == ["supports", "undercuts"]
-    assert results[0]["resolution"]["llm_call_id"] != results[1]["resolution"]["llm_call_id"]
+    assert (
+        results[0]["resolution"]["llm_call_id"]
+        != results[1]["resolution"]["llm_call_id"]
+    )
     assert results[0]["resolution"]["prompt"] == prompts[0]
     assert results[1]["resolution"]["prompt"] == prompts[1]
     assert results[0]["resolution"]["raw_response"] == json.loads(
@@ -109,7 +114,9 @@ def test_classify_preserves_generated_directional_perspectives(
     )
     with patch("propstore.heuristic.classify._require_litellm") as require_litellm:
         litellm = MagicMock()
-        litellm.acompletion = AsyncMock(side_effect=[forward_response, reverse_response])
+        litellm.acompletion = AsyncMock(
+            side_effect=[forward_response, reverse_response]
+        )
         require_litellm.return_value = litellm
 
         results = asyncio.run(
@@ -124,4 +131,7 @@ def test_classify_preserves_generated_directional_perspectives(
     assert litellm.acompletion.await_count == 2
     assert [stance["target"] for stance in results] == ["b", "a"]
     assert [stance["type"] for stance in results] == [forward_type, reverse_type]
-    assert results[0]["resolution"]["raw_response"] != results[1]["resolution"]["raw_response"]
+    assert (
+        results[0]["resolution"]["raw_response"]
+        != results[1]["resolution"]["raw_response"]
+    )

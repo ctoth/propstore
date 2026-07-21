@@ -244,7 +244,9 @@ def _capture_two_step_journal() -> TransitionJournal:
     )
 
 
-def test_worldline_charter_journal_survives_repository_round_trip(tmp_path: Path) -> None:
+def test_worldline_charter_journal_survives_repository_round_trip(
+    tmp_path: Path,
+) -> None:
     """A captured journal attached to a worldline survives persist -> load intact.
 
     The charter carries the journal as its canonical package type and Quire
@@ -296,7 +298,9 @@ def test_worldline_without_journal_loads_as_none(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     definition = WorldlineDefinition(name="plain", id="plain", targets=["target"])
 
-    repo.families.worldlines.save(WorldlineRef("plain"), definition, message="no journal")
+    repo.families.worldlines.save(
+        WorldlineRef("plain"), definition, message="no journal"
+    )
     loaded = repo.families.worldlines.load(WorldlineRef("plain"))
 
     assert loaded is not None
@@ -465,9 +469,9 @@ def test_owner_at_step_heavy_surfaces_stances_and_conflicts(tmp_path: Path) -> N
     assert {
         (str(s.source_claim_id), str(s.target_claim_id)) for s in report.stances
     } == {("cl1", "cl2")}
-    assert {
-        (str(c.claim_a_id), str(c.claim_b_id)) for c in report.conflicts
-    } == {("cl1", "cl2")}
+    assert {(str(c.claim_a_id), str(c.claim_b_id)) for c in report.conflicts} == {
+        ("cl1", "cl2")
+    }
 
 
 def test_owner_build_journal_without_revision_is_a_validation_error(

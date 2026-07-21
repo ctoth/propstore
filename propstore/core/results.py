@@ -85,4 +85,3 @@ class AnalyzerResult:
     def __post_init__(self) -> None:
         object.__setattr__(self, "extensions", tuple(sorted(self.extensions)))
         object.__setattr__(self, "metadata", _normalize_metadata(self.metadata))
-

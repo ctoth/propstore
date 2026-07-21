@@ -242,9 +242,7 @@ def commit_source_justification_proposal(
         existing = load_source_justifications_document(
             repo, source_name
         ) or SourceJustificationsDocument(justifications=())
-        kept = [
-            entry for entry in existing.justifications if entry.id != just_id
-        ]
+        kept = [entry for entry in existing.justifications if entry.id != just_id]
         kept.append(new_justification)
         normalized = normalize_source_justifications_payload(
             SourceJustificationsDocument(
@@ -299,9 +297,7 @@ def normalize_source_stances_payload(
         if target is None:
             raise ValueError(f"unresolved stance target: {stance.target}")
         normalized.append(
-            msgspec.structs.replace(
-                stance, source_claim=source_claim, target=target
-            )
+            msgspec.structs.replace(stance, source_claim=source_claim, target=target)
         )
     return SourceStancesDocument(
         stances=tuple(normalized),

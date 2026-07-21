@@ -28,8 +28,15 @@ def emit_table(
     ]
     emit(
         indent
-        + "  ".join(str(header).ljust(widths[index]) for index, header in enumerate(headers))
+        + "  ".join(
+            str(header).ljust(widths[index]) for index, header in enumerate(headers)
+        )
     )
     emit(indent + "  ".join("-" * width for width in widths))
     for row in rows:
-        emit(indent + "  ".join(str(value).ljust(widths[index]) for index, value in enumerate(row)))
+        emit(
+            indent
+            + "  ".join(
+                str(value).ljust(widths[index]) for index, value in enumerate(row)
+            )
+        )

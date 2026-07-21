@@ -66,6 +66,7 @@ class AssumptionRef(DocumentStruct):
     source: str
     cel: CelExpr
 
+
 class Environment(DocumentStruct):
     """The assumption/binding/context frame a world query renders under."""
 
@@ -126,7 +127,9 @@ class ConflictStore(Protocol):
 
 @runtime_checkable
 class ParameterizationLookupStore(Protocol):
-    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationEdge]: ...
+    def parameterizations_for(
+        self, concept_id: str
+    ) -> Sequence[ParameterizationEdge]: ...
 
 
 @runtime_checkable
@@ -186,7 +189,9 @@ class WorldStore(Protocol):
     def stats(self) -> WorldStoreStats: ...
     def explain(self, claim_id: str) -> Sequence[Stance]: ...
     def condition_solver(self) -> ConditionSolver: ...
-    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationEdge]: ...
+    def parameterizations_for(
+        self, concept_id: str
+    ) -> Sequence[ParameterizationEdge]: ...
     def group_members(self, concept_id: str) -> list[str]: ...
     def chain_query(
         self,

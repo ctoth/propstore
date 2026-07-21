@@ -17,16 +17,24 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from propstore.core.embeddings import EmbeddingEntity
-from propstore.heuristic.embed import deserialize_float32, embed_entities, serialize_float32
+from propstore.heuristic.embed import (
+    deserialize_float32,
+    embed_entities,
+    serialize_float32,
+)
 from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
 
 
 class _MemoryStore:
-    def __init__(self, entities: list[EmbeddingEntity], existing: dict[str, str] | None = None):
+    def __init__(
+        self, entities: list[EmbeddingEntity], existing: dict[str, str] | None = None
+    ):
         self._entities = entities
         self._existing = existing or {}
         self.prepared: tuple[EmbeddingModelIdentity, int, str] | None = None
-        self.saved: list[tuple[EmbeddingModelIdentity, EmbeddingEntity, bytes, str]] = []
+        self.saved: list[
+            tuple[EmbeddingModelIdentity, EmbeddingEntity, bytes, str]
+        ] = []
 
     def ensure_storage(self) -> None:
         pass

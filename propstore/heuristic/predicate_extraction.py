@@ -81,9 +81,7 @@ def _notes_sha(notes: str) -> str:
 
 
 def _llm_call(**_kwargs: object) -> str:
-    raise RuntimeError(
-        "predicate extraction requires an LLM client or a test fixture"
-    )
+    raise RuntimeError("predicate extraction requires an LLM client or a test fixture")
 
 
 def _declarations_from_response(raw: str) -> tuple[PredicateDeclaration, ...]:

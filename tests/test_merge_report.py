@@ -52,8 +52,12 @@ def test_merge_report_surfaces_ignorance_query_state() -> None:
     base = [param_claim("claim1", "concept_x", 250.0)]
     merge = build_merge_framework(
         {
-            "master": [param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])],
-            "paper/phi": [param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])],
+            "master": [
+                param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])
+            ],
+            "paper/phi": [
+                param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])
+            ],
         },
         "master",
         "paper/phi",
@@ -76,9 +80,13 @@ def test_merge_report_surfaces_ignorance_query_state() -> None:
         "claim1": sorted(report["arguments"]),
     }
     assert len(report["argument_details"]) == 2
-    detail_by_id = {detail["assertion_id"]: detail for detail in report["argument_details"]}
+    detail_by_id = {
+        detail["assertion_id"]: detail for detail in report["argument_details"]
+    }
     for assertion_id in report["credulous"]:
         assert report["statuses"][assertion_id]["credulously_accepted"] is True
         assert detail_by_id[assertion_id]["credulously_accepted"] is True
         provenance = detail_by_id[assertion_id]["provenance"]
-        assert provenance["branch_origin"] in detail_by_id[assertion_id]["branch_origins"]
+        assert (
+            provenance["branch_origin"] in detail_by_id[assertion_id]["branch_origins"]
+        )

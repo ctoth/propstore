@@ -15,7 +15,13 @@ from collections.abc import Sequence
 import gunray
 from argumentation.core.preference import strict_partial_order_closure
 
-from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, RuleSuperiority, Term
+from propstore.families.rules import (
+    Atom,
+    BodyLiteral,
+    DefeasibleRule,
+    RuleSuperiority,
+    Term,
+)
 from propstore.grounding.predicates import PredicateRegistry
 
 
@@ -111,17 +117,22 @@ def _normalise_superiority(
 
     if not superiority:
         return ()
-    authored_pairs = [(item.superior_rule_id, item.inferior_rule_id) for item in superiority]
+    authored_pairs = [
+        (item.superior_rule_id, item.inferior_rule_id) for item in superiority
+    ]
     referenced = {rule_id for pair in authored_pairs for rule_id in pair}
     missing = referenced - non_strict_rule_ids
     if missing:
         raise ValueError(
-            "superiority references unknown or strict rule id(s): " + ", ".join(sorted(missing))
+            "superiority references unknown or strict rule id(s): "
+            + ", ".join(sorted(missing))
         )
     closed = strict_partial_order_closure(
         (inferior, superior) for superior, inferior in authored_pairs
     )
     return tuple(
         (stronger, weaker)
-        for weaker, stronger in sorted(closed, key=lambda pair: (str(pair[1]), str(pair[0])))
+        for weaker, stronger in sorted(
+            closed, key=lambda pair: (str(pair[1]), str(pair[0]))
+        )
     )

@@ -61,7 +61,9 @@ def _claim_has_conditions(claim: ActiveClaim) -> bool:
     return bool(claim.conditions)
 
 
-def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
+def _default_support_metadata(
+    claim: ActiveClaim,
+) -> tuple[Label | None, SupportQuality]:
     """Compute default projected support metadata for a claim-backed argument."""
 
     has_context = claim.context_id is not None
@@ -211,7 +213,9 @@ def csaf_to_projection(
         else:
             top_rule_kind = "reported_claim"
 
-        attackable_kind = "base_claim" if isinstance(argument, PremiseArg) else "inference_rule"
+        attackable_kind = (
+            "base_claim" if isinstance(argument, PremiseArg) else "inference_rule"
+        )
         premise_claim_ids = _claim_ids_for_literals(
             _direct_premise_literals(argument),
             claim_literal_ids,
@@ -260,7 +264,9 @@ def csaf_to_projection(
             projection=_projection_atom_for_literal(conclusion, claim=claim),
             claim_id=claim_id,
             conclusion_concept_id=(
-                None if claim is None or claim.concept_id is None else str(claim.concept_id)
+                None
+                if claim is None or claim.concept_id is None
+                else str(claim.concept_id)
             ),
             premise_claim_ids=premise_claim_ids,
             label=label,
@@ -316,7 +322,9 @@ def csaf_to_projection(
     return StructuredProjection(
         arguments=tuple(sorted(projected_args, key=lambda argument: argument.arg_id)),
         framework=proj_framework,
-        claim_to_argument_ids={claim_id: tuple(arg_ids) for claim_id, arg_ids in claim_to_args.items()},
+        claim_to_argument_ids={
+            claim_id: tuple(arg_ids) for claim_id, arg_ids in claim_to_args.items()
+        },
         argument_to_claim_id=arg_to_claim,
     )
 
@@ -357,7 +365,9 @@ def build_aspic_projection(
         comparison=comparison,
         link=link,
     )
-    return csaf_to_projection(csaf, normalized_claims, support_metadata=support_metadata)
+    return csaf_to_projection(
+        csaf, normalized_claims, support_metadata=support_metadata
+    )
 
 
 __all__ = ["build_aspic_projection", "csaf_to_projection"]

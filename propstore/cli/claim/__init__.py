@@ -13,6 +13,7 @@ flag-to-:class:`RenderPolicy` path, world opening, JSON emission). The sibling
 command module is imported at the bottom, after the group and helpers exist, so it
 can attach its commands via ``@claim.command``.
 """
+
 from __future__ import annotations
 
 import json

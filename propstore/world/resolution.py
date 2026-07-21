@@ -155,7 +155,9 @@ def _resolve_sample_size(
 def _claim_concept_id(claim: ActiveClaim) -> str:
     concept_id = claim.concept_id
     if not concept_id:
-        raise KeyError("resolution requires each claim to have a non-empty value concept")
+        raise KeyError(
+            "resolution requires each claim to have a non-empty value concept"
+        )
     return concept_id
 
 
@@ -179,7 +181,11 @@ def _filtered_assignment_selection_claims(
         if _normalize_numeric(claim.value) is None:
             continue
         branch = claim.branch
-        if branch_filter is not None and branch is not None and branch not in branch_filter:
+        if (
+            branch_filter is not None
+            and branch is not None
+            and branch not in branch_filter
+        ):
             continue
         filtered.append(claim)
     return filtered
@@ -259,7 +265,9 @@ def _resolve_assignment_selection_merge(
     if not filtered:
         return None, "no assignment-selection merge sources after branch filter"
     try:
-        request = _build_assignment_selection_request(filtered, concept_id, policy=policy)
+        request = _build_assignment_selection_request(
+            filtered, concept_id, policy=policy
+        )
     except (KeyError, TypeError, ValueError) as exc:
         return None, str(exc)
 
@@ -338,8 +346,12 @@ def _resolve_claim_graph_argumentation(
             return None, "no stable extensions"
         return None, f"no {normalized_semantics.value} extensions"
 
-    survivors = frozenset(projection.survivor_claim_ids if projection is not None else ())
-    witness_claims = frozenset(projection.witness_claim_ids if projection is not None else ())
+    survivors = frozenset(
+        projection.survivor_claim_ids if projection is not None else ()
+    )
+    witness_claims = frozenset(
+        projection.witness_claim_ids if projection is not None else ()
+    )
 
     if len(survivors) == 0:
         if len(result.extensions) > 1:
@@ -355,7 +367,10 @@ def _resolve_claim_graph_argumentation(
         winner = next(iter(survivors))
         return winner, f"sole survivor in {normalized_semantics.value} extension"
 
-    return None, f"{len(survivors)} claims survive in {normalized_semantics.value} extension"
+    return (
+        None,
+        f"{len(survivors)} claims survive in {normalized_semantics.value} extension",
+    )
 
 
 def _resolve_structured_argumentation(
@@ -385,13 +400,17 @@ def _resolve_structured_argumentation(
         return None, "ASPIC backend requires a grounded bundle-capable store"
 
     active_ids = {str(claim.claim_id) for claim in active_claims}
-    active_graph = view.active_world_graph() if isinstance(view, HasActiveGraph) else None
+    active_graph = (
+        view.active_world_graph() if isinstance(view, HasActiveGraph) else None
+    )
     bundle = world.grounding_bundle()
     if active_graph is None:
         # WorldStore always exposes ``stances_between``; only the authored-
         # justification surface is optional.
         stance_rows = tuple(world.stances_between(active_ids))
-        has_authored_justification_surface = isinstance(world, AuthoredJustificationStore)
+        has_authored_justification_surface = isinstance(
+            world, AuthoredJustificationStore
+        )
         authored_justifications = (
             tuple(world.justifications_for_claim_scope(active_ids))
             if has_authored_justification_surface
@@ -400,7 +419,11 @@ def _resolve_structured_argumentation(
         has_grounded_rule_input = bool(
             bundle.source_rules or bundle.source_facts or bundle.arguments
         )
-        if not stance_rows and not authored_justifications and not has_grounded_rule_input:
+        if (
+            not stance_rows
+            and not authored_justifications
+            and not has_grounded_rule_input
+        ):
             return None, "no stance data"
 
     metadata: SupportMetadata | None = support_metadata or None
@@ -574,7 +597,9 @@ def _resolve_praf(
 
     if acceptance is None:
         extension_probability = metadata.get("extension_probability")
-        best_claims = list(projection.survivor_claim_ids if projection is not None else ())
+        best_claims = list(
+            projection.survivor_claim_ids if projection is not None else ()
+        )
         if len(best_claims) == 1:
             winner = best_claims[0]
             probability_text = (
@@ -648,7 +673,9 @@ def _resolve_praf(
         if scored:
             best_dv = max(scored.values())
             dv_winners = [
-                cid for cid, v in scored.items() if math.isclose(v, best_dv, rel_tol=1e-9)
+                cid
+                for cid, v in scored.items()
+                if math.isclose(v, best_dv, rel_tol=1e-9)
             ]
             if len(dv_winners) == 1:
                 winner = dv_winners[0]
@@ -678,7 +705,9 @@ def _resolve_atms_support(
     imports ``world.atms`` or ``world.bound`` and so stays above the engine.
     """
     if not isinstance(view, HasATMSEngine):
-        raise NotImplementedError("ATMS backend requires a bound world with an ATMS engine")
+        raise NotImplementedError(
+            "ATMS backend requires a bound world with an ATMS engine"
+        )
 
     engine = view.atms_engine()
     target_ids = {str(c.claim_id) for c in target_claims}
@@ -782,7 +811,9 @@ def resolve(
     winner_id: str | None = None
     reason: str | None = None
     acceptance_probs: dict[str, float] | None = None
-    active_graph = view.active_world_graph() if isinstance(view, HasActiveGraph) else None
+    active_graph = (
+        view.active_world_graph() if isinstance(view, HasActiveGraph) else None
+    )
 
     if strategy == ResolutionStrategy.OVERRIDE:
         winner_id, reason = _resolve_override(concept_id, active, overrides)

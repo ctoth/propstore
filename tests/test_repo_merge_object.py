@@ -45,7 +45,9 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path: Path) -> N
 
     assert len(merge.arguments) == 2
     assertion_ids = {argument.assertion_id for argument in merge.arguments}
-    assert all(assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids)
+    assert all(
+        assertion_id.startswith("ps:assertion:") for assertion_id in assertion_ids
+    )
     left_id, right_id = sorted(assertion_ids)
     assert (left_id, right_id) in merge.framework.attacks
     assert (right_id, left_id) in merge.framework.attacks
@@ -55,9 +57,7 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path: Path) -> N
 def test_build_merge_framework_phi_node_emits_ignorance(tmp_path: Path) -> None:
     branch = "paper/phi"
     repo = _seed_with_base_claim(tmp_path, branch, 250.0)
-    author_param_claim(
-        repo, "claim1", "concept_x", 300.0, conditions=("temp > 300",)
-    )
+    author_param_claim(repo, "claim1", "concept_x", 300.0, conditions=("temp > 300",))
     author_param_claim(
         repo, "claim1", "concept_x", 150.0, branch=branch, conditions=("temp < 200",)
     )
@@ -71,7 +71,9 @@ def test_build_merge_framework_phi_node_emits_ignorance(tmp_path: Path) -> None:
     assert (left_id, right_id) not in merge.framework.attacks
 
 
-def test_compatible_one_sided_modification_emits_single_argument(tmp_path: Path) -> None:
+def test_compatible_one_sided_modification_emits_single_argument(
+    tmp_path: Path,
+) -> None:
     branch = "paper/compat"
     repo = _seed_with_base_claim(tmp_path, branch, 250.0)
     # Only the branch modifies claim1; master keeps the base value.
@@ -147,12 +149,13 @@ def test_create_merge_commit_target_branch_override(tmp_path: Path) -> None:
     branch_before = git.branch_sha(branch)
     git.create_branch("merge/out", source_commit=master_before)
 
-    merge_sha = create_merge_commit(
-        repo, "master", branch, target_branch="merge/out"
-    )
+    merge_sha = create_merge_commit(repo, "master", branch, target_branch="merge/out")
 
     assert git.branch_sha("merge/out") == merge_sha
     # The source branches are untouched.
     assert git.branch_sha("master") == master_before
     assert git.branch_sha(branch) == branch_before
-    assert list(git.iter_commit_parent_shas(merge_sha)) == [master_before, branch_before]
+    assert list(git.iter_commit_parent_shas(merge_sha)) == [
+        master_before,
+        branch_before,
+    ]

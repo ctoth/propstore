@@ -37,7 +37,11 @@ from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
 from quire.references import ForeignKeySpec
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 
 from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 from sqlalchemy import select
@@ -228,13 +232,18 @@ class RuleRepository:
     def author(self, rule: DefeasibleRule, *, message: str) -> str:
         """Store the authored rule keyed by ``rule_id``; return sha."""
 
-        return self._rule_store.save(self._rule_family, rule.rule_id, rule, message=message)
+        return self._rule_store.save(
+            self._rule_family, rule.rule_id, rule, message=message
+        )
 
     def author_superiority(self, superiority: RuleSuperiority, *, message: str) -> str:
         """Store an authored superiority keyed by ``superiority_id``; return sha."""
 
         return self._superiority_store.save(
-            self._superiority_family, superiority.superiority_id, superiority, message=message
+            self._superiority_family,
+            superiority.superiority_id,
+            superiority,
+            message=message,
         )
 
     def get(self, rule_id: str) -> DefeasibleRule | None:
@@ -291,7 +300,9 @@ class RuleRepository:
             session.commit()
         return schema
 
-    def render_rules(self, path: Path, schema: SqlAlchemySchema) -> list[DefeasibleRule]:
+    def render_rules(
+        self, path: Path, schema: SqlAlchemySchema
+    ) -> list[DefeasibleRule]:
         model = schema.model("defeasible_rule")
         with readonly_session(path, schema) as session:
             rows = list(session.scalars(select(model)))
@@ -407,9 +418,7 @@ class RuleProposal(CharterDoc):
     rule_id: Annotated[str, charter_field(primary_key=True)]
     source_paper: str
     proposed_rule: Annotated[ProposedRule | None, charter_field(json=True)] = None
-    predicates_referenced: Annotated[
-        tuple[str, ...], charter_field(json=True)
-    ] = ()
+    predicates_referenced: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     extraction_provenance: Annotated[
         RuleExtractionProvenance | None, charter_field(json=True)
     ] = None

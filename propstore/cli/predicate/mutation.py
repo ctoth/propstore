@@ -12,6 +12,7 @@ inputs and maps typed owner failures to clean CLI errors (CLAUDE.md "CLI adapter
 discipline"). The LLM extraction that *produces* declarations is Phase 10-4 and is
 not built here.
 """
+
 from __future__ import annotations
 
 import click

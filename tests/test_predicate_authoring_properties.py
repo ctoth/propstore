@@ -24,7 +24,9 @@ from propstore.grounding.authoring import (
 )
 
 _IDS = st.text(alphabet="abcdefghijklmnopqrstuvwxyz_", min_size=1, max_size=12)
-_GROUPS = st.lists(st.text(alphabet="abcdef", min_size=1, max_size=5), min_size=1, max_size=5)
+_GROUPS = st.lists(
+    st.text(alphabet="abcdef", min_size=1, max_size=5), min_size=1, max_size=5
+)
 
 
 @pytest.mark.property
@@ -39,16 +41,22 @@ def test_predicate_id_unique_regardless_of_authoring_group(
         if not declared:
             add_predicate(
                 repo,
-                PredicateAddRequest(predicate_id=predicate_id, arity=0, authoring_group=group),
+                PredicateAddRequest(
+                    predicate_id=predicate_id, arity=0, authoring_group=group
+                ),
             )
             declared = True
         else:
             with pytest.raises(PredicateWorkflowError):
                 add_predicate(
                     repo,
-                    PredicateAddRequest(predicate_id=predicate_id, arity=0, authoring_group=group),
+                    PredicateAddRequest(
+                        predicate_id=predicate_id, arity=0, authoring_group=group
+                    ),
                 )
-    surviving = [item for item in list_predicates(repo) if item.predicate_id == predicate_id]
+    surviving = [
+        item for item in list_predicates(repo) if item.predicate_id == predicate_id
+    ]
     assert len(surviving) == 1
 
 
@@ -66,7 +74,9 @@ def test_concurrent_same_id_add_has_one_survivor(thread_count: int) -> None:
         try:
             add_predicate(
                 repo,
-                PredicateAddRequest(predicate_id="dup", arity=0, authoring_group=f"g{index}"),
+                PredicateAddRequest(
+                    predicate_id="dup", arity=0, authoring_group=f"g{index}"
+                ),
             )
             successes.append(index)
         except (PredicateWorkflowError, HeadMismatchError):

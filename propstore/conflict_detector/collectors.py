@@ -79,9 +79,7 @@ def collect_algorithm_claims(
         if claim.output_concept_id is not None:
             by_concept[claim.output_concept_id].append(claim)
             continue
-        first_concept = next(
-            (variable.concept for variable in claim.variables), None
-        )
+        first_concept = next((variable.concept for variable in claim.variables), None)
         if first_concept is not None:
             by_concept[first_concept].append(claim)
     return dict(by_concept)

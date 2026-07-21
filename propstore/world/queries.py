@@ -50,6 +50,7 @@ from propstore.families.temporal import (
 if TYPE_CHECKING:
     from quire.sqlalchemy_store import DerivedSession
 
+
 class WorldQueryError(Exception):
     """Base class for expected world-query failures."""
 
@@ -102,13 +103,9 @@ def select_concept(session: DerivedSession, concept_id: str) -> Concept | None:
     """One concept by exact ``concept_id``, or ``None``."""
 
     model = session.schema.model("concept")
-    row = session.scalars(
-        select(model).where(model.concept_id == concept_id)
-    ).first()
+    row = session.scalars(select(model).where(model.concept_id == concept_id)).first()
     return (
-        None
-        if row is None
-        else Concept.__charter__.document_from_model(row, Concept)
+        None if row is None else Concept.__charter__.document_from_model(row, Concept)
     )
 
 
@@ -119,9 +116,7 @@ def resolve_concept_id(session: DerivedSession, name: str) -> str | None:
     by_id = session.scalars(select(model).where(model.concept_id == name)).first()
     if by_id is not None:
         return str(by_id.concept_id)
-    by_name = session.scalars(
-        select(model).where(model.canonical_name == name)
-    ).first()
+    by_name = session.scalars(select(model).where(model.canonical_name == name)).first()
     return None if by_name is None else str(by_name.concept_id)
 
 
@@ -131,7 +126,9 @@ def search_concepts(session: DerivedSession, query: str) -> list[ConceptSearchHi
     model = session.schema.model("concept")
     pattern = f"%{query}%"
     rows = session.scalars(
-        select(model).where(model.canonical_name.ilike(pattern)).order_by(model.concept_id)
+        select(model)
+        .where(model.canonical_name.ilike(pattern))
+        .order_by(model.concept_id)
     )
     return [
         ConceptSearchHit(concept_id=to_concept_id(str(row.concept_id))) for row in rows
@@ -161,11 +158,7 @@ def select_claim(session: DerivedSession, claim_id: str) -> Claim | None:
 
     model = session.schema.model("claim")
     row = session.scalars(select(model).where(model.claim_id == claim_id)).first()
-    return (
-        None
-        if row is None
-        else Claim.__charter__.document_from_model(row, Claim)
-    )
+    return None if row is None else Claim.__charter__.document_from_model(row, Claim)
 
 
 def resolve_claim_id(session: DerivedSession, name: str) -> str | None:
@@ -285,9 +278,7 @@ def select_happens_before_edges(
 
     model = session.schema.model("happens_before_edge")
     return [
-        HappensBeforeEdgeDoc.__charter__.document_from_model(
-            row, HappensBeforeEdgeDoc
-        )
+        HappensBeforeEdgeDoc.__charter__.document_from_model(row, HappensBeforeEdgeDoc)
         for row in session.scalars(select(model))
     ]
 

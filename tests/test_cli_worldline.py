@@ -8,6 +8,7 @@ behaviour lives in :mod:`propstore.app.worldlines`; here we assert exit codes an
 rendered output, and that expected owner failures (missing worldline, duplicate
 create) map to non-zero exits with a helpful message.
 """
+
 from __future__ import annotations
 
 import json
@@ -64,7 +65,16 @@ def _repo_with_one_atom(tmp_path: Path) -> tuple[Repository, str]:
 def test_worldline_help_lists_subcommands() -> None:
     result = CliRunner().invoke(cli, ["worldline", "--help"])
     assert result.exit_code == 0, result.output
-    for name in ("create", "run", "show", "list", "diff", "delete", "build-journal", "at-step"):
+    for name in (
+        "create",
+        "run",
+        "show",
+        "list",
+        "diff",
+        "delete",
+        "build-journal",
+        "at-step",
+    ):
         assert name in result.output
 
 

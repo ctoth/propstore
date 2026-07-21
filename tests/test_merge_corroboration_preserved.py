@@ -16,10 +16,17 @@ def test_cross_paper_corroboration_survives_merge_framework() -> None:
     merge = build_merge_framework(
         {
             "master": [
-                obs_claim("claim_a", "The same proposition", ["concept_x"], paper="left_paper")
+                obs_claim(
+                    "claim_a", "The same proposition", ["concept_x"], paper="left_paper"
+                )
             ],
             "paper/right": [
-                obs_claim("claim_b", "The same proposition", ["concept_x"], paper="right_paper")
+                obs_claim(
+                    "claim_b",
+                    "The same proposition",
+                    ["concept_x"],
+                    paper="right_paper",
+                )
             ],
         },
         "master",
@@ -27,7 +34,10 @@ def test_cross_paper_corroboration_survives_merge_framework() -> None:
     )
 
     assert len(merge.arguments) == 2
-    assert {argument.artifact_id for argument in merge.arguments} == {"claim_a", "claim_b"}
+    assert {argument.artifact_id for argument in merge.arguments} == {
+        "claim_a",
+        "claim_b",
+    }
     assert len({argument.assertion_id for argument in merge.arguments}) == 2
     assert all(argument.witness_basis for argument in merge.arguments)
     papers = {argument.claim.paper for argument in merge.arguments}

@@ -32,7 +32,9 @@ def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def populate_grounded_facts(conn: sqlite3.Connection, bundle: GroundedRulesBundle) -> int:
+def populate_grounded_facts(
+    conn: sqlite3.Connection, bundle: GroundedRulesBundle
+) -> int:
     """Insert one row per (atom, section) across all four sections; return count."""
 
     count = 0
@@ -59,7 +61,9 @@ def read_grounded_facts(conn: sqlite3.Connection) -> SectionMap:
         predicate = str(record[0])
         section = str(record[2])
         decoded: list[gunray.Scalar] = json.loads(record[1])
-        collected.setdefault(section, {}).setdefault(predicate, set()).add(tuple(decoded))
+        collected.setdefault(section, {}).setdefault(predicate, set()).add(
+            tuple(decoded)
+        )
     return MappingProxyType(
         {
             name: MappingProxyType(

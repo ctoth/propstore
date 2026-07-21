@@ -64,9 +64,7 @@ if TYPE_CHECKING:
 # There is no registry-dict spelling and no ``_ParameterizationEdge`` mirror.
 ConceptIndex = Mapping[str, Concept]
 ParameterizationIndex = Mapping[str, Sequence[ParameterizationEdge]]
-_RecordKey = tuple[
-    str, str, tuple[str, ...], str, tuple[CelExpr, ...], str | None, str
-]
+_RecordKey = tuple[str, str, tuple[str, ...], str, tuple[CelExpr, ...], str | None, str]
 _StateKey = tuple[str, str, tuple[str, ...], tuple[CelExpr, ...], str | None, int]
 
 
@@ -269,10 +267,7 @@ def _merge_contexts_for_derivation(
 
 def _merge_conditions(*groups: Iterable[CelExpr]) -> tuple[CelExpr, ...]:
     merged = {
-        str(condition)
-        for group in groups
-        for condition in group
-        if str(condition)
+        str(condition) for group in groups for condition in group if str(condition)
     }
     return to_cel_exprs(sorted(merged))
 
@@ -294,7 +289,9 @@ def _direct_state_for_claim(
         concept_id=concept_id,
         value=normalized,
         source_claim_ids=(claim.claim_id,),
-        conditions=to_cel_exprs(sorted(str(condition) for condition in claim.conditions)),
+        conditions=to_cel_exprs(
+            sorted(str(condition) for condition in claim.conditions)
+        ),
         context_id=claim_context(claim),
         derivation_chain=f"{concept_id}={normalized}(claim:{claim.claim_id})",
         hop_count=0,
@@ -373,11 +370,7 @@ def _derive_state(
 
     source_claim_ids = tuple(
         sorted(
-            {
-                claim_id
-                for state in input_states
-                for claim_id in state.source_claim_ids
-            }
+            {claim_id for state in input_states for claim_id in state.source_claim_ids}
         )
     )
     merged_conditions = _merge_conditions(

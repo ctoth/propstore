@@ -36,7 +36,11 @@ class RankingProvenance(msgspec.Struct, frozen=True, forbid_unknown_fields=True)
 
 
 class RevisionTrace(
-    msgspec.Struct, frozen=True, forbid_unknown_fields=True, tag_field="kind", tag="revision"
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    tag_field="kind",
+    tag="revision",
 ):
     """What an AGM/iterated revision recorded about its outcome."""
 
@@ -45,7 +49,11 @@ class RevisionTrace(
 
 
 class ICMergeTrace(
-    msgspec.Struct, frozen=True, forbid_unknown_fields=True, tag_field="kind", tag="ic_merge"
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    tag_field="kind",
+    tag="ic_merge",
 ):
     """What a Konieczny-style IC merge recorded about its outcome.
 

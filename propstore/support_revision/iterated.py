@@ -8,7 +8,10 @@ from propstore.support_revision.belief_set_adapter import (
     DEFAULT_MAX_ALPHABET_SIZE,
     decide_iterated_revise,
 )
-from propstore.support_revision.entrenchment import EntrenchmentReport, compute_entrenchment
+from propstore.support_revision.entrenchment import (
+    EntrenchmentReport,
+    compute_entrenchment,
+)
 from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.realization import realize_formal_decision
 from propstore.support_revision.state import (
@@ -33,7 +36,9 @@ def make_epistemic_state(
         base=base,
         accepted_atom_ids=tuple(atom.atom_id for atom in base.atoms),
         ranked_atom_ids=tuple(entrenchment.ranked_atom_ids),
-        ranking={atom_id: idx for idx, atom_id in enumerate(entrenchment.ranked_atom_ids)},
+        ranking={
+            atom_id: idx for idx, atom_id in enumerate(entrenchment.ranked_atom_ids)
+        },
         entrenchment_reasons=dict(entrenchment.reasons),
         history=(),
     )
@@ -80,7 +85,9 @@ def advance_epistemic_state(
         base=result.revised_base,
         accepted_atom_ids=tuple(result.accepted_atom_ids),
         ranked_atom_ids=tuple(entrenchment.ranked_atom_ids),
-        ranking={atom_id: idx for idx, atom_id in enumerate(entrenchment.ranked_atom_ids)},
+        ranking={
+            atom_id: idx for idx, atom_id in enumerate(entrenchment.ranked_atom_ids)
+        },
         entrenchment_reasons=dict(entrenchment.reasons),
         history=state.history + (episode,),
     )
@@ -98,7 +105,9 @@ def iterated_revise(
 ) -> tuple[RevisionResult, EpistemicState]:
     """Revise an explicit epistemic state using a selected iterated operator family."""
     if len(state.scope.merge_parent_commits) > 1:
-        raise RevisionMergeRequiredFailure(parent_commits=state.scope.merge_parent_commits)
+        raise RevisionMergeRequiredFailure(
+            parent_commits=state.scope.merge_parent_commits
+        )
 
     normalized = normalize_revision_input(state.base, atom)
     current_entrenchment = compute_entrenchment(None, state.base)

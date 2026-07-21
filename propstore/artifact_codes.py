@@ -122,7 +122,9 @@ def stamp_source_artifact_codes(
 
     justification_codes_by_conclusion: dict[str, list[str]] = defaultdict(list)
     rewritten_justifications: list[SourceJustificationDocument] = []
-    for justification in () if justifications_doc is None else justifications_doc.justifications:
+    for justification in (
+        () if justifications_doc is None else justifications_doc.justifications
+    ):
         artifact_code = justification_artifact_code(justification)
         rewritten = msgspec.structs.replace(justification, artifact_code=artifact_code)
         conclusion = rewritten.conclusion

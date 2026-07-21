@@ -45,17 +45,26 @@ def test_author_then_load_round_trips(repo: PredicateRepository) -> None:
     assert loaded == predicate
 
 
-def test_sidecar_round_trips_arg_types_json(repo: PredicateRepository, tmp_path: Path) -> None:
+def test_sidecar_round_trips_arg_types_json(
+    repo: PredicateRepository, tmp_path: Path
+) -> None:
     repo.author(
         Predicate(predicate_id="heavier", arity=2, arg_types=("Concept", "Concept")),
         message="m",
     )
     repo.author(
-        Predicate(predicate_id="bird", arity=1, arg_types=("Concept",), derived_from="concept.relation:is_a:Bird"),
+        Predicate(
+            predicate_id="bird",
+            arity=1,
+            arg_types=("Concept",),
+            derived_from="concept.relation:is_a:Bird",
+        ),
         message="m",
     )
     schema = repo.build_sidecar(tmp_path / "p.db")
-    rendered = {p.predicate_id: p for p in repo.render_predicates(tmp_path / "p.db", schema)}
+    rendered = {
+        p.predicate_id: p for p in repo.render_predicates(tmp_path / "p.db", schema)
+    }
     assert rendered["heavier"].arg_types == ("Concept", "Concept")
     assert rendered["bird"].derived_from == "concept.relation:is_a:Bird"
     assert rendered["bird"].arity == 1

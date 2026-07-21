@@ -50,10 +50,14 @@ def _event() -> RevisionEvent:
     )
 
 
-def test_revision_event_content_hash_changes_for_decision_realization_and_policy() -> None:
+def test_revision_event_content_hash_changes_for_decision_realization_and_policy() -> (
+    None
+):
     event = _event()
 
-    changed_decision = replace(event, decision=replace(event.decision, policy="belief_set.agm.contract"))
+    changed_decision = replace(
+        event, decision=replace(event.decision, policy="belief_set.agm.contract")
+    )
     changed_realization = replace(
         event,
         realization=replace(event.realization, accepted_atom_ids=("atom:other",)),
@@ -78,7 +82,10 @@ def test_revision_event_content_hash_changes_for_decision_realization_and_policy
 def test_revision_event_content_hash_is_stable_under_policy_mapping_order(
     order: tuple[tuple[str, str], ...],
 ) -> None:
-    assert _event().content_hash == replace(_event(), policy_snapshot=dict(order)).content_hash
+    assert (
+        _event().content_hash
+        == replace(_event(), policy_snapshot=dict(order)).content_hash
+    )
 
 
 @settings(max_examples=8, deadline=None)
@@ -109,7 +116,9 @@ def test_generated_revise_journals_replay_and_events_keep_disjoint_realization_s
         event = entry.state_out.state.history[-1].event
         assert event is not None
         assert event.realization is not None
-        assert set(event.realization.accepted_atom_ids).isdisjoint(event.realization.rejected_atom_ids)
+        assert set(event.realization.accepted_atom_ids).isdisjoint(
+            event.realization.rejected_atom_ids
+        )
 
 
 def _revise_query(atom_id: str) -> WorldlineRevisionQuery:

@@ -138,8 +138,7 @@ def conflict_inputs_for_store(store: WorldStore) -> _ConflictInputs:
         concepts=concepts,
         forms=forms,
         parameterizations={
-            concept_id: tuple(edges)
-            for concept_id, edges in parameterizations.items()
+            concept_id: tuple(edges) for concept_id, edges in parameterizations.items()
         },
         cel_registry=dict(store.condition_solver().registry),
     )
@@ -208,7 +207,8 @@ class BoundWorld(BeliefSpace):
         self._atms_engine: ATMSEngine | None = None
         self._bindings = dict(environment.bindings)
         self._binding_conds = [
-            binding_condition_to_cel(key, value) for key, value in self._bindings.items()
+            binding_condition_to_cel(key, value)
+            for key, value in self._bindings.items()
         ]
         self._assumptions_by_cel: dict[CelExpr, list[AssumptionRef]] = {}
         for assumption in environment.assumptions:
@@ -314,7 +314,9 @@ class BoundWorld(BeliefSpace):
     def is_param_compatible(self, parameterization: ParameterizationEdge) -> bool:
         return self.is_parameterization_compatible(parameterization)
 
-    def is_parameterization_compatible(self, parameterization: ParameterizationEdge) -> bool:
+    def is_parameterization_compatible(
+        self, parameterization: ParameterizationEdge
+    ) -> bool:
         """Whether a parameterization's conditions are compatible with the bindings."""
 
         condition_set = parameterization.checked_conditions
@@ -382,9 +384,9 @@ class BoundWorld(BeliefSpace):
         concept = self._store.get_concept(str(concept_id))
         if concept is None:
             for entry in self._store.all_concepts():
-                if str(entry.concept_id) == str(concept_id) or entry.canonical_name == str(
+                if str(entry.concept_id) == str(
                     concept_id
-                ):
+                ) or entry.canonical_name == str(concept_id):
                     concept = entry
                     break
         if concept is None:
@@ -441,7 +443,9 @@ class BoundWorld(BeliefSpace):
         )
         if self._reasoning_backend() == "atms":
             return self._attach_atms_derived_label(result)
-        return self._attach_derived_label(result, override_values=normalized_override_values)
+        return self._attach_derived_label(
+            result, override_values=normalized_override_values
+        )
 
     def resolved_value(
         self,
@@ -502,18 +506,24 @@ class BoundWorld(BeliefSpace):
             for conflict in self._store.conflicts()
             if str(conflict.claim_a_id) in active_ids
             and str(conflict.claim_b_id) in active_ids
-            and (resolved_concept_id is None or str(conflict.concept_id) == resolved_concept_id)
+            and (
+                resolved_concept_id is None
+                or str(conflict.concept_id) == resolved_concept_id
+            )
         ]
         seen = {
-            (str(conflict.claim_a_id), str(conflict.claim_b_id), str(conflict.concept_id))
+            (
+                str(conflict.claim_a_id),
+                str(conflict.claim_b_id),
+                str(conflict.concept_id),
+            )
             for conflict in result
         }
         canonical_claims = [
             canonical_claim
             for claim in active_claims
-            if (
-                canonical_claim := self._claim_index().get(str(claim.claim_id))
-            ) is not None
+            if (canonical_claim := self._claim_index().get(str(claim.claim_id)))
+            is not None
         ]
         precomputed = self._get_or_build_conflict_inputs()
         for conflict in recomputed_conflicts(
@@ -522,7 +532,11 @@ class BoundWorld(BeliefSpace):
             lifting_system=self._lifting_system,
             precomputed_inputs=precomputed,
         ):
-            key = (str(conflict.claim_a_id), str(conflict.claim_b_id), str(conflict.concept_id))
+            key = (
+                str(conflict.claim_a_id),
+                str(conflict.claim_b_id),
+                str(conflict.concept_id),
+            )
             reverse_key = (
                 str(conflict.claim_b_id),
                 str(conflict.claim_a_id),
@@ -566,9 +580,7 @@ class BoundWorld(BeliefSpace):
         context_id = (
             claim.context_id
             if claim.context_id is not None
-            else (
-                None if canonical_claim is None else canonical_claim.context_id
-            )
+            else (None if canonical_claim is None else canonical_claim.context_id)
         )
         if context_id is not None:
             labels.append(context_label(context_id))
@@ -596,9 +608,8 @@ class BoundWorld(BeliefSpace):
         has_conditions = bool(
             canonical_claim is not None and canonical_claim.conditions
         )
-        has_context = (
-            claim.context_id is not None
-            or (canonical_claim is not None and canonical_claim.context_id is not None)
+        has_context = claim.context_id is not None or (
+            canonical_claim is not None and canonical_claim.context_id is not None
         )
         if has_context and has_conditions:
             return SupportQuality.MIXED
@@ -668,16 +679,22 @@ class BoundWorld(BeliefSpace):
             return result
         return replace(result, label=label)
 
-    def _attach_resolved_label(self, concept_id: str, result: ResolvedResult) -> ResolvedResult:
+    def _attach_resolved_label(
+        self, concept_id: str, result: ResolvedResult
+    ) -> ResolvedResult:
         if result.status is ValueStatus.DETERMINED:
             return replace(result, label=self.value_of(concept_id).label)
         if result.status is not ValueStatus.RESOLVED or not result.winning_claim_id:
             return result
-        resolved_winner_id = (
-            self._store.resolve_claim(str(result.winning_claim_id)) or str(result.winning_claim_id)
-        )
+        resolved_winner_id = self._store.resolve_claim(
+            str(result.winning_claim_id)
+        ) or str(result.winning_claim_id)
         winning_claim = next(
-            (claim for claim in result.claims if str(claim.claim_id) == resolved_winner_id),
+            (
+                claim
+                for claim in result.claims
+                if str(claim.claim_id) == resolved_winner_id
+            ),
             None,
         )
         if winning_claim is None:
@@ -687,14 +704,16 @@ class BoundWorld(BeliefSpace):
             return result
         return replace(result, label=claim_label)
 
-    def _attach_atms_resolved_label(self, concept_id: str, result: ResolvedResult) -> ResolvedResult:
+    def _attach_atms_resolved_label(
+        self, concept_id: str, result: ResolvedResult
+    ) -> ResolvedResult:
         if result.status is ValueStatus.DETERMINED:
             return replace(result, label=self.value_of(concept_id).label)
         if result.status is not ValueStatus.RESOLVED or not result.winning_claim_id:
             return result
-        resolved_winner_id = (
-            self._store.resolve_claim(str(result.winning_claim_id)) or str(result.winning_claim_id)
-        )
+        resolved_winner_id = self._store.resolve_claim(
+            str(result.winning_claim_id)
+        ) or str(result.winning_claim_id)
         label = self.atms_engine().claim_label(resolved_winner_id)
         if label is None:
             return result
@@ -778,7 +797,9 @@ class BoundWorld(BeliefSpace):
                 normalized_queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.claim_id))
+            for claim in sorted(
+                self.active_claims(concept_id), key=lambda row: str(row.claim_id)
+            )
         }
 
     def claim_stability(
@@ -983,7 +1004,9 @@ class BoundWorld(BeliefSpace):
                 queryables=normalized_queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.claim_id))
+            for claim in sorted(
+                self.active_claims(concept_id), key=lambda row: str(row.claim_id)
+            )
         }
         return {
             "concept_id": concept_id,
@@ -1159,7 +1182,9 @@ class BoundWorld(BeliefSpace):
     ) -> tuple[RevisionResult, EpistemicState]:
         """Revise an explicit epistemic state using the selected iterated operator."""
 
-        from propstore.support_revision.iterated import iterated_revise as iterated_revise_state
+        from propstore.support_revision.iterated import (
+            iterated_revise as iterated_revise_state,
+        )
 
         current_state = state or self.epistemic_state(overrides=overrides)
         return iterated_revise_state(

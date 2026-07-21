@@ -22,8 +22,18 @@ def _invoke(repo: Repository, args: list[str]) -> Result:
 def test_author_and_order_renders_verdict_and_path(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
 
-    assert _invoke(repo, ["edge", "c1", "c2", "--edge-id", "e1", "--account", "message"]).exit_code == 0
-    assert _invoke(repo, ["edge", "c2", "c3", "--edge-id", "e2", "--account", "message"]).exit_code == 0
+    assert (
+        _invoke(
+            repo, ["edge", "c1", "c2", "--edge-id", "e1", "--account", "message"]
+        ).exit_code
+        == 0
+    )
+    assert (
+        _invoke(
+            repo, ["edge", "c2", "c3", "--edge-id", "e2", "--account", "message"]
+        ).exit_code
+        == 0
+    )
 
     result = _invoke(repo, ["order", "c1", "c3"])
     assert result.exit_code == 0, result.output
@@ -35,15 +45,48 @@ def test_author_and_order_renders_verdict_and_path(tmp_path: Path) -> None:
 def test_frame_and_anchor_author_and_prove_concurrency(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
 
-    assert _invoke(repo, ["frame", "--frame-id", "f1", "--description", "clock"]).exit_code == 0
-    assert _invoke(
-        repo,
-        ["anchor", "--anchor-id", "a1", "--claim-id", "c1", "--frame-id", "f1", "--valid-from", "0", "--valid-until", "10"],
-    ).exit_code == 0
-    assert _invoke(
-        repo,
-        ["anchor", "--anchor-id", "a2", "--claim-id", "c2", "--frame-id", "f1", "--valid-from", "5", "--valid-until", "15"],
-    ).exit_code == 0
+    assert (
+        _invoke(repo, ["frame", "--frame-id", "f1", "--description", "clock"]).exit_code
+        == 0
+    )
+    assert (
+        _invoke(
+            repo,
+            [
+                "anchor",
+                "--anchor-id",
+                "a1",
+                "--claim-id",
+                "c1",
+                "--frame-id",
+                "f1",
+                "--valid-from",
+                "0",
+                "--valid-until",
+                "10",
+            ],
+        ).exit_code
+        == 0
+    )
+    assert (
+        _invoke(
+            repo,
+            [
+                "anchor",
+                "--anchor-id",
+                "a2",
+                "--claim-id",
+                "c2",
+                "--frame-id",
+                "f1",
+                "--valid-from",
+                "5",
+                "--valid-until",
+                "15",
+            ],
+        ).exit_code
+        == 0
+    )
 
     result = _invoke(repo, ["order", "c1", "c2"])
     assert result.exit_code == 0, result.output
@@ -53,8 +96,18 @@ def test_frame_and_anchor_author_and_prove_concurrency(tmp_path: Path) -> None:
 
 def test_stated_edges_do_not_chain_in_cli(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
-    assert _invoke(repo, ["edge", "c1", "c2", "--edge-id", "e1", "--account", "stated"]).exit_code == 0
-    assert _invoke(repo, ["edge", "c2", "c3", "--edge-id", "e2", "--account", "stated"]).exit_code == 0
+    assert (
+        _invoke(
+            repo, ["edge", "c1", "c2", "--edge-id", "e1", "--account", "stated"]
+        ).exit_code
+        == 0
+    )
+    assert (
+        _invoke(
+            repo, ["edge", "c2", "c3", "--edge-id", "e2", "--account", "stated"]
+        ).exit_code
+        == 0
+    )
 
     result = _invoke(repo, ["order", "c1", "c3"])
     assert result.exit_code == 0, result.output

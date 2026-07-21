@@ -27,9 +27,13 @@ def test_parameter_contract_shape() -> None:
     assert contract.unit_policy.required is True
     assert contract.unit_policy.dimensionless_default_unit == "1"
     assert contract.unit_policy.form_concept_field == "output_concept"
-    assert all(isinstance(check, ClaimSemanticCheck) for check in contract.semantic_checks)
+    assert all(
+        isinstance(check, ClaimSemanticCheck) for check in contract.semantic_checks
+    )
     output_links = [
-        link for link in contract.concept_links if link.role is ClaimConceptLinkRole.OUTPUT
+        link
+        for link in contract.concept_links
+        if link.role is ClaimConceptLinkRole.OUTPUT
     ]
     assert len(output_links) == 1
 

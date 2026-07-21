@@ -101,6 +101,5 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
     assert forward["perspective_source_claim_id"] == "claim-a"
     assert reverse["perspective_source_claim_id"] == "claim-b"
     assert (
-        forward["perspective_source_claim_id"]
-        != reverse["perspective_source_claim_id"]
+        forward["perspective_source_claim_id"] != reverse["perspective_source_claim_id"]
     )

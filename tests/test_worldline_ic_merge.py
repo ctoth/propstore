@@ -35,7 +35,9 @@ def test_iterated_revise_at_merge_point_raises_typed_merge_required_failure() ->
     base, entrenchment, _, _ = _history_sensitive_base()
     merge_state = make_epistemic_state(
         base=base.__class__(
-            scope=RevisionScope(bindings={}, branch="topic", merge_parent_commits=("left", "right")),
+            scope=RevisionScope(
+                bindings={}, branch="topic", merge_parent_commits=("left", "right")
+            ),
             atoms=base.atoms,
             assumptions=base.assumptions,
             support_sets=base.support_sets,
@@ -57,10 +59,14 @@ def test_iterated_revise_at_merge_point_raises_typed_merge_required_failure() ->
     assert exc_info.value.reason == "merge_required"
 
 
-def test_dispatch_iterated_revise_at_merge_point_raises_typed_merge_required_failure() -> None:
+def test_dispatch_iterated_revise_at_merge_point_raises_typed_merge_required_failure() -> (
+    None
+):
     base, entrenchment, _, _ = _history_sensitive_base()
     merge_base = base.__class__(
-        scope=RevisionScope(bindings={}, branch="topic", merge_parent_commits=("left", "right")),
+        scope=RevisionScope(
+            bindings={}, branch="topic", merge_parent_commits=("left", "right")
+        ),
         atoms=base.atoms,
         assumptions=base.assumptions,
         support_sets=base.support_sets,
@@ -73,7 +79,12 @@ def test_dispatch_iterated_revise_at_merge_point_raises_typed_merge_required_fai
         dispatch(
             JournalOperator.ITERATED_REVISE,
             state_in=state.to_canonical_dict(),
-            operator_input=IteratedReviseInput(formula=atom, revision_operator="restrained", max_candidates=None, targets=tuple(())),
+            operator_input=IteratedReviseInput(
+                formula=atom,
+                revision_operator="restrained",
+                max_candidates=None,
+                targets=tuple(()),
+            ),
             policy=_POLICY,
         )
 
@@ -104,25 +115,40 @@ def test_ic_merge_requires_explicit_integrity_constraint() -> None:
         )
 
 
-def test_ic_merge_dispatch_calls_formal_adapter_with_profile_and_constraint(monkeypatch) -> None:
+def test_ic_merge_dispatch_calls_formal_adapter_with_profile_and_constraint(
+    monkeypatch,
+) -> None:
     base, entrenchment, _, _ = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
     calls = []
 
-    def _fake_decide_ic_merge(*, profile_atom_ids, integrity_constraint, merge_operator, max_alphabet_size):
-        calls.append((profile_atom_ids, integrity_constraint, merge_operator, max_alphabet_size))
+    def _fake_decide_ic_merge(
+        *, profile_atom_ids, integrity_constraint, merge_operator, max_alphabet_size
+    ):
+        calls.append(
+            (profile_atom_ids, integrity_constraint, merge_operator, max_alphabet_size)
+        )
         raise RevisionMergeRequiredFailure(
             reason="realization_not_implemented",
             parent_commits=(),
         )
 
-    monkeypatch.setattr("propstore.support_revision.dispatch.decide_ic_merge_profile", _fake_decide_ic_merge)
+    monkeypatch.setattr(
+        "propstore.support_revision.dispatch.decide_ic_merge_profile",
+        _fake_decide_ic_merge,
+    )
 
     with pytest.raises(RevisionMergeRequiredFailure):
         dispatch(
             JournalOperator.IC_MERGE,
             state_in=state.to_canonical_dict(),
-            operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in [["atom:left"], ["atom:right"]]), integrity_constraint=TopConstraint(), max_alphabet_size=8),
+            operator_input=ICMergeInput(
+                profile_atom_ids=tuple(
+                    tuple(p) for p in [["atom:left"], ["atom:right"]]
+                ),
+                integrity_constraint=TopConstraint(),
+                max_alphabet_size=8,
+            ),
             policy=_POLICY,
         )
 

@@ -348,8 +348,10 @@ def verify_source_artifact_codes(
     justifications_doc = load_source_justifications_document(repo, source_name)
     stances_doc = load_source_stances_document(repo, source_name)
 
-    rec_source, rec_claims, rec_justifications, rec_stances = stamp_source_artifact_codes(
-        source_doc, claims_doc, justifications_doc, stances_doc
+    rec_source, rec_claims, rec_justifications, rec_stances = (
+        stamp_source_artifact_codes(
+            source_doc, claims_doc, justifications_doc, stances_doc
+        )
     )
 
     matches: list[ArtifactCodeMatch] = [

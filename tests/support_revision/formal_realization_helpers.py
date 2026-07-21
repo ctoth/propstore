@@ -95,8 +95,12 @@ def _normalize_targets(
         return ()
     if isinstance(targets, list) and len(targets) == 0:
         return ()
-    if isinstance(targets, Sequence) and not isinstance(targets, (AssertionAtom, AssumptionAtom)):
-        return tuple(normalize_revision_input(base, target).atom_id for target in targets)
+    if isinstance(targets, Sequence) and not isinstance(
+        targets, (AssertionAtom, AssumptionAtom)
+    ):
+        return tuple(
+            normalize_revision_input(base, target).atom_id for target in targets
+        )
     return (normalize_revision_input(base, targets).atom_id,)
 
 

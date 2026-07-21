@@ -40,8 +40,14 @@ from argumentation.structured.aspic.aspic import (
 )
 from argumentation.structured.aspic.datalog_grounding import GroundRuleOrigin
 
-from propstore.aspic_bridge.grounding import ground_facts_to_axioms, project_grounded_rules
-from propstore.aspic_bridge.lifting_projection import LiftingProjection, project_lifting_decisions
+from propstore.aspic_bridge.grounding import (
+    ground_facts_to_axioms,
+    project_grounded_rules,
+)
+from propstore.aspic_bridge.lifting_projection import (
+    LiftingProjection,
+    project_lifting_decisions,
+)
 from propstore.aspic_bridge.translate import (
     StanceInput,
     build_preference_config,
@@ -134,7 +140,9 @@ def compile_bridge_context(
     kb = ground_facts_to_axioms(bundle, literals, kb)
 
     language = _build_language(literals, strict_rules, defeasible_rules, kb)
-    closed_strict, language = transposition_closure(strict_rules, language, contrariness)
+    closed_strict, language = transposition_closure(
+        strict_rules, language, contrariness
+    )
 
     pref = build_preference_config(
         normalized_claims,
@@ -189,10 +197,10 @@ def filter_preference_sensitive_stance_attacks(
             filtered.add(attack)
             continue
         attacker_literal = conc(attack.attacker)
-        if (
-            (target_literal, attacker_literal) in directed_pairs
-            and (attacker_literal, target_literal) not in directed_pairs
-        ):
+        if (target_literal, attacker_literal) in directed_pairs and (
+            attacker_literal,
+            target_literal,
+        ) not in directed_pairs:
             continue
         filtered.add(attack)
     return frozenset(filtered)
@@ -233,7 +241,9 @@ def filter_preference_sensitive_stance_defeats(
                 ),
             ),
         )
-        if compute_defeats(frozenset({attack}), arguments, preference_sensitive_system, kb, pref):
+        if compute_defeats(
+            frozenset({attack}), arguments, preference_sensitive_system, kb, pref
+        ):
             filtered.add(attack)
     return frozenset(filtered)
 
@@ -261,7 +271,9 @@ def apply_lifting_exception_defeats(
             "ist", (str(decision.target_context), str(decision.proposition_id))
         )
         target_arguments = {
-            argument for argument in csaf.arguments if conc(argument).atom == lifted_atom
+            argument
+            for argument in csaf.arguments
+            if conc(argument).atom == lifted_atom
         }
         if not target_arguments:
             continue
@@ -311,7 +323,9 @@ def build_bridge_csaf(
     attacks = compute_attacks(arguments, compiled.system)
     directed_pairs = preference_sensitive_stance_pairs(stances, compiled.literals)
     attacks = filter_preference_sensitive_stance_attacks(attacks, directed_pairs)
-    defeat_attacks = compute_defeats(attacks, arguments, compiled.system, compiled.kb, compiled.pref)
+    defeat_attacks = compute_defeats(
+        attacks, arguments, compiled.system, compiled.kb, compiled.pref
+    )
     defeat_attacks = filter_preference_sensitive_stance_defeats(
         defeat_attacks,
         arguments=arguments,
@@ -320,7 +334,9 @@ def build_bridge_csaf(
         pref=compiled.pref,
         directed_pairs=directed_pairs,
     )
-    defeat_pairs = frozenset((attack.attacker, attack.target) for attack in defeat_attacks)
+    defeat_pairs = frozenset(
+        (attack.attacker, attack.target) for attack in defeat_attacks
+    )
 
     arg_to_id: dict[Argument, str] = {}
     id_to_arg: dict[str, Argument] = {}
@@ -340,11 +356,17 @@ def build_bridge_csaf(
     framework = ArgumentationFramework(
         arguments=frozenset(arg_to_id.values()),
         defeats=frozenset(
-            (require_argument_id(attacker, "defeat"), require_argument_id(target, "defeat"))
+            (
+                require_argument_id(attacker, "defeat"),
+                require_argument_id(target, "defeat"),
+            )
             for attacker, target in defeat_pairs
         ),
         attacks=frozenset(
-            (require_argument_id(attack.attacker, "attack"), require_argument_id(attack.target, "attack"))
+            (
+                require_argument_id(attack.attacker, "attack"),
+                require_argument_id(attack.target, "attack"),
+            )
             for attack in attacks
         ),
     )

@@ -32,7 +32,9 @@ def _owp(opinion: Opinion) -> OpinionWithProvenance:
     return OpinionWithProvenance(opinion=opinion, provenance=_STATED)
 
 
-def _praf(opinions: dict[str, Opinion], *, edges: set[tuple[str, str]]) -> PropstorePrAF:
+def _praf(
+    opinions: dict[str, Opinion], *, edges: set[tuple[str, str]]
+) -> PropstorePrAF:
     framework = ArgumentationFramework(
         arguments=frozenset(opinions),
         defeats=frozenset(edges),
@@ -45,12 +47,21 @@ def _praf(opinions: dict[str, Opinion], *, edges: set[tuple[str, str]]) -> Props
         p_defeats={edge: 1.0 for edge in edges},
         p_attacks={edge: 1.0 for edge in edges},
     )
-    return PropstorePrAF(kernel=kernel, p_args=p_args, p_defeats={edge: _owp(Opinion.from_probability(1.0, 20.0, 0.5)) for edge in edges})
+    return PropstorePrAF(
+        kernel=kernel,
+        p_args=p_args,
+        p_defeats={
+            edge: _owp(Opinion.from_probability(1.0, 20.0, 0.5)) for edge in edges
+        },
+    )
 
 
 def test_enforce_coh_scales_violating_pair() -> None:
     praf = _praf(
-        {"a": Opinion.from_probability(0.9, 20.0, 0.5), "b": Opinion.from_probability(0.9, 20.0, 0.5)},
+        {
+            "a": Opinion.from_probability(0.9, 20.0, 0.5),
+            "b": Opinion.from_probability(0.9, 20.0, 0.5),
+        },
         edges={("a", "b"), ("b", "a")},
     )
     result = enforce_coh(praf)
@@ -72,7 +83,10 @@ def test_enforce_coh_preserves_satisfying_pair() -> None:
 
 def test_enforce_coh_is_idempotent() -> None:
     praf = _praf(
-        {"a": Opinion.from_probability(0.9, 20.0, 0.5), "b": Opinion.from_probability(0.9, 20.0, 0.5)},
+        {
+            "a": Opinion.from_probability(0.9, 20.0, 0.5),
+            "b": Opinion.from_probability(0.9, 20.0, 0.5),
+        },
         edges={("a", "b"), ("b", "a")},
     )
     once = enforce_coh(praf)
@@ -80,7 +94,9 @@ def test_enforce_coh_is_idempotent() -> None:
     twice = enforce_coh(once)
     assert isinstance(twice, PropstorePrAF)
     for arg in ("a", "b"):
-        assert once.p_args[arg].expectation() == pytest.approx(twice.p_args[arg].expectation())
+        assert once.p_args[arg].expectation() == pytest.approx(
+            twice.p_args[arg].expectation()
+        )
 
 
 def test_enforce_coh_requires_explicit_attacks() -> None:
@@ -89,7 +105,9 @@ def test_enforce_coh_requires_explicit_attacks() -> None:
         defeats=frozenset({("a", "b")}),
     )
     praf = PropstorePrAF(
-        kernel=ProbabilisticAF(framework=framework, p_args={"a": 0.5, "b": 0.5}, p_defeats={}),
+        kernel=ProbabilisticAF(
+            framework=framework, p_args={"a": 0.5, "b": 0.5}, p_defeats={}
+        ),
         p_args={"a": _owp(Opinion.vacuous(0.5)), "b": _owp(Opinion.vacuous(0.5))},
         p_defeats={},
     )
@@ -99,7 +117,10 @@ def test_enforce_coh_requires_explicit_attacks() -> None:
 
 def test_enforce_coh_soft_returns_typed_nonconvergence() -> None:
     praf = _praf(
-        {"a": Opinion.from_probability(0.9, 20.0, 0.5), "b": Opinion.from_probability(0.9, 20.0, 0.5)},
+        {
+            "a": Opinion.from_probability(0.9, 20.0, 0.5),
+            "b": Opinion.from_probability(0.9, 20.0, 0.5),
+        },
         edges={("a", "b"), ("b", "a")},
     )
     result = enforce_coh(praf, max_iterations=0, soft=True)
@@ -111,7 +132,10 @@ def test_enforce_coh_soft_returns_typed_nonconvergence() -> None:
 
 def test_enforce_coh_rejects_dogmatic_argument_opinions() -> None:
     praf = _praf(
-        {"a": Opinion.dogmatic_true(0.5), "b": Opinion.from_probability(0.7, 10.0, 0.5)},
+        {
+            "a": Opinion.dogmatic_true(0.5),
+            "b": Opinion.from_probability(0.7, 10.0, 0.5),
+        },
         edges={("a", "b")},
     )
     with pytest.raises(COHDogmaticInputError):
@@ -120,7 +144,10 @@ def test_enforce_coh_rejects_dogmatic_argument_opinions() -> None:
 
 def test_enforce_coh_iteration_cap_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     praf = _praf(
-        {"a": Opinion.from_probability(0.8, 10.0, 0.5), "b": Opinion.from_probability(0.7, 10.0, 0.5)},
+        {
+            "a": Opinion.from_probability(0.8, 10.0, 0.5),
+            "b": Opinion.from_probability(0.7, 10.0, 0.5),
+        },
         edges={("a", "b"), ("b", "a")},
     )
     monkeypatch.setattr(praf_engine, "_COH_MAX_ITERATIONS", 0)

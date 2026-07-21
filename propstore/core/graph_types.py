@@ -34,7 +34,9 @@ class RelationEdge:
     derived_from: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "relation_type", coerce_graph_relation_type(self.relation_type))
+        object.__setattr__(
+            self, "relation_type", coerce_graph_relation_type(self.relation_type)
+        )
         object.__setattr__(self, "derived_from", tuple(sorted(self.derived_from)))
 
 
@@ -49,7 +51,9 @@ class ParameterizationEdge:
     checked_conditions: CheckedConditionSet | None = field(default=None, compare=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "input_concept_ids", to_concept_ids(self.input_concept_ids))
+        object.__setattr__(
+            self, "input_concept_ids", to_concept_ids(self.input_concept_ids)
+        )
         object.__setattr__(
             self,
             "conditions",
@@ -72,15 +76,21 @@ class CompiledWorldGraph:
 
     def __post_init__(self) -> None:
         object.__setattr__(
-            self, "concepts", tuple(sorted(self.concepts, key=lambda item: item.concept_id))
+            self,
+            "concepts",
+            tuple(sorted(self.concepts, key=lambda item: item.concept_id)),
         )
         object.__setattr__(
             self, "claims", tuple(sorted(self.claims, key=lambda item: item.claim_id))
         )
         object.__setattr__(self, "relations", tuple(sorted(self.relations)))
-        object.__setattr__(self, "parameterizations", tuple(sorted(self.parameterizations)))
         object.__setattr__(
-            self, "stances", tuple(sorted(self.stances, key=lambda item: item.stance_id))
+            self, "parameterizations", tuple(sorted(self.parameterizations))
+        )
+        object.__setattr__(
+            self,
+            "stances",
+            tuple(sorted(self.stances, key=lambda item: item.stance_id)),
         )
         object.__setattr__(
             self,
@@ -105,7 +115,9 @@ class GraphDelta:
 
     def __post_init__(self) -> None:
         object.__setattr__(
-            self, "add_claims", tuple(sorted(self.add_claims, key=lambda item: item.claim_id))
+            self,
+            "add_claims",
+            tuple(sorted(self.add_claims, key=lambda item: item.claim_id)),
         )
         object.__setattr__(
             self,
@@ -135,9 +147,7 @@ class GraphDelta:
             relations=tuple(
                 edge
                 for edge in graph.relations
-                if (
-                    edge.source_id in claim_ids and edge.target_id in claim_ids
-                )
+                if (edge.source_id in claim_ids and edge.target_id in claim_ids)
                 or (
                     edge.source_id not in original_claim_ids
                     and edge.source_id not in claim_ids
@@ -149,7 +159,8 @@ class GraphDelta:
             stances=tuple(
                 stance
                 for stance in graph.stances
-                if stance.source_claim_id in claim_ids and stance.target_claim_id in claim_ids
+                if stance.source_claim_id in claim_ids
+                and stance.target_claim_id in claim_ids
             ),
             conflicts=tuple(
                 conflict
@@ -162,11 +173,13 @@ class GraphDelta:
         carried = tuple(
             claim
             for claim in self.apply(CompiledWorldGraph()).claims
-            if claim.claim_id not in {str(claim_id) for claim_id in other.remove_claim_ids}
+            if claim.claim_id
+            not in {str(claim_id) for claim_id in other.remove_claim_ids}
         )
         return GraphDelta(
             add_claims=carried + other.add_claims,
-            remove_claim_ids=tuple(self.remove_claim_ids) + tuple(other.remove_claim_ids),
+            remove_claim_ids=tuple(self.remove_claim_ids)
+            + tuple(other.remove_claim_ids),
         )
 
 

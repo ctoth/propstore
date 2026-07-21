@@ -74,7 +74,9 @@ def test_initialize_project_seeds_description_kind_concepts(tmp_path: Path) -> N
     # The instrument slot carries a Dowty proto-agent bundle from the seed.
     instrument = next(slot for slot in description.slots if slot.name == "instrument")
     assert instrument.proto_role_bundle is not None
-    assert instrument.proto_role_bundle.proto_agent_entailments[0].property == "causation"
+    assert (
+        instrument.proto_role_bundle.proto_agent_entailments[0].property == "causation"
+    )
 
 
 def test_initialize_project_seeds_qualia(tmp_path: Path) -> None:

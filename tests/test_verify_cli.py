@@ -24,11 +24,15 @@ from propstore.repository import Repository
 def test_verify_tree_reports_ok_on_clean_tree(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     repo.families.concept.save(
-        "concept:mass", Concept(concept_id="concept:mass", canonical_name="mass"), message="m"
+        "concept:mass",
+        Concept(concept_id="concept:mass", canonical_name="mass"),
+        message="m",
     )
     repo.families.claim.save(
         "cl:ok",
-        Claim(claim_id="cl:ok", output_concept="concept:mass", concepts=("concept:mass",)),
+        Claim(
+            claim_id="cl:ok", output_concept="concept:mass", concepts=("concept:mass",)
+        ),
         message="author claim",
     )
 

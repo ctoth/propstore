@@ -34,7 +34,16 @@ def test_web_command_serves_current_repository(
 
     result = CliRunner().invoke(
         cli,
-        ["-C", str(repo.root), "web", "--host", "0.0.0.0", "--insecure", "--port", "8765"],
+        [
+            "-C",
+            str(repo.root),
+            "web",
+            "--host",
+            "0.0.0.0",
+            "--insecure",
+            "--port",
+            "8765",
+        ],
     )
 
     assert result.exit_code == 0

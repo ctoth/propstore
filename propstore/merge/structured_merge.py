@@ -126,11 +126,15 @@ def argumentation_evidence_from_projection(
     for argument_id in sorted(accepted_argument_ids):
         claim_id = projection.argument_to_claim_id.get(argument_id)
         if claim_id is not None:
-            accepted.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+            accepted.extend(
+                str(value) for value in claim_assertion_ids.get(claim_id, ())
+            )
     for argument_id in sorted(skeptical_argument_ids):
         claim_id = projection.argument_to_claim_id.get(argument_id)
         if claim_id is not None:
-            skeptical.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
+            skeptical.extend(
+                str(value) for value in claim_assertion_ids.get(claim_id, ())
+            )
     for claim_id in sorted(projection.claim_to_argument_ids):
         witness.extend(str(value) for value in claim_assertion_ids.get(claim_id, ()))
 
@@ -316,7 +320,9 @@ def build_structured_merge_candidates(
         )
         for branch in (branch_a, branch_b)
     }
-    profile = {branch: summary.projection.framework for branch, summary in summaries.items()}
+    profile = {
+        branch: summary.projection.framework for branch, summary in summaries.items()
+    }
 
     if operator == "sum":
         return _require_candidates(sum_merge_frameworks(profile))

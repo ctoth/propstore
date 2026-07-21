@@ -25,7 +25,9 @@ def _two_cycle_projection() -> StructuredProjection:
     )
 
 
-def test_structured_merge_evidence_preserves_preferred_skeptical_and_credulous_sets() -> None:
+def test_structured_merge_evidence_preserves_preferred_skeptical_and_credulous_sets() -> (
+    None
+):
     evidence = argumentation_evidence_from_projection(
         branch="left",
         projection=_two_cycle_projection(),

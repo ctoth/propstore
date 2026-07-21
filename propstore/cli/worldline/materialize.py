@@ -1,4 +1,5 @@
 """Worldline create, run, and refresh CLI commands."""
+
 from __future__ import annotations
 
 import click
@@ -105,7 +106,9 @@ def _coerce_override_values(overrides: tuple[str, ...]) -> dict[str, float | str
 @worldline.command("create")
 @click.argument("name")
 @click.option("--bind", "bindings", multiple=True, help="Condition binding (key=value)")
-@click.option("--with", "overrides", multiple=True, help="Value override (concept=value)")
+@click.option(
+    "--with", "overrides", multiple=True, help="Value override (concept=value)"
+)
 @click.option(
     "--target",
     "targets",
@@ -190,7 +193,9 @@ def worldline_create(
 @worldline.command("run")
 @click.argument("name")
 @click.option("--bind", "bindings", multiple=True, help="Condition binding (key=value)")
-@click.option("--with", "overrides", multiple=True, help="Value override (concept=value)")
+@click.option(
+    "--with", "overrides", multiple=True, help="Value override (concept=value)"
+)
 @click.option("--target", "targets", multiple=True, help="Target concept")
 @click.option(
     "--strategy",

@@ -58,7 +58,8 @@ def test_foreign_key_graph_is_derived_from_charter_fields() -> None:
 
 def test_claim_foreign_keys_point_at_concept_and_context() -> None:
     claim_fks = {
-        spec.name: spec for spec in PROPSTORE_FAMILY_REGISTRY.by_name("claim").foreign_keys
+        spec.name: spec
+        for spec in PROPSTORE_FAMILY_REGISTRY.by_name("claim").foreign_keys
     }
     assert claim_fks["claim_context"].target_family == "context"
     assert claim_fks["claim_output_concept"].target_family == "concept"

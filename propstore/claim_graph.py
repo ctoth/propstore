@@ -36,7 +36,9 @@ def build_argumentation_framework(
     pruning a defeat-only fixpoint (Modgil & Prakken 2018; Cayrol & Lagasquie 2005).
     """
 
-    shared = shared_analyzer_input_from_store(store, active_claim_ids, comparison=comparison)
+    shared = shared_analyzer_input_from_store(
+        store, active_claim_ids, comparison=comparison
+    )
     return shared.argumentation_framework
 
 

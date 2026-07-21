@@ -83,9 +83,15 @@ class LiftedAnalyzerProjectionResult:
     witness_assertion_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target_assertion_ids", _sorted_unique(self.target_assertion_ids))
-        object.__setattr__(self, "survivor_assertion_ids", _sorted_unique(self.survivor_assertion_ids))
-        object.__setattr__(self, "witness_assertion_ids", _sorted_unique(self.witness_assertion_ids))
+        object.__setattr__(
+            self, "target_assertion_ids", _sorted_unique(self.target_assertion_ids)
+        )
+        object.__setattr__(
+            self, "survivor_assertion_ids", _sorted_unique(self.survivor_assertion_ids)
+        )
+        object.__setattr__(
+            self, "witness_assertion_ids", _sorted_unique(self.witness_assertion_ids)
+        )
 
 
 @dataclass(frozen=True)
@@ -108,9 +114,7 @@ class StructuredArgument:
 def lift_projected_argument(argument: StructuredArgument) -> LiftedProjectionResult:
     projection = argument.projection
     if projection.loss is not None:
-        raise ProjectionLiftError(
-            f"{projection.loss.kind}: {projection.loss.reason}"
-        )
+        raise ProjectionLiftError(f"{projection.loss.kind}: {projection.loss.reason}")
     if projection.provenance is None or not projection.source_assertion_ids:
         raise ProjectionLiftError(
             "missing_source_assertion: projection result has no situated assertion ids"

@@ -42,7 +42,11 @@ def test_claim_index_keyed_by_claim_id() -> None:
 
 
 def test_context_from_checked_concepts_populates_tables() -> None:
-    forms = {"mass": FormDefinition(name="mass", kind=KindType.QUANTITY, dimensions={"mass": 1})}
+    forms = {
+        "mass": FormDefinition(
+            name="mass", kind=KindType.QUANTITY, dimensions={"mass": 1}
+        )
+    }
     concepts = [
         LoadedConcept(
             concept=Concept(
@@ -55,9 +59,7 @@ def test_context_from_checked_concepts_populates_tables() -> None:
                     ),
                     senses=(
                         LexicalSense(
-                            reference=OntologyReference(
-                                uri="ps:concept:frequency"
-                            )
+                            reference=OntologyReference(uri="ps:concept:frequency")
                         ),
                     ),
                     physical_dimension_form="mass",

@@ -88,7 +88,9 @@ def test_conflict_claim_from_claim_folds_source_condition() -> None:
 
 
 def test_conflict_claim_without_source_adds_no_condition() -> None:
-    view = ConflictClaim.from_claim(Claim(claim_id="c1", value=1.0)).with_source_condition()
+    view = ConflictClaim.from_claim(
+        Claim(claim_id="c1", value=1.0)
+    ).with_source_condition()
     assert view.source_paper is None
     assert view.conditions == ()
 
@@ -130,9 +132,7 @@ def test_classify_disjoint_conditions_is_phi_node() -> None:
 
 def test_classify_overlapping_conditions_is_overlap() -> None:
     registry = _quantity_registry()
-    assert (
-        classify_conditions(["x > 10"], ["x > 5"], registry) is ConflictClass.OVERLAP
-    )
+    assert classify_conditions(["x > 10"], ["x > 5"], registry) is ConflictClass.OVERLAP
 
 
 # ── equation detector (eq-equiv) ─────────────────────────────────────
@@ -161,7 +161,10 @@ def test_equation_detector_skips_equivalent_orientations() -> None:
 
 def test_equation_detector_reports_proven_difference() -> None:
     records = detect_equation_conflicts(
-        [_equation_claim("linear", "y = x + z"), _equation_claim("scaled", "y = 2*x + z")],
+        [
+            _equation_claim("linear", "y = x + z"),
+            _equation_claim("scaled", "y = 2*x + z"),
+        ],
         {},
     )
     assert len(records) == 1
@@ -219,7 +222,9 @@ def test_algorithm_non_equivalent_bodies_conflict() -> None:
     assert len(records) == 1
 
 
-def test_algorithm_partial_eval_equivalence_suppresses_conflict(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_algorithm_partial_eval_equivalence_suppresses_conflict(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from propstore.conflict_detector import algorithms
 
     class _Result:
@@ -243,9 +248,7 @@ def test_algorithm_partial_eval_equivalence_suppresses_conflict(monkeypatch: pyt
 def _measurement_claim(
     claim_id: str, value: float, *, population: str | None = None
 ) -> ConflictClaim:
-    conditions = (
-        () if population is None else (f"population == '{population}'",)
-    )
+    conditions = () if population is None else (f"population == '{population}'",)
     return ConflictClaim(
         claim_id=claim_id,
         claim_type=ClaimType.MEASUREMENT,
@@ -326,7 +329,9 @@ def _boolean_registry() -> dict[str, ConceptInfo]:
 
 def test_partitioning_runtime_error_preserves_cause_text() -> None:
     stub = MagicMock()
-    underlying = "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    underlying = (
+        "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    )
     stub.partition_equivalence_classes.side_effect = Z3TranslationError(underlying)
 
     with pytest.raises(RuntimeError) as info:
@@ -343,7 +348,9 @@ def test_partitioning_runtime_error_preserves_cause_text() -> None:
 def test_disjointness_runtime_error_preserves_cause_text() -> None:
     stub = MagicMock()
     stub.partition_equivalence_classes.return_value = [[0], [1, 2]]
-    underlying = "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    underlying = (
+        "Structural concept 'intention_to_treat' cannot appear in CEL expressions"
+    )
     stub.are_disjoint_result.side_effect = Z3TranslationError(underlying)
 
     with pytest.raises(RuntimeError) as info:

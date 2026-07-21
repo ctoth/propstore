@@ -52,7 +52,10 @@ def test_parse_query_atom_rejects_empty() -> None:
 
 
 def test_format_ground_atom() -> None:
-    assert format_ground_atom(gunray.GroundAtom(predicate="rains", arguments=())) == "rains"
+    assert (
+        format_ground_atom(gunray.GroundAtom(predicate="rains", arguments=()))
+        == "rains"
+    )
     assert (
         format_ground_atom(gunray.GroundAtom(predicate="bird", arguments=("tweety",)))
         == "bird(tweety)"

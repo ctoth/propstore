@@ -21,10 +21,14 @@ def _temperature_form() -> FormDefinition:
         allowed_units=("K", "degC", "delta_degC", "delta_degF"),
         dimensions={"Theta": 1},
         conversions={
-            "degC": UnitConversion(unit="degC", type="affine", multiplier=1.0, offset=273.15),
+            "degC": UnitConversion(
+                unit="degC", type="affine", multiplier=1.0, offset=273.15
+            ),
         },
         delta_conversions={
-            "delta_degC": UnitConversion(unit="delta_degC", type="multiplicative", multiplier=1.0),
+            "delta_degC": UnitConversion(
+                unit="delta_degC", type="multiplicative", multiplier=1.0
+            ),
             "delta_degF": UnitConversion(
                 unit="delta_degF", type="multiplicative", multiplier=5.0 / 9.0
             ),

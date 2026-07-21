@@ -56,7 +56,8 @@ class CharterStore:
         return [
             claim
             for claim in self.claims
-            if concept_id in (claim.output_concept, claim.target_concept, *claim.concepts)
+            if concept_id
+            in (claim.output_concept, claim.target_concept, *claim.concepts)
         ]
 
     def all_relationships(self) -> Sequence[RelationEdge]:
@@ -72,5 +73,6 @@ class CharterStore:
         return [
             stance
             for stance in self.stances
-            if stance.source_claim_id in claim_ids and stance.target_claim_id in claim_ids
+            if stance.source_claim_id in claim_ids
+            and stance.target_claim_id in claim_ids
         ]

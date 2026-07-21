@@ -13,7 +13,12 @@ import pytest
 
 import propstore.dimensions as dimensions
 from condition_ir import KindType
-from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.families.forms import FormDefinition, FormRepository
 
 
@@ -46,7 +51,10 @@ def test_entry_dimension_form_resolves_to_a_form_definition() -> None:
     repo = FormRepository()
     repo.author(
         FormDefinition(
-            name="frequency", kind=KindType.QUANTITY, unit_symbol="Hz", dimensions={"T": -1}
+            name="frequency",
+            kind=KindType.QUANTITY,
+            unit_symbol="Hz",
+            dimensions={"T": -1},
         ),
         message="add frequency",
     )

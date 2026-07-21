@@ -33,7 +33,9 @@ from propstore.defeasibility import (
 )
 
 
-def _support(name: str, quality: SupportQuality = SupportQuality.EXACT) -> SupportEvidence:
+def _support(
+    name: str, quality: SupportQuality = SupportQuality.EXACT
+) -> SupportEvidence:
     return SupportEvidence(
         ProvenancePolynomial.variable(SourceVariableId(name)), quality
     )

@@ -194,11 +194,15 @@ def _materialize_merge_arguments(
     for argument in merge.arguments:
         has_rivals = artifact_counts[argument.artifact_id] > 1
         storage_id = argument.assertion_id if has_rivals else argument.artifact_id
-        materialized = msgspec.structs.replace(argument.claim.claim, claim_id=storage_id)
+        materialized = msgspec.structs.replace(
+            argument.claim.claim, claim_id=storage_id
+        )
         prepared = repo.families.claim.prepare(
             storage_id, materialized, branch=target_branch
         )
-        merged_entries[prepared.address.require_path()] = git.store_blob(prepared.content)
+        merged_entries[prepared.address.require_path()] = git.store_blob(
+            prepared.content
+        )
 
 
 def _derive_manifest_id(
@@ -238,7 +242,9 @@ def _build_manifest(
                 for witness in argument.witness_basis
             ),
         )
-        for argument in sorted(merge.arguments, key=lambda argument: argument.assertion_id)
+        for argument in sorted(
+            merge.arguments, key=lambda argument: argument.assertion_id
+        )
     )
     semantic_candidates = tuple(
         MergeManifestCandidate(assertion_ids=tuple(group))

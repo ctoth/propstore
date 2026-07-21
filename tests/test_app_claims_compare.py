@@ -27,8 +27,12 @@ from propstore.world import WorldQuery
 
 def _repo(tmp_path: Path) -> Repository:
     repo = Repository.init(tmp_path / "kn")
-    repo.families.concept.save("A", Concept(concept_id="A", canonical_name="A"), message="m")
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.concept.save(
+        "A", Concept(concept_id="A", canonical_name="A"), message="m"
+    )
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.claim.save(
         "alg1",
         Claim(
@@ -69,9 +73,7 @@ def _repo(tmp_path: Path) -> Repository:
 
 def test_compare_equivalent_algorithm_bodies(tmp_path: Path) -> None:
     with WorldQuery(_repo(tmp_path)) as world:
-        report = compare_algorithm_claims(
-            world, ClaimCompareRequest("alg1", "alg2")
-        )
+        report = compare_algorithm_claims(world, ClaimCompareRequest("alg1", "alg2"))
     assert isinstance(report, ClaimCompareReport)
     assert report.equivalent is True
     assert report.similarity == pytest.approx(1.0)

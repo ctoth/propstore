@@ -16,9 +16,13 @@ from tests.atms_feed import ClaimSpec, build_bound
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
 
-def test_project_epistemic_state_builds_structured_inputs_with_exact_support_metadata() -> None:
+def test_project_epistemic_state_builds_structured_inputs_with_exact_support_metadata() -> (
+    None
+):
     bound = build_bound(
-        claims=[ClaimSpec("claim_exact", "concept_exact", value=1.0, conditions=("x == 1",))],
+        claims=[
+            ClaimSpec("claim_exact", "concept_exact", value=1.0, conditions=("x == 1",))
+        ],
         bindings={"x": 1},
     )
     state = bound.epistemic_state()
@@ -30,7 +34,9 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
         bundle=_EMPTY_BUNDLE,
         support_metadata=dict(view.support_metadata),
     )
-    argument = next(arg for arg in projection.arguments if arg.claim_id == "claim_exact")
+    argument = next(
+        arg for arg in projection.arguments if arg.claim_id == "claim_exact"
+    )
 
     assert set(view.active_claim_ids) == {"claim_exact"}
     assert {str(claim.claim_id) for claim in view.active_claims} == {"claim_exact"}

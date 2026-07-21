@@ -21,7 +21,12 @@ def test_neighborhood_html_has_section_tables(tmp_path: Path) -> None:
     html = demo_client(tmp_path).get("/claim/p_speed/neighborhood").text
 
     assert "Neighborhood for" in html
-    for heading in ("Supporters", "Attackers", "Shared Concept", "Raw Graph Projection"):
+    for heading in (
+        "Supporters",
+        "Attackers",
+        "Shared Concept",
+        "Raw Graph Projection",
+    ):
         assert heading in html
     assert "Open claim view for this focus claim" in html
     assert 'href="/claim/p_speed"' in html

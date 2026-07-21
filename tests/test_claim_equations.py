@@ -14,16 +14,22 @@ from propstore.claim_equations import compare_claim_equations
 
 
 def _bindings(*symbols: str) -> tuple[EquationSymbolBinding, ...]:
-    return tuple(EquationSymbolBinding(symbol=s, concept_id=f"concept_{s}") for s in symbols)
+    return tuple(
+        EquationSymbolBinding(symbol=s, concept_id=f"concept_{s}") for s in symbols
+    )
 
 
 def test_equivalent_orientations_agree() -> None:
-    comparison = compare_claim_equations("y = x + z", "x + z = y", _bindings("x", "y", "z"))
+    comparison = compare_claim_equations(
+        "y = x + z", "x + z = y", _bindings("x", "y", "z")
+    )
     assert comparison.status is EquationComparisonStatus.EQUIVALENT
 
 
 def test_proven_difference_is_different() -> None:
-    comparison = compare_claim_equations("y = x + z", "y = 2*x + z", _bindings("x", "y", "z"))
+    comparison = compare_claim_equations(
+        "y = x + z", "y = 2*x + z", _bindings("x", "y", "z")
+    )
     assert comparison.status is EquationComparisonStatus.DIFFERENT
 
 

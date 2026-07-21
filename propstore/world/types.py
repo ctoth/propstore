@@ -23,7 +23,14 @@ import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    Protocol,
+    TypeAlias,
+    TypeVar,
+    runtime_checkable,
+)
 
 from assignment_selection import MergeOperator
 from condition_ir import CelExpr, to_cel_expr, to_cel_exprs
@@ -196,7 +203,9 @@ class QueryableAssumption:
         source: str = "future",
     ) -> QueryableAssumption:
         normalized_cel = to_cel_expr(cel)
-        digest = hashlib.sha256(f"queryable\0{source}\0{normalized_cel}".encode("utf-8")).hexdigest()
+        digest = hashlib.sha256(
+            f"queryable\0{source}\0{normalized_cel}".encode("utf-8")
+        ).hexdigest()
         return cls(
             assumption_id=to_queryable_id(f"queryable:{source}:{digest}"),
             cel=normalized_cel,
@@ -209,7 +218,9 @@ QueryableInput: TypeAlias = QueryableAssumption | str | CelExpr
 
 def normalize_queryable_cel(queryable: str | CelExpr) -> CelExpr:
     queryable_text = str(queryable)
-    if any(operator in queryable_text for operator in ("==", "!=", ">=", "<=", ">", "<")):
+    if any(
+        operator in queryable_text for operator in ("==", "!=", ">=", "<=", ">", "<")
+    ):
         return to_cel_expr(queryable_text)
     if "=" in queryable_text:
         key, _, value = queryable_text.partition("=")
@@ -228,10 +239,7 @@ def coerce_queryable_assumptions(
             else QueryableAssumption.from_cel(normalize_queryable_cel(str(queryable)))
         )
         normalized[(candidate.cel, candidate.assumption_id)] = candidate
-    return tuple(
-        normalized[key]
-        for key in sorted(normalized)
-    )
+    return tuple(normalized[key] for key in sorted(normalized))
 
 
 @dataclass(frozen=True)
@@ -247,7 +255,9 @@ class ATMSFutureEnvironmentReport:
         object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
         object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
         object.__setattr__(self, "environment", _tuple(self.environment))
-        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
+        object.__setattr__(
+            self, "supported_claim_ids", _tuple(self.supported_claim_ids)
+        )
         object.__setattr__(self, "nogoods", _tuple_of_tuples(self.nogoods))
 
 
@@ -264,7 +274,9 @@ class ATMSConceptFutureStatusEntry:
         object.__setattr__(self, "queryable_ids", _tuple(self.queryable_ids))
         object.__setattr__(self, "queryable_cels", _tuple(self.queryable_cels))
         object.__setattr__(self, "environment", _tuple(self.environment))
-        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
+        object.__setattr__(
+            self, "supported_claim_ids", _tuple(self.supported_claim_ids)
+        )
 
 
 @dataclass(frozen=True)
@@ -313,8 +325,12 @@ class ATMSConceptRelevanceReport:
     witness_pairs: Mapping[str, Sequence[ATMSConceptWitnessPair]]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "relevant_queryables", _tuple(self.relevant_queryables))
-        object.__setattr__(self, "irrelevant_queryables", _tuple(self.irrelevant_queryables))
+        object.__setattr__(
+            self, "relevant_queryables", _tuple(self.relevant_queryables)
+        )
+        object.__setattr__(
+            self, "irrelevant_queryables", _tuple(self.irrelevant_queryables)
+        )
         object.__setattr__(
             self,
             "witness_pairs",
@@ -372,7 +388,9 @@ class ATMSNextQuerySuggestion:
     example_plans: Sequence[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "plan_queryable_cels", _tuple_of_tuples(self.plan_queryable_cels))
+        object.__setattr__(
+            self, "plan_queryable_cels", _tuple_of_tuples(self.plan_queryable_cels)
+        )
         object.__setattr__(self, "example_plans", _tuple(self.example_plans))
 
 
@@ -435,9 +453,7 @@ class ATMSNestedNodeExplanation(ATMSNodeExplanation):
 
 
 ATMSExplanationAntecedent: TypeAlias = (
-    ATMSCycleAntecedent
-    | ATMSAssumptionAntecedent
-    | ATMSNestedNodeExplanation
+    ATMSCycleAntecedent | ATMSAssumptionAntecedent | ATMSNestedNodeExplanation
 )
 
 
@@ -453,7 +469,9 @@ class ATMSLabelVerificationReport:
         object.__setattr__(self, "consistency_errors", _tuple(self.consistency_errors))
         object.__setattr__(self, "minimality_errors", _tuple(self.minimality_errors))
         object.__setattr__(self, "soundness_errors", _tuple(self.soundness_errors))
-        object.__setattr__(self, "completeness_errors", _tuple(self.completeness_errors))
+        object.__setattr__(
+            self, "completeness_errors", _tuple(self.completeness_errors)
+        )
 
 
 @dataclass
@@ -553,11 +571,8 @@ class ChainResult:
         self.steps = list(self.steps)
         self.bindings_used = dict(self.bindings_used)
         self.unresolved_dependencies = [
-            to_concept_id(concept_id)
-            for concept_id in self.unresolved_dependencies
+            to_concept_id(concept_id) for concept_id in self.unresolved_dependencies
         ]
-
-
 
 
 class DecisionValueSource(Enum):
@@ -655,7 +670,9 @@ def apply_decision_criterion(
 
 @runtime_checkable
 class ClaimSupportView(Protocol):
-    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
+    def claim_support(
+        self, claim: ActiveClaim
+    ) -> tuple[Label | None, SupportQuality]: ...
 
 
 @runtime_checkable

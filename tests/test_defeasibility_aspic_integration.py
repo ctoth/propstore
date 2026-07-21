@@ -10,7 +10,11 @@ package's CSAF.
 
 from __future__ import annotations
 
-from argumentation.core.dung import complete_extensions, conflict_free, grounded_extension
+from argumentation.core.dung import (
+    complete_extensions,
+    conflict_free,
+    grounded_extension,
+)
 from argumentation.structured.aspic.aspic import Argument, conc
 from provenance_semiring import (
     ProvenancePolynomial,

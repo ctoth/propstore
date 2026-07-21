@@ -42,7 +42,9 @@ def _category_solver(name: str, values: tuple[str, ...]) -> ConditionSolver:
     return ConditionSolver(registry)
 
 
-def test_context_charter_carries_structured_assumptions_parameters_perspective() -> None:
+def test_context_charter_carries_structured_assumptions_parameters_perspective() -> (
+    None
+):
     context = msgspec.convert(
         {
             "context_id": "ctx_a",
@@ -68,7 +70,9 @@ def test_lifting_system_has_no_ancestry_visibility() -> None:
     root = Context(context_id="ctx_root", name="root")
     child = Context(context_id="ctx_child", name="child")
     system = LiftingSystem(contexts=(root, child))
-    assert system.materialize_lifted_assertions((IstProposition("ctx_root", "p"),)) == ()
+    assert (
+        system.materialize_lifted_assertions((IstProposition("ctx_root", "p"),)) == ()
+    )
     assert system.lift_decisions_between("ctx_root", "ctx_child", "p") == ()
 
 
@@ -116,7 +120,9 @@ def test_lifting_decision_statuses_lifted_blocked_unknown() -> None:
     assert [d.status for d in unknown] == [LiftingDecisionStatus.UNKNOWN]
 
 
-def test_exception_marks_an_otherwise_lifted_decision_excepted_with_provenance() -> None:
+def test_exception_marks_an_otherwise_lifted_decision_excepted_with_provenance() -> (
+    None
+):
     src = Context(context_id="ctx_src", name="src")
     tgt = Context(context_id="ctx_tgt", name="tgt")
     rule = LiftingRule(rule_id="r", source_context="ctx_src", target_context="ctx_tgt")
@@ -142,7 +148,9 @@ def test_sidecar_has_context_lifting_tables_and_no_exclusion_table(
     tmp_path: Path,
 ) -> None:
     repo = ContextRepository()
-    repo.author(Context(context_id="c1", name="n", assumptions=("a == 1",)), message="m")
+    repo.author(
+        Context(context_id="c1", name="n", assumptions=("a == 1",)), message="m"
+    )
     repo.author_lifting_rule(
         LiftingRule(
             rule_id="r1",

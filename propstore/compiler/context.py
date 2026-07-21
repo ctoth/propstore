@@ -61,9 +61,7 @@ def build_compilation_context(
         context_ids=frozenset(context_ids or ()),
         concepts_by_id=MappingProxyType(dict(checked_concepts.by_id)),
         claim_index=MappingProxyType(build_compiler_claim_index(claims)),
-        condition_registry=MappingProxyType(
-            dict(checked_concepts.condition_registry)
-        ),
+        condition_registry=MappingProxyType(dict(checked_concepts.condition_registry)),
     )
 
 

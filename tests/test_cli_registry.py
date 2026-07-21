@@ -6,6 +6,7 @@ command does not pull in unrelated families (CLAUDE.md "CLI adapter discipline")
 The full per-family layout assertions live in ``test_cli_layout`` once the
 families land.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

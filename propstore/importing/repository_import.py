@@ -268,7 +268,9 @@ def plan_repository_import(
     warnings: list[str] = list(normalized.warnings)
 
     existing_paths: set[str] = set()
-    existing_branch_sha = destination_repository.require_git().branch_sha(selected_branch)
+    existing_branch_sha = destination_repository.require_git().branch_sha(
+        selected_branch
+    )
     if existing_branch_sha is not None:
         existing_paths = set(
             _iter_semantic_paths(destination_repository, commit=existing_branch_sha)
@@ -309,7 +311,10 @@ def commit_repository_import(
 
     git = repository.require_git()
     primary_branch = git.primary_branch_name()
-    if git.branch_sha(plan.target_branch) is None and plan.target_branch != primary_branch:
+    if (
+        git.branch_sha(plan.target_branch) is None
+        and plan.target_branch != primary_branch
+    ):
         git.create_branch(plan.target_branch)
 
     commit_sha: str | None = None

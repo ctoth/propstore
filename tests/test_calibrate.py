@@ -151,7 +151,9 @@ def test_single_element_corpus_produces_near_vacuous_opinion() -> None:
 )
 @settings(deadline=None)
 def test_corpus_opinion_bdu_sum_is_one(ref_distances, query_distance) -> None:
-    op = CorpusCalibrator(ref_distances, corpus_base_rate=0.5).to_opinion(query_distance)
+    op = CorpusCalibrator(ref_distances, corpus_base_rate=0.5).to_opinion(
+        query_distance
+    )
     assert abs((op.b + op.d + op.u) - 1.0) < 1e-9
 
 

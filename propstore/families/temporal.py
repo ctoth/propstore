@@ -229,7 +229,9 @@ class TemporalRepository:
             codec=HappensBeforeEdgeDoc.__charter__.document_codec(),
         )
         self._frame_family = TemporalFrameDoc.__charter__.family.artifact_family
-        self._anchor_family = DescriptionTemporalAnchorDoc.__charter__.family.artifact_family
+        self._anchor_family = (
+            DescriptionTemporalAnchorDoc.__charter__.family.artifact_family
+        )
         self._edge_family = HappensBeforeEdgeDoc.__charter__.family.artifact_family
 
     # ── frames ───────────────────────────────────────────────────────────────

@@ -80,9 +80,13 @@ def kernel_version() -> str:
         return "argumentation:unknown"
 
 
-def _rule_matches(rule: Mapping[str, Any], source_metadata: Mapping[str, object]) -> bool:
+def _rule_matches(
+    rule: Mapping[str, Any], source_metadata: Mapping[str, object]
+) -> bool:
     conditions: Mapping[str, Any] = rule.get("conditions", {})
-    return all(source_metadata.get(str(key)) == value for key, value in conditions.items())
+    return all(
+        source_metadata.get(str(key)) == value for key, value in conditions.items()
+    )
 
 
 def _firing(rule: Mapping[str, Any], *, in_extension: bool) -> RuleFiring:
@@ -112,7 +116,10 @@ def _framework_for(fired_rules: Sequence[Mapping[str, Any]]) -> ArgumentationFra
         attacker_id = str(attacker["id"])
         for target in fired_rules:
             target_id = str(target["id"])
-            if target_id != attacker_id and str(target.get("effect", "support")) == "support":
+            if (
+                target_id != attacker_id
+                and str(target.get("effect", "support")) == "support"
+            ):
                 defeats.add((attacker_id, target_id))
     return ArgumentationFramework(arguments=arguments, defeats=frozenset(defeats))
 
@@ -151,7 +158,11 @@ def project_source_trust(
     ``CALIBRATED`` with the projected opinion otherwise.
     """
 
-    version = kernel_version_override if kernel_version_override is not None else kernel_version()
+    version = (
+        kernel_version_override
+        if kernel_version_override is not None
+        else kernel_version()
+    )
     fired_rules = tuple(rule for rule in rules if _rule_matches(rule, source_metadata))
 
     if not fired_rules:
@@ -248,7 +259,9 @@ def calibrate_source_trust(
 
     from propstore.source.common import load_source_metadata
 
-    rules = tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
+    rules = (
+        tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
+    )
     metadata_payload = load_source_metadata(repo, source_name) or {}
     repo_head = repo.require_git().head_sha() if repo.git is not None else None
     world_sha = str(world_snapshot if world_snapshot is not None else (repo_head or ""))

@@ -78,11 +78,13 @@ def test_provenance_graph_ref_rejects_empty_and_non_uri_values() -> None:
 
 @pytest.mark.property
 @given(
-    st.permutations((
-        ProvenanceGraphRef(ProvenanceGraphId("urn:propstore:provenance:a")),
-        ProvenanceGraphRef(ProvenanceGraphId("urn:propstore:provenance:b")),
-        ProvenanceGraphRef(ProvenanceGraphId("urn:propstore:provenance:c")),
-    )),
+    st.permutations(
+        (
+            ProvenanceGraphRef(ProvenanceGraphId("urn:propstore:provenance:a")),
+            ProvenanceGraphRef(ProvenanceGraphId("urn:propstore:provenance:b")),
+            ProvenanceGraphRef(ProvenanceGraphId("urn:propstore:provenance:c")),
+        )
+    ),
 )
 def test_provenance_graph_refs_sort_by_named_graph_identity(
     refs: tuple[ProvenanceGraphRef, ...],

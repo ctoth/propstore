@@ -242,8 +242,6 @@ def _entrenchment_from_state(state: EpistemicState) -> EntrenchmentReport:
     )
 
 
-
-
 def _required_policy_snapshot(value: Mapping[str, str]) -> None:
     required = {
         "revision_policy_version",
@@ -252,7 +250,9 @@ def _required_policy_snapshot(value: Mapping[str, str]) -> None:
     }
     missing = sorted(required - set(value))
     if missing:
-        raise ValueError(f"journal dispatch missing policy versions: {', '.join(missing)}")
+        raise ValueError(
+            f"journal dispatch missing policy versions: {', '.join(missing)}"
+        )
     empty = sorted(key for key in required if not str(value.get(key) or "").strip())
     if empty:
         raise ValueError(f"journal dispatch empty policy versions: {', '.join(empty)}")
@@ -302,7 +302,9 @@ def _raise_ic_merge_failure(
     event = RevisionEvent(
         operation=JournalOperator.IC_MERGE.value,
         pre_state_hash=EpistemicSnapshot.from_state(state).content_hash,
-        target_atom_ids=tuple(atom_id for profile in profile_atom_ids for atom_id in profile),
+        target_atom_ids=tuple(
+            atom_id for profile in profile_atom_ids for atom_id in profile
+        ),
         decision=decision_report,
         realization=None,
         policy_snapshot=dict(policy_snapshot),
@@ -318,9 +320,6 @@ def _raise_ic_merge_failure(
         selected_worlds_hash=selected_worlds_hash,
         event=event,
     ) from exc
-
-
-
 
 
 def _selected_worlds_hash(report: FormalRevisionDecisionReport | None) -> str | None:

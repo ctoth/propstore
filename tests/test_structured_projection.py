@@ -35,7 +35,9 @@ def _projection(framework: ArgumentationFramework) -> StructuredProjection:
 def _frameworks_with_optional_attacks(draw: st.DrawFn) -> ArgumentationFramework:
     n_args = draw(st.integers(min_value=1, max_value=4))
     arguments = tuple(f"arg:{idx}" for idx in range(n_args))
-    possible_edges = [(src, tgt) for src in arguments for tgt in arguments if src != tgt]
+    possible_edges = [
+        (src, tgt) for src in arguments for tgt in arguments if src != tgt
+    ]
     if possible_edges:
         defeats = frozenset(
             draw(st.sets(st.sampled_from(possible_edges), max_size=len(possible_edges)))
@@ -50,12 +52,18 @@ def _frameworks_with_optional_attacks(draw: st.DrawFn) -> ArgumentationFramework
     else:
         attacks = (
             frozenset(
-                draw(st.sets(st.sampled_from(possible_edges), max_size=len(possible_edges)))
+                draw(
+                    st.sets(
+                        st.sampled_from(possible_edges), max_size=len(possible_edges)
+                    )
+                )
             )
             if possible_edges
             else frozenset()
         )
-    return ArgumentationFramework(arguments=frozenset(arguments), defeats=defeats, attacks=attacks)
+    return ArgumentationFramework(
+        arguments=frozenset(arguments), defeats=defeats, attacks=attacks
+    )
 
 
 def test_support_quality_is_re_exported() -> None:

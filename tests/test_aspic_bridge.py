@@ -42,7 +42,9 @@ def _reported(claim_id: str) -> CanonicalJustification:
     )
 
 
-def _support(source: str, target: str, *, strength: str = "defeasible") -> CanonicalJustification:
+def _support(
+    source: str, target: str, *, strength: str = "defeasible"
+) -> CanonicalJustification:
     return CanonicalJustification(
         justification_id=f"supports:{source}->{target}",
         conclusion_claim_id=target,
@@ -101,7 +103,9 @@ def test_defeasible_rule_carries_justification_id_as_name() -> None:
 
 def test_strict_rule_has_no_name() -> None:
     literals = claims_to_literals([_claim("a"), _claim("b")])
-    strict, _defeasible = justifications_to_rules([_support("a", "b", strength="strict")], literals)
+    strict, _defeasible = justifications_to_rules(
+        [_support("a", "b", strength="strict")], literals
+    )
     rule = next(iter(strict))
     assert rule.kind == "strict"
     assert rule.name is None
@@ -109,7 +113,9 @@ def test_strict_rule_has_no_name() -> None:
 
 def test_empty_premise_non_reported_justification_is_rejected() -> None:
     literals = claims_to_literals([_claim("b")])
-    bad = CanonicalJustification(justification_id="supports:->b", conclusion_claim_id="b", rule_kind="supports")
+    bad = CanonicalJustification(
+        justification_id="supports:->b", conclusion_claim_id="b", rule_kind="supports"
+    )
     with pytest.raises(ValueError, match="empty-premise"):
         justifications_to_rules([bad], literals)
 
@@ -133,7 +139,11 @@ def test_rebut_produces_symmetric_contradictories() -> None:
 def test_supersedes_produces_asymmetric_contrary() -> None:
     literals = claims_to_literals([_claim("a"), _claim("b")])
     cfn = stances_to_contrariness(
-        [StanceInput(claim_id="a", target_claim_id="b", stance_type=StanceType.SUPERSEDES)],
+        [
+            StanceInput(
+                claim_id="a", target_claim_id="b", stance_type=StanceType.SUPERSEDES
+            )
+        ],
         literals,
         frozenset(),
     )
@@ -148,7 +158,12 @@ def test_undercut_targets_the_named_defeasible_rule() -> None:
     _strict, defeasible = justifications_to_rules([_support("a", "b")], literals)
     cfn = stances_to_contrariness(
         [
-            StanceInput(claim_id="attacker", target_claim_id="b", stance_type=StanceType.UNDERCUTS, target_justification_id="supports:a->b")
+            StanceInput(
+                claim_id="attacker",
+                target_claim_id="b",
+                stance_type=StanceType.UNDERCUTS,
+                target_justification_id="supports:a->b",
+            )
         ],
         literals,
         defeasible,
@@ -159,11 +174,21 @@ def test_undercut_targets_the_named_defeasible_rule() -> None:
 
 
 def test_undercut_without_rule_id_is_ambiguous_with_multiple_rules() -> None:
-    literals = claims_to_literals([_claim("a"), _claim("c"), _claim("b"), _claim("attacker")])
-    _strict, defeasible = justifications_to_rules([_support("a", "b"), _support("c", "b")], literals)
+    literals = claims_to_literals(
+        [_claim("a"), _claim("c"), _claim("b"), _claim("attacker")]
+    )
+    _strict, defeasible = justifications_to_rules(
+        [_support("a", "b"), _support("c", "b")], literals
+    )
     with pytest.raises(ValueError, match="target_justification_id"):
         stances_to_contrariness(
-            [StanceInput(claim_id="attacker", target_claim_id="b", stance_type=StanceType.UNDERCUTS)],
+            [
+                StanceInput(
+                    claim_id="attacker",
+                    target_claim_id="b",
+                    stance_type=StanceType.UNDERCUTS,
+                )
+            ],
             literals,
             defeasible,
         )
@@ -201,7 +226,10 @@ def test_rule_order_outside_defeasible_rules_is_rejected() -> None:
 
 
 def test_premise_order_is_irreflexive() -> None:
-    claims = [_claim("a", sample_size=100, confidence=0.9), _claim("b", sample_size=5, confidence=0.4)]
+    claims = [
+        _claim("a", sample_size=100, confidence=0.9),
+        _claim("b", sample_size=5, confidence=0.4),
+    ]
     literals = claims_to_literals(claims)
     pref = build_preference_config(claims, literals, frozenset())
     assert all(weaker != stronger for weaker, stronger in pref.premise_order)
@@ -212,7 +240,9 @@ def test_premise_order_is_irreflexive() -> None:
 
 def test_no_stances_all_claims_survive() -> None:
     claims = [_claim("x"), _claim("y"), _claim("z")]
-    csaf = build_bridge_csaf(claims, [_reported("x"), _reported("y"), _reported("z")], [], bundle=_bundle())
+    csaf = build_bridge_csaf(
+        claims, [_reported("x"), _reported("y"), _reported("z")], [], bundle=_bundle()
+    )
     assert len(csaf.defeats) == 0
     grounded = grounded_extension(csaf.framework)
     justified = {
@@ -245,13 +275,19 @@ def test_rebut_stronger_claim_wins() -> None:
         claims,
         [_reported("a"), _reported("b")],
         [
-            StanceInput(claim_id="a", target_claim_id="b", stance_type=StanceType.REBUTS),
-            StanceInput(claim_id="b", target_claim_id="a", stance_type=StanceType.REBUTS),
+            StanceInput(
+                claim_id="a", target_claim_id="b", stance_type=StanceType.REBUTS
+            ),
+            StanceInput(
+                claim_id="b", target_claim_id="a", stance_type=StanceType.REBUTS
+            ),
         ],
         bundle=_bundle(),
     )
     grounded = grounded_extension(csaf.framework)
-    justified = {_conclusion_claim_id(conc(csaf.id_to_arg[arg_id])) for arg_id in grounded}
+    justified = {
+        _conclusion_claim_id(conc(csaf.id_to_arg[arg_id])) for arg_id in grounded
+    }
     assert "a" in justified
     assert "b" not in justified
 
@@ -262,10 +298,16 @@ def test_query_claim_collects_arguments_for_and_against() -> None:
         "goal",
         claims,
         [_reported("goal"), _reported("anti")],
-        [StanceInput(claim_id="anti", target_claim_id="goal", stance_type=StanceType.REBUTS)],
+        [
+            StanceInput(
+                claim_id="anti", target_claim_id="goal", stance_type=StanceType.REBUTS
+            )
+        ],
         bundle=_bundle(),
     )
-    assert any(conc(argument).atom.arguments[-1] == "goal" for argument in result.arguments_for)
+    assert any(
+        conc(argument).atom.arguments[-1] == "goal" for argument in result.arguments_for
+    )
     against_claims = {
         _conclusion_claim_id(conc(argument)) for argument in result.arguments_against
     }

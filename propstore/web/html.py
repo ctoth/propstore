@@ -125,7 +125,10 @@ def render_claim_page(report: ClaimViewReport) -> str:
                 "Summary",
                 _dl(
                     [
-                        ("Status", _status_text(report.status.state, report.status.reason)),
+                        (
+                            "Status",
+                            _status_text(report.status.state, report.status.reason),
+                        ),
                         ("Claim type", report.claim_type),
                         ("Name", report.name or "missing"),
                         ("Statement", report.statement or "missing"),
@@ -166,7 +169,10 @@ def render_concept_page(report: ConceptViewReport) -> str:
                 "Summary",
                 _dl(
                     [
-                        ("Status", _status_text(report.status.state, report.status.reason)),
+                        (
+                            "Status",
+                            _status_text(report.status.state, report.status.reason),
+                        ),
                         ("Canonical name", report.canonical_name or "missing"),
                         ("Definition", report.definition or "missing"),
                         ("Concept status", report.concept_status),
@@ -217,7 +223,9 @@ def render_concept_page(report: ConceptViewReport) -> str:
                 ),
             ),
             _section("Claims By Type", _claim_groups(report.claim_groups)),
-            _section("Related Claims", _related_claims_table(report.related_claim_links)),
+            _section(
+                "Related Claims", _related_claims_table(report.related_claim_links)
+            ),
             _machine_ids_section([("Concept ID", report.concept_id)]),
         ]
     )
@@ -231,9 +239,7 @@ def render_concept_index_page(
     domain: str | None,
     status: str | None,
 ) -> str:
-    entries = (
-        report.entries if isinstance(report, ConceptListReport) else report.hits
-    )
+    entries = report.entries if isinstance(report, ConceptListReport) else report.hits
     rows = [
         LinkRow(
             entry.concept_id,
@@ -313,9 +319,7 @@ def render_neighborhood_page(report: SemanticNeighborhoodReport) -> str:
             ),
             _section(
                 "Raw Graph Projection",
-                "\n".join(
-                    [_nodes_table(report.nodes), _edges_table(report.edges)]
-                ),
+                "\n".join([_nodes_table(report.nodes), _edges_table(report.edges)]),
             ),
             _render_policy_section(report.render_policy),
         ]
@@ -362,9 +366,9 @@ def _inventory_table(rows: tuple[InventoryRow, ...]) -> str:
     headers = ("Kind", "Count", "State", "Sentence")
     if not rows:
         return _table(headers, [])
-    body_rows = [
-        _link_table_row(link_row, len(headers)) for link_row in link_rows
-    ] + [_plain_row(row) for row in plain_rows]
+    body_rows = [_link_table_row(link_row, len(headers)) for link_row in link_rows] + [
+        _plain_row(row) for row in plain_rows
+    ]
     return _table_from_body(headers, body_rows)
 
 
@@ -564,7 +568,7 @@ def _link_table(headers: tuple[str, ...], rows: list[LinkRow]) -> str:
 
 
 def _table_from_body(headers: tuple[str, ...], rows: list[str]) -> str:
-    head = "".join(f"<th scope=\"col\">{escape(header)}</th>" for header in headers)
+    head = "".join(f'<th scope="col">{escape(header)}</th>' for header in headers)
     body = "\n".join(rows)
     return (
         '<div class="table-wrap">\n'
@@ -577,7 +581,9 @@ def _table_from_body(headers: tuple[str, ...], rows: list[str]) -> str:
 
 
 def _plain_row(cells: tuple[str, ...]) -> str:
-    return "<tr>" + "".join(f"<td>{escape(_cell(cell))}</td>" for cell in cells) + "</tr>"
+    return (
+        "<tr>" + "".join(f"<td>{escape(_cell(cell))}</td>" for cell in cells) + "</tr>"
+    )
 
 
 def _link_table_row(row: LinkRow, header_count: int) -> str:
@@ -585,9 +591,7 @@ def _link_table_row(row: LinkRow, header_count: int) -> str:
         raise ValueError(
             f"LinkRow has {len(row.cells) + 1} cells for {header_count} headers"
         )
-    first = (
-        f'<td><a href="{escape(row.href)}">{escape(_cell(row.link_text))}</a></td>'
-    )
+    first = f'<td><a href="{escape(row.href)}">{escape(_cell(row.link_text))}</a></td>'
     rest = "".join(f"<td>{escape(_cell(cell))}</td>" for cell in row.cells)
     return f"<tr>{first}{rest}</tr>"
 
@@ -615,6 +619,6 @@ def _cell(value: str) -> str:
 
 
 def _slug(heading: str) -> str:
-    return "".join(
-        char if char.isalnum() else "-" for char in heading.lower()
-    ).strip("-")
+    return "".join(char if char.isalnum() else "-" for char in heading.lower()).strip(
+        "-"
+    )

@@ -246,7 +246,9 @@ def propose_rules_for_paper(
     rejections: list[RuleRejection] = []
     notes_sha = _sha(notes)
     for index, spec in enumerate(payload.rules, start=1):
-        missing = tuple(ref for ref in spec.predicates_referenced if ref not in registered)
+        missing = tuple(
+            ref for ref in spec.predicates_referenced if ref not in registered
+        )
         if missing:
             rejections.append(
                 RuleRejection(

@@ -16,6 +16,7 @@ modules are imported at the bottom so they can attach commands via
 declarations is the agent-workflow layer's concern (Phase 10-4) and is not built
 here — ``predicate declare`` records explicitly-supplied (``stated``) declarations.
 """
+
 from __future__ import annotations
 
 import click

@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.families.alignment import AlignmentArgument, ConceptAlignmentRef
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.repository import Repository

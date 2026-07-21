@@ -17,6 +17,7 @@ owners own every storage/promotion semantic. The rule-proposal subcommands
 ``propose-rules`` accepts a ``--mock-llm-fixture`` so it is exercisable without an
 LLM endpoint.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -193,16 +194,12 @@ def propose_rules_cmd(
     help="A rule id to promote (repeatable).",
 )
 @click.pass_obj
-def promote_rules_cmd(
-    obj: CliContext, paper: str, rule_ids: tuple[str, ...]
-) -> None:
+def promote_rules_cmd(obj: CliContext, paper: str, rule_ids: tuple[str, ...]) -> None:
     """Promote recorded rule proposals into canonical defeasible rules."""
 
     repo = require_repo(obj)
     try:
-        plan = plan_rule_proposal_promotion(
-            repo, source_paper=paper, rule_ids=rule_ids
-        )
+        plan = plan_rule_proposal_promotion(repo, source_paper=paper, rule_ids=rule_ids)
     except UnknownProposalPath as exc:
         fail(exc)
     if not plan.has_branch:

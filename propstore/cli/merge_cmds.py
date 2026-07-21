@@ -50,7 +50,9 @@ def inspect(obj: CliContext, branch_a: str, branch_b: str, semantics: str) -> No
 @click.argument("branch_a")
 @click.argument("branch_b")
 @click.option("--message", default="", help="Commit message.")
-@click.option("--target-branch", default=None, help="Target branch for the merge commit.")
+@click.option(
+    "--target-branch", default=None, help="Target branch for the merge commit."
+)
 @click.pass_obj
 def commit(
     obj: CliContext,

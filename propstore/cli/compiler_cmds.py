@@ -5,6 +5,7 @@ runs the shared semantic check set, ``pks build`` additionally materialises the
 world sidecar and reports the conflict / phi summary. No compiler workflow logic
 lives here (CLAUDE.md "CLI adapter discipline").
 """
+
 from __future__ import annotations
 
 import json
@@ -12,7 +13,13 @@ from collections.abc import Iterable
 
 from propstore.app.aliases import export_concept_aliases
 from propstore.app.world import WorldSidecarMissingError, open_app_world_model
-from propstore.cli.helpers import EXIT_VALIDATION, CliContext, exit_with_code, fail, require_repo
+from propstore.cli.helpers import (
+    EXIT_VALIDATION,
+    CliContext,
+    exit_with_code,
+    fail,
+    require_repo,
+)
 from propstore.cli.output import emit, emit_error, emit_success
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.compiler.workflows import build_repository, validate_repository
@@ -29,7 +36,11 @@ _PHI_GROUP_GLOSSES = {
 def _emit_workflow_messages(messages: Iterable[PassDiagnostic]) -> None:
     for message in messages:
         label = message.level.upper()
-        family = "authoring" if message.code.startswith("authoring.") else message.family.value
+        family = (
+            "authoring"
+            if message.code.startswith("authoring.")
+            else message.family.value
+        )
         emit_error(f"{label} ({family}): {message.render()}")
 
 
@@ -54,7 +65,8 @@ def validate(obj: CliContext) -> None:
     if report.ok:
         emit_success(
             f"Validation passed: {report.concept_count} concept(s), "
-            f"{report.claim_count} claim file(s)")
+            f"{report.claim_count} claim file(s)"
+        )
     else:
         emit_error(f"Validation FAILED: {len(report.errors)} error(s)")
         exit_with_code(EXIT_VALIDATION)
@@ -130,7 +142,8 @@ def build(
     emit(
         f"Build {status}: {report.concept_count} concepts, "
         f"{report.claim_count} claims, {report.conflict_count} hard conflicts, "
-        f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
+        f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings"
+    )
     if report.derived_store is not None:
         handle = report.derived_store
         emit(

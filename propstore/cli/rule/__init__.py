@@ -14,6 +14,7 @@ app layer, and the LLM rule-extraction proposal path is Phase 10-4, so no
 ``mutation`` module is built here — fabricating a mutation command with no owner is
 out of scope.
 """
+
 from __future__ import annotations
 
 import click

@@ -170,7 +170,9 @@ def _source_claim_concept_refs(claim: SourceClaimDocument) -> tuple[str, ...]:
             refs.append(value)
     refs.extend(value for value in claim.concepts if value)
     refs.extend(variable.concept for variable in claim.variables if variable.concept)
-    refs.extend(parameter.concept for parameter in claim.parameters if parameter.concept)
+    refs.extend(
+        parameter.concept for parameter in claim.parameters if parameter.concept
+    )
     return tuple(refs)
 
 
@@ -202,9 +204,7 @@ def resolve_source_concept_promotions(
             if isinstance(handle, str) and handle
         }
 
-    def block_entry(
-        entry: SourceConceptEntryDocument, seed: str, detail: str
-    ) -> None:
+    def block_entry(entry: SourceConceptEntryDocument, seed: str, detail: str) -> None:
         for handle in handle_set(entry, seed):
             blocked_concept_refs[handle] = detail
             mapping.pop(handle, None)
@@ -239,7 +239,9 @@ def resolve_source_concept_promotions(
             continue
         prior_seed = minted_by_handle.get(concept_id)
         if prior_seed is not None and prior_seed != seed:
-            block_entry(entry, seed, f"ambiguous concept mappings: {seed}, {prior_seed}")
+            block_entry(
+                entry, seed, f"ambiguous concept mappings: {seed}, {prior_seed}"
+            )
             concept_documents.pop(concept_id, None)
             minted_by_handle.pop(concept_id, None)
             continue
@@ -337,7 +339,9 @@ def compute_blocked_claim_artifact_ids(
                 f"claim context {context!r} is not on the primary branch",
             )
 
-    for justification in () if justifications_doc is None else justifications_doc.justifications:
+    for justification in (
+        () if justifications_doc is None else justifications_doc.justifications
+    ):
         conclusion = justification.conclusion
         if isinstance(conclusion, str) and not source_claim_index_exists(conclusion):
             record(
@@ -587,14 +591,18 @@ def _assemble_source_promotion_plan(
         return resolved
 
     promoted_justifications: dict[str, Justification] = {}
-    for justification in () if justifications_doc is None else justifications_doc.justifications:
+    for justification in (
+        () if justifications_doc is None else justifications_doc.justifications
+    ):
         conclusion = resolve_claim(justification.conclusion)
         if conclusion is None:
             continue
         premises = tuple(resolve_claim(premise) for premise in justification.premises)
         if any(premise is None for premise in premises):
             continue
-        resolved_premises = tuple(premise for premise in premises if premise is not None)
+        resolved_premises = tuple(
+            premise for premise in premises if premise is not None
+        )
         justification_id = derive_justification_artifact_id(
             conclusion=conclusion,
             premises=resolved_premises,
@@ -790,11 +798,7 @@ def promote_source_branch(
 
     if not valid_claims and blocked_claims:
         details = sorted(
-            {
-                detail
-                for entries in blocked_reasons.values()
-                for _, detail in entries
-            }
+            {detail for entries in blocked_reasons.values() for _, detail in entries}
         )
         suffix = f": {'; '.join(details)}" if details else ""
         raise ValueError(
@@ -827,7 +831,10 @@ def promote_source_branch(
                 transaction.concept.save(concept_id, concept)
             for claim_id, claim in plan.promoted_claim_documents.items():
                 transaction.claim.save(claim_id, claim)
-            for justification_id, justification in plan.promoted_justification_documents.items():
+            for (
+                justification_id,
+                justification,
+            ) in plan.promoted_justification_documents.items():
                 transaction.justification.save(justification_id, justification)
             for stance_id, stance in plan.promoted_stance_documents.items():
                 transaction.stance.save(stance_id, stance)
@@ -857,9 +864,7 @@ def promote_source_branch(
         ),
     )
 
-    _commit_promote_time_trust_calibration(
-        repo, source_name, promotion_commit_sha=sha
-    )
+    _commit_promote_time_trust_calibration(repo, source_name, promotion_commit_sha=sha)
 
     return PromotionResult(
         commit_sha=sha,

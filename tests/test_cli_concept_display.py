@@ -9,6 +9,7 @@ Ported and adapted from the reference ``test_cli`` concept display cases; concep
 deferred and noted in the worker report. The ``align`` / ``decide`` / ``promote``
 lifecycle is covered by ``test_concept_alignment_cli``.
 """
+
 from __future__ import annotations
 
 import json

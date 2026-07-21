@@ -122,9 +122,7 @@ class WorldlineCreateRequest:
     bindings: Mapping[str, str | int | float | bool] = field(
         default_factory=dict[str, str | int | float | bool]
     )
-    overrides: Mapping[str, float | str] = field(
-        default_factory=dict[str, float | str]
-    )
+    overrides: Mapping[str, float | str] = field(default_factory=dict[str, float | str])
     targets: tuple[str, ...] = ()
     context_id: str | None = None
     policy: WorldlinePolicyOptions = field(default_factory=WorldlinePolicyOptions)
@@ -137,9 +135,7 @@ class WorldlineRunRequest:
     bindings: Mapping[str, str | int | float | bool] = field(
         default_factory=dict[str, str | int | float | bool]
     )
-    overrides: Mapping[str, float | str] = field(
-        default_factory=dict[str, float | str]
-    )
+    overrides: Mapping[str, float | str] = field(default_factory=dict[str, float | str])
     targets: tuple[str, ...] = ()
     context_id: str | None = None
     policy: WorldlinePolicyOptions = field(default_factory=WorldlinePolicyOptions)
@@ -394,7 +390,9 @@ def diff_worldlines(
                     left_value=left_raw,
                     left_status="absent" if left_value is None else left_value.status,
                     right_value=right_raw,
-                    right_status="absent" if right_value is None else right_value.status,
+                    right_status="absent"
+                    if right_value is None
+                    else right_value.status,
                 )
             )
 

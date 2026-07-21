@@ -40,7 +40,9 @@ def source_claim_index_from_document(
 ) -> FamilyReferenceIndex[SourceClaimDocument]:
     """Build a reference index over a source branch's claim documents."""
 
-    records: tuple[SourceClaimDocument, ...] = () if document is None else document.claims
+    records: tuple[SourceClaimDocument, ...] = (
+        () if document is None else document.claims
+    )
     return FamilyReferenceIndex[SourceClaimDocument].from_records(
         records,
         family="source_claims",

@@ -80,7 +80,9 @@ class Concept(CharterDoc):
     definition: str | None = None
     category_values: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     category_extensible: bool = True
-    ontology_reference: Annotated[OntologyReference | None, charter_field(json=True)] = None
+    ontology_reference: Annotated[
+        OntologyReference | None, charter_field(json=True)
+    ] = None
     lexical_entry: Annotated[
         LexicalEntry | None,
         charter_field(

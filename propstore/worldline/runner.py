@@ -18,7 +18,11 @@ from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.hashing import compute_worldline_content_hash
-from propstore.worldline.interfaces import HasEnvironment, HasLiftingSystem, WorldlineStore
+from propstore.worldline.interfaces import (
+    HasEnvironment,
+    HasLiftingSystem,
+    WorldlineStore,
+)
 from propstore.worldline.query import WorldlineResult
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
@@ -120,10 +124,12 @@ def run_worldline(
     stance_dependencies: list[str] = []
     if strategy == ResolutionStrategy.ARGUMENTATION:
         try:
-            argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
-                bound,
-                world,
-                policy,
+            argumentation_state, stance_dependencies, active_ids = (
+                capture_argumentation_state(
+                    bound,
+                    world,
+                    policy,
+                )
             )
             if argumentation_state is not None:
                 trace.dependency_claims.update(active_ids)
@@ -148,10 +154,12 @@ def run_worldline(
 
     lifting_rules, blocked_exceptions = _lifting_dependencies(bound, world, context_id)
     dependencies = WorldlineDependencies(
-        claims=tuple(sorted(
-            _display_claim_id(world, str(claim_id)) or str(claim_id)
-            for claim_id in trace.dependency_claims
-        )),
+        claims=tuple(
+            sorted(
+                _display_claim_id(world, str(claim_id)) or str(claim_id)
+                for claim_id in trace.dependency_claims
+            )
+        ),
         stances=tuple(stance_dependencies),
         contexts=tuple(_context_dependencies(bound, context_id)),
         lifting_rules=tuple(lifting_rules),
@@ -238,7 +246,9 @@ def _capture_sensitivity(
                     )
                 )
         except Exception:
-            logger.warning("sensitivity analysis failed for %s", target_name, exc_info=True)
+            logger.warning(
+                "sensitivity analysis failed for %s", target_name, exc_info=True
+            )
             outcomes[target_name] = WorldlineSensitivityOutcome(
                 error=WorldlineCaptureError.SENSITIVITY,
             )

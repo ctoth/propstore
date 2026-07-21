@@ -9,6 +9,7 @@ delegation in :func:`solve_assignment_selection_merge`. Test-local scalar Koniec
 oracles are kept only to cross-check that the delegation produces the expected
 distance-minimising winner.
 """
+
 from __future__ import annotations
 
 from itertools import product
@@ -216,7 +217,9 @@ def _eval_cel_ast_oracle(node: Any, bindings: dict[str, Any]) -> Any:
     raise TypeError(f"Unsupported CEL AST node: {type(node).__name__}")
 
 
-def _eval_cel_constraint_bruteforce(assignment: Assignment, constraint: IntegrityConstraint) -> bool:
+def _eval_cel_constraint_bruteforce(
+    assignment: Assignment, constraint: IntegrityConstraint
+) -> bool:
     from cel_parser import parse as parse_cel
     from condition_ir import check_cel_expression, scope_condition_registry
 
@@ -250,7 +253,9 @@ st_branch_profile = st.dictionaries(
     max_size=5,
 )
 st_small_pairs = st.lists(
-    st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
+    st.tuples(
+        st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)
+    ),
     min_size=2,
     max_size=5,
 )
@@ -275,7 +280,9 @@ class TestDelegation:
         result = solve_assignment_selection_merge(request)
 
         assert result.winners == (Assignment({"x": 0.0, "y": 1.0}),)
-        assert result.scored_candidates[0].assignment == Assignment({"x": 0.0, "y": 1.0})
+        assert result.scored_candidates[0].assignment == Assignment(
+            {"x": 0.0, "y": 1.0}
+        )
 
     @pytest.mark.property
     @given(st_branch_profile, st_operator)
@@ -285,10 +292,14 @@ class TestDelegation:
         profile: dict[str, float],
         operator: MergeOperator,
     ) -> None:
-        result = solve_assignment_selection_merge(_scalar_request(profile, operator=operator))
+        result = solve_assignment_selection_merge(
+            _scalar_request(profile, operator=operator)
+        )
 
         assert result.scored_candidates
-        assert result.scored_candidates[0].assignment.value_for("__value__") == _scalar_merge(
+        assert result.scored_candidates[0].assignment.value_for(
+            "__value__"
+        ) == _scalar_merge(
             profile,
             operator=operator,
         )
@@ -332,16 +343,21 @@ class TestDelegation:
         profile: dict[str, float],
         operator: MergeOperator,
     ) -> None:
-        renamed = {f"renamed_{index}": value for index, value in enumerate(profile.values())}
+        renamed = {
+            f"renamed_{index}": value for index, value in enumerate(profile.values())
+        }
 
-        original = solve_assignment_selection_merge(_scalar_request(profile, operator=operator))
-        result = solve_assignment_selection_merge(_scalar_request(renamed, operator=operator))
+        original = solve_assignment_selection_merge(
+            _scalar_request(profile, operator=operator)
+        )
+        result = solve_assignment_selection_merge(
+            _scalar_request(renamed, operator=operator)
+        )
 
         assert original.scored_candidates and result.scored_candidates
-        assert (
-            original.scored_candidates[0].assignment.value_for("__value__")
-            == result.scored_candidates[0].assignment.value_for("__value__")
-        )
+        assert original.scored_candidates[0].assignment.value_for(
+            "__value__"
+        ) == result.scored_candidates[0].assignment.value_for("__value__")
 
 
 # ── CEL constraint compilation (condition_ir / Z3) ───────────────────
@@ -370,7 +386,9 @@ class TestCelConstraints:
         result = solve_assignment_selection_merge(request)
 
         assert result.winners == (Assignment({"x": 0.0, "y": 1.0}),)
-        assert all(assignment_satisfies_mu(request, winner) for winner in result.winners)
+        assert all(
+            assignment_satisfies_mu(request, winner) for winner in result.winners
+        )
 
     def test_invalid_cel_constraint_fails_explicitly(self) -> None:
         request = AssignmentSelectionRequest(
@@ -455,7 +473,10 @@ class TestCelConstraints:
         result = solve_assignment_selection_merge(request)
 
         assert result.admissible_count == 2
-        assert all(winner.value_for("task") in {"singing", "yodel"} for winner in result.winners)
+        assert all(
+            winner.value_for("task") in {"singing", "yodel"}
+            for winner in result.winners
+        )
 
     def test_cel_constraints_reuse_one_solver_per_problem(
         self,
@@ -506,7 +527,9 @@ class TestCelConstraints:
             for index, (x, y) in enumerate(source_pairs)
         )
         unconstrained = solve_assignment_selection_merge(
-            AssignmentSelectionRequest(concept_ids=("x", "y"), sources=sources, operator=operator)
+            AssignmentSelectionRequest(
+                concept_ids=("x", "y"), sources=sources, operator=operator
+            )
         )
         constrained = solve_assignment_selection_merge(
             AssignmentSelectionRequest(
@@ -582,7 +605,9 @@ class TestCelConstraints:
         )
         compiled = _compile_cel_constraint(constraint)
         for assignment in candidates:
-            assert compiled.holds(assignment) == _eval_cel_constraint_bruteforce(assignment, constraint)
+            assert compiled.holds(assignment) == _eval_cel_constraint_bruteforce(
+                assignment, constraint
+            )
 
 
 # ── RANGE / CATEGORY / CUSTOM constraint compilation ─────────────────
@@ -615,7 +640,10 @@ class TestStructuredConstraints:
                 IntegrityConstraint(
                     kind=IntegrityConstraintKind.CATEGORY,
                     concept_ids=("__value__",),
-                    metadata={"allowed_values": ("speech", "whisper"), "extensible": False},
+                    metadata={
+                        "allowed_values": ("speech", "whisper"),
+                        "extensible": False,
+                    },
                 ),
             ),
         )
@@ -624,7 +652,8 @@ class TestStructuredConstraints:
 
         assert result.admissible_count == 2
         assert all(
-            winner.value_for("__value__") in {"speech", "whisper"} for winner in result.winners
+            winner.value_for("__value__") in {"speech", "whisper"}
+            for winner in result.winners
         )
 
     def test_cross_concept_custom_constraint_changes_winner_set(self) -> None:
@@ -639,7 +668,9 @@ class TestStructuredConstraints:
                 IntegrityConstraint(
                     kind=IntegrityConstraintKind.CUSTOM,
                     concept_ids=("x", "y"),
-                    metadata={"predicate": lambda values: values["x"] + values["y"] == 1.0},
+                    metadata={
+                        "predicate": lambda values: values["x"] + values["y"] == 1.0
+                    },
                     description="x and y must sum to exactly 1",
                 ),
             ),
@@ -702,7 +733,9 @@ class TestStructuredConstraints:
                     kind=IntegrityConstraintKind.CUSTOM,
                     concept_ids=("x", "y"),
                     metadata={
-                        "predicate": lambda values, limit=max_sum: values["x"] + values["y"] <= limit
+                        "predicate": lambda values, limit=max_sum: (
+                            values["x"] + values["y"] <= limit
+                        )
                     },
                     description="sum-bounded cross-concept admissibility",
                 ),
@@ -713,7 +746,9 @@ class TestStructuredConstraints:
         result = solve_assignment_selection_merge(request)
 
         assert result.winners
-        assert all(assignment_satisfies_mu(request, winner) for winner in result.winners)
+        assert all(
+            assignment_satisfies_mu(request, winner) for winner in result.winners
+        )
 
     @pytest.mark.property
     @given(st_branch_profile)
@@ -736,7 +771,9 @@ class TestStructuredConstraints:
         result = solve_assignment_selection_merge(request)
 
         assert result.winners
-        assert all(assignment_satisfies_mu(request, winner) for winner in result.winners)
+        assert all(
+            assignment_satisfies_mu(request, winner) for winner in result.winners
+        )
 
     @pytest.mark.property
     @given(
@@ -809,8 +846,12 @@ class TestStructuredConstraints:
 
         global_result = solve_assignment_selection_merge(global_request)
         expected = tuple(
-            Assignment({"x": x_assignment.value_for("x"), "y": y_assignment.value_for("y")})
-            for x_assignment, y_assignment in product(x_result.winners, y_result.winners)
+            Assignment(
+                {"x": x_assignment.value_for("x"), "y": y_assignment.value_for("y")}
+            )
+            for x_assignment, y_assignment in product(
+                x_result.winners, y_result.winners
+            )
         )
 
         assert global_result.winners == expected
@@ -850,7 +891,10 @@ class TestRenderPolicyIntegration:
         assert RenderPolicy().branch_filter is None
 
     def test_resolution_strategy_has_assignment_selection_merge(self) -> None:
-        assert ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE == "assignment_selection_merge"
+        assert (
+            ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE
+            == "assignment_selection_merge"
+        )
 
     def test_render_policy_round_trips_merge_operator_enum(self) -> None:
         restored = RenderPolicy(merge_operator=MergeOperator.GMAX)

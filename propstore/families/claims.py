@@ -39,7 +39,11 @@ from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
 from quire.references import ForeignKeySpec
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from sqlalchemy import select
 
 from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
@@ -284,7 +288,9 @@ def _row_to_claim(row: _ClaimRow) -> Claim:
     claim_type = row.claim_type
     if claim_type is not None and not isinstance(claim_type, ClaimType):
         claim_type = ClaimType(claim_type)
-    status = row.status if isinstance(row.status, ClaimStatus) else ClaimStatus(row.status)
+    status = (
+        row.status if isinstance(row.status, ClaimStatus) else ClaimStatus(row.status)
+    )
     exactness = row.exactness
     if exactness is not None and not isinstance(exactness, Exactness):
         exactness = Exactness(exactness)

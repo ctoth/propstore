@@ -114,10 +114,7 @@ def _apply_ranking_policy(
     def _retag(
         ordered: Sequence[RankedIntervention],
     ) -> tuple[RankedIntervention, ...]:
-        return tuple(
-            replace(item, ranking_policy=ranking_policy)
-            for item in ordered
-        )
+        return tuple(replace(item, ranking_policy=ranking_policy) for item in ordered)
 
     if ranking_policy is RankingPolicy.HEURISTIC_ROI:
         return _retag(
@@ -189,7 +186,9 @@ def rank_fragility(
     ranking_policy: RankingPolicy = RankingPolicy.HEURISTIC_ROI,
     atms_limit: int = 8,
 ) -> FragilityReport:
-    concept_ids = [concept_id] if concept_id is not None else derive_scored_concepts(bound)
+    concept_ids = (
+        [concept_id] if concept_id is not None else derive_scored_concepts(bound)
+    )
     interventions: list[RankedIntervention] = []
 
     if include_atms:
@@ -203,7 +202,9 @@ def rank_fragility(
         )
 
     if include_discovery:
-        interventions.extend(collect_missing_measurement_interventions(bound, concept_ids))
+        interventions.extend(
+            collect_missing_measurement_interventions(bound, concept_ids)
+        )
 
     if include_conflict:
         interventions.extend(collect_conflict_interventions(bound, concept_ids))
@@ -234,11 +235,14 @@ def rank_fragility(
     ranked = _apply_ranking_policy(interventions, normalized_policy)
     ranked = ranked[:top_k]
     world_fragility = (
-        sum(item.local_fragility for item in ranked[: min(10, len(ranked))]) / min(10, len(ranked))
+        sum(item.local_fragility for item in ranked[: min(10, len(ranked))])
+        / min(10, len(ranked))
         if ranked
         else 0.0
     )
-    interactions = detect_interactions(ranked, bound, top_k=min(top_k, 5), atms_limit=atms_limit)
+    interactions = detect_interactions(
+        ranked, bound, top_k=min(top_k, 5), atms_limit=atms_limit
+    )
     scope = f"subject:{concept_id}" if concept_id is not None else "all"
     return FragilityReport(
         interventions=ranked,

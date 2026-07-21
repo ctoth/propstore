@@ -36,7 +36,11 @@ from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
 from quire.refs import single_field_ref_type
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from sqlalchemy import select
 
 
@@ -172,7 +176,9 @@ class PredicateRepository:
             session.commit()
         return schema
 
-    def render_predicates(self, path: Path, schema: SqlAlchemySchema) -> list[Predicate]:
+    def render_predicates(
+        self, path: Path, schema: SqlAlchemySchema
+    ) -> list[Predicate]:
         """Return every predicate from the sidecar, rebuilt as ``Predicate``."""
 
         model = schema.model("predicate")
@@ -265,14 +271,14 @@ else:
     )
 
 
-_PREDICATE_PROPOSAL_PLACEMENT: SubdirFixedFilePlacement[object, PredicateProposalRef] = (
-    SubdirFixedFilePlacement(
-        namespace="predicates",
-        filename="declarations.yaml",
-        ref_factory=PredicateProposalRef,
-        ref_field="source_paper",
-        branch=PREDICATE_PROPOSAL_BRANCH,
-    )
+_PREDICATE_PROPOSAL_PLACEMENT: SubdirFixedFilePlacement[
+    object, PredicateProposalRef
+] = SubdirFixedFilePlacement(
+    namespace="predicates",
+    filename="declarations.yaml",
+    ref_factory=PredicateProposalRef,
+    ref_field="source_paper",
+    branch=PREDICATE_PROPOSAL_BRANCH,
 )
 
 

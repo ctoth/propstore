@@ -25,7 +25,6 @@ class ConceptSearchHit:
         object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
 
 
-
 @dataclass(frozen=True)
 class ClaimSimilarityHit:
     """A claim returned by an embedding-similarity query, with its distance."""
@@ -83,9 +82,13 @@ class ConceptSimilarityHit:
                 else str(data["primary_logical_id"])
             ),
             canonical_name=(
-                None if data.get("canonical_name") is None else str(data["canonical_name"])
+                None
+                if data.get("canonical_name") is None
+                else str(data["canonical_name"])
             ),
-            definition=None if data.get("definition") is None else str(data["definition"]),
+            definition=None
+            if data.get("definition") is None
+            else str(data["definition"]),
         )
 
 

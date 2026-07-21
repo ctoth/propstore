@@ -47,14 +47,18 @@ def test_full_build_grounds_facts_from_concepts() -> None:
                 body=(
                     BodyLiteral(
                         kind="positive",
-                        atom=Atom(predicate="bird", terms=(Term(kind="var", name="X"),)),
+                        atom=Atom(
+                            predicate="bird", terms=(Term(kind="var", name="X"),)
+                        ),
                     ),
                 ),
             ),
         ),
         concepts=(
             ConceptRelations(
-                concept_id="c1", canonical_name="tweety", relationships=(("is_a", "Bird"),)
+                concept_id="c1",
+                canonical_name="tweety",
+                relationships=(("is_a", "Bird"),),
             ),
         ),
     )

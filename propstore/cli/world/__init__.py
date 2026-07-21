@@ -11,6 +11,7 @@ helpers (binding parsing, the single flag-to-:class:`RenderPolicy` path, JSON
 emission). The sibling command modules are imported at the bottom, after the
 group and helpers exist, so each can attach its commands via ``@world.command``.
 """
+
 from __future__ import annotations
 
 import json

@@ -12,7 +12,10 @@ from propstore.aspic_bridge.build import (
     build_bridge_csaf,
     compile_bridge_context,
 )
-from propstore.aspic_bridge.grounding import GroundedAspicProjection, project_grounded_rules
+from propstore.aspic_bridge.grounding import (
+    GroundedAspicProjection,
+    project_grounded_rules,
+)
 from propstore.aspic_bridge.lifting_projection import (
     LiftingProjection,
     LiftingProjectionRecord,

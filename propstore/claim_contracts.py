@@ -123,7 +123,9 @@ class ClaimTypeContract:
 # The four narrative claim types share one contract shape.
 _NARRATIVE_LINKS: tuple[ClaimConceptLinkDeclaration, ...] = (
     ClaimConceptLinkDeclaration(
-        field="concepts", role=ClaimConceptLinkRole.ABOUT, source=ClaimConceptLinkSource.LIST
+        field="concepts",
+        role=ClaimConceptLinkRole.ABOUT,
+        source=ClaimConceptLinkSource.LIST,
     ),
 )
 _NARRATIVE_NONEMPTY: tuple[str, ...] = ("statement",)
@@ -259,12 +261,16 @@ def validate_claim(claim: Claim) -> ClaimValidationReport:
     for name in contract.required_fields:
         if not _is_present(getattr(claim, name, None)):
             diagnostics.append(
-                ClaimValidationDiagnostic(field=name, message=f"required field {name!r} is missing")
+                ClaimValidationDiagnostic(
+                    field=name, message=f"required field {name!r} is missing"
+                )
             )
     for name in contract.nonempty_fields:
         if not _is_present(getattr(claim, name, None)):
             diagnostics.append(
-                ClaimValidationDiagnostic(field=name, message=f"field {name!r} must be non-empty")
+                ClaimValidationDiagnostic(
+                    field=name, message=f"field {name!r} must be non-empty"
+                )
             )
 
     sympy_generated: str | None = None
@@ -278,7 +284,8 @@ def validate_claim(claim: Claim) -> ClaimValidationReport:
             if result.error is not None:
                 diagnostics.append(
                     ClaimValidationDiagnostic(
-                        field="expression", message=f"sympy generation failed: {result.error}"
+                        field="expression",
+                        message=f"sympy generation failed: {result.error}",
                     )
                 )
         else:

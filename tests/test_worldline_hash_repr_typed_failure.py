@@ -19,11 +19,15 @@ _RFC8785_SAFE_INTEGERS = st.integers(
     min_value=-(2**53) + 1,
     max_value=2**53 - 1,
 )
-_JSON_SCALARS = st.none() | st.booleans() | _RFC8785_SAFE_INTEGERS | st.text(max_size=12)
+_JSON_SCALARS = (
+    st.none() | st.booleans() | _RFC8785_SAFE_INTEGERS | st.text(max_size=12)
+)
 _JSON_VALUES = st.recursive(
     _JSON_SCALARS,
-    lambda children: st.lists(children, max_size=4)
-    | st.dictionaries(st.text(min_size=1, max_size=8), children, max_size=4),
+    lambda children: (
+        st.lists(children, max_size=4)
+        | st.dictionaries(st.text(min_size=1, max_size=8), children, max_size=4)
+    ),
     max_leaves=16,
 )
 

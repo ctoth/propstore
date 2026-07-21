@@ -27,7 +27,9 @@ from propstore.families.temporal import TemporalRepository
 from propstore.repository import Repository
 
 
-def _edge(repo: Repository, edge_id: str, earlier: str, later: str, account: str) -> None:
+def _edge(
+    repo: Repository, edge_id: str, earlier: str, later: str, account: str
+) -> None:
     result = assert_happens_before(
         repo,
         edge_id=edge_id,
@@ -48,9 +50,7 @@ def test_message_edges_chain_to_before_with_path(tmp_path: Path) -> None:
     # Two-hop witnessing path, each hop an authored message posit.
     path = report.judgment.forward_path
     assert tuple(link.later_claim_id for link in path) == ("c2", "c3")
-    assert all(
-        link.kind is OrderingEvidenceKind.AUTHORED_POSIT for link in path
-    )
+    assert all(link.kind is OrderingEvidenceKind.AUTHORED_POSIT for link in path)
 
 
 def test_stated_edges_order_endpoints_but_do_not_chain(tmp_path: Path) -> None:
@@ -70,10 +70,20 @@ def test_same_frame_overlap_is_concurrent_proven(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
     declare_temporal_frame(repo, frame_id="f1", description="clock")
     anchor_description_claim(
-        repo, anchor_id="a1", claim_id="c1", frame_id="f1", valid_from=0.0, valid_until=10.0
+        repo,
+        anchor_id="a1",
+        claim_id="c1",
+        frame_id="f1",
+        valid_from=0.0,
+        valid_until=10.0,
     )
     anchor_description_claim(
-        repo, anchor_id="a2", claim_id="c2", frame_id="f1", valid_from=5.0, valid_until=15.0
+        repo,
+        anchor_id="a2",
+        claim_id="c2",
+        frame_id="f1",
+        valid_from=5.0,
+        valid_until=15.0,
     )
 
     report = temporal_order_between(repo, "c1", "c2")
@@ -123,7 +133,12 @@ def test_order_query_writes_no_derived_rows(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
     declare_temporal_frame(repo, frame_id="f1", description="clock")
     anchor_description_claim(
-        repo, anchor_id="a1", claim_id="c1", frame_id="f1", valid_from=0.0, valid_until=1.0
+        repo,
+        anchor_id="a1",
+        claim_id="c1",
+        frame_id="f1",
+        valid_from=0.0,
+        valid_until=1.0,
     )
     _edge(repo, "e1", "c1", "c2", "message")
     _edge(repo, "e2", "c2", "c3", "message")

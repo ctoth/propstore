@@ -166,7 +166,9 @@ def _load_merge_summary(repo: Repository, sha: str) -> MergeLogSummary | None:
         )
         if manifest is None:
             continue
-        materialized = sum(1 for argument in manifest.arguments if argument.materialized)
+        materialized = sum(
+            1 for argument in manifest.arguments if argument.materialized
+        )
         return MergeLogSummary(
             branch_a=manifest.branch_a,
             branch_b=manifest.branch_b,

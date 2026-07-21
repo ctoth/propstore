@@ -56,17 +56,31 @@ def _repo(tmp_path: Path) -> Repository:
             Concept(concept_id=concept_id, canonical_name=concept_id),
             message="m",
         )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     # Parameter-claim ids sort before the equation-claim id so the value layer's
     # collect_known_values (which reads the first claim) picks the valued claim.
     repo.families.claim.save(
         "aa_pa",
-        Claim(claim_id="aa_pa", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="A", value=2.0),
+        Claim(
+            claim_id="aa_pa",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="A",
+            value=2.0,
+        ),
         message="m",
     )
     repo.families.claim.save(
         "ab_pb",
-        Claim(claim_id="ab_pb", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="B", value=3.0),
+        Claim(
+            claim_id="ab_pb",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="B",
+            value=3.0,
+        ),
         message="m",
     )
     repo.families.claim.save(
@@ -97,17 +111,34 @@ def _repo(tmp_path: Path) -> Repository:
     # Two conflicting parameter claims for `speed`, with a rebutting stance.
     repo.families.claim.save(
         "s1",
-        Claim(claim_id="s1", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="speed", value=10.0),
+        Claim(
+            claim_id="s1",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="speed",
+            value=10.0,
+        ),
         message="m",
     )
     repo.families.claim.save(
         "s2",
-        Claim(claim_id="s2", context_id="ctx1", claim_type=ClaimType.PARAMETER, output_concept="speed", value=20.0),
+        Claim(
+            claim_id="s2",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="speed",
+            value=20.0,
+        ),
         message="m",
     )
     repo.families.stance.save(
         "st1",
-        Stance(stance_id="st1", source_claim_id="s1", target_claim_id="s2", stance_type=StanceType.REBUTS),
+        Stance(
+            stance_id="st1",
+            source_claim_id="s1",
+            target_claim_id="s2",
+            stance_type=StanceType.REBUTS,
+        ),
         message="m",
     )
     return repo
@@ -127,7 +158,9 @@ def test_get_world_status(world: WorldQuery) -> None:
 
 
 def test_query_world_concept(world: WorldQuery) -> None:
-    report = query_world_concept(world, WorldConceptQueryRequest(target="A", policy=RenderPolicy()))
+    report = query_world_concept(
+        world, WorldConceptQueryRequest(target="A", policy=RenderPolicy())
+    )
     assert report.canonical_name == "A"
     assert report.concept_display_id == "A"
     # claims_for("A") matches pa (value-concept A) and eq (A is an equation input).
@@ -138,7 +171,9 @@ def test_query_world_concept(world: WorldQuery) -> None:
 
 def test_query_world_concept_unknown_raises(world: WorldQuery) -> None:
     with pytest.raises(UnknownConceptError):
-        query_world_concept(world, WorldConceptQueryRequest(target="nope", policy=RenderPolicy()))
+        query_world_concept(
+            world, WorldConceptQueryRequest(target="nope", policy=RenderPolicy())
+        )
 
 
 def test_query_bound_world_target(world: WorldQuery) -> None:
@@ -206,7 +241,10 @@ def test_query_world_chain(world: WorldQuery) -> None:
     assert report.target.display_id == "C"
     assert report.status == "derived"
     assert report.value == 5.0
-    assert any(step.concept.display_id == "C" and step.source == "derived" for step in report.steps)
+    assert any(
+        step.concept.display_id == "C" and step.source == "derived"
+        for step in report.steps
+    )
 
 
 def test_diff_hypothetical_world(world: WorldQuery) -> None:
@@ -216,7 +254,10 @@ def test_diff_hypothetical_world(world: WorldQuery) -> None:
             bindings={},
             add_claims=(
                 WorldHypotheticalSyntheticClaimSpec(
-                    claim_id="syn_a", concept_id="A", claim_type="parameter", value=100.0
+                    claim_id="syn_a",
+                    concept_id="A",
+                    claim_type="parameter",
+                    value=100.0,
                 ),
             ),
         ),

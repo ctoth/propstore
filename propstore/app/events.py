@@ -264,7 +264,9 @@ def _load_merge_arguments(repo: Repository) -> list[CoreferenceMergeArgumentDoc]
             return select_coreference_merge_arguments(session)
 
 
-def _to_merge_argument(document: CoreferenceMergeArgumentDoc) -> CoreferenceMergeArgument:
+def _to_merge_argument(
+    document: CoreferenceMergeArgumentDoc,
+) -> CoreferenceMergeArgument:
     """Lower a stored proposal doc to the lemon compute struct (a construction)."""
 
     return CoreferenceMergeArgument(

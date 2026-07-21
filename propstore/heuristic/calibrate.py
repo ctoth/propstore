@@ -280,7 +280,5 @@ def calibrated_probability_to_opinion(
     if probability < 0.0 or probability > 1.0:
         raise ValueError(f"probability={probability} not in [0, 1]")
     if effective_sample_size < 0.0:
-        raise ValueError(
-            f"effective_sample_size={effective_sample_size} must be >= 0"
-        )
+        raise ValueError(f"effective_sample_size={effective_sample_size} must be >= 0")
     return Opinion.from_probability(probability, effective_sample_size, base_rate)

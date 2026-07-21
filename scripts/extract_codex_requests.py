@@ -132,7 +132,9 @@ def session_files(root: Path, start: date, end: date) -> list[Path]:
                 if not day_dir.is_dir() or not day_dir.name.isdigit():
                     continue
                 try:
-                    day = date(int(year_dir.name), int(month_dir.name), int(day_dir.name))
+                    day = date(
+                        int(year_dir.name), int(month_dir.name), int(day_dir.name)
+                    )
                 except ValueError:
                     continue
                 if start <= day <= end:
@@ -155,7 +157,9 @@ def read_session(path: Path) -> Session:
             payload = event.get("payload")
             if event_type == "session_meta" and isinstance(payload, dict):
                 session.session_id = payload.get("id")
-                session.started_at = parse_timestamp(payload.get("timestamp")) or event_time
+                session.started_at = (
+                    parse_timestamp(payload.get("timestamp")) or event_time
+                )
                 cwd = payload.get("cwd")
                 if isinstance(cwd, str):
                     session.cwd = normalize_path(cwd)
@@ -240,11 +244,15 @@ def write_markdown(sessions: list[Session], start: date, end: date, out: Path) -
     ]
     day = start
     while day <= end:
-        items = sorted(by_day.get(day, []), key=lambda item: item[1].timestamp or datetime.min)
+        items = sorted(
+            by_day.get(day, []), key=lambda item: item[1].timestamp or datetime.min
+        )
         lines.append(f"## {day.isoformat()}")
         lines.append("")
         if not items:
-            lines.append("- No Propstore-scoped user turns found in local Codex session logs.")
+            lines.append(
+                "- No Propstore-scoped user turns found in local Codex session logs."
+            )
             lines.append("")
             day += timedelta(days=1)
             continue
@@ -271,13 +279,17 @@ def write_compact(sessions: list[Session], start: date, end: date, out: Path) ->
     day = start
     while day <= end:
         lines.append(f"## {day.isoformat()}")
-        items = sorted(by_day.get(day, []), key=lambda item: item[1].timestamp or datetime.min)
+        items = sorted(
+            by_day.get(day, []), key=lambda item: item[1].timestamp or datetime.min
+        )
         if not items:
             lines.append("- no requests")
         for index, (session, turn) in enumerate(items, start=1):
             when = turn.timestamp.isoformat() if turn.timestamp else "unknown-time"
             session_id = session.session_id or session.path.stem
-            lines.append(f"- request {index}: {when} [{session_id}] {compact_text(turn.text)}")
+            lines.append(
+                f"- request {index}: {when} [{session_id}] {compact_text(turn.text)}"
+            )
         lines.append("")
         day += timedelta(days=1)
     out.write_text("\n".join(lines), encoding="utf-8")
@@ -297,16 +309,22 @@ def write_ledger(sessions: list[Session], start: date, end: date, out: Path) -> 
     ]
     day = start
     while day <= end:
-        items = sorted(by_day.get(day, []), key=lambda item: item[1].timestamp or datetime.min)
+        items = sorted(
+            by_day.get(day, []), key=lambda item: item[1].timestamp or datetime.min
+        )
         if not items:
-            lines.append(f"| {day.isoformat()} | 0 | | | no Propstore-scoped user turns found |")
+            lines.append(
+                f"| {day.isoformat()} | 0 | | | no Propstore-scoped user turns found |"
+            )
             day += timedelta(days=1)
             continue
         for index, (session, turn) in enumerate(items, start=1):
             when = turn.timestamp.isoformat() if turn.timestamp else "unknown-time"
             session_id = session.session_id or session.path.stem
             text = compact_text(turn.text, limit=500).replace("|", "\\|")
-            lines.append(f"| {day.isoformat()} | {index} | {when} | `{session_id}` | {text} |")
+            lines.append(
+                f"| {day.isoformat()} | {index} | {when} | `{session_id}` | {text} |"
+            )
         day += timedelta(days=1)
     out.write_text("\n".join(lines), encoding="utf-8")
 
@@ -318,7 +336,9 @@ def main() -> int:
     end = parse_date(args.through_date)
     sessions = [
         session
-        for session in (read_session(path) for path in session_files(args.sessions_root, start, end))
+        for session in (
+            read_session(path) for path in session_files(args.sessions_root, start, end)
+        )
         if session_matches_repo(session, repo) and session.user_turns
     ]
     write_markdown(sessions, start, end, args.out)

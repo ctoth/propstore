@@ -12,6 +12,7 @@ CLI-only helpers: the reasoning/revision option blocks and the ``key=value`` /
 imported at the bottom, after the group and helpers exist, so each can attach its
 commands via ``@worldline.command``.
 """
+
 from __future__ import annotations
 
 import json

@@ -9,6 +9,7 @@ project directly over the
 context) needs a Phase-10 ``inspect_micropub_lift`` owner facade that does not
 exist in the rewrite, so it is deferred rather than fabricated here.
 """
+
 from __future__ import annotations
 
 import click
@@ -38,10 +39,7 @@ def micropub_list(obj: CliContext) -> None:
         return
     emit_table(
         ("ARTIFACT ID", "CONTEXT", "SOURCE"),
-        [
-            (item.artifact_id, item.context_id, item.source or "")
-            for item in micropubs
-        ],
+        [(item.artifact_id, item.context_id, item.source or "") for item in micropubs],
     )
 
 

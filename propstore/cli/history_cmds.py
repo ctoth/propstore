@@ -55,7 +55,9 @@ def _render_text_log(records: tuple[LogRecord, ...], *, show_files: bool) -> Non
 
 
 @click.command("log")
-@click.option("-n", "--count", default=20, show_default=True, help="Number of entries to show")
+@click.option(
+    "-n", "--count", default=20, show_default=True, help="Number of entries to show"
+)
 @click.option(
     "--branch",
     "branch_name",

@@ -287,4 +287,6 @@ def test_promote_rejects_cross_group_duplicate(tmp_path: Path) -> None:
 
     # The canonical corpus is untouched: the rival is preserved, master unmoved.
     assert git.branch_sha(git.primary_branch_name()) == master_before
-    assert repo.families.predicate.require("sample_size").authoring_group == "other_paper"
+    assert (
+        repo.families.predicate.require("sample_size").authoring_group == "other_paper"
+    )

@@ -5,12 +5,21 @@ from propstore.support_revision.state import AssertionAtom
 from tests.atms_feed import ClaimSpec, build_bound
 
 
-def test_project_belief_base_collapses_duplicate_rows_by_situated_assertion_identity() -> None:
+def test_project_belief_base_collapses_duplicate_rows_by_situated_assertion_identity() -> (
+    None
+):
     """AGM belief atoms are assertion-language sentences, not claim-row buckets."""
     bound = build_bound(
         claims=[
-            ClaimSpec("claim_first_source", "concept_exact", value=1.0, conditions=("x == 1",)),
-            ClaimSpec("claim_second_source", "concept_exact", value=1.0, conditions=("x == 1",)),
+            ClaimSpec(
+                "claim_first_source", "concept_exact", value=1.0, conditions=("x == 1",)
+            ),
+            ClaimSpec(
+                "claim_second_source",
+                "concept_exact",
+                value=1.0,
+                conditions=("x == 1",),
+            ),
         ],
         bindings={"x": 1},
     )
@@ -28,7 +37,9 @@ def test_project_belief_base_collapses_duplicate_rows_by_situated_assertion_iden
     assert tuple(base.essential_support) == (atom.atom_id,)
 
 
-def test_project_belief_base_keeps_rival_values_as_distinct_situated_assertions() -> None:
+def test_project_belief_base_keeps_rival_values_as_distinct_situated_assertions() -> (
+    None
+):
     """Darwiche-Pearl iterated revision needs a sentence identity finer than target concept."""
     bound = build_bound(
         claims=[

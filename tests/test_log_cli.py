@@ -68,7 +68,9 @@ def test_log_show_files_output(tmp_path: Path) -> None:
     )
     git.commit_deletes(["concepts/a.yaml"], "delete a")
 
-    result = CliRunner().invoke(cli, ["-C", str(root), "log", "-n", "2", "--show-files"])
+    result = CliRunner().invoke(
+        cli, ["-C", str(root), "log", "-n", "2", "--show-files"]
+    )
     assert result.exit_code == 0, result.output
     assert "D concepts/a.yaml" in result.output
     assert "A concepts/b.yaml" in result.output
@@ -103,7 +105,9 @@ def test_log_yaml_output(tmp_path: Path) -> None:
 def test_log_missing_branch_errors(tmp_path: Path) -> None:
     root = tmp_path / "knowledge"
     Repository.init(root)
-    result = CliRunner().invoke(cli, ["-C", str(root), "log", "--branch", "agent/missing"])
+    result = CliRunner().invoke(
+        cli, ["-C", str(root), "log", "--branch", "agent/missing"]
+    )
     assert result.exit_code != 0
     assert "Branch not found: agent/missing" in result.output
 

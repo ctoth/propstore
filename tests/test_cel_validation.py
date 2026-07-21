@@ -26,14 +26,22 @@ from propstore.cel_validation import (
 
 def _registry() -> dict[str, ConceptInfo]:
     return {
-        "freq": ConceptInfo(id="freq", canonical_name="frequency", kind=KindType.QUANTITY),
-        "onset": ConceptInfo(id="onset", canonical_name="onset", kind=KindType.TIMEPOINT),
-        "shape": ConceptInfo(id="shape", canonical_name="shape", kind=KindType.STRUCTURAL),
+        "freq": ConceptInfo(
+            id="freq", canonical_name="frequency", kind=KindType.QUANTITY
+        ),
+        "onset": ConceptInfo(
+            id="onset", canonical_name="onset", kind=KindType.TIMEPOINT
+        ),
+        "shape": ConceptInfo(
+            id="shape", canonical_name="shape", kind=KindType.STRUCTURAL
+        ),
     }
 
 
 def test_iter_cel_identifiers_collects_names() -> None:
-    assert iter_cel_identifiers("freq > 10 && onset < 5") == frozenset({"freq", "onset"})
+    assert iter_cel_identifiers("freq > 10 && onset < 5") == frozenset(
+        {"freq", "onset"}
+    )
 
 
 def test_iter_cel_identifiers_handles_nested_call() -> None:
@@ -55,12 +63,16 @@ def test_non_structural_expression_has_no_structural_concepts() -> None:
 
 
 def test_validate_cel_expression_passes_clean() -> None:
-    location = CelExpressionLocation(artifact_label="claim 'c1'", field="condition", index=0)
+    location = CelExpressionLocation(
+        artifact_label="claim 'c1'", field="condition", index=0
+    )
     validate_cel_expression("freq > 10", _registry(), location=location)
 
 
 def test_validate_cel_expression_raises_on_type_error() -> None:
-    location = CelExpressionLocation(artifact_label="claim 'c1'", field="condition", index=0)
+    location = CelExpressionLocation(
+        artifact_label="claim 'c1'", field="condition", index=0
+    )
     with pytest.raises(CelIngestValidationError) as excinfo:
         validate_cel_expression("freq > 'abc'", _registry(), location=location)
     assert "claim 'c1'" in str(excinfo.value)

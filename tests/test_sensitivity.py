@@ -30,9 +30,7 @@ class _FakeWorld:
     def resolve_concept(self, name: str) -> str | None:
         return name
 
-    def parameterizations_for(
-        self, concept_id: str
-    ) -> Sequence[ParameterizationEdge]:
+    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationEdge]:
         if concept_id == str(self._param.output_concept_id):
             return (self._param,)
         return ()
@@ -84,7 +82,9 @@ class _FakeBound:
             str(output_id),
         )
         if evaluation.value is None:
-            return DerivedResult(concept_id=output_id, status=ValueStatus.UNDERSPECIFIED)
+            return DerivedResult(
+                concept_id=output_id, status=ValueStatus.UNDERSPECIFIED
+            )
         return DerivedResult(
             concept_id=output_id,
             status=ValueStatus.DERIVED,

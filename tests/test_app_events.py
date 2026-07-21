@@ -69,7 +69,10 @@ def test_unattacked_argument_clusters_under_both_semantics(tmp_path: Path) -> No
     repo = Repository.init(tmp_path)
     propose_coreference_merge_argument(repo, supports=("claim_x", "claim_y"))
 
-    for semantics in (ArgumentationSemantics.GROUNDED, ArgumentationSemantics.PREFERRED):
+    for semantics in (
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.PREFERRED,
+    ):
         report = coreference_clusters(repo, _policy(semantics))
         assert isinstance(report, CoreferenceClustersReport)
         assert _cluster_claim_sets(report) == {frozenset({"claim_x", "claim_y"})}
@@ -101,7 +104,9 @@ def test_unsupported_semantics_is_typed_failure_not_fallback(tmp_path: Path) -> 
     assert "stable" in result.message()
 
 
-def test_claim_scoped_returns_all_rival_clusters_under_preferred(tmp_path: Path) -> None:
+def test_claim_scoped_returns_all_rival_clusters_under_preferred(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path)
     _seed_rivals(repo)
 

@@ -19,7 +19,9 @@ _UNCONDITIONAL_ID = ConditionId("ps:condition:unconditional")
 _UNCONDITIONAL_FINGERPRINT = "registry:unconditional"
 
 
-class ContextReference(msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True):
+class ContextReference(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True
+):
     """Stable context identity reference for situated assertions."""
 
     id: ContextId | str
@@ -66,7 +68,9 @@ class ConditionRef(msgspec.Struct, frozen=True, forbid_unknown_fields=True, orde
         return ("condition", str(self.id), self.registry_fingerprint)
 
 
-class ProvenanceGraphRef(msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True):
+class ProvenanceGraphRef(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True, order=True
+):
     """Stable reference to a Carroll-style named graph.
 
     Carroll et al. 2005 define a named graph as a URIref naming a graph. The

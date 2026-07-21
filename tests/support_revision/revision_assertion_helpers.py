@@ -30,8 +30,12 @@ def make_assertion_atom(
     """
     role_value = name if value is None else value
     assertion = SituatedAssertion(
-        relation=RelationConceptRef(concept_id=f"concept_{name}" if concept_id is None else concept_id),
-        role_bindings=RoleBindingSet((RoleBinding(role="value", value=str(role_value)),)),
+        relation=RelationConceptRef(
+            concept_id=f"concept_{name}" if concept_id is None else concept_id
+        ),
+        role_bindings=RoleBindingSet(
+            (RoleBinding(role="value", value=str(role_value)),)
+        ),
         context=ContextReference("ps:context:test"),
         condition=ConditionRef.unconditional(),
         provenance_ref=ProvenanceGraphRef("urn:propstore:test:provenance"),

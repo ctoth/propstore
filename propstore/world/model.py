@@ -262,7 +262,9 @@ def chain_query(
     unresolved_conflicted: list[str] = []
 
     for key, value in bindings.items():
-        steps.append(ChainStep(concept_id=key, value=_as_scalar(value), source="binding"))
+        steps.append(
+            ChainStep(concept_id=key, value=_as_scalar(value), source="binding")
+        )
 
     group = store.group_members(target_concept_id)
     if not group:
@@ -284,17 +286,26 @@ def chain_query(
                 )
                 if value is not None:
                     resolved_values[concept_id] = value
-                    steps.append(ChainStep(concept_id=concept_id, value=value, source="claim"))
+                    steps.append(
+                        ChainStep(concept_id=concept_id, value=value, source="claim")
+                    )
                     visited.add(concept_id)
                     changed = True
                     continue
 
             if value_result.status is ValueStatus.CONFLICTED and strategy is not None:
                 resolved = bound.resolved_value(concept_id)
-                if resolved.status is ValueStatus.RESOLVED and resolved.value is not None:
+                if (
+                    resolved.status is ValueStatus.RESOLVED
+                    and resolved.value is not None
+                ):
                     resolved_values[concept_id] = resolved.value
                     steps.append(
-                        ChainStep(concept_id=concept_id, value=resolved.value, source="resolved")
+                        ChainStep(
+                            concept_id=concept_id,
+                            value=resolved.value,
+                            source="resolved",
+                        )
                     )
                     visited.add(concept_id)
                     changed = True
@@ -309,7 +320,11 @@ def chain_query(
             derived = bound.derived_value(concept_id, override_values=resolved_values)
             if derived.status is ValueStatus.DERIVED and derived.value is not None:
                 resolved_values[concept_id] = derived.value
-                steps.append(ChainStep(concept_id=concept_id, value=derived.value, source="derived"))
+                steps.append(
+                    ChainStep(
+                        concept_id=concept_id, value=derived.value, source="derived"
+                    )
+                )
                 visited.add(concept_id)
                 changed = True
 
@@ -337,7 +352,9 @@ def _target_result(
             (step for step in steps if step.concept_id == target_concept_id), None
         )
         if target_step is not None and target_step.source == "derived":
-            return bound.derived_value(target_concept_id, override_values=resolved_values)
+            return bound.derived_value(
+                target_concept_id, override_values=resolved_values
+            )
         return bound.value_of(target_concept_id)
 
     derived = bound.derived_value(target_concept_id, override_values=resolved_values)
@@ -393,7 +410,10 @@ def serialize_claim_atms_label(
     if label is None:
         return None
     return tuple(
-        tuple(str(assumption_id) for assumption_id in environment_assumption_ids(environment))
+        tuple(
+            str(assumption_id)
+            for assumption_id in environment_assumption_ids(environment)
+        )
         for environment in label.environments
     )
 
@@ -780,10 +800,7 @@ class WorldQuery(WorldStore):
 
             form_registry = {form.name: form for form in select_forms(self._session)}
             result = run_concept_pipeline(
-                [
-                    LoadedConcept(concept=concept)
-                    for concept in self.all_concepts()
-                ],
+                [LoadedConcept(concept=concept) for concept in self.all_concepts()],
                 context=ConceptPipelineContext(form_registry=form_registry),
             )
             if not isinstance(result.output, ConceptCheckedRegistry):

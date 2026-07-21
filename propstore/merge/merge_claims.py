@@ -119,7 +119,10 @@ class MergeClaim:
     def candidate_key(self) -> dict[str, object]:
         """Content used to cluster cross-claim semantic candidates (ignores conditions)."""
 
-        return {"content": semantic_content(self.claim), "context_id": self.claim.context_id}
+        return {
+            "content": semantic_content(self.claim),
+            "context_id": self.claim.context_id,
+        }
 
 
 __all__ = ["MergeClaim"]

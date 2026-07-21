@@ -99,7 +99,9 @@ def score_conflict(
 
     def _remove(arg_id: str) -> frozenset[str]:
         reduced = ArgumentationFramework(
-            arguments=frozenset(argument for argument in framework.arguments if argument != arg_id),
+            arguments=frozenset(
+                argument for argument in framework.arguments if argument != arg_id
+            ),
             defeats=frozenset(
                 (attacker, target)
                 for attacker, target in framework.defeats
@@ -140,7 +142,9 @@ def weighted_epistemic_score(
             )
             raw = len(witnesses) / consistent_future_count
         else:
-            witness_weight = sum(probability_weights[index] for index in witness_indices)
+            witness_weight = sum(
+                probability_weights[index] for index in witness_indices
+            )
             raw = witness_weight / total_weight
     if current_in_extension:
         return raw
@@ -212,8 +216,12 @@ def detect_interactions(
     if bound is None:
         return tuple(
             FragilityInteraction(
-                intervention_a_id=min(a.target.intervention_id, b.target.intervention_id),
-                intervention_b_id=max(a.target.intervention_id, b.target.intervention_id),
+                intervention_a_id=min(
+                    a.target.intervention_id, b.target.intervention_id
+                ),
+                intervention_b_id=max(
+                    a.target.intervention_id, b.target.intervention_id
+                ),
                 interaction_type=InteractionType.UNKNOWN,
             )
             for a, b in combinations(assumption_ranked, 2)
@@ -224,8 +232,12 @@ def detect_interactions(
     except Exception:
         return tuple(
             FragilityInteraction(
-                intervention_a_id=min(a.target.intervention_id, b.target.intervention_id),
-                intervention_b_id=max(a.target.intervention_id, b.target.intervention_id),
+                intervention_a_id=min(
+                    a.target.intervention_id, b.target.intervention_id
+                ),
+                intervention_b_id=max(
+                    a.target.intervention_id, b.target.intervention_id
+                ),
                 interaction_type=InteractionType.UNKNOWN,
             )
             for a, b in combinations(assumption_ranked, 2)
@@ -247,7 +259,9 @@ def detect_interactions(
 
     for concept_id in sorted(concepts):
         try:
-            stability = engine.concept_stability(concept_id, queryables, limit=atms_limit)
+            stability = engine.concept_stability(
+                concept_id, queryables, limit=atms_limit
+            )
         except Exception:
             continue
         witnesses = stability.witnesses
@@ -279,7 +293,9 @@ def detect_interactions(
     results: list[FragilityInteraction] = []
     seen: set[tuple[str, str]] = set()
     for pair, subjects in sorted(synergistic.items()):
-        interaction_type = InteractionType.MIXED if pair in redundant else InteractionType.SYNERGISTIC
+        interaction_type = (
+            InteractionType.MIXED if pair in redundant else InteractionType.SYNERGISTIC
+        )
         merged_subjects = subjects | redundant.get(pair, set())
         results.append(
             FragilityInteraction(
@@ -355,8 +371,12 @@ def imps_rev(
     if attack not in framework.defeats:
         return 0.0
 
-    missing_args = sorted(argument for argument in framework.arguments if argument not in p_args)
-    missing_defeats = sorted(defeat for defeat in framework.defeats if defeat not in p_defeats)
+    missing_args = sorted(
+        argument for argument in framework.arguments if argument not in p_args
+    )
+    missing_defeats = sorted(
+        defeat for defeat in framework.defeats if defeat not in p_defeats
+    )
     if missing_args or missing_defeats:
         raise ValueError(
             "imps_rev requires explicit probabilistic inputs for every argument "

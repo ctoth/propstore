@@ -77,6 +77,7 @@ _PREFERENCE_TYPES = PREFERENCE_SENSITIVE_ATTACK_TYPES
 _SUPPORT_TYPES = SUPPORT_TYPES
 _REAL_CONFLICT_CLASSES = frozenset({"CONFLICT", "OVERLAP", "PARAM_CONFLICT"})
 
+
 @dataclass(frozen=True)
 class SharedAnalyzerInput:
     comparison: str
@@ -112,10 +113,22 @@ def praf_query_parameters(
     query_kind: str,
     inference_mode: str | None,
     queried_set: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
-    target_claim_ids: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
-    default_queried_set: tuple[str, ...] | list[str] | set[str] | frozenset[str] | None = None,
+    target_claim_ids: tuple[str, ...]
+    | list[str]
+    | set[str]
+    | frozenset[str]
+    | None = None,
+    default_queried_set: tuple[str, ...]
+    | list[str]
+    | set[str]
+    | frozenset[str]
+    | None = None,
 ) -> PrAFQueryParameters:
-    semantics_value = semantics.value if isinstance(semantics, ArgumentationSemantics) else str(semantics)
+    semantics_value = (
+        semantics.value
+        if isinstance(semantics, ArgumentationSemantics)
+        else str(semantics)
+    )
     if semantics_value != ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE.value:
         return PrAFQueryParameters(
             semantics=semantics_value,
@@ -307,7 +320,9 @@ def shared_analyzer_input_from_active_graph(
     )
     defeats = set(relations.direct_defeats)
     if relations.supports and relations.direct_defeats:
-        defeats |= _cayrol_derived_defeats(set(relations.direct_defeats), set(relations.supports))
+        defeats |= _cayrol_derived_defeats(
+            set(relations.direct_defeats), set(relations.supports)
+        )
     af = ArgumentationFramework(
         arguments=relations.arguments,
         defeats=frozenset(defeats),
@@ -344,7 +359,8 @@ def _minimal_compiled_graph(
     claims = tuple(store.claims_by_ids(active_claim_ids).values())
     stances = tuple(store.stances_between(active_claim_ids))
     conflicts = tuple(
-        record for record in store.conflicts()
+        record
+        for record in store.conflicts()
         if str(record.claim_a_id) in active_claim_ids
         and str(record.claim_b_id) in active_claim_ids
     )
@@ -365,7 +381,9 @@ def _active_graph_from_store(
         compiled=compiled,
         environment=Environment(),
         active_claim_ids=tuple(active_ids),
-        inactive_claim_ids=to_claim_ids(all_claim_ids - {str(item) for item in active_ids}),
+        inactive_claim_ids=to_claim_ids(
+            all_claim_ids - {str(item) for item in active_ids}
+        ),
     )
 
 
@@ -435,7 +453,9 @@ def project_extension_result(
     *,
     target_claim_ids: tuple[str, ...] | list[str] | set[str],
 ) -> ClaimProjection:
-    target_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids)))
+    target_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids))
+    )
     if not extensions:
         return ClaimProjection(target_claim_ids=target_ids)
 
@@ -456,10 +476,14 @@ def project_acceptance_result(
     *,
     target_claim_ids: tuple[str, ...] | list[str] | set[str],
 ) -> ClaimProjection:
-    target_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids)))
+    target_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids))
+    )
     if not target_ids:
         return ClaimProjection(target_claim_ids=target_ids)
-    target_probs = {claim_id: acceptance_probs.get(claim_id, 0.0) for claim_id in target_ids}
+    target_probs = {
+        claim_id: acceptance_probs.get(claim_id, 0.0) for claim_id in target_ids
+    }
     best_prob = max(target_probs.values())
     survivor_claim_ids = tuple(
         sorted(
@@ -481,8 +505,12 @@ def project_extension_probability_result(
     queried_set: tuple[str, ...] | list[str] | set[str] | None,
     target_claim_ids: tuple[str, ...] | list[str] | set[str],
 ) -> ClaimProjection:
-    target_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids)))
-    witness_ids = tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in (queried_set or target_ids))))
+    target_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in target_claim_ids))
+    )
+    witness_ids = tuple(
+        sorted(dict.fromkeys(str(claim_id) for claim_id in (queried_set or target_ids)))
+    )
     survivor_ids = witness_ids if extension_probability > 0.0 else ()
     return ClaimProjection(
         target_claim_ids=target_ids,
@@ -522,8 +550,7 @@ def analyze_claim_graph(
         )
     else:
         raise ValueError(
-            "claim_graph does not support semantics "
-            f"'{normalized_semantics.value}'"
+            f"claim_graph does not support semantics '{normalized_semantics.value}'"
         )
 
     if normalized_semantics == ArgumentationSemantics.GROUNDED:
@@ -577,7 +604,10 @@ def analyze_aspic_backend(
             ExtensionResult(
                 name=package_result.semantics,
                 accepted_claim_ids=tuple(
-                    sorted(repr(conclusion) for conclusion in package_result.accepted_conclusions)
+                    sorted(
+                        repr(conclusion)
+                        for conclusion in package_result.accepted_conclusions
+                    )
                 ),
             ),
         )
@@ -615,7 +645,9 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput) -> PropstorePrAF:
         )
         if isinstance(p_arg, NoCalibration):
             omitted_arguments[claim_id] = p_arg
-            p_args[claim_id] = opinion_or_vacuous(None, base_rate=0.5, provenance=p_arg.provenance)
+            p_args[claim_id] = opinion_or_vacuous(
+                None, base_rate=0.5, provenance=p_arg.provenance
+            )
         else:
             p_args[claim_id] = p_arg
 
@@ -667,16 +699,25 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput) -> PropstorePrAF:
         return edge_opinions.get(edge) or vacuous_relation(edge)
 
     defeats = frozenset(
-        edge for edge in shared.argumentation_framework.defeats
+        edge
+        for edge in shared.argumentation_framework.defeats
         if edge_in_framework(edge)
     )
     attacks = (
         None
         if shared.argumentation_framework.attacks is None
-        else frozenset(edge for edge in shared.argumentation_framework.attacks if edge_in_framework(edge))
+        else frozenset(
+            edge
+            for edge in shared.argumentation_framework.attacks
+            if edge_in_framework(edge)
+        )
     )
-    supports = frozenset(edge for edge in shared.relations.supports if edge_in_framework(edge))
-    base_defeats = frozenset(edge for edge in shared.relations.direct_defeats if edge_in_framework(edge))
+    supports = frozenset(
+        edge for edge in shared.relations.supports if edge_in_framework(edge)
+    )
+    base_defeats = frozenset(
+        edge for edge in shared.relations.direct_defeats if edge_in_framework(edge)
+    )
     framework = ArgumentationFramework(
         arguments=active_args,
         defeats=defeats,
@@ -695,7 +736,9 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput) -> PropstorePrAF:
         p_defeats={edge: opinion.expectation() for edge, opinion in p_defeats.items()},
         p_attacks={edge: opinion.expectation() for edge, opinion in p_attacks.items()},
         supports=supports,
-        p_supports={edge: opinion.expectation() for edge, opinion in p_supports.items()},
+        p_supports={
+            edge: opinion.expectation() for edge, opinion in p_supports.items()
+        },
         base_defeats=base_defeats,
     )
     return PropstorePrAF(
@@ -706,10 +749,20 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput) -> PropstorePrAF:
         supports=supports,
         p_supports=p_supports,
         base_defeats=base_defeats,
-        attack_relations=tuple(relation for relation in shared.relations.attack_relations if keep_relation(relation)),
-        support_relations=tuple(relation for relation in shared.relations.support_relations if keep_relation(relation)),
+        attack_relations=tuple(
+            relation
+            for relation in shared.relations.attack_relations
+            if keep_relation(relation)
+        ),
+        support_relations=tuple(
+            relation
+            for relation in shared.relations.support_relations
+            if keep_relation(relation)
+        ),
         direct_defeat_relations=tuple(
-            relation for relation in shared.relations.direct_defeat_relations if keep_relation(relation)
+            relation
+            for relation in shared.relations.direct_defeat_relations
+            if keep_relation(relation)
         ),
         omitted_arguments=omitted_arguments,
         omitted_relations=omitted_relations,
@@ -730,7 +783,9 @@ def analyze_praf(
     rng_seed: int | None = None,
     target_claim_ids: tuple[str, ...] | list[str] | set[str] | None = None,
 ) -> AnalyzerResult:
-    from argumentation.probabilistic.probabilistic import compute_probabilistic_acceptance
+    from argumentation.probabilistic.probabilistic import (
+        compute_probabilistic_acceptance,
+    )
 
     praf = build_praf_from_shared_input(shared)
     query_parameters = praf_query_parameters(

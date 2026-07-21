@@ -145,9 +145,7 @@ def test_source_init_accepts_mailing_list_message_with_content_digest(
     )
 
     assert result.exit_code == 0, result.output
-    source = load_source_document(
-        Repository.find(repo.root), "Federation_2026_07_12"
-    )
+    source = load_source_document(Repository.find(repo.root), "Federation_2026_07_12")
     assert source.kind.value == "mailing_list_message"
     assert source.origin.type == "file"
     assert source.origin.value == "federation/2026-07-12.eml"

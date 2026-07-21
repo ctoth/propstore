@@ -20,12 +20,19 @@ from tests.merge_helpers import obs_claim
 
 
 def _rebuts(source: str, target: str) -> StanceInput:
-    return StanceInput(claim_id=source, target_claim_id=target, stance_type=StanceType.REBUTS)
+    return StanceInput(
+        claim_id=source, target_claim_id=target, stance_type=StanceType.REBUTS
+    )
 
 
 def test_branch_structured_summary_reads_branch_stances() -> None:
-    claims = [obs_claim("claim_a", "A", ["concept_x"]), obs_claim("claim_b", "B", ["concept_x"])]
-    summary = build_branch_structured_summary("master", claims, [_rebuts("claim_a", "claim_b")])
+    claims = [
+        obs_claim("claim_a", "A", ["concept_x"]),
+        obs_claim("claim_b", "B", ["concept_x"]),
+    ]
+    summary = build_branch_structured_summary(
+        "master", claims, [_rebuts("claim_a", "claim_b")]
+    )
 
     assert not hasattr(summary, "claim_ids")
     assert len(summary.assertion_ids) == 2
@@ -57,13 +64,18 @@ def test_branch_structured_summary_reads_branch_stances() -> None:
 
 
 def test_structured_merge_candidates_reuse_identical_branch_summaries() -> None:
-    claims = [obs_claim("claim_a", "A", ["concept_x"]), obs_claim("claim_b", "B", ["concept_x"])]
+    claims = [
+        obs_claim("claim_a", "A", ["concept_x"]),
+        obs_claim("claim_b", "B", ["concept_x"]),
+    ]
     stances = [_rebuts("claim_a", "claim_b")]
     claim_sets = {"master": claims, "paper/structured": claims}
     stance_sets = {"master": stances, "paper/structured": stances}
 
     summary = build_branch_structured_summary("master", claims, stances)
-    branch_summary = build_branch_structured_summary("paper/structured", claims, stances)
+    branch_summary = build_branch_structured_summary(
+        "paper/structured", claims, stances
+    )
     candidates = build_structured_merge_candidates(
         claim_sets,
         "master",
@@ -77,7 +89,10 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries() -> None:
 
 
 def test_branch_structured_summary_is_stable_on_repeated_builds() -> None:
-    claims = [obs_claim("claim_a", "A", ["concept_x"]), obs_claim("claim_b", "B", ["concept_x"])]
+    claims = [
+        obs_claim("claim_a", "A", ["concept_x"]),
+        obs_claim("claim_b", "B", ["concept_x"]),
+    ]
     stances = [_rebuts("claim_a", "claim_b")]
 
     left = build_branch_structured_summary("master", claims, stances)
@@ -90,7 +105,9 @@ def test_branch_structured_summary_is_stable_on_repeated_builds() -> None:
 
 
 def test_branch_structured_summary_stays_local_to_branch_scope() -> None:
-    summary = build_branch_structured_summary("master", [obs_claim("claim_a", "A", ["concept_x"])])
+    summary = build_branch_structured_summary(
+        "master", [obs_claim("claim_a", "A", ["concept_x"])]
+    )
 
     assert len(summary.assertion_ids) == 1
     assert summary.assertion_ids[0].startswith("ps:assertion:")
@@ -99,7 +116,10 @@ def test_branch_structured_summary_stays_local_to_branch_scope() -> None:
 
 
 def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary() -> None:
-    claims = [obs_claim("claim_a", "A", ["concept_x"]), obs_claim("claim_b", "B", ["concept_x"])]
+    claims = [
+        obs_claim("claim_a", "A", ["concept_x"]),
+        obs_claim("claim_b", "B", ["concept_x"]),
+    ]
     summary = build_branch_structured_summary("master", claims)
 
     assert summary.relation_surface["attack"] == "preserved_via_projection"
@@ -122,12 +142,17 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary() ->
 def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
     extra_targets: list[str],
 ) -> None:
-    claims = [obs_claim("claim_a", "A", ["concept_x"]), obs_claim("claim_b", "B", ["concept_x"])]
+    claims = [
+        obs_claim("claim_a", "A", ["concept_x"]),
+        obs_claim("claim_b", "B", ["concept_x"]),
+    ]
     in_scope = [_rebuts("claim_a", "claim_b")]
     out_of_scope = [_rebuts("claim_a", target) for target in extra_targets]
 
     left_summary = build_branch_structured_summary("master", claims, in_scope)
-    right_summary = build_branch_structured_summary("paper/x", claims, in_scope + out_of_scope)
+    right_summary = build_branch_structured_summary(
+        "paper/x", claims, in_scope + out_of_scope
+    )
 
     assert left_summary.assertion_ids == right_summary.assertion_ids
     assert left_summary.claim_provenance == right_summary.claim_provenance

@@ -34,7 +34,9 @@ from propstore.core.labels import (
 
 _PROP_SETTINGS = settings(deadline=None)
 _ASSUMPTION_IDS = st.text(alphabet="abcd", min_size=1, max_size=3)
-_CONTEXT_IDS = st.text(alphabet="wxyz", min_size=1, max_size=3).map(lambda text: f"ctx_{text}")
+_CONTEXT_IDS = st.text(alphabet="wxyz", min_size=1, max_size=3).map(
+    lambda text: f"ctx_{text}"
+)
 
 
 @st.composite
@@ -81,8 +83,12 @@ class TestLabelPolynomialEquivalence:
         projected = label.environments
 
         assert projected == (environment,)
-        assert environment_assumption_ids(projected[0]) == environment_assumption_ids(environment)
-        assert environment_context_ids(projected[0]) == environment_context_ids(environment)
+        assert environment_assumption_ids(projected[0]) == environment_assumption_ids(
+            environment
+        )
+        assert environment_context_ids(projected[0]) == environment_context_ids(
+            environment
+        )
 
     @pytest.mark.property
     @given(labels(), labels())

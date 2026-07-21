@@ -87,7 +87,16 @@ def test_merge_inspect_matches_owner_helper(tmp_path: Path) -> None:
 
     result = CliRunner().invoke(
         cli,
-        ["-C", str(repo.root), "merge", "inspect", "master", branch, "--semantics", "preferred"],
+        [
+            "-C",
+            str(repo.root),
+            "merge",
+            "inspect",
+            "master",
+            branch,
+            "--semantics",
+            "preferred",
+        ],
     )
     assert result.exit_code == 0, result.output
     assert yaml.safe_load(result.output) == expected

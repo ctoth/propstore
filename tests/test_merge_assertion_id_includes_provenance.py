@@ -4,8 +4,12 @@ from tests.merge_helpers import obs_claim
 
 
 def test_assertion_id_distinguishes_source_paper_provenance() -> None:
-    left = obs_claim("claim_a", "The same proposition", ["concept_x"], paper="left_paper")
-    right = obs_claim("claim_b", "The same proposition", ["concept_x"], paper="right_paper")
+    left = obs_claim(
+        "claim_a", "The same proposition", ["concept_x"], paper="left_paper"
+    )
+    right = obs_claim(
+        "claim_b", "The same proposition", ["concept_x"], paper="right_paper"
+    )
 
     assert left.assertion_id != right.assertion_id
 

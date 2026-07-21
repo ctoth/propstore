@@ -34,7 +34,11 @@ from propstore.build_diagnostics import (
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCheckedBundle
 from propstore.conflict_detector import detect_conflicts
-from propstore.conflict_detector.models import ConflictClaim, ConflictClass, ConflictRecord
+from propstore.conflict_detector.models import (
+    ConflictClaim,
+    ConflictClass,
+    ConflictRecord,
+)
 from propstore.context_lifting import LiftingSystem
 from propstore.core.graph_types import ParameterizationEdge
 from propstore.families.claims import Claim
@@ -197,7 +201,9 @@ def _compile_conflicts(
     )
 
 
-def _iter_documents(repo: Repository, family_name: str, commit: str | None) -> list[object]:
+def _iter_documents(
+    repo: Repository, family_name: str, commit: str | None
+) -> list[object]:
     return [
         handle.document
         for handle in repo.families.by_name(family_name).iter_handles(commit=commit)

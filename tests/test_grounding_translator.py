@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import gunray
 
-from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, RuleSuperiority, Term
+from propstore.families.rules import (
+    Atom,
+    BodyLiteral,
+    DefeasibleRule,
+    RuleSuperiority,
+    Term,
+)
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import (
     _stringify_atom,
@@ -30,19 +36,29 @@ def test_stringify_arity0_is_bare_predicate() -> None:
 
 
 def test_stringify_strong_negation_prefix() -> None:
-    assert _stringify_atom(Atom(predicate="flies", terms=(_var("X"),), negated=True)) == "~flies(X)"
+    assert (
+        _stringify_atom(Atom(predicate="flies", terms=(_var("X"),), negated=True))
+        == "~flies(X)"
+    )
 
 
 def test_stringify_default_negation_prefix() -> None:
-    literal = BodyLiteral(kind="default_negated", atom=Atom(predicate="ab", terms=(_var("X"),)))
+    literal = BodyLiteral(
+        kind="default_negated", atom=Atom(predicate="ab", terms=(_var("X"),))
+    )
     assert _stringify_body_literal(literal) == "not ab(X)"
 
 
 def test_stringify_term_kinds() -> None:
-    assert _stringify_atom(Atom(predicate="p", terms=(_const(True), _const(False)))) == "p(true, false)"
+    assert (
+        _stringify_atom(Atom(predicate="p", terms=(_const(True), _const(False))))
+        == "p(true, false)"
+    )
     assert _stringify_atom(Atom(predicate="p", terms=(_const(42),))) == "p(42)"
     assert _stringify_atom(Atom(predicate="p", terms=(_const(1.5),))) == "p(1.5)"
-    assert _stringify_atom(Atom(predicate="p", terms=(_const("tweety"),))) == 'p("tweety")'
+    assert (
+        _stringify_atom(Atom(predicate="p", terms=(_const("tweety"),))) == 'p("tweety")'
+    )
 
 
 def test_stringified_atoms_round_trip_through_gunray_parser() -> None:
@@ -82,8 +98,12 @@ def test_superiority_is_transitively_closed_and_oriented() -> None:
         for rid in ("r1", "r2", "r3")
     )
     superiority = (
-        RuleSuperiority(superiority_id="x", superior_rule_id="r1", inferior_rule_id="r2"),
-        RuleSuperiority(superiority_id="y", superior_rule_id="r2", inferior_rule_id="r3"),
+        RuleSuperiority(
+            superiority_id="x", superior_rule_id="r1", inferior_rule_id="r2"
+        ),
+        RuleSuperiority(
+            superiority_id="y", superior_rule_id="r2", inferior_rule_id="r3"
+        ),
     )
     theory = translate_to_theory(rules, (), _registry(), superiority=superiority)
     assert set(theory.superiority) == {("r1", "r2"), ("r2", "r3"), ("r1", "r3")}

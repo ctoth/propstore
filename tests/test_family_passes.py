@@ -52,7 +52,13 @@ from propstore.families.forms_passes import (
 
 
 def test_form_pipeline_builds_registry() -> None:
-    forms = [LoadedForm(form=FormDefinition(name="mass", kind=KindType.QUANTITY, dimensions={"mass": 1}))]
+    forms = [
+        LoadedForm(
+            form=FormDefinition(
+                name="mass", kind=KindType.QUANTITY, dimensions={"mass": 1}
+            )
+        )
+    ]
     result = run_form_pipeline(forms)
     assert isinstance(result.output, FormCheckedRegistry)
     assert "mass" in result.output.registry
@@ -60,8 +66,16 @@ def test_form_pipeline_builds_registry() -> None:
 
 def test_form_pipeline_duplicate_name_short_circuits() -> None:
     forms = [
-        LoadedForm(form=FormDefinition(name="m", kind=KindType.QUANTITY, dimensions={"mass": 1})),
-        LoadedForm(form=FormDefinition(name="m", kind=KindType.QUANTITY, dimensions={"mass": 1})),
+        LoadedForm(
+            form=FormDefinition(
+                name="m", kind=KindType.QUANTITY, dimensions={"mass": 1}
+            )
+        ),
+        LoadedForm(
+            form=FormDefinition(
+                name="m", kind=KindType.QUANTITY, dimensions={"mass": 1}
+            )
+        ),
     ]
     result = run_form_pipeline(forms)
     assert result.output is None
@@ -70,7 +84,14 @@ def test_form_pipeline_duplicate_name_short_circuits() -> None:
 
 def test_form_pipeline_invalid_dimensions_short_circuits() -> None:
     forms = [
-        LoadedForm(form=FormDefinition(name="bad", kind=KindType.QUANTITY, is_dimensionless=True, dimensions={"mass": 1}))
+        LoadedForm(
+            form=FormDefinition(
+                name="bad",
+                kind=KindType.QUANTITY,
+                is_dimensionless=True,
+                dimensions={"mass": 1},
+            )
+        )
     ]
     result = run_form_pipeline(forms)
     assert result.output is None
@@ -98,9 +119,7 @@ def test_concept_pipeline_preserves_identity_symbol_and_lexical_form() -> None:
                 written_rep="Fundamental frequency", language="en"
             ),
             senses=(
-                LexicalSense(
-                    reference=OntologyReference(uri="ps:concept:frequency")
-                ),
+                LexicalSense(reference=OntologyReference(uri="ps:concept:frequency")),
             ),
             physical_dimension_form="frequency",
         ),
@@ -109,9 +128,7 @@ def test_concept_pipeline_preserves_identity_symbol_and_lexical_form() -> None:
         [LoadedConcept(concept=concept)],
         context=ConceptPipelineContext(
             form_registry={
-                "frequency": FormDefinition(
-                    name="frequency", kind=KindType.QUANTITY
-                )
+                "frequency": FormDefinition(name="frequency", kind=KindType.QUANTITY)
             }
         ),
     )
@@ -125,12 +142,8 @@ def test_concept_pipeline_preserves_identity_symbol_and_lexical_form() -> None:
     info = result.output.condition_registry["frequency"]
     assert info.id == "ps:concept:frequency"
 
-    assert not check_cel_expression(
-        "frequency > 10", result.output.condition_registry
-    )
-    lowered = check_condition_ir(
-        "frequency > 10", result.output.condition_registry
-    ).ir
+    assert not check_cel_expression("frequency > 10", result.output.condition_registry)
+    lowered = check_condition_ir("frequency > 10", result.output.condition_registry).ir
     assert isinstance(lowered, ConditionBinary)
     assert isinstance(lowered.left, ConditionReference)
     assert lowered.left.concept_id == "ps:concept:frequency"
@@ -149,9 +162,7 @@ def test_concept_pipeline_projects_explicit_closed_category() -> None:
             identifier="entry:severity",
             canonical_form=LexicalForm(written_rep="Severity", language="en"),
             senses=(
-                LexicalSense(
-                    reference=OntologyReference(uri="ps:concept:severity")
-                ),
+                LexicalSense(reference=OntologyReference(uri="ps:concept:severity")),
             ),
             physical_dimension_form="category",
         ),
@@ -181,9 +192,7 @@ def test_concept_pipeline_rejects_category_metadata_on_quantity() -> None:
             identifier="entry:frequency",
             canonical_form=LexicalForm(written_rep="Frequency", language="en"),
             senses=(
-                LexicalSense(
-                    reference=OntologyReference(uri="ps:concept:frequency")
-                ),
+                LexicalSense(reference=OntologyReference(uri="ps:concept:frequency")),
             ),
             physical_dimension_form="frequency",
         ),
@@ -192,9 +201,7 @@ def test_concept_pipeline_rejects_category_metadata_on_quantity() -> None:
         [LoadedConcept(concept=concept)],
         context=ConceptPipelineContext(
             form_registry={
-                "frequency": FormDefinition(
-                    name="frequency", kind=KindType.QUANTITY
-                )
+                "frequency": FormDefinition(name="frequency", kind=KindType.QUANTITY)
             }
         ),
     )
@@ -260,7 +267,9 @@ def test_concept_pipeline_dangling_form_is_warning_not_abort() -> None:
         context=ConceptPipelineContext(form_registry={}),
     )
     assert isinstance(result.output, ConceptCheckedRegistry)
-    assert any(d.code == "concept.form.dangling" and d.is_warning for d in result.warnings)
+    assert any(
+        d.code == "concept.form.dangling" and d.is_warning for d in result.warnings
+    )
     assert "width" not in result.output.condition_registry
 
 
@@ -288,7 +297,9 @@ def test_context_pipeline_missing_lifting_target_short_circuits() -> None:
     contexts = [LoadedContext(context=Context(context_id="ctx1", name="C1"))]
     rules = [
         LoadedLiftingRule(
-            rule=LiftingRule(rule_id="r1", source_context="ctx1", target_context="ghost")
+            rule=LiftingRule(
+                rule_id="r1", source_context="ctx1", target_context="ghost"
+            )
         )
     ]
     result = run_context_pipeline(contexts, lifting_rules=rules)
@@ -302,9 +313,7 @@ def test_context_pipeline_missing_lifting_target_short_circuits() -> None:
 def test_claim_pipeline_valid_claim_not_blocked() -> None:
     concept_result = run_concept_pipeline([])
     assert isinstance(concept_result.output, ConceptCheckedRegistry)
-    context = build_compilation_context(
-        concept_result.output, context_ids={"ctx1"}
-    )
+    context = build_compilation_context(concept_result.output, context_ids={"ctx1"})
     claim = Claim(
         claim_id="c1",
         context_id="ctx1",
@@ -323,9 +332,7 @@ def test_claim_pipeline_valid_claim_not_blocked() -> None:
 def test_claim_pipeline_invalid_claim_is_blocked_not_aborted() -> None:
     concept_result = run_concept_pipeline([])
     assert isinstance(concept_result.output, ConceptCheckedRegistry)
-    context = build_compilation_context(
-        concept_result.output, context_ids={"ctx1"}
-    )
+    context = build_compilation_context(concept_result.output, context_ids={"ctx1"})
     # PARAMETER requires output_concept; this one omits it -> blocked, retained.
     claim = Claim(claim_id="c2", context_id="ctx1", claim_type=ClaimType.PARAMETER)
     result = run_claim_pipeline(
@@ -343,9 +350,7 @@ def test_claim_pipeline_dangling_context_is_blocked() -> None:
     # enforced on write; the pass is a defensive net for out-of-band content.)
     concept_result = run_concept_pipeline([])
     assert isinstance(concept_result.output, ConceptCheckedRegistry)
-    context = build_compilation_context(
-        concept_result.output, context_ids={"ctx1"}
-    )
+    context = build_compilation_context(concept_result.output, context_ids={"ctx1"})
     claim = Claim(
         claim_id="c4",
         context_id="ghost",
@@ -365,9 +370,7 @@ def test_claim_pipeline_dangling_context_is_blocked() -> None:
 def test_claim_pipeline_normalizes_conditions_ir() -> None:
     concept_result = run_concept_pipeline([])
     assert isinstance(concept_result.output, ConceptCheckedRegistry)
-    context = build_compilation_context(
-        concept_result.output, context_ids={"ctx1"}
-    )
+    context = build_compilation_context(concept_result.output, context_ids={"ctx1"})
     claim = Claim(
         claim_id="c3",
         context_id="ctx1",

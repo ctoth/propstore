@@ -9,6 +9,7 @@ documents and render them; they own no mutation logic. Authoring (add / remove /
 lifting-rule) is deferred to the phase that lands a context owner — fabricating a
 mutation command with no owner is out of scope (CLAUDE.md CLI-adapter discipline).
 """
+
 from __future__ import annotations
 
 import click

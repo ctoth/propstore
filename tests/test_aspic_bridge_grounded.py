@@ -85,7 +85,9 @@ def test_single_defeasible_rule_with_one_fact_projects_one_instance() -> None:
     assert len(projection.defeasible_rules) == 1
     emitted = next(iter(projection.defeasible_rules))
     assert emitted.kind == "defeasible"
-    assert emitted.consequent == Literal(atom=GroundAtom("flies", ("tweety",)), negated=False)
+    assert emitted.consequent == Literal(
+        atom=GroundAtom("flies", ("tweety",)), negated=False
+    )
     assert emitted.antecedents == (
         Literal(atom=GroundAtom("bird", ("tweety",)), negated=False),
     )
@@ -104,7 +106,9 @@ def test_two_matching_facts_project_two_instances() -> None:
     projection = project_grounded_rules(bundle, {})
 
     assert len(projection.defeasible_rules) == 2
-    consequents = {rule.consequent.atom.arguments for rule in projection.defeasible_rules}
+    consequents = {
+        rule.consequent.atom.arguments for rule in projection.defeasible_rules
+    }
     assert consequents == {("tweety",), ("opus",)}
     names = {rule.name for rule in projection.defeasible_rules}
     assert len(names) == 2

@@ -23,7 +23,9 @@ from propstore.cli.output import emit, emit_key_values
 
 
 @click.command("materialize")
-@click.argument("directory", required=False, type=click.Path(file_okay=False, path_type=Path))
+@click.argument(
+    "directory", required=False, type=click.Path(file_okay=False, path_type=Path)
+)
 @click.option("--commit", "commit_sha", default=None, help="Commit SHA to project.")
 @click.option("--branch", default=None, help="Branch head to project.")
 @click.option("--clean", is_flag=True, help="Remove stale materialized semantic files.")

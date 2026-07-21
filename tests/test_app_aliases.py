@@ -11,7 +11,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.app.aliases import AliasExportEntry, export_concept_aliases
-from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.families.concepts import Concept
 from propstore.repository import Repository
 from propstore.world import WorldQuery
@@ -22,7 +27,9 @@ def _entry(canonical: str, *aliases: str) -> LexicalEntry:
         identifier=f"entry:{canonical}",
         canonical_form=LexicalForm(written_rep=canonical, language="en"),
         senses=(LexicalSense(reference=OntologyReference(uri=f"urn:{canonical}")),),
-        other_forms=tuple(LexicalForm(written_rep=alias, language="en") for alias in aliases),
+        other_forms=tuple(
+            LexicalForm(written_rep=alias, language="en") for alias in aliases
+        ),
     )
 
 

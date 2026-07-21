@@ -33,8 +33,12 @@ class EquivalenceWitness:
     source_witness_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "witness_id", _require_uri(self.witness_id, "witness_id"))
-        candidates = _canonical_candidate_pair(self.candidate_ids[0], self.candidate_ids[1])
+        object.__setattr__(
+            self, "witness_id", _require_uri(self.witness_id, "witness_id")
+        )
+        candidates = _canonical_candidate_pair(
+            self.candidate_ids[0], self.candidate_ids[1]
+        )
         object.__setattr__(self, "candidate_ids", candidates)
         object.__setattr__(
             self,
@@ -93,9 +97,7 @@ class EquivalenceWitnessStore:
         if len(shared) != 1:
             return None
         endpoints = (
-            set(first.candidate_ids)
-            .union(second.candidate_ids)
-            .difference(shared)
+            set(first.candidate_ids).union(second.candidate_ids).difference(shared)
         )
         if len(endpoints) != 2:
             return None
@@ -104,7 +106,8 @@ class EquivalenceWitnessStore:
             left,
             right,
             mapping_policy_id=first.mapping_policy_id,
-            evidence_statement_ids=first.evidence_statement_ids + second.evidence_statement_ids,
+            evidence_statement_ids=first.evidence_statement_ids
+            + second.evidence_statement_ids,
             status="derived_unresolved",
             source_witness_ids=(first.witness_id, second.witness_id),
         )
@@ -130,7 +133,9 @@ class EquivalenceWitnessStore:
         status: EquivalenceWitnessStatus,
         source_witness_ids: tuple[str, ...],
     ) -> EquivalenceWitness:
-        candidate_ids = _canonical_candidate_pair(first_candidate_id, second_candidate_id)
+        candidate_ids = _canonical_candidate_pair(
+            first_candidate_id, second_candidate_id
+        )
         payload = (
             candidate_ids,
             mapping_policy_id,

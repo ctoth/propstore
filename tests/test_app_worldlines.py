@@ -113,9 +113,7 @@ def test_freshly_materialized_worldline_is_not_stale(tmp_path: Path) -> None:
     materialize_worldline(repo, WorldlineRunRequest(name="wl", targets=("Speed",)))
     assert worldline_is_stale(repo, "wl") is False
 
-    shown = show_worldline(
-        repo, WorldlineShowRequest(name="wl", check_staleness=True)
-    )
+    shown = show_worldline(repo, WorldlineShowRequest(name="wl", check_staleness=True))
     assert shown.stale is False
     assert shown.staleness_unavailable is False
 
@@ -123,19 +121,17 @@ def test_freshly_materialized_worldline_is_not_stale(tmp_path: Path) -> None:
 def test_show_unmaterialized_worldline_is_never_stale(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     create_worldline(repo, WorldlineCreateRequest(name="wl", targets=("Speed",)))
-    shown = show_worldline(
-        repo, WorldlineShowRequest(name="wl", check_staleness=True)
-    )
+    shown = show_worldline(repo, WorldlineShowRequest(name="wl", check_staleness=True))
     # No stored result ⇒ never stale (nothing to be stale against).
     assert shown.stale is False
 
 
 def test_list_worldlines_reports_status_and_targets(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
-    create_worldline(repo, WorldlineCreateRequest(name="pending_wl", targets=("Speed",)))
-    materialize_worldline(
-        repo, WorldlineRunRequest(name="done_wl", targets=("Speed",))
+    create_worldline(
+        repo, WorldlineCreateRequest(name="pending_wl", targets=("Speed",))
     )
+    materialize_worldline(repo, WorldlineRunRequest(name="done_wl", targets=("Speed",)))
 
     report = list_worldlines(repo)
     by_name = {entry.name: entry for entry in report.entries}
@@ -148,9 +144,7 @@ def test_list_worldlines_reports_status_and_targets(tmp_path: Path) -> None:
 
 def test_diff_worldlines_reports_input_differences(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
-    materialize_worldline(
-        repo, WorldlineRunRequest(name="left", targets=("Speed",))
-    )
+    materialize_worldline(repo, WorldlineRunRequest(name="left", targets=("Speed",)))
     materialize_worldline(
         repo,
         WorldlineRunRequest(
@@ -170,9 +164,7 @@ def test_diff_worldlines_reports_input_differences(tmp_path: Path) -> None:
 def test_diff_requires_both_materialized(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     create_worldline(repo, WorldlineCreateRequest(name="left", targets=("Speed",)))
-    materialize_worldline(
-        repo, WorldlineRunRequest(name="right", targets=("Speed",))
-    )
+    materialize_worldline(repo, WorldlineRunRequest(name="right", targets=("Speed",)))
     with pytest.raises(WorldlineValidationError):
         diff_worldlines(repo, WorldlineDiffRequest("left", "right"))
 

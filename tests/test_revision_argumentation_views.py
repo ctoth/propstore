@@ -32,8 +32,12 @@ from propstore.support_revision.state import (
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
-def test_argumentation_view_reports_accepted_assertions_without_source_claims_as_unmapped() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+def test_argumentation_view_reports_accepted_assertions_without_source_claims_as_unmapped() -> (
+    None
+):
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     unmapped = replace_struct(make_assertion_atom("unmapped"), source_claims=())
     state = _state_for_atoms((unmapped,), accepted_atom_ids=(unmapped.atom_id,))
@@ -45,7 +49,9 @@ def test_argumentation_view_reports_accepted_assertions_without_source_claims_as
 
 
 def test_argumentation_view_keeps_accepted_assumption_atoms_visible() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     assumption = AssumptionAtom(
         "assumption:accepted",
@@ -59,7 +65,9 @@ def test_argumentation_view_keeps_accepted_assumption_atoms_visible() -> None:
 
 
 def test_argumentation_view_carries_revision_event_hashes() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     atom = make_assertion_atom("event_backed")
     event = RevisionEvent(
@@ -71,7 +79,9 @@ def test_argumentation_view_carries_revision_event_hashes() -> None:
     )
     state = replace(
         _state_for_atoms((atom,), accepted_atom_ids=(atom.atom_id,)),
-        history=(RevisionEpisode(operator="revise", input_atom_id=atom.atom_id, event=event),),
+        history=(
+            RevisionEpisode(operator="revise", input_atom_id=atom.atom_id, event=event),
+        ),
     )
 
     view = project_epistemic_state_argumentation_view(object(), state)
@@ -80,7 +90,9 @@ def test_argumentation_view_carries_revision_event_hashes() -> None:
 
 
 def test_ic_merge_argumentation_view_reports_unmapped_merge_atoms() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     accepted = replace_struct(
         make_assertion_atom("ic_merge_unmapped"), source_claims=()
@@ -94,7 +106,9 @@ def test_ic_merge_argumentation_view_reports_unmapped_merge_atoms() -> None:
 
 
 def test_ic_merge_argumentation_view_preserves_source_claim_ids() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     accepted = make_assertion_atom("ic_merge_claim_backed")
     rejected = make_assertion_atom("ic_merge_rejected_claim")
@@ -106,7 +120,9 @@ def test_ic_merge_argumentation_view_preserves_source_claim_ids() -> None:
 
 
 def test_ic_merge_atms_view_preserves_support_label_minimality() -> None:
-    from propstore.support_revision.af_adapter import project_epistemic_state_argumentation_view
+    from propstore.support_revision.af_adapter import (
+        project_epistemic_state_argumentation_view,
+    )
 
     accepted = make_assertion_atom("ic_merge_supported")
     rejected = make_assertion_atom("ic_merge_unsupported")
@@ -145,13 +161,19 @@ def _state_for_atoms(atoms, *, accepted_atom_ids: tuple[str, ...]) -> EpistemicS
     )
 
 
-def _realized_ic_merge_state(accepted, rejected, *, support_sets=None) -> EpistemicState:
+def _realized_ic_merge_state(
+    accepted, rejected, *, support_sets=None
+) -> EpistemicState:
     base = BeliefBase(
-        scope=RevisionScope(bindings={}, branch="topic", merge_parent_commits=("left", "right")),
+        scope=RevisionScope(
+            bindings={}, branch="topic", merge_parent_commits=("left", "right")
+        ),
         atoms=(
             AssumptionAtom(
                 "assumption:support_a",
-                AssumptionRef(assumption_id="support_a", kind="test", source="test", cel="true"),
+                AssumptionRef(
+                    assumption_id="support_a", kind="test", source="test", cel="true"
+                ),
             ),
             accepted,
             rejected,
@@ -166,7 +188,16 @@ def _realized_ic_merge_state(accepted, rejected, *, support_sets=None) -> Episte
     return dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
-        operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in [[accepted.atom_id], [rejected.atom_id]]), integrity_constraint=LiteralsConstraint(required=tuple([accepted.atom_id]), forbidden=tuple([rejected.atom_id])), merge_operator="sigma", max_alphabet_size=8),
+        operator_input=ICMergeInput(
+            profile_atom_ids=tuple(
+                tuple(p) for p in [[accepted.atom_id], [rejected.atom_id]]
+            ),
+            integrity_constraint=LiteralsConstraint(
+                required=tuple([accepted.atom_id]), forbidden=tuple([rejected.atom_id])
+            ),
+            merge_operator="sigma",
+            max_alphabet_size=8,
+        ),
         policy={
             "revision_policy_version": "revision.v1",
             "ranking_policy_version": "ranking.v1",

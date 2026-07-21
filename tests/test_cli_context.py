@@ -5,6 +5,7 @@ owner, so the adapter (and these tests) cover the two read projections over the
 context family store — ``context list`` and ``context show`` — only. Authoring
 (``add`` / ``remove`` / lifting-rule) is deferred until a context owner lands.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -298,13 +298,15 @@ def _enforce_cel_structural_invariants(
         )
 
 
-def _compile_repository(
-    repo: Repository, *, commit: str | None
-) -> _CompiledRepository:
+def _compile_repository(repo: Repository, *, commit: str | None) -> _CompiledRepository:
     loaded_forms = [
         LoadedForm(form=document, filename=name)
         for name, document in _load_documents(
-            repo, "form", commit=commit, family=PropstoreFamily.FORM, stage=FormStage.AUTHORED
+            repo,
+            "form",
+            commit=commit,
+            family=PropstoreFamily.FORM,
+            stage=FormStage.AUTHORED,
         )
         if isinstance(document, FormDefinition)
     ]
@@ -547,9 +549,7 @@ def build_repository(
     commit = str(repo.require_git().head_sha())
     checked = compile_repository_checked_bundle(repo, commit=commit)
     if checked is None:
-        return RepositoryBuildReport(
-            concept_count=0, claim_count=0, no_concepts=True
-        )
+        return RepositoryBuildReport(concept_count=0, claim_count=0, no_concepts=True)
 
     authoring_lints = collect_authoring_lints(
         claims=checked.claims, stances=_stances(repo, commit)

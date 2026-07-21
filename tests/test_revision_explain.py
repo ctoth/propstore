@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from tests.support_revision.formal_realization_helpers import contract_via_formal_decision
+from tests.support_revision.formal_realization_helpers import (
+    contract_via_formal_decision,
+)
 from tests.test_revision_operators import _base_with_shared_support
 
 
@@ -8,7 +10,9 @@ def test_build_revision_explanation_exposes_default_contract() -> None:
     from propstore.support_revision.explain import build_revision_explanation
 
     base, entrenchment, ids = _base_with_shared_support()
-    result = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
 
     explanation = build_revision_explanation(result, entrenchment=entrenchment)
 
@@ -23,7 +27,9 @@ def test_build_revision_explanation_includes_ranking_rationale_when_available() 
     from propstore.support_revision.explain import build_revision_explanation
 
     base, entrenchment, ids = _base_with_shared_support()
-    result = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
 
     explanation = build_revision_explanation(result, entrenchment=entrenchment)
 
@@ -32,11 +38,15 @@ def test_build_revision_explanation_includes_ranking_rationale_when_available() 
     assert ranking.support_count == 1
 
 
-def test_build_revision_explanation_marks_accepted_atoms_as_unchanged_when_not_rejected() -> None:
+def test_build_revision_explanation_marks_accepted_atoms_as_unchanged_when_not_rejected() -> (
+    None
+):
     from propstore.support_revision.explain import build_revision_explanation
 
     base, entrenchment, ids = _base_with_shared_support()
-    result = contract_via_formal_decision(base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8)
+    result = contract_via_formal_decision(
+        base, (ids["legacy"],), entrenchment=entrenchment, max_candidates=8
+    )
 
     explanation = build_revision_explanation(result, entrenchment=entrenchment)
 

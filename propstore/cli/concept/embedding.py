@@ -40,7 +40,12 @@ def concept_embed(obj: CliContext, model_name: str) -> None:
 
 @concept.command("similar")
 @click.argument("concept_id")
-@click.option("--model", "model_name", default=None, help="Embedding model (default: first registered).")
+@click.option(
+    "--model",
+    "model_name",
+    default=None,
+    help="Embedding model (default: first registered).",
+)
 @click.option("--top-k", "top_k", type=int, default=10, help="Number of neighbours.")
 @click.pass_obj
 def concept_similar(

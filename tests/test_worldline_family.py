@@ -49,7 +49,9 @@ def test_worldline_family_is_registered() -> None:
 def test_worldline_enum_matches_registry_names() -> None:
     # Mirrors the drift gate in tests/test_semantic_passes.py: adding a charter
     # without its enum member (or vice versa) must fail loudly.
-    assert {member.value for member in PropstoreFamily} == set(registered_family_names())
+    assert {member.value for member in PropstoreFamily} == set(
+        registered_family_names()
+    )
     assert PropstoreFamily.WORLDLINES.value == "worldlines"
 
 
@@ -80,7 +82,9 @@ def test_worldline_places_on_the_current_branch(tmp_path: Path) -> None:
     git = repo.require_git()
 
     # Seed one worldline so master has a commit to branch from.
-    repo.families.worldlines.save(WorldlineRef("base"), _definition("base"), message="base")
+    repo.families.worldlines.save(
+        WorldlineRef("base"), _definition("base"), message="base"
+    )
     master_sha = git.branch_sha("master")
     assert master_sha is not None
 
@@ -93,10 +97,14 @@ def test_worldline_places_on_the_current_branch(tmp_path: Path) -> None:
     assert address.branch == "feature"
 
     repo.families.worldlines.save(
-        WorldlineRef("only_on_feature"), _definition("only_on_feature"), message="on feature"
+        WorldlineRef("only_on_feature"),
+        _definition("only_on_feature"),
+        message="on feature",
     )
 
-    assert repo.families.worldlines.exists(WorldlineRef("only_on_feature"), branch="feature")
+    assert repo.families.worldlines.exists(
+        WorldlineRef("only_on_feature"), branch="feature"
+    )
     assert not repo.families.worldlines.exists(
         WorldlineRef("only_on_feature"), branch="master"
     )

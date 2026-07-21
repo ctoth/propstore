@@ -94,4 +94,7 @@ def test_classify_missing_calibration_uses_null_confidence() -> None:
     for result in results:
         assert result["resolution"]["opinion"] is None
         assert result["resolution"]["confidence"] is None
-        assert result["resolution"]["unresolved_calibration"]["reason"] == "missing_base_rate"
+        assert (
+            result["resolution"]["unresolved_calibration"]["reason"]
+            == "missing_base_rate"
+        )

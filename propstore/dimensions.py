@@ -117,7 +117,9 @@ def normalize_to_si(value: float, unit: str | None, form: DimensionalForm) -> fl
     if unit is None or unit == form.unit_symbol:
         return value
     if form.unit_symbol is None:
-        raise ValueError(f"Cannot convert '{unit}' for dimensionless form '{form.name}'")
+        raise ValueError(
+            f"Cannot convert '{unit}' for dimensionless form '{form.name}'"
+        )
     if unit in form.delta_conversions:
         conv = form.delta_conversions[unit]
         if conv.type != "multiplicative":
@@ -134,7 +136,11 @@ def normalize_to_si(value: float, unit: str | None, form: DimensionalForm) -> fl
         if conv.type == "affine":
             return value * conv.multiplier + conv.offset
     try:
-        return ureg.Quantity(value, _pint_unit(unit)).to(_pint_unit(form.unit_symbol)).magnitude
+        return (
+            ureg.Quantity(value, _pint_unit(unit))
+            .to(_pint_unit(form.unit_symbol))
+            .magnitude
+        )
     except (pint.UndefinedUnitError, pint.DimensionalityError) as exc:
         raise ValueError(
             f"Cannot convert '{unit}' to '{form.unit_symbol}' for form '{form.name}': {exc}"
@@ -147,7 +153,9 @@ def from_si(si_value: float, unit: str | None, form: DimensionalForm) -> float:
     if unit is None or unit == form.unit_symbol:
         return si_value
     if form.unit_symbol is None:
-        raise ValueError(f"Cannot convert to '{unit}' for dimensionless form '{form.name}'")
+        raise ValueError(
+            f"Cannot convert to '{unit}' for dimensionless form '{form.name}'"
+        )
     if unit in form.delta_conversions:
         conv = form.delta_conversions[unit]
         if conv.type != "multiplicative":
@@ -166,7 +174,11 @@ def from_si(si_value: float, unit: str | None, form: DimensionalForm) -> float:
         if conv.type == "affine":
             return (si_value - conv.offset) / conv.multiplier
     try:
-        return ureg.Quantity(si_value, _pint_unit(form.unit_symbol)).to(_pint_unit(unit)).magnitude
+        return (
+            ureg.Quantity(si_value, _pint_unit(form.unit_symbol))
+            .to(_pint_unit(unit))
+            .magnitude
+        )
     except (pint.UndefinedUnitError, pint.DimensionalityError) as exc:
         raise ValueError(
             f"Cannot convert '{form.unit_symbol}' to '{unit}' for form '{form.name}': {exc}"
@@ -214,13 +226,19 @@ def register_extra_unit_with_pint(symbol: str, dimensions: dict[str, int]) -> No
     expression = _pint_expression_for_dimensions(dimensions)
     if can_convert_unit_to(symbol, expression):
         return
-    definition = f"{symbol} = []" if expression == "dimensionless" else f"{symbol} = {expression}"
+    definition = (
+        f"{symbol} = []"
+        if expression == "dimensionless"
+        else f"{symbol} = {expression}"
+    )
     try:
         ureg.define(definition)
     except pint.errors.RedefinitionError as exc:
         if can_convert_unit_to(symbol, expression):
             return
-        raise ValueError(f"Unit symbol '{symbol}' is already defined incompatibly") from exc
+        raise ValueError(
+            f"Unit symbol '{symbol}' is already defined incompatibly"
+        ) from exc
 
 
 def forms_with_dimensions(

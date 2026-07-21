@@ -67,6 +67,4 @@ def test_materialize_repository_rejects_commit_and_branch(tmp_path: Path) -> Non
     repo = _repo(tmp_path)
     head = repo.require_git().head_sha()
     with pytest.raises(MaterializeError):
-        materialize_repository(
-            repo, MaterializeRequest(commit=head, branch="master")
-        )
+        materialize_repository(repo, MaterializeRequest(commit=head, branch="master"))

@@ -37,7 +37,10 @@ def test_add_predicate_empty_id_rejected(repo: PredicateRepository) -> None:
 
 def test_add_predicate_arity_mismatch_message(repo: PredicateRepository) -> None:
     with pytest.raises(PredicateWorkflowError, match="arity"):
-        add_predicate(repo, PredicateAddRequest(predicate_id="bird", arity=2, arg_types=("Concept",)))
+        add_predicate(
+            repo,
+            PredicateAddRequest(predicate_id="bird", arity=2, arg_types=("Concept",)),
+        )
 
 
 def test_add_predicate_negative_arity_message(repo: PredicateRepository) -> None:
@@ -58,7 +61,9 @@ def test_list_predicates_sorted_by_id(repo: PredicateRepository) -> None:
 
 
 def test_show_predicate_returns_declaration(repo: PredicateRepository) -> None:
-    add_predicate(repo, PredicateAddRequest(predicate_id="bird", arity=1, arg_types=("Concept",)))
+    add_predicate(
+        repo, PredicateAddRequest(predicate_id="bird", arity=1, arg_types=("Concept",))
+    )
     report = show_predicate(repo, "bird")
     assert report.predicate.arity == 1
     assert report.predicate.arg_types == ("Concept",)

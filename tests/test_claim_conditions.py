@@ -115,7 +115,9 @@ def test_checked_condition_ir_drives_all_backends() -> None:
     """The compiled ConditionIR projects to sql/python/estree via condition-ir."""
 
     registry = _quantity_registry()
-    report = cc.check_claim_conditions(Claim(claim_id="c1", conditions=("freq > 10",)), registry)
+    report = cc.check_claim_conditions(
+        Claim(claim_id="c1", conditions=("freq > 10",)), registry
+    )
     ir = report.checked.conditions[0].ir
     assert condition_ir_to_sql(ir).sql
     assert condition_ir_to_python_ast(ir) is not None

@@ -68,7 +68,9 @@ class RevisionArgumentationStore:
     ) -> None:
         self._backing_store = backing_store
         self._active_claims = tuple(active_claims)
-        self._claims_by_id = {str(claim.claim_id): claim for claim in self._active_claims}
+        self._claims_by_id = {
+            str(claim.claim_id): claim for claim in self._active_claims
+        }
         self._active_claim_ids = frozenset(self._claims_by_id)
 
     def get_claim(self, claim_id: str) -> Claim | None:
@@ -171,7 +173,9 @@ def project_epistemic_state_argumentation_view(
         active_claims=tuple(active_claims),
         support_metadata=support_metadata,
         unmapped_atom_ids=tuple(sorted(unmapped_atom_ids)),
-        accepted_assumption_atom_ids=tuple(sorted(dict.fromkeys(accepted_assumption_atom_ids))),
+        accepted_assumption_atom_ids=tuple(
+            sorted(dict.fromkeys(accepted_assumption_atom_ids))
+        ),
         revision_event_hashes=_revision_event_hashes(state),
     )
 

@@ -29,7 +29,15 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Protocol,
+    TypeGuard,
+    TypeVar,
+    runtime_checkable,
+)
 
 from condition_ir import (
     CheckedCondition,
@@ -152,13 +160,17 @@ class _ATMSRuntimeLike(Protocol):
     def condition_registry(self) -> Mapping[str, ConceptInfo]: ...
 
     @property
-    def claim_support(self) -> Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]: ...
+    def claim_support(
+        self,
+    ) -> Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]: ...
 
     @property
     def concept_status(self) -> Callable[[str], ValueStatus]: ...
 
     @property
-    def replay(self) -> Callable[[tuple[QueryableAssumption, ...]], _ATMSRuntimeLike]: ...
+    def replay(
+        self,
+    ) -> Callable[[tuple[QueryableAssumption, ...]], _ATMSRuntimeLike]: ...
 
 
 @runtime_checkable
@@ -179,7 +191,9 @@ class _ATMSBoundLike(Protocol):
     def policy(self) -> Any: ...
 
     def is_param_compatible(self, parameterization: ParameterizationEdge) -> bool: ...
-    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
+    def claim_support(
+        self, claim: ActiveClaim
+    ) -> tuple[Label | None, SupportQuality]: ...
     def value_of(self, concept_id: str) -> ValueResult: ...
     def rebind(
         self,
@@ -544,7 +558,9 @@ class ATMSEngine:
         self._context_node_ids: dict[ContextId, str] = {}
         self._all_parameterizations = tuple(self._sorted_parameterizations())
         self.nogoods = NogoodSet()
-        self._nogood_provenance: dict[EnvironmentKey, tuple[ATMSNogoodProvenanceDetail, ...]] = {}
+        self._nogood_provenance: dict[
+            EnvironmentKey, tuple[ATMSNogoodProvenanceDetail, ...]
+        ] = {}
         self.fixpoint_reached = False
         self.iterations_run = 0
         self.warnings: tuple[str, ...] = ()
@@ -644,7 +660,9 @@ class ATMSEngine:
                         environment_assumption_ids(future.environment_key)
                     ),
                     consistent=future.consistent,
-                    supported_claim_ids=_claim_id_list(future_engine.supported_claim_ids()),
+                    supported_claim_ids=_claim_id_list(
+                        future_engine.supported_claim_ids()
+                    ),
                     nogoods=[
                         _assumption_id_list(environment_assumption_ids(environment))
                         for environment in future_engine.nogoods.environments
@@ -691,14 +709,18 @@ class ATMSEngine:
             node_id,
             fallback=self._nodes.get(node_id),
         )
-        essential_support = self._serialize_environment_key(inspection.essential_support) or {
+        essential_support = self._serialize_environment_key(
+            inspection.essential_support
+        ) or {
             "assumption_ids": [],
             "context_ids": [],
         }
         return ATMSNodeFutureStatusEntry(
             queryable_ids=_queryable_id_list(future.queryable_ids),
             queryable_cels=list(future.queryable_cels),
-            environment=_assumption_id_list(environment_assumption_ids(future.environment_key)),
+            environment=_assumption_id_list(
+                environment_assumption_ids(future.environment_key)
+            ),
             consistent=future.consistent,
             status=inspection.status,
             out_kind=inspection.out_kind,
@@ -750,7 +772,9 @@ class ATMSEngine:
         limit: int | None,
     ) -> list[ATMSNodeFutureStatusEntry]:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
-        return [future for future in report.futures if future.status != ATMSNodeStatus.OUT]
+        return [
+            future for future in report.futures if future.status != ATMSNodeStatus.OUT
+        ]
 
     def could_become_out(
         self,
@@ -896,7 +920,9 @@ class ATMSEngine:
         *,
         limit: int | None,
     ) -> list[str]:
-        return list(self.node_relevance(node_id, queryables, limit=limit).relevant_queryables)
+        return list(
+            self.node_relevance(node_id, queryables, limit=limit).relevant_queryables
+        )
 
     def claim_relevant_queryables(
         self,
@@ -917,7 +943,11 @@ class ATMSEngine:
         *,
         limit: int | None,
     ) -> list[str]:
-        return list(self.concept_relevance(concept_id, queryables, limit=limit).relevant_queryables)
+        return list(
+            self.concept_relevance(
+                concept_id, queryables, limit=limit
+            ).relevant_queryables
+        )
 
     def node_relevance(
         self,
@@ -930,9 +960,11 @@ class ATMSEngine:
 
         current = self.node_status(node_id)
         states = self._node_relevance_states(node_id, queryables, limit=limit)
-        relevant_queryables, irrelevant_queryables, witness_pairs = self._node_relevance_from_states(
-            states,
-            current.status,
+        relevant_queryables, irrelevant_queryables, witness_pairs = (
+            self._node_relevance_from_states(
+                states,
+                current.status,
+            )
         )
         return ATMSNodeRelevanceReport(
             node_id=node_id,
@@ -990,12 +1022,17 @@ class ATMSEngine:
         """Return minimal additive plans that reach the requested ATMS node status."""
 
         if target_status not in {ATMSNodeStatus.IN, ATMSNodeStatus.OUT}:
-            raise ValueError("target_status must be IN or OUT for bounded ATMS interventions")
+            raise ValueError(
+                "target_status must be IN or OUT for bounded ATMS interventions"
+            )
         current = self.node_status(node_id)
         candidates = [
             future
-            for future in self.node_future_statuses(node_id, queryables, limit=limit).futures
-            if future.consistent and self._future_reaches_node_target(future, target_status)
+            for future in self.node_future_statuses(
+                node_id, queryables, limit=limit
+            ).futures
+            if future.consistent
+            and self._future_reaches_node_target(future, target_status)
         ]
         plans = [
             self._node_intervention_plan(
@@ -1045,7 +1082,9 @@ class ATMSEngine:
         normalized_target = self._coerce_concept_target_status(target_value_status)
         candidates = [
             future
-            for future in self._concept_future_entries(concept_id, queryables, limit=limit)
+            for future in self._concept_future_entries(
+                concept_id, queryables, limit=limit
+            )
             if future.consistent and future.status == normalized_target
         ]
         plans = [
@@ -1102,7 +1141,9 @@ class ATMSEngine:
         limit: int | None,
         max_suggestions: int | None = None,
     ) -> list[ATMSNextQuerySuggestion]:
-        plans = self.concept_interventions(concept_id, queryables, target_value_status, limit=limit)
+        plans = self.concept_interventions(
+            concept_id, queryables, target_value_status, limit=limit
+        )
         return self._next_queryables_from_plans(plans, max_suggestions=max_suggestions)
 
     def essential_support(
@@ -1140,7 +1181,10 @@ class ATMSEngine:
         return sorted(
             node_id
             for node_id, node in self._nodes.items()
-            if any(label_env.subsumes(environment_key) for label_env in node.label.environments)
+            if any(
+                label_env.subsumes(environment_key)
+                for label_env in node.label.environments
+            )
         )
 
     def explain_node(self, node_id: str) -> ATMSNodeExplanation:
@@ -1185,7 +1229,7 @@ class ATMSEngine:
                     )
 
             for index, environment in enumerate(environments):
-                for other in environments[index + 1:]:
+                for other in environments[index + 1 :]:
                     if environment.subsumes(other) or other.subsumes(environment):
                         minimality_errors.append(
                             f"{node_id}: label contains non-minimal environments "
@@ -1196,10 +1240,12 @@ class ATMSEngine:
             actual_environments = set(environments)
             expected_environments = set(expected.environments)
             missing = sorted(
-                expected_environments - actual_environments, key=lambda env: env.variables
+                expected_environments - actual_environments,
+                key=lambda env: env.variables,
             )
             extra = sorted(
-                actual_environments - expected_environments, key=lambda env: env.variables
+                actual_environments - expected_environments,
+                key=lambda env: env.variables,
             )
             for environment in extra:
                 soundness_errors.append(
@@ -1288,11 +1334,13 @@ class ATMSEngine:
         return WorldlineArgumentationState(
             backend="atms",
             supported=tuple(sorted(supported)),
-            defeated=tuple(sorted(
-                str(claim.claim_id)
-                for claim in self._runtime.active_claims()
-                if str(claim.claim_id) not in supported
-            )),
+            defeated=tuple(
+                sorted(
+                    str(claim.claim_id)
+                    for claim in self._runtime.active_claims()
+                    if str(claim.claim_id) not in supported
+                )
+            ),
             nogoods=tuple(
                 tuple(environment.variables)
                 for environment in self.nogoods.environments
@@ -1385,7 +1433,9 @@ class ATMSEngine:
             self._context_node_ids[context_id] = node_id
 
     def _build_claim_nodes_and_justifications(self) -> None:
-        for claim in sorted(self._runtime.active_claims(), key=lambda node: str(node.claim_id)):
+        for claim in sorted(
+            self._runtime.active_claims(), key=lambda node: str(node.claim_id)
+        ):
             claim_id = str(claim.claim_id)
             node_id = claim_assertion_id(
                 claim,
@@ -1426,9 +1476,9 @@ class ATMSEngine:
                 continue
             claim_node_ids: list[str] = []
             for claim_id in item.claims:
-                claim_node_id = self._claim_node_ids.get(claim_id) or self._claim_artifact_node_ids.get(
+                claim_node_id = self._claim_node_ids.get(
                     claim_id
-                )
+                ) or self._claim_artifact_node_ids.get(claim_id)
                 if claim_node_id is None:
                     claim_node_ids = []
                     break
@@ -1488,7 +1538,9 @@ class ATMSEngine:
             if not self._runtime.is_param_compatible(param):
                 continue
 
-            condition_antecedents = self._exact_antecedent_sets(param.checked_conditions)
+            condition_antecedents = self._exact_antecedent_sets(
+                param.checked_conditions
+            )
             if not condition_antecedents:
                 continue
 
@@ -1503,16 +1555,21 @@ class ATMSEngine:
                 if str(input_id) != output_concept_id
             ]
             input_provider_sets = [
-                provider_ids_by_concept.get(concept_id, ()) for concept_id in effective_inputs
+                provider_ids_by_concept.get(concept_id, ())
+                for concept_id in effective_inputs
             ]
             if any(not provider_ids for provider_ids in input_provider_sets):
                 continue
 
             for provider_combo in product(*input_provider_sets):
                 input_values: dict[str, float] = {}
-                for concept_id, node_id in zip(effective_inputs, provider_combo, strict=True):
+                for concept_id, node_id in zip(
+                    effective_inputs, provider_combo, strict=True
+                ):
                     raw_value = _node_value(self._nodes[node_id])
-                    if isinstance(raw_value, bool) or not isinstance(raw_value, int | float):
+                    if isinstance(raw_value, bool) or not isinstance(
+                        raw_value, int | float
+                    ):
                         added |= self._materialize_parameterization_input_rejection(
                             parameterization_index=index,
                             output_concept_id=output_concept_id,
@@ -1524,12 +1581,16 @@ class ATMSEngine:
                         break
                     input_values[concept_id] = float(raw_value)
                 else:
-                    evaluation = evaluate_parameterization(sympy_expr, input_values, output_concept_id)
+                    evaluation = evaluate_parameterization(
+                        sympy_expr, input_values, output_concept_id
+                    )
                     if evaluation.status is not ParameterizationEvaluationStatus.VALUE:
                         continue
                     assert evaluation.value is not None
                     derived_value = evaluation.value
-                    derived_node_id = self._derived_node_id(output_concept_id, derived_value)
+                    derived_node_id = self._derived_node_id(
+                        output_concept_id, derived_value
+                    )
                     if derived_node_id not in self._nodes:
                         self._nodes[derived_node_id] = ATMSDerivedNode(
                             node_id=derived_node_id,
@@ -1540,7 +1601,9 @@ class ATMSEngine:
                         )
 
                     for condition_antecedent_ids in condition_antecedents:
-                        antecedent_ids = tuple(condition_antecedent_ids + provider_combo)
+                        antecedent_ids = tuple(
+                            condition_antecedent_ids + provider_combo
+                        )
                         added |= self._add_justification(
                             antecedent_ids=antecedent_ids,
                             consequent_id=derived_node_id,
@@ -1584,7 +1647,9 @@ class ATMSEngine:
 
     def _update_nogoods(self) -> bool:
         environments: list[EnvironmentKey] = list(self.nogoods.environments)
-        provenance: dict[EnvironmentKey, list[ATMSNogoodProvenanceDetail]] = defaultdict(list)
+        provenance: dict[EnvironmentKey, list[ATMSNogoodProvenanceDetail]] = (
+            defaultdict(list)
+        )
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
         for conflict in self._runtime.conflicts():
@@ -1606,8 +1671,12 @@ class ATMSEngine:
                             claim_b_id=claim_b,
                             concept_id=conflict.concept_id,
                             warning_class=conflict.warning_class,
-                            environment_a=[str(variable) for variable in env_a.variables],
-                            environment_b=[str(variable) for variable in env_b.variables],
+                            environment_a=[
+                                str(variable) for variable in env_a.variables
+                            ],
+                            environment_b=[
+                                str(variable) for variable in env_b.variables
+                            ],
                         )
                     )
 
@@ -1622,8 +1691,12 @@ class ATMSEngine:
                             claim_b_id=node_b.node_id,
                             concept_id=node_a.concept_id,
                             warning_class=None,
-                            environment_a=[str(variable) for variable in env_a.variables],
-                            environment_b=[str(variable) for variable in env_b.variables],
+                            environment_a=[
+                                str(variable) for variable in env_a.variables
+                            ],
+                            environment_b=[
+                                str(variable) for variable in env_b.variables
+                            ],
                         )
                     )
 
@@ -1637,7 +1710,9 @@ class ATMSEngine:
         }
         return True
 
-    def _derived_value_conflicts(self) -> tuple[tuple[ATMSDerivedNode, ATMSDerivedNode], ...]:
+    def _derived_value_conflicts(
+        self,
+    ) -> tuple[tuple[ATMSDerivedNode, ATMSDerivedNode], ...]:
         grouped: dict[str, list[ATMSDerivedNode]] = defaultdict(list)
         for node in self._nodes.values():
             if not _is_derived_node(node):
@@ -1650,8 +1725,10 @@ class ATMSEngine:
         for nodes in grouped.values():
             ordered = sorted(nodes, key=lambda item: item.node_id)
             for index, node_a in enumerate(ordered):
-                for node_b in ordered[index + 1:]:
-                    if self._normalize_value(node_a.value) == self._normalize_value(node_b.value):
+                for node_b in ordered[index + 1 :]:
+                    if self._normalize_value(node_a.value) == self._normalize_value(
+                        node_b.value
+                    ):
                         continue
                     conflicts.append((node_a, node_b))
         return tuple(conflicts)
@@ -1669,7 +1746,8 @@ class ATMSEngine:
                 continue
             providers[concept_id].append(node_id)
         return {
-            concept_id: tuple(sorted(node_ids)) for concept_id, node_ids in providers.items()
+            concept_id: tuple(sorted(node_ids))
+            for concept_id, node_ids in providers.items()
         }
 
     def _sorted_parameterizations(self) -> list[ParameterizationEdge]:
@@ -1724,7 +1802,9 @@ class ATMSEngine:
         if condition.source == assumption_cel:
             return True
         try:
-            assumption = check_condition_ir(assumption_cel, self._runtime.condition_registry)
+            assumption = check_condition_ir(
+                assumption_cel, self._runtime.condition_registry
+            )
         except ValueError:
             return False
         if assumption.encoded_ir == condition.encoded_ir:
@@ -1763,7 +1843,9 @@ class ATMSEngine:
         node = self._nodes[consequent_id]
         self._nodes[consequent_id] = replace(
             node,
-            justification_ids=tuple(sorted(node.justification_ids + (justification_id,))),
+            justification_ids=tuple(
+                sorted(node.justification_ids + (justification_id,))
+            ),
         )
         return True
 
@@ -1784,7 +1866,9 @@ class ATMSEngine:
     @staticmethod
     def _value_key(value: float | str | None) -> str:
         normalized = ATMSEngine._normalize_value(value)
-        return json.dumps(normalized, sort_keys=True, separators=(",", ":"), default=str)
+        return json.dumps(
+            normalized, sort_keys=True, separators=(",", ":"), default=str
+        )
 
     @staticmethod
     def _normalize_value(value: float | str | None) -> float | str | None:
@@ -1799,7 +1883,9 @@ class ATMSEngine:
             return ATMSNodeStatus.TRUE
         return ATMSNodeStatus.IN
 
-    def _out_kind_for_node(self, node_id: str, status: ATMSNodeStatus) -> ATMSOutKind | None:
+    def _out_kind_for_node(
+        self, node_id: str, status: ATMSNodeStatus
+    ) -> ATMSOutKind | None:
         if status != ATMSNodeStatus.OUT:
             return None
         node = self._nodes[node_id]
@@ -1817,7 +1903,9 @@ class ATMSEngine:
 
         claim = _node_claim(node)
         if claim is not None:
-            _label, quality = self._runtime.claim_support(ActiveClaim(claim_id=str(claim.claim_id)))
+            _label, quality = self._runtime.claim_support(
+                ActiveClaim(claim_id=str(claim.claim_id))
+            )
             return quality
         return SupportQuality.SEMANTIC_COMPATIBLE
 
@@ -1847,7 +1935,9 @@ class ATMSEngine:
             return "exact justifications exist but no surviving label environments"
         return "no exact ATMS justification produced a label"
 
-    def _was_pruned_by_nogood(self, node_id: str, _visited: set[str] | None = None) -> bool:
+    def _was_pruned_by_nogood(
+        self, node_id: str, _visited: set[str] | None = None
+    ) -> bool:
         node = self._nodes[node_id]
         if node.label.environments:
             return False
@@ -1861,7 +1951,9 @@ class ATMSEngine:
         for justification_id in node.justification_ids:
             justification = self._justifications[justification_id]
             raw = self._justification_candidate_label(justification, nogoods=None)
-            pruned = self._justification_candidate_label(justification, nogoods=self.nogoods)
+            pruned = self._justification_candidate_label(
+                justification, nogoods=self.nogoods
+            )
             if raw.environments and not pruned.environments:
                 return True
             for antecedent_id in justification.antecedent_ids:
@@ -1953,9 +2045,13 @@ class ATMSEngine:
                     continue
                 if successor_id not in indices:
                     strongconnect(successor_id)
-                    lowlinks[candidate_id] = min(lowlinks[candidate_id], lowlinks[successor_id])
+                    lowlinks[candidate_id] = min(
+                        lowlinks[candidate_id], lowlinks[successor_id]
+                    )
                 elif successor_id in on_stack:
-                    lowlinks[candidate_id] = min(lowlinks[candidate_id], indices[successor_id])
+                    lowlinks[candidate_id] = min(
+                        lowlinks[candidate_id], indices[successor_id]
+                    )
 
             if lowlinks[candidate_id] != indices[candidate_id]:
                 return
@@ -2061,7 +2157,10 @@ class ATMSEngine:
         }
         normalized: dict[tuple[str, QueryableId], QueryableAssumption] = {}
         for queryable in queryables:
-            if str(queryable.assumption_id) in current_ids or queryable.cel in current_cels:
+            if (
+                str(queryable.assumption_id) in current_ids
+                or queryable.cel in current_cels
+            ):
                 continue
             normalized[(queryable.cel, queryable.assumption_id)] = queryable
         return tuple(normalized[key] for key in sorted(normalized))
@@ -2204,7 +2303,9 @@ class ATMSEngine:
                 status=current.status,
             )
         }
-        for future in self.node_future_statuses(node_id, queryables, limit=limit).futures:
+        for future in self.node_future_statuses(
+            node_id, queryables, limit=limit
+        ).futures:
             key = tuple(future.queryable_ids)
             states[key] = ATMSNodeRelevanceState(
                 queryable_ids=_queryable_id_list(future.queryable_ids),
@@ -2349,7 +2450,9 @@ class ATMSEngine:
                 )
             if pairs:
                 relevant_queryables.append(queryable_cel)
-                witness_pairs[queryable_cel] = self._minimal_concept_witness_pairs(pairs)
+                witness_pairs[queryable_cel] = self._minimal_concept_witness_pairs(
+                    pairs
+                )
         relevant_set = set(relevant_queryables)
         return (
             relevant_queryables,
@@ -2467,7 +2570,9 @@ class ATMSEngine:
                     smallest_plan_size=min(
                         len(plan.queryable_ids) for plan in containing_plans
                     ),
-                    plan_queryable_cels=[list(plan.queryable_cels) for plan in containing_plans],
+                    plan_queryable_cels=[
+                        list(plan.queryable_cels) for plan in containing_plans
+                    ],
                     example_plans=containing_plans[:2],
                 )
             )
@@ -2522,7 +2627,9 @@ class ATMSEngine:
         seen_nodes: set[str],
     ) -> ATMSJustificationExplanation | None:
         justification = self._justifications[justification_id]
-        candidate = self._justification_candidate_label(justification, nogoods=self.nogoods)
+        candidate = self._justification_candidate_label(
+            justification, nogoods=self.nogoods
+        )
         consequent = self._nodes[justification.consequent_id]
         if not candidate.environments:
             return None
@@ -2549,7 +2656,9 @@ class ATMSEngine:
                     ATMSAssumptionAntecedent(
                         node_id=antecedent_id,
                         kind=antecedent_node.kind,
-                        label=self._serialize_label(self._label_or_none(antecedent_node.label)),
+                        label=self._serialize_label(
+                            self._label_or_none(antecedent_node.label)
+                        ),
                     )
                 )
                 continue
@@ -2596,7 +2705,11 @@ class ATMSEngine:
         traces = [
             trace
             for justification_id in node.justification_ids
-            if (trace := self._explain_justification(justification_id, seen_nodes=seen_nodes))
+            if (
+                trace := self._explain_justification(
+                    justification_id, seen_nodes=seen_nodes
+                )
+            )
             is not None
         ]
         return ATMSNodeExplanation(
@@ -2606,7 +2719,9 @@ class ATMSEngine:
             status=inspection.status,
             support_quality=inspection.support_quality,
             label=self._serialize_label(inspection.label),
-            essential_support=self._serialize_environment_key(inspection.essential_support),
+            essential_support=self._serialize_environment_key(
+                inspection.essential_support
+            ),
             reason=inspection.reason,
             traces=traces,
         )
@@ -2618,8 +2733,12 @@ class ATMSEngine:
         if environment is None:
             return None
         return {
-            "assumption_ids": [str(value) for value in environment_assumption_ids(environment)],
-            "context_ids": [str(value) for value in environment_context_ids(environment)],
+            "assumption_ids": [
+                str(value) for value in environment_assumption_ids(environment)
+            ],
+            "context_ids": [
+                str(value) for value in environment_context_ids(environment)
+            ],
         }
 
     @classmethod

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.explanation_types import RevisionAtomExplanation, RevisionExplanation
+from propstore.support_revision.explanation_types import (
+    RevisionAtomExplanation,
+    RevisionExplanation,
+)
 from propstore.support_revision.state import RevisionResult
 
 
@@ -13,11 +16,13 @@ def build_revision_explanation(
     """Build a stable default explanation payload for a revision result."""
     accepted_ids = tuple(result.accepted_atom_ids)
     rejected_ids = tuple(result.rejected_atom_ids)
-    atom_ids = sorted({
-        *accepted_ids,
-        *rejected_ids,
-        *result.explanation.keys(),
-    })
+    atom_ids = sorted(
+        {
+            *accepted_ids,
+            *rejected_ids,
+            *result.explanation.keys(),
+        }
+    )
     accepted_set = set(accepted_ids)
 
     atoms: dict[str, RevisionAtomExplanation] = {}
@@ -34,9 +39,7 @@ def build_revision_explanation(
             status=status,
             reason=reason,
             ranking=(
-                None
-                if entrenchment is None
-                else entrenchment.reasons.get(atom_id)
+                None if entrenchment is None else entrenchment.reasons.get(atom_id)
             ),
             incision_set=() if detail is None else detail.incision_set,
             support_sets=() if detail is None else detail.support_sets,

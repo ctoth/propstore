@@ -26,6 +26,7 @@ from propstore.stances import SUPPORT_TYPES
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
 
+
 def _normalize_attrs(
     value: Mapping[str, Any] | tuple[tuple[str, Any], ...] | None,
 ) -> tuple[tuple[str, Any], ...]:

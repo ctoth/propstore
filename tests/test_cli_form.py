@@ -4,6 +4,7 @@ The rewrite owner layer exposes only :func:`propstore.app.forms.show_form`, so t
 adapter (and these tests) cover ``form show`` only; ``form list`` / ``search`` /
 ``add`` / ``remove`` / ``validate`` have no rewrite owner and are deferred.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

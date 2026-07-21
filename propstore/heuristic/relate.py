@@ -143,7 +143,9 @@ async def relate_claim_async(
         candidate_claims.append(
             replace(
                 claim_b,
-                concept_id=None if candidate.concept_id is None else str(candidate.concept_id),
+                concept_id=None
+                if candidate.concept_id is None
+                else str(candidate.concept_id),
             )
         )
         candidate_distances[str(candidate.claim_id)] = candidate.distance

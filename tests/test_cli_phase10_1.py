@@ -16,6 +16,7 @@ the rewrite). Rule mutation and the LLM rule-extraction proposal path
 (``propose-rules`` / ``promote-rules``) have no rewrite owner and are likewise not
 exercised here.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

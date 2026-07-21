@@ -49,7 +49,16 @@ def test_web_allows_public_bind_with_insecure_warning(
 
     result = CliRunner().invoke(
         cli,
-        ["-C", str(repo.root), "web", "--host", "0.0.0.0", "--port", "8765", "--insecure"],
+        [
+            "-C",
+            str(repo.root),
+            "web",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8765",
+            "--insecure",
+        ],
     )
 
     assert result.exit_code == 0

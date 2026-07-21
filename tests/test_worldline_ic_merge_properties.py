@@ -18,13 +18,24 @@ from propstore.support_revision.operator_inputs import (
     IteratedReviseInput,
     ReviseInput,
 )
-from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
+from propstore.support_revision.belief_set_adapter import (
+    decide_ic_merge,
+    decide_ic_merge_profile,
+)
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.history import JournalOperator, TransitionJournal, TransitionOperation
+from propstore.support_revision.history import (
+    JournalOperator,
+    TransitionJournal,
+    TransitionOperation,
+)
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.realization import realize_ic_merge_decision
-from propstore.support_revision.state import BeliefBase, RevisionMergeRequiredFailure, RevisionScope
+from propstore.support_revision.state import (
+    BeliefBase,
+    RevisionMergeRequiredFailure,
+    RevisionScope,
+)
 from tests.fixtures.journal import make_journal_entry
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
@@ -38,9 +49,14 @@ _POLICY = {
 
 @pytest.mark.property
 @settings(max_examples=50)
-@given(count=st.integers(min_value=1, max_value=5), ic_index=st.integers(min_value=0, max_value=4))
+@given(
+    count=st.integers(min_value=1, max_value=5),
+    ic_index=st.integers(min_value=0, max_value=4),
+)
 @example(count=2, ic_index=1)
-def test_ic0_ic_atom_not_present_in_profile_is_still_realized(count: int, ic_index: int) -> None:
+def test_ic0_ic_atom_not_present_in_profile_is_still_realized(
+    count: int, ic_index: int
+) -> None:
     state, atom_ids = _state_with_atoms(count)
     ic_atom_id = atom_ids[ic_index % count]
 
@@ -56,9 +72,14 @@ def test_ic0_ic_atom_not_present_in_profile_is_still_realized(count: int, ic_ind
 
 @pytest.mark.property
 @settings(max_examples=50)
-@given(count=st.integers(min_value=1, max_value=5), merge_operator=st.sampled_from(("sigma", "gmax")))
+@given(
+    count=st.integers(min_value=1, max_value=5),
+    merge_operator=st.sampled_from(("sigma", "gmax")),
+)
 @example(count=2, merge_operator="sigma")
-def test_ic2_consistent_profile_and_ic_realizes_their_conjunction(count: int, merge_operator: str) -> None:
+def test_ic2_consistent_profile_and_ic_realizes_their_conjunction(
+    count: int, merge_operator: str
+) -> None:
     state, atom_ids = _state_with_atoms(count)
 
     next_state = _dispatch_merge(
@@ -107,8 +128,13 @@ def test_ic0_realized_success_satisfies_integrity_constraint(
 
 @pytest.mark.property
 @settings(max_examples=50)
-@given(count=st.integers(min_value=1, max_value=5), merge_operator=st.sampled_from(("sigma", "gmax")))
-def test_successful_realization_partitions_projected_merge_alphabet(count: int, merge_operator: str) -> None:
+@given(
+    count=st.integers(min_value=1, max_value=5),
+    merge_operator=st.sampled_from(("sigma", "gmax")),
+)
+def test_successful_realization_partitions_projected_merge_alphabet(
+    count: int, merge_operator: str
+) -> None:
     state, atom_ids = _state_with_atoms(count)
 
     next_state = _dispatch_merge(
@@ -123,7 +149,9 @@ def test_successful_realization_partitions_projected_merge_alphabet(count: int, 
     assert event.realization is not None
     accepted = set(event.realization.accepted_atom_ids)
     rejected = set(event.realization.rejected_atom_ids)
-    projected = set(event.decision.input_formula_ids if event.decision is not None else ())
+    projected = set(
+        event.decision.input_formula_ids if event.decision is not None else ()
+    )
     assert accepted.isdisjoint(rejected)
     assert accepted | rejected == projected
 
@@ -212,7 +240,12 @@ def test_event_hash_changes_when_ic_or_policy_changes(count: int) -> None:
     third = dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
-        operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in [list(atom_ids)]), integrity_constraint=AtomConstraint(atom_id=atom_ids[0]), merge_operator="sigma", max_alphabet_size=8),
+        operator_input=ICMergeInput(
+            profile_atom_ids=tuple(tuple(p) for p in [list(atom_ids)]),
+            integrity_constraint=AtomConstraint(atom_id=atom_ids[0]),
+            merge_operator="sigma",
+            max_alphabet_size=8,
+        ),
         policy={**_POLICY, "revision_policy_version": "revision.v2"},
     )
 
@@ -269,13 +302,19 @@ def test_ambiguous_two_world_result_fails_typed(count: int) -> None:
     assert exc_info.value.reason == "ambiguous_selected_worlds"
 
 
-def test_generated_ic_merge_path_does_not_call_assignment_selection_merge(monkeypatch) -> None:
+def test_generated_ic_merge_path_does_not_call_assignment_selection_merge(
+    monkeypatch,
+) -> None:
     from propstore.world import assignment_selection_merge
 
     def _fail(*args, **kwargs):
-        raise AssertionError("IC merge realization must not call assignment-selection merge")
+        raise AssertionError(
+            "IC merge realization must not call assignment-selection merge"
+        )
 
-    monkeypatch.setattr(assignment_selection_merge, "solve_assignment_selection_merge", _fail)
+    monkeypatch.setattr(
+        assignment_selection_merge, "solve_assignment_selection_merge", _fail
+    )
     state, atom_ids = _state_with_atoms(2)
 
     next_state = _dispatch_merge(
@@ -298,15 +337,24 @@ def _dispatch_merge(
     return dispatch(
         JournalOperator.IC_MERGE,
         state_in=state.to_canonical_dict(),
-        operator_input=ICMergeInput(profile_atom_ids=tuple(tuple(p) for p in profile_atom_ids), integrity_constraint=integrity_constraint, merge_operator=merge_operator, max_alphabet_size=8),
+        operator_input=ICMergeInput(
+            profile_atom_ids=tuple(tuple(p) for p in profile_atom_ids),
+            integrity_constraint=integrity_constraint,
+            merge_operator=merge_operator,
+            max_alphabet_size=8,
+        ),
         policy=_POLICY,
     )
 
 
 def _state_with_atoms(count: int):
-    atoms = tuple(make_assertion_atom(f"ic_merge_property_{index}") for index in range(count))
+    atoms = tuple(
+        make_assertion_atom(f"ic_merge_property_{index}") for index in range(count)
+    )
     base = BeliefBase(
-        scope=RevisionScope(bindings={}, branch="topic", merge_parent_commits=("left", "right")),
+        scope=RevisionScope(
+            bindings={}, branch="topic", merge_parent_commits=("left", "right")
+        ),
         atoms=atoms,
     )
     entrenchment = EntrenchmentReport(
@@ -317,7 +365,9 @@ def _state_with_atoms(count: int):
     return state, tuple(atom.atom_id for atom in atoms)
 
 
-def _profile_from_indexes(index_profiles: list[list[int]], atom_ids: tuple[str, ...]) -> list[list[str]]:
+def _profile_from_indexes(
+    index_profiles: list[list[int]], atom_ids: tuple[str, ...]
+) -> list[list[str]]:
     return [
         [atom_ids[index % len(atom_ids)] for index in profile]
         for profile in index_profiles

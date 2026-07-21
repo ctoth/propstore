@@ -102,7 +102,9 @@ def _compose_source_micropubs(
                         reference=f"{paper}:{claim.provenance.page}",
                     )
                 )
-                provenance = SourceProvenanceDocument(paper=paper, page=claim.provenance.page)
+                provenance = SourceProvenanceDocument(
+                    paper=paper, page=claim.provenance.page
+                )
         micropubs.append(
             _with_micropub_identity(
                 SourceMicropublicationDocument(
@@ -153,7 +155,9 @@ def finalize_source_branch(
             )
 
     justification_errors: list[str] = []
-    for justification in () if justifications_doc is None else justifications_doc.justifications:
+    for justification in (
+        () if justifications_doc is None else justifications_doc.justifications
+    ):
         conclusion = justification.conclusion
         if conclusion is None or not source_claim_index.exists(conclusion):
             justification_errors.append(str(conclusion))
@@ -211,7 +215,10 @@ def finalize_source_branch(
         micropub_status = "complete" if micropubs_doc is not None else "empty"
 
     ready = not (
-        claim_errors or micropub_coverage_errors or justification_errors or stance_errors
+        claim_errors
+        or micropub_coverage_errors
+        or justification_errors
+        or stance_errors
     )
     artifact_code_status = "complete" if ready else "incomplete"
 
@@ -255,7 +262,10 @@ def finalize_source_branch(
                 transaction.source_documents.save(ref, updated_source)
                 if updated_claims is not None and updated_claims.claims:
                     transaction.source_claims.save(ref, updated_claims)
-                if updated_justifications is not None and updated_justifications.justifications:
+                if (
+                    updated_justifications is not None
+                    and updated_justifications.justifications
+                ):
                     transaction.source_justifications.save(ref, updated_justifications)
                 if updated_stances is not None and updated_stances.stances:
                     transaction.source_stances.save(ref, updated_stances)

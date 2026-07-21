@@ -37,7 +37,11 @@ from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from sqlalchemy import select
 
 if TYPE_CHECKING:
@@ -210,7 +214,11 @@ class _MaterializationRow(Protocol):
 
 
 def _row_to_context(row: _ContextRow) -> Context:
-    status = row.status if isinstance(row.status, ContextStatus) else ContextStatus(row.status)
+    status = (
+        row.status
+        if isinstance(row.status, ContextStatus)
+        else ContextStatus(row.status)
+    )
     return Context(
         context_id=row.context_id,
         name=row.name,

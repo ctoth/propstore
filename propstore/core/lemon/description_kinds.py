@@ -116,7 +116,9 @@ class CoreferenceMergeArgument(msgspec.Struct, frozen=True, forbid_unknown_field
     attacks: tuple[str, ...] = ()
 
 
-class DescriptionKindMergeProtocol(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+class DescriptionKindMergeProtocol(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True
+):
     """A set of coreference merge arguments and the attacks among them."""
 
     merge_arguments: tuple[CoreferenceMergeArgument, ...]
@@ -165,7 +167,9 @@ class CausalAccount(StrEnum):
     MECHANISTIC = "mechanistic"
 
 
-class CausalConnectionAssertion(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+class CausalConnectionAssertion(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True
+):
     """A provenance-bearing causal connection between two description claims."""
 
     cause_description_id: str

@@ -81,7 +81,9 @@ class IntegrityConstraint:
         if self.kind == IntegrityConstraintKind.CUSTOM:
             predicate = self.metadata.get("predicate")
             if not callable(predicate):
-                raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
+                raise TypeError(
+                    "CUSTOM integrity constraint requires callable metadata['predicate']"
+                )
 
 
 @dataclass(frozen=True)
@@ -126,7 +128,9 @@ class RenderPolicy:
     # branch_weights assigns per-branch importance weights.
     branch_weights: Mapping[str, float] | None = None
     # explicit integrity constraints for global assignment-selection merge
-    integrity_constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
+    integrity_constraints: tuple[IntegrityConstraint, ...] = field(
+        default_factory=tuple
+    )
     future_queryables: tuple[str, ...] = field(default_factory=tuple)
     future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict[str, str])

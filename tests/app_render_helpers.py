@@ -56,7 +56,9 @@ def build_demo_repo(tmp_path: Path) -> Repository:
     )
     repo.families.concept.save("speed", _speed_concept(), message="m")
     repo.families.concept.save(
-        "distance", Concept(concept_id="distance", canonical_name="distance"), message="m"
+        "distance",
+        Concept(concept_id="distance", canonical_name="distance"),
+        message="m",
     )
     repo.families.concept.save(
         "draftconcept",
@@ -66,19 +68,17 @@ def build_demo_repo(tmp_path: Path) -> Repository:
             status=ConceptStatus.DRAFT,
             lexical_entry=LexicalEntry(
                 identifier="draft_concept",
-                canonical_form=LexicalForm(
-                    written_rep="Draft Concept", language="en"
-                ),
+                canonical_form=LexicalForm(written_rep="Draft Concept", language="en"),
                 senses=(
-                    LexicalSense(
-                        reference=OntologyReference(uri="ex:draft_concept")
-                    ),
+                    LexicalSense(reference=OntologyReference(uri="ex:draft_concept")),
                 ),
             ),
         ),
         message="m",
     )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
 
     claims = (
         Claim(

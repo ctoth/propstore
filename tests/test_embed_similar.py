@@ -64,15 +64,21 @@ def _fake_litellm(table_by_model: dict[str, dict[str, list[float]]]) -> MagicMoc
 
 def _repo(tmp_path: Path) -> Repository:
     repo = Repository.init(tmp_path / "kn")
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.concept.save(
         "speed", Concept(concept_id="speed", canonical_name="Speed"), message="m"
     )
     repo.families.concept.save(
-        "velocity", Concept(concept_id="velocity", canonical_name="Velocity"), message="m"
+        "velocity",
+        Concept(concept_id="velocity", canonical_name="Velocity"),
+        message="m",
     )
     repo.families.concept.save(
-        "pressure", Concept(concept_id="pressure", canonical_name="Pressure"), message="m"
+        "pressure",
+        Concept(concept_id="pressure", canonical_name="Pressure"),
+        message="m",
     )
     for claim_id in ("cl1", "cl2", "cl3", "cl4", "cl5", "cl6", "cl7"):
         repo.families.claim.save(
@@ -155,7 +161,9 @@ def test_world_query_similar_claims_backed(repo: Repository) -> None:
     assert [str(hit.claim_id) for hit in hits] == ["cl2", "cl3"]
 
 
-def test_world_query_similar_claims_honest_empty_without_index(repo: Repository) -> None:
+def test_world_query_similar_claims_honest_empty_without_index(
+    repo: Repository,
+) -> None:
     # No embedding run -> no registered model -> honest empty (not fabricated).
     with WorldQuery(repo) as world:
         assert world.similar_claims("cl1") == []

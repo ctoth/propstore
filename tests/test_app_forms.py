@@ -24,7 +24,11 @@ def _repo(tmp_path: Path) -> Repository:
             name="frequency",
             kind=KindType.QUANTITY,
             unit_symbol="Hz",
-            conversions={"kHz": UnitConversion(unit="kHz", type="multiplicative", multiplier=1000.0)},
+            conversions={
+                "kHz": UnitConversion(
+                    unit="kHz", type="multiplicative", multiplier=1000.0
+                )
+            },
         ),
         message="m",
     )

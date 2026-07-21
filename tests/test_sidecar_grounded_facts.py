@@ -38,7 +38,9 @@ def _bundle() -> GroundedRulesBundle:
 
 
 def _total_rows(bundle: GroundedRulesBundle) -> int:
-    return sum(len(rows) for inner in bundle.sections.values() for rows in inner.values())
+    return sum(
+        len(rows) for inner in bundle.sections.values() for rows in inner.values()
+    )
 
 
 def test_populate_returns_row_count() -> None:

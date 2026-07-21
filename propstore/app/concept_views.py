@@ -242,7 +242,9 @@ def _claim_groups(
         visible_count = len(entries)
         blocked_count = blocked_counts[claim_type]
         if blocked_count == 0:
-            sentence = f"{visible_count} visible {claim_type} claims refer to this concept."
+            sentence = (
+                f"{visible_count} visible {claim_type} claims refer to this concept."
+            )
         else:
             sentence = (
                 f"{visible_count} visible {claim_type} claims and {blocked_count} blocked "

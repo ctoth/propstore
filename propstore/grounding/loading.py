@@ -17,7 +17,11 @@ from propstore.families.concepts import Concept
 from propstore.families.predicates import Predicate
 from propstore.families.rules import DefeasibleRule, RuleSuperiority
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.grounding.facts import ConceptRelations, GroundingFactInputs, extract_facts
+from propstore.grounding.facts import (
+    ConceptRelations,
+    GroundingFactInputs,
+    extract_facts,
+)
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
 
@@ -36,7 +40,9 @@ class GroundingRepo:
     claims: tuple[Claim, ...] = ()
 
 
-def load_grounding_repo(repo: Repository, *, commit: str | None = None) -> GroundingRepo:
+def load_grounding_repo(
+    repo: Repository, *, commit: str | None = None
+) -> GroundingRepo:
     """Gather the authored grounding substrate from a repository at ``commit``.
 
     Reads the predicate, defeasible-rule, rule-superiority, claim, and concept
@@ -53,7 +59,9 @@ def load_grounding_repo(repo: Repository, *, commit: str | None = None) -> Groun
         )
 
     predicates = tuple(d for d in _documents("predicate") if isinstance(d, Predicate))
-    rules = tuple(d for d in _documents("defeasible_rule") if isinstance(d, DefeasibleRule))
+    rules = tuple(
+        d for d in _documents("defeasible_rule") if isinstance(d, DefeasibleRule)
+    )
     superiority = tuple(
         d for d in _documents("rule_superiority") if isinstance(d, RuleSuperiority)
     )

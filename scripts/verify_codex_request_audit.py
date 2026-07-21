@@ -76,7 +76,9 @@ def parse_audit(path: Path) -> dict[str, Coverage]:
                 continue
             request_match = REQUEST_RE.match(line)
             if request_match is not None:
-                literal[request_target_day or current_day].add(int(request_match.group("num")))
+                literal[request_target_day or current_day].add(
+                    int(request_match.group("num"))
+                )
                 continue
             pre_header_match = PRE_HEADER_REQUEST_RE.match(line)
             if pre_header_match is not None:

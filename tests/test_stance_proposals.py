@@ -141,4 +141,6 @@ def test_plan_unknown_stance_id_raises(tmp_path: Path) -> None:
         plan_stance_proposal_promotion(repo, stance_id="ps:stance:typo")
 
     assert excinfo.value.requested_path == "ps:stance:typo"
-    assert excinfo.value.available == (stance_proposal_relpath(stance_id).split("/")[-1],)
+    assert excinfo.value.available == (
+        stance_proposal_relpath(stance_id).split("/")[-1],
+    )

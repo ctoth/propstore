@@ -24,10 +24,16 @@ from propstore.support_revision.state import (
 @dataclass(frozen=True)
 class EntrenchmentReport:
     ranked_atom_ids: tuple[str, ...]
-    reasons: Mapping[str, EntrenchmentReason] = field(default_factory=dict[str, EntrenchmentReason])
+    reasons: Mapping[str, EntrenchmentReason] = field(
+        default_factory=dict[str, EntrenchmentReason]
+    )
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "ranked_atom_ids", tuple(str(atom_id) for atom_id in self.ranked_atom_ids))
+        object.__setattr__(
+            self,
+            "ranked_atom_ids",
+            tuple(str(atom_id) for atom_id in self.ranked_atom_ids),
+        )
         object.__setattr__(
             self,
             "reasons",
@@ -62,11 +68,7 @@ def compute_entrenchment(
     for atom in base.atoms:
         _, override_key, override = _match_override(atom, base, override_map)
 
-        support_count = (
-            len(atom.label.environments)
-            if atom.label is not None
-            else 0
-        )
+        support_count = len(atom.label.environments) if atom.label is not None else 0
 
         reasons[atom.atom_id] = EntrenchmentReason(
             override_priority=(
@@ -105,9 +107,7 @@ def _formal_rank_position(
 ) -> int:
     formula = formulas[atom_id]
     return sum(
-        1
-        for other_atom_id in atom_ids
-        if formal.leq(formulas[other_atom_id], formula)
+        1 for other_atom_id in atom_ids if formal.leq(formulas[other_atom_id], formula)
     )
 
 
@@ -150,7 +150,9 @@ def _match_override(
     if context_id:
         candidates.append((1, f"context:{context_id}"))
 
-    candidates.append((2, "kind:assumption" if is_assumption_atom(atom) else "kind:assertion"))
+    candidates.append(
+        (2, "kind:assumption" if is_assumption_atom(atom) else "kind:assertion")
+    )
 
     for rank, key in candidates:
         override = override_map.get(key)

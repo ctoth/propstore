@@ -58,8 +58,7 @@ def from_compiled_graph(
         endogenous=endogenous,
         equations=equations,
         exogenous_assignment={
-            str(name): value
-            for name, value in (exogenous_assignment or {}).items()
+            str(name): value for name, value in (exogenous_assignment or {}).items()
         },
     )
 

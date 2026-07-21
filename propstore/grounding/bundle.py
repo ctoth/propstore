@@ -28,7 +28,9 @@ def build_empty_sections() -> SectionMap:
     """An immutable section map with all four keys present and empty."""
 
     empty_inner: dict[str, SectionRows] = {}
-    return MappingProxyType({name: MappingProxyType(dict(empty_inner)) for name in SECTION_NAMES})
+    return MappingProxyType(
+        {name: MappingProxyType(dict(empty_inner)) for name in SECTION_NAMES}
+    )
 
 
 @dataclass(frozen=True)

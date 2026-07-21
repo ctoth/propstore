@@ -43,7 +43,9 @@ def test_empty_repo_verifies_ok(tmp_path: Path) -> None:
 def test_clean_claim_tree_verifies_ok(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
     repo.families.concept.save(
-        "concept:mass", Concept(concept_id="concept:mass", canonical_name="mass"), message="m"
+        "concept:mass",
+        Concept(concept_id="concept:mass", canonical_name="mass"),
+        message="m",
     )
     repo.families.context.save(
         "ctx1", Context(context_id="ctx1", name="C"), message="m"

@@ -62,7 +62,9 @@ def rewrite_claim_concept_refs(
         target_concept=resolve_optional(claim.target_concept),
         concepts=tuple(resolve_required(value) for value in claim.concepts),
         variables=tuple(
-            msgspec.structs.replace(variable, concept=resolve_required(variable.concept))
+            msgspec.structs.replace(
+                variable, concept=resolve_required(variable.concept)
+            )
             for variable in claim.variables
         ),
         parameters=tuple(

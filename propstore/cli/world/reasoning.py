@@ -3,6 +3,7 @@
 ``derive`` / ``resolve`` / ``chain`` / ``hypothetical`` over the
 :mod:`propstore.world.reasoning_reports` owner tier.
 """
+
 from __future__ import annotations
 
 import json
@@ -264,7 +265,9 @@ def world_chain(
     if fmt == "json":
         emit_report_json(report)
         return
-    emit(f"Target: {_format_chain_concept(report.target.display_id, report.target.canonical_name)}")
+    emit(
+        f"Target: {_format_chain_concept(report.target.display_id, report.target.canonical_name)}"
+    )
     emit(f"Result: {report.status}")
     if report.value is not None:
         emit(f"  value: {report.value}")

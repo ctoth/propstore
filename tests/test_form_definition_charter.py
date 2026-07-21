@@ -26,14 +26,18 @@ from propstore.families.forms import (
 
 def _physics_forms() -> list[FormDefinition]:
     return [
-        FormDefinition(name="mass", kind=KindType.QUANTITY, unit_symbol="kg", dimensions={"M": 1}),
+        FormDefinition(
+            name="mass", kind=KindType.QUANTITY, unit_symbol="kg", dimensions={"M": 1}
+        ),
         FormDefinition(
             name="acceleration",
             kind=KindType.QUANTITY,
             unit_symbol="m/s^2",
             dimensions={"L": 1, "T": -2},
         ),
-        FormDefinition(name="time", kind=KindType.QUANTITY, unit_symbol="s", dimensions={"T": 1}),
+        FormDefinition(
+            name="time", kind=KindType.QUANTITY, unit_symbol="s", dimensions={"T": 1}
+        ),
         FormDefinition(
             name="velocity",
             kind=KindType.QUANTITY,
@@ -52,7 +56,9 @@ def _physics_forms() -> list[FormDefinition]:
             unit_symbol="J",
             dimensions={"M": 1, "L": 2, "T": -2},
         ),
-        FormDefinition(name="ratio", kind=KindType.QUANTITY, is_dimensionless=True, dimensions={}),
+        FormDefinition(
+            name="ratio", kind=KindType.QUANTITY, is_dimensionless=True, dimensions={}
+        ),
     ]
 
 
@@ -85,10 +91,18 @@ def test_form_columns_fall_out_of_charter_fields(tmp_path: Path) -> None:
     _, sidecar, _ = _build(tmp_path)
     conn = sqlite3.connect(sidecar)
     try:
-        dims_row = conn.execute("SELECT dimensions FROM form WHERE name='force'").fetchone()
+        dims_row = conn.execute(
+            "SELECT dimensions FROM form WHERE name='force'"
+        ).fetchone()
         assert json.loads(dims_row[0]) == {"M": 1, "L": 1, "T": -2}
-        assert conn.execute("SELECT unit_symbol FROM form WHERE name='mass'").fetchone()[0] == "kg"
-        assert conn.execute("SELECT kind FROM form WHERE name='force'").fetchone()[0] == "quantity"
+        assert (
+            conn.execute("SELECT unit_symbol FROM form WHERE name='mass'").fetchone()[0]
+            == "kg"
+        )
+        assert (
+            conn.execute("SELECT kind FROM form WHERE name='force'").fetchone()[0]
+            == "quantity"
+        )
         dimless = conn.execute(
             "SELECT is_dimensionless FROM form WHERE name='ratio'"
         ).fetchone()[0]
@@ -118,7 +132,10 @@ def test_inconsistent_form_is_stored_not_dropped(tmp_path: Path) -> None:
     repo.build_sidecar(sidecar)
     conn = sqlite3.connect(sidecar)
     try:
-        assert conn.execute("SELECT COUNT(*) FROM form WHERE name='bad'").fetchone()[0] == 1
+        assert (
+            conn.execute("SELECT COUNT(*) FROM form WHERE name='bad'").fetchone()[0]
+            == 1
+        )
     finally:
         conn.close()
 
@@ -128,7 +145,12 @@ def test_inconsistent_form_is_stored_not_dropped(tmp_path: Path) -> None:
 
 def test_dimensionless_with_nonempty_dimensions_is_flagged() -> None:
     errors = validate_form_definition(
-        FormDefinition(name="bad", kind=KindType.QUANTITY, is_dimensionless=True, dimensions={"T": -1})
+        FormDefinition(
+            name="bad",
+            kind=KindType.QUANTITY,
+            is_dimensionless=True,
+            dimensions={"T": -1},
+        )
     )
     assert errors
     assert any("dimension" in e.lower() for e in errors)
@@ -136,7 +158,9 @@ def test_dimensionless_with_nonempty_dimensions_is_flagged() -> None:
 
 def test_nondimensionless_quantity_needs_a_dimension() -> None:
     errors = validate_form_definition(
-        FormDefinition(name="bad", kind=KindType.QUANTITY, unit_symbol="Hz", dimensions={})
+        FormDefinition(
+            name="bad", kind=KindType.QUANTITY, unit_symbol="Hz", dimensions={}
+        )
     )
     assert errors
     assert any("dimension" in e.lower() for e in errors)
@@ -151,7 +175,10 @@ def test_invalid_dimension_key_is_flagged() -> None:
 
 def test_valid_form_has_no_errors() -> None:
     form = FormDefinition(
-        name="force", kind=KindType.QUANTITY, unit_symbol="N", dimensions={"M": 1, "L": 1, "T": -2}
+        name="force",
+        kind=KindType.QUANTITY,
+        unit_symbol="N",
+        dimensions={"M": 1, "L": 1, "T": -2},
     )
     assert validate_form_definition(form) == ()
 
@@ -161,18 +188,24 @@ def test_valid_form_has_no_errors() -> None:
 
 def test_force_equals_mass_times_acceleration_verifies() -> None:
     forms = {f.name: f for f in _physics_forms()}
-    assert verify_form_algebra(forms["force"], [(forms["mass"], 1), (forms["acceleration"], 1)])
+    assert verify_form_algebra(
+        forms["force"], [(forms["mass"], 1), (forms["acceleration"], 1)]
+    )
 
 
 def test_energy_equals_mass_times_velocity_squared_verifies() -> None:
     forms = {f.name: f for f in _physics_forms()}
-    assert verify_form_algebra(forms["energy"], [(forms["mass"], 1), (forms["velocity"], 2)])
+    assert verify_form_algebra(
+        forms["energy"], [(forms["mass"], 1), (forms["velocity"], 2)]
+    )
 
 
 def test_dimensionally_wrong_algebra_does_not_verify() -> None:
     forms = {f.name: f for f in _physics_forms()}
     # force = mass * time is dimensionally wrong -> dim_verified is False, never fabricated True.
-    assert not verify_form_algebra(forms["force"], [(forms["mass"], 1), (forms["time"], 1)])
+    assert not verify_form_algebra(
+        forms["force"], [(forms["mass"], 1), (forms["time"], 1)]
+    )
 
 
 def test_algebra_with_dimensionless_input_is_unverifiable() -> None:

@@ -163,7 +163,9 @@ def test_promote_writes_valid_claims_and_concepts_to_master(tmp_path: Path) -> N
     assert repo.families.concept.load(promoted.concepts[0]) is not None
 
 
-def test_promoted_claim_is_immutable_rebuild_with_lowered_concept(tmp_path: Path) -> None:
+def test_promoted_claim_is_immutable_rebuild_with_lowered_concept(
+    tmp_path: Path,
+) -> None:
     repo = _new_source(tmp_path)
     _seed_context(repo)
     artifact_a = _author_claim(repo, claim_id="c1", concept="widget")
@@ -192,9 +194,7 @@ def test_promoted_concepts_preserve_form_and_category_semantics(tmp_path: Path) 
     )
     repo.families.form.save(
         "quantity",
-        FormDefinition(
-            name="quantity", kind=KindType.QUANTITY, is_dimensionless=True
-        ),
+        FormDefinition(name="quantity", kind=KindType.QUANTITY, is_dimensionless=True),
         message="seed quantity form",
     )
     commit_source_concept_proposal(
@@ -359,7 +359,9 @@ def test_trust_calibration_runs_at_promote(tmp_path: Path) -> None:
     assert trust["derived_from"] == ["osc-direct-replication"]
 
 
-def test_low_trust_claim_still_promotes_with_calibrated_provenance(tmp_path: Path) -> None:
+def test_low_trust_claim_still_promotes_with_calibrated_provenance(
+    tmp_path: Path,
+) -> None:
     repo = _new_source(tmp_path)
     _seed_context(repo)
     artifact_a = _author_claim(repo, claim_id="c1")
@@ -385,7 +387,12 @@ def test_low_trust_claim_still_promotes_with_calibrated_provenance(tmp_path: Pat
     # ...and the honest calibrated low-trust prior is stamped on the source.
     trust = _source_trust(repo)
     assert trust["status"] == ProvenanceStatus.CALIBRATED.value
-    assert trust["prior_base_rate"] == {"b": 0.0, "d": 0.7, "u": 0.30000000000000004, "a": 0.3}
+    assert trust["prior_base_rate"] == {
+        "b": 0.0,
+        "d": 0.7,
+        "u": 0.30000000000000004,
+        "a": 0.3,
+    }
 
 
 def test_promote_without_matching_rule_leaves_defaulted_trust(tmp_path: Path) -> None:

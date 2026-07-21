@@ -1,4 +1,5 @@
 """Worldline journal CLI commands."""
+
 from __future__ import annotations
 
 import click
@@ -22,9 +23,7 @@ def worldline_build_journal(obj: CliContext, name: str) -> None:
     """Capture a transition journal for a saved worldline revision."""
     repo = require_repo(obj)
     try:
-        report = build_worldline_journal(
-            repo, WorldlineBuildJournalRequest(name=name)
-        )
+        report = build_worldline_journal(repo, WorldlineBuildJournalRequest(name=name))
     except WorldlineValidationError as exc:
         fail(exc)
     emit_success(

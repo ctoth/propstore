@@ -64,7 +64,12 @@ def test_validate_clean_repo_is_ok(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     repo.families.claim.save(
         "c1",
-        Claim(claim_id="c1", context_id="ctx1", claim_type=ClaimType.OBSERVATION, statement="x"),
+        Claim(
+            claim_id="c1",
+            context_id="ctx1",
+            claim_type=ClaimType.OBSERVATION,
+            statement="x",
+        ),
         message="m",
     )
     summary = validate_repository(repo)
@@ -79,7 +84,12 @@ def test_build_materializes_sidecar(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     repo.families.claim.save(
         "c1",
-        Claim(claim_id="c1", context_id="ctx1", claim_type=ClaimType.OBSERVATION, statement="x"),
+        Claim(
+            claim_id="c1",
+            context_id="ctx1",
+            claim_type=ClaimType.OBSERVATION,
+            statement="x",
+        ),
         message="m",
     )
     report = build_repository(repo)
@@ -109,7 +119,9 @@ def test_invalid_claim_quarantines_not_aborts(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     # PARAMETER requires output_concept; omitting it is a contract violation.
     repo.families.claim.save(
-        "bad", Claim(claim_id="bad", context_id="ctx1", claim_type=ClaimType.PARAMETER), message="m"
+        "bad",
+        Claim(claim_id="bad", context_id="ctx1", claim_type=ClaimType.PARAMETER),
+        message="m",
     )
     # validate does not raise; it reports the diagnostic.
     summary = validate_repository(repo)
@@ -138,10 +150,14 @@ def test_duplicate_context_aborts(tmp_path: Path) -> None:
 def test_structural_concept_in_cel_aborts_both_workflows(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
     repo.families.form.save(
-        "shape_form", FormDefinition(name="shape_form", kind=KindType.STRUCTURAL), message="m"
+        "shape_form",
+        FormDefinition(name="shape_form", kind=KindType.STRUCTURAL),
+        message="m",
     )
     repo.families.concept.save("shape", _structural_concept(), message="m")
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="Ctx1"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="Ctx1"), message="m"
+    )
     repo.families.claim.save(
         "c1",
         Claim(
@@ -167,7 +183,12 @@ def test_invalid_form_aborts(tmp_path: Path) -> None:
     )
     repo.families.form.save(
         "bad",
-        FormDefinition(name="bad", kind=KindType.QUANTITY, is_dimensionless=True, dimensions={"mass": 1}),
+        FormDefinition(
+            name="bad",
+            kind=KindType.QUANTITY,
+            is_dimensionless=True,
+            dimensions={"mass": 1},
+        ),
         message="m",
     )
     with pytest.raises(CompilerWorkflowError):

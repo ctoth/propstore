@@ -24,7 +24,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from quire.artifacts import UnscannablePlacementError
-from quire.derived_runtime import connect_sqlite_store, write_derived_store_schema_metadata
+from quire.derived_runtime import (
+    connect_sqlite_store,
+    write_derived_store_schema_metadata,
+)
 from quire.derived_store import (
     DerivedStoreHandle,
     checkpoint_and_close_sqlite,
@@ -50,7 +53,10 @@ from propstore.grounding.loading import (
     build_grounded_bundle,
     load_grounding_repo,
 )
-from propstore.grounding.sidecar import create_grounded_fact_table, populate_grounded_facts
+from propstore.grounding.sidecar import (
+    create_grounded_fact_table,
+    populate_grounded_facts,
+)
 from propstore.semantic_passes.registry import PipelineRegistry
 
 if TYPE_CHECKING:
@@ -387,7 +393,9 @@ def _build_sidecar_file(
                 _project_documents(session, schema, "claim", checked.claims)
             if plan is not None:
                 _project_documents(session, schema, "conflict", plan.conflicts)
-                _project_documents(session, schema, "build_diagnostic", plan.diagnostics)
+                _project_documents(
+                    session, schema, "build_diagnostic", plan.diagnostics
+                )
             _project_documents(
                 session, schema, "build_diagnostic", _blocked_source_diagnostics(repo)
             )

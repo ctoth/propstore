@@ -7,7 +7,9 @@ from tests.merge_helpers import param_claim
 def test_regime_split_same_value_claims_remain_distinct_with_ignorance() -> None:
     merge = build_merge_framework(
         {
-            "master": [param_claim("claim1", "concept_x", 300.0, conditions=["T < 100"])],
+            "master": [
+                param_claim("claim1", "concept_x", 300.0, conditions=["T < 100"])
+            ],
             "paper/regime-right": [
                 param_claim("claim1", "concept_x", 300.0, conditions=["T >= 100"])
             ],

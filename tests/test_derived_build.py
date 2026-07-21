@@ -35,10 +35,17 @@ def _repo(tmp_path: Path) -> Repository:
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.claim.save(
         "cl1",
-        Claim(claim_id="cl1", context_id="ctx1", claim_type=ClaimType.OBSERVATION, statement="x"),
+        Claim(
+            claim_id="cl1",
+            context_id="ctx1",
+            claim_type=ClaimType.OBSERVATION,
+            statement="x",
+        ),
         message="m",
     )
     return repo
@@ -68,7 +75,12 @@ def test_source_change_invalidates_cache_and_rebuilds(tmp_path: Path) -> None:
     # A new authored claim moves the head sha, changing the content hash.
     repo.families.claim.save(
         "cl2",
-        Claim(claim_id="cl2", context_id="ctx1", claim_type=ClaimType.OBSERVATION, statement="y"),
+        Claim(
+            claim_id="cl2",
+            context_id="ctx1",
+            claim_type=ClaimType.OBSERVATION,
+            statement="y",
+        ),
         message="m",
     )
     _, built = materialize_world_sidecar(repo)

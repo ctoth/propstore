@@ -40,7 +40,9 @@ def test_every_artifact_family_has_contract_version() -> None:
 
 def test_every_semantic_foreign_key_has_contract_version() -> None:
     missing = [
-        spec.name for spec in iter_semantic_foreign_keys() if spec.contract_version is None
+        spec.name
+        for spec in iter_semantic_foreign_keys()
+        if spec.contract_version is None
     ]
 
     assert missing == []
@@ -87,7 +89,9 @@ def test_foreign_key_graph_folds_into_family_bodies() -> None:
     entries = {entry.key: entry for entry in manifest.contracts}
 
     claim_body = entries["family:claim"].body
-    edges = {(fk["source_field"], fk["target_family"]) for fk in claim_body["foreign_keys"]}
+    edges = {
+        (fk["source_field"], fk["target_family"]) for fk in claim_body["foreign_keys"]
+    }
 
     assert ("output_concept", "concept") in edges
     assert ("context_id", "context") in edges

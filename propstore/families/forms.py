@@ -35,7 +35,11 @@ from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
 from quire.git_store import GitStore
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
-from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from quire.sqlalchemy_store import (
+    create_sqlalchemy_store,
+    readonly_session,
+    writable_session,
+)
 from sqlalchemy import select
 
 from propstore.dimensions import (
@@ -75,9 +79,11 @@ class FormDefinition(CharterDoc):
     is_dimensionless: bool = False
     dimensions: Annotated[dict[str, int] | None, charter_field(json=True)] = None
     allowed_units: Annotated[tuple[str, ...], charter_field(json=True)] = ()
-    extra_units: Annotated[tuple[ExtraUnitDefinition, ...], charter_field(json=True)] = ()
-    conversions: Annotated[dict[str, UnitConversion], charter_field(json=True)] = msgspec.field(
-        default_factory=_empty_conversions
+    extra_units: Annotated[
+        tuple[ExtraUnitDefinition, ...], charter_field(json=True)
+    ] = ()
+    conversions: Annotated[dict[str, UnitConversion], charter_field(json=True)] = (
+        msgspec.field(default_factory=_empty_conversions)
     )
     delta_conversions: Annotated[
         dict[str, UnitConversion], charter_field(json=True)
@@ -251,7 +257,9 @@ class FormRepository:
             session.commit()
         return schema
 
-    def render_forms(self, path: Path, schema: SqlAlchemySchema) -> list[FormDefinition]:
+    def render_forms(
+        self, path: Path, schema: SqlAlchemySchema
+    ) -> list[FormDefinition]:
         """Return every form from the sidecar, rebuilt as ``FormDefinition``."""
 
         model = schema.model("form")

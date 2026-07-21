@@ -96,9 +96,7 @@ def event_show(obj: CliContext, claim_id: str, semantics: str) -> None:
     """Show the coreference cluster(s) containing CLAIM_ID under the semantics."""
 
     repo = require_repo(obj)
-    _render_or_exit(
-        coreference_clusters_for_claim(repo, claim_id, _policy(semantics))
-    )
+    _render_or_exit(coreference_clusters_for_claim(repo, claim_id, _policy(semantics)))
 
 
 @event.command("propose")
@@ -113,7 +111,9 @@ def event_show(obj: CliContext, claim_id: str, semantics: str) -> None:
     help="Comma-separated description-claim ids (defaults to --supports).",
 )
 @click.option(
-    "--provenance-status", type=_PROVENANCE_CHOICE, default=ProvenanceStatus.STATED.value
+    "--provenance-status",
+    type=_PROVENANCE_CHOICE,
+    default=ProvenanceStatus.STATED.value,
 )
 @click.option("--note", default=None, help="Optional free-text note.")
 @click.pass_obj
@@ -129,7 +129,10 @@ def event_propose(
     repo = require_repo(obj)
     support_ids = _split_ids(supports)
     if not support_ids:
-        fail("propose requires at least one --supports claim id", exit_code=EXIT_VALIDATION)
+        fail(
+            "propose requires at least one --supports claim id",
+            exit_code=EXIT_VALIDATION,
+        )
     description_ids = _split_ids(description_claims) if description_claims else ()
     result = propose_coreference_merge_argument(
         repo,

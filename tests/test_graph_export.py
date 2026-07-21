@@ -39,7 +39,9 @@ def _gate_concept() -> Concept:
     entry = LexicalEntry(
         identifier="gate",
         canonical_form=LexicalForm(written_rep="gate", language="en"),
-        senses=(LexicalSense(reference=OntologyReference(uri="ex:gate", label="gate")),),
+        senses=(
+            LexicalSense(reference=OntologyReference(uri="ex:gate", label="gate")),
+        ),
         physical_dimension_form="freq",
     )
     return Concept(concept_id="gate", canonical_name="gate", lexical_entry=entry)
@@ -47,7 +49,9 @@ def _gate_concept() -> Concept:
 
 def _repo(tmp_path: Path) -> Repository:
     repo = Repository.init(tmp_path / "kn")
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.form.save(
         "freq",
         FormDefinition(name="freq", kind=KindType.QUANTITY, unit_symbol="Hz"),
@@ -146,7 +150,11 @@ class TestUnboundGraph:
 
     def test_parameterization_edges(self, world: WorldQuery) -> None:
         graph = build_knowledge_graph(world)
-        param = {(e.source, e.target) for e in graph.edges if e.edge_type == "parameterization"}
+        param = {
+            (e.source, e.target)
+            for e in graph.edges
+            if e.edge_type == "parameterization"
+        }
         assert ("c6", "c5") in param
         assert ("c1", "c5") in param
 
@@ -157,7 +165,9 @@ class TestUnboundGraph:
 
     def test_claim_of_edges(self, world: WorldQuery) -> None:
         graph = build_knowledge_graph(world)
-        claim_of = {(e.source, e.target) for e in graph.edges if e.edge_type == "claim_of"}
+        claim_of = {
+            (e.source, e.target) for e in graph.edges if e.edge_type == "claim_of"
+        }
         assert ("cl1", "c1") in claim_of
         assert ("cl_eu", "c2") in claim_of
 
@@ -176,7 +186,9 @@ class TestBoundGraph:
         assert "cl_eu" not in claim_ids
         assert "cl1" in claim_ids
 
-    def test_bound_graph_includes_active_conditional_claim(self, world: WorldQuery) -> None:
+    def test_bound_graph_includes_active_conditional_claim(
+        self, world: WorldQuery
+    ) -> None:
         bound = world.bind(gate=200.0)
         graph = build_knowledge_graph(world, bound=bound)
         claim_ids = {n.id for n in graph.nodes if n.node_type == "claim"}

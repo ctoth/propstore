@@ -203,9 +203,7 @@ def is_claim_active(
             claim_conditions,
         )
     except ValueError as exc:
-        _raise_unknown_concept_if_present(
-            exc, source_artifact=claim.claim_id
-        )
+        _raise_unknown_concept_if_present(exc, source_artifact=claim.claim_id)
         raise
     except Z3TranslationError:
         retry_solver = _retry_with_standard_bindings(query_solver)
@@ -222,9 +220,7 @@ def is_claim_active(
                 ),
             )
         except ValueError as exc:
-            _raise_unknown_concept_if_present(
-                exc, source_artifact=claim.claim_id
-            )
+            _raise_unknown_concept_if_present(exc, source_artifact=claim.claim_id)
             raise
 
 

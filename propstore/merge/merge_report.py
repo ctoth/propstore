@@ -25,14 +25,14 @@ def semantic_candidate_details(merge: RepositoryMergeFramework) -> list[dict[str
     argument_index = merge.argument_index()
     details: list[dict[str, Any]] = []
     for assertion_ids in merge.semantic_candidates:
-        arguments = [argument_index[assertion_id] for assertion_id in sorted(assertion_ids)]
+        arguments = [
+            argument_index[assertion_id] for assertion_id in sorted(assertion_ids)
+        ]
         details.append(
             {
                 "assertion_ids": [argument.assertion_id for argument in arguments],
                 "logical_ids": [
-                    argument.logical_id
-                    for argument in arguments
-                    if argument.logical_id
+                    argument.logical_id for argument in arguments if argument.logical_id
                 ],
                 "artifact_ids": [argument.artifact_id for argument in arguments],
                 "arguments": [
@@ -55,8 +55,12 @@ def summarize_merge_framework(
     *,
     semantics: str = "grounded",
 ) -> dict[str, Any]:
-    skeptical = sorted(skeptically_accepted_arguments(merge.framework, semantics=semantics))
-    credulous = sorted(credulously_accepted_arguments(merge.framework, semantics=semantics))
+    skeptical = sorted(
+        skeptically_accepted_arguments(merge.framework, semantics=semantics)
+    )
+    credulous = sorted(
+        credulously_accepted_arguments(merge.framework, semantics=semantics)
+    )
 
     statuses: dict[str, dict[str, Any]] = {}
     argument_details: list[dict[str, Any]] = []

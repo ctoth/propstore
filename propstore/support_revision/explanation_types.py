@@ -27,7 +27,9 @@ class RevisionAtomDetail(
     selection_rule: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(
             self,
             "support_sets",
@@ -46,7 +48,9 @@ class EntrenchmentReason(
     revised_in: bool | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "essential_support", to_assumption_ids(self.essential_support))
+        object.__setattr__(
+            self, "essential_support", to_assumption_ids(self.essential_support)
+        )
 
 
 def coerce_override_priority(value: Any) -> int | str | None:
@@ -77,7 +81,9 @@ class RevisionAtomExplanation:
     support_sets: tuple[tuple[AssumptionId, ...], ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(
             self,
             "support_sets",
@@ -95,7 +101,17 @@ class RevisionExplanation:
     )
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(self, "atoms", dict(self.atoms))

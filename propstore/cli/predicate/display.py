@@ -4,6 +4,7 @@ Thin read adapters: they iterate / load the stored
 :class:`~propstore.families.predicates.Predicate` documents and render them; no
 read view or filtering logic lives here (CLAUDE.md "CLI adapter discipline").
 """
+
 from __future__ import annotations
 
 import click

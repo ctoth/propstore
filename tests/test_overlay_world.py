@@ -20,7 +20,11 @@ def test_overlay_adds_synthetic_claim_for_new_concept() -> None:
     base = build_bound(claims=(ClaimSpec(claim_id="a", concept_id="A", value=2.0),))
     overlay = OverlayWorld(
         base,
-        add=[SyntheticClaim(id="syn", concept_id="B", value=7.0, type=ClaimType.PARAMETER)],
+        add=[
+            SyntheticClaim(
+                id="syn", concept_id="B", value=7.0, type=ClaimType.PARAMETER
+            )
+        ],
     )
     assert base.value_of("B").status is ValueStatus.NO_CLAIMS
     result = overlay.value_of("B")
@@ -32,7 +36,9 @@ def test_overlay_replaces_existing_claim_value() -> None:
     base = build_bound(claims=(ClaimSpec(claim_id="a", concept_id="A", value=2.0),))
     overlay = OverlayWorld(
         base,
-        add=[SyntheticClaim(id="a", concept_id="A", value=9.0, type=ClaimType.PARAMETER)],
+        add=[
+            SyntheticClaim(id="a", concept_id="A", value=9.0, type=ClaimType.PARAMETER)
+        ],
     )
     assert overlay.value_of("A").claims[0].value == 9.0
 
@@ -48,7 +54,9 @@ def test_overlay_diff_reports_changed_concepts() -> None:
     base = build_bound(claims=(ClaimSpec(claim_id="a", concept_id="A", value=2.0),))
     overlay = OverlayWorld(
         base,
-        add=[SyntheticClaim(id="a", concept_id="A", value=9.0, type=ClaimType.PARAMETER)],
+        add=[
+            SyntheticClaim(id="a", concept_id="A", value=9.0, type=ClaimType.PARAMETER)
+        ],
     )
     diff = overlay.diff()
     assert "A" in diff
@@ -73,7 +81,9 @@ def test_overlay_preserves_parameterization_derivation() -> None:
     )
     overlay = OverlayWorld(
         base,
-        add=[SyntheticClaim(id="a", concept_id="A", value=10.0, type=ClaimType.PARAMETER)],
+        add=[
+            SyntheticClaim(id="a", concept_id="A", value=10.0, type=ClaimType.PARAMETER)
+        ],
     )
     derived = overlay.derived_value("C")
     assert derived.status is ValueStatus.DERIVED

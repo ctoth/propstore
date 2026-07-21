@@ -1,4 +1,5 @@
 """Shared helpers for CLI subcommands."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, NoReturn, TypedDict
@@ -23,7 +24,9 @@ class CliContext(TypedDict, total=False):
     start: "Path | None"
     traceback: bool
 
+
 # -- Key=value parsing ------------------------------------------------
+
 
 def parse_kv_pairs(
     args: tuple[str, ...] | list[str],

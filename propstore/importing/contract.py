@@ -51,8 +51,16 @@ class ImportConceptRow:
     form: str
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "local_name", _require_non_empty(self.local_name, "concept local_name"))
-        object.__setattr__(self, "definition", _require_non_empty(self.definition, "concept definition"))
+        object.__setattr__(
+            self,
+            "local_name",
+            _require_non_empty(self.local_name, "concept local_name"),
+        )
+        object.__setattr__(
+            self,
+            "definition",
+            _require_non_empty(self.definition, "concept definition"),
+        )
         object.__setattr__(self, "form", _require_non_empty(self.form, "concept form"))
 
 
@@ -76,8 +84,12 @@ class ImportClaimRow:
     notes: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "local_id", _require_non_empty(self.local_id, "claim local_id"))
-        object.__setattr__(self, "context", _require_non_empty(self.context, "claim context"))
+        object.__setattr__(
+            self, "local_id", _require_non_empty(self.local_id, "claim local_id")
+        )
+        object.__setattr__(
+            self, "context", _require_non_empty(self.context, "claim context")
+        )
 
 
 @dataclass(frozen=True)
@@ -95,8 +107,14 @@ class ImportStanceRow:
     note: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "source_claim", _require_non_empty(self.source_claim, "stance source_claim"))
-        object.__setattr__(self, "target", _require_non_empty(self.target, "stance target"))
+        object.__setattr__(
+            self,
+            "source_claim",
+            _require_non_empty(self.source_claim, "stance source_claim"),
+        )
+        object.__setattr__(
+            self, "target", _require_non_empty(self.target, "stance target")
+        )
         coerced = coerce_stance_type(self.stance_type)
         if coerced is None:
             raise ValueError(f"unknown stance type: {self.stance_type!r}")
@@ -123,8 +141,12 @@ class ImportManifest:
     warnings: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "source_name", _require_non_empty(self.source_name, "source_name"))
-        object.__setattr__(self, "origin_value", _require_non_empty(self.origin_value, "origin_value"))
+        object.__setattr__(
+            self, "source_name", _require_non_empty(self.source_name, "source_name")
+        )
+        object.__setattr__(
+            self, "origin_value", _require_non_empty(self.origin_value, "origin_value")
+        )
         if self.provenance_status not in _IMPORT_PROVENANCE_STATUSES:
             allowed = ", ".join(status.value for status in _IMPORT_PROVENANCE_STATUSES)
             raise ValueError(

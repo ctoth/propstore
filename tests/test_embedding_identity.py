@@ -57,7 +57,9 @@ def test_embedding_sanitizer_is_absent() -> None:
 
 
 _identity_text = st.text(
-    alphabet=st.characters(blacklist_categories=("Cs",), blacklist_characters=("\x00",)),
+    alphabet=st.characters(
+        blacklist_categories=("Cs",), blacklist_characters=("\x00",)
+    ),
     min_size=1,
     max_size=24,
 )

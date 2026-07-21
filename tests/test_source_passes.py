@@ -107,11 +107,25 @@ def test_pipeline_lowers_stance_handles_to_claim_ids(tmp_path: Path) -> None:
         origin_value="manual",
         provenance_status=ProvenanceStatus.STATED,
         claims=(
-            ImportClaimRow(local_id="claim_one", claim_type=ClaimType.OBSERVATION, context="ctx", statement="A"),
-            ImportClaimRow(local_id="claim_two", claim_type=ClaimType.OBSERVATION, context="ctx", statement="B"),
+            ImportClaimRow(
+                local_id="claim_one",
+                claim_type=ClaimType.OBSERVATION,
+                context="ctx",
+                statement="A",
+            ),
+            ImportClaimRow(
+                local_id="claim_two",
+                claim_type=ClaimType.OBSERVATION,
+                context="ctx",
+                statement="B",
+            ),
         ),
         stances=(
-            ImportStanceRow(source_claim="claim_one", target="claim_two", stance_type=StanceType.REBUTS),
+            ImportStanceRow(
+                source_claim="claim_one",
+                target="claim_two",
+                stance_type=StanceType.REBUTS,
+            ),
         ),
     )
 

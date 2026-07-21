@@ -5,6 +5,7 @@ The persisted worldline is a typed charter
 policy, revision query, and results into the canonical render types, so ``show``
 reads them by attribute access and only formats them for the terminal.
 """
+
 from __future__ import annotations
 
 import click
@@ -162,8 +163,7 @@ def worldline_diff(obj: CliContext, name_a: str, name_b: str) -> None:
 
     for difference in report.input_differences:
         emit(
-            f"  {difference.label}: "
-            f"{dict(difference.left)} vs {dict(difference.right)}"
+            f"  {difference.label}: {dict(difference.left)} vs {dict(difference.right)}"
         )
 
     for difference in report.value_differences:
@@ -177,12 +177,8 @@ def worldline_diff(obj: CliContext, name_a: str, name_b: str) -> None:
         emit("  No value differences.")
 
     if report.only_left_dependencies:
-        emit(
-            f"  Only in {report.left_id}: "
-            f"{', '.join(report.only_left_dependencies)}"
-        )
+        emit(f"  Only in {report.left_id}: {', '.join(report.only_left_dependencies)}")
     if report.only_right_dependencies:
         emit(
-            f"  Only in {report.right_id}: "
-            f"{', '.join(report.only_right_dependencies)}"
+            f"  Only in {report.right_id}: {', '.join(report.only_right_dependencies)}"
         )

@@ -117,9 +117,7 @@ def test_analyze_praf_returns_acceptance_projection() -> None:
 
 
 def test_project_extension_result_intersects_targets() -> None:
-    extensions = (
-        ExtensionResult(name="grounded", accepted_claim_ids=("a", "c")),
-    )
+    extensions = (ExtensionResult(name="grounded", accepted_claim_ids=("a", "c")),)
     projection = project_extension_result(extensions, target_claim_ids=("a", "b", "c"))
     assert projection.survivor_claim_ids == ("a", "c")
     assert projection.witness_claim_ids == ("a", "c")

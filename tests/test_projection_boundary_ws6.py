@@ -37,7 +37,12 @@ def _grounded_fly_bundle() -> GroundedRulesBundle:
         rule_id="r1",
         kind="defeasible",
         head=Atom(predicate="fly", terms=(Term(kind="var", name="X"),)),
-        body=(BodyLiteral(kind="positive", atom=Atom(predicate="bird", terms=(Term(kind="var", name="X"),))),),
+        body=(
+            BodyLiteral(
+                kind="positive",
+                atom=Atom(predicate="bird", terms=(Term(kind="var", name="X"),)),
+            ),
+        ),
     )
     return ground(
         (rule,),
@@ -87,7 +92,9 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
     assert lifted.provenance == projected.projection.provenance
 
 
-def test_grounded_projection_has_typed_loss_witness_when_source_assertion_missing() -> None:
+def test_grounded_projection_has_typed_loss_witness_when_source_assertion_missing() -> (
+    None
+):
     csaf = build_bridge_csaf([], [], [], bundle=_grounded_fly_bundle())
 
     projection = csaf_to_projection(csaf, [])

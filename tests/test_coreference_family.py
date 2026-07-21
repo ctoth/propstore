@@ -88,7 +88,9 @@ def test_standalone_round_trip_and_sidecar_projects_every_rival(tmp_path: Path) 
     assert tuple(rows["cma:two"].attacks) == ("cma:one",)
 
 
-def test_repo_backed_repository_authors_to_fresh_proposal_branch(tmp_path: Path) -> None:
+def test_repo_backed_repository_authors_to_fresh_proposal_branch(
+    tmp_path: Path,
+) -> None:
     """Authoring creates the ``proposal/coreference`` branch on a real repo.
 
     The proposal references canonical claims that may live on another branch (or

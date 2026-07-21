@@ -20,9 +20,24 @@ from tests.world_store_feed import CharterStore
 def _store() -> CharterStore:
     return CharterStore(
         claims=(
-            Claim(claim_id="claim_a", claim_type=ClaimType.PARAMETER, output_concept="c1", value=1.0),
-            Claim(claim_id="claim_b", claim_type=ClaimType.PARAMETER, output_concept="c2", value=2.0),
-            Claim(claim_id="claim_c", claim_type=ClaimType.PARAMETER, output_concept="c3", value=3.0),
+            Claim(
+                claim_id="claim_a",
+                claim_type=ClaimType.PARAMETER,
+                output_concept="c1",
+                value=1.0,
+            ),
+            Claim(
+                claim_id="claim_b",
+                claim_type=ClaimType.PARAMETER,
+                output_concept="c2",
+                value=2.0,
+            ),
+            Claim(
+                claim_id="claim_c",
+                claim_type=ClaimType.PARAMETER,
+                output_concept="c3",
+                value=3.0,
+            ),
         ),
         stances=(
             Stance(
@@ -44,12 +59,16 @@ def _store() -> CharterStore:
 def _active_graph(store: CharterStore):
     return activate_compiled_world_graph(
         build_compiled_world_graph(store),
-        environment=Environment(assumptions=compile_environment_assumptions(bindings={})),
+        environment=Environment(
+            assumptions=compile_environment_assumptions(bindings={})
+        ),
         solver=None,
     )
 
 
-def test_claim_justifications_from_active_graph_preserves_reported_and_support_edges() -> None:
+def test_claim_justifications_from_active_graph_preserves_reported_and_support_edges() -> (
+    None
+):
     justifications = claim_justifications_from_active_graph(_active_graph(_store()))
     by_id = {item.justification_id: item for item in justifications}
 
@@ -60,7 +79,9 @@ def test_claim_justifications_from_active_graph_preserves_reported_and_support_e
     assert by_id["s_bc"].premise_claim_ids == ("claim_b",)
 
 
-def test_claim_justifications_from_active_graph_is_deterministic_under_order_changes() -> None:
+def test_claim_justifications_from_active_graph_is_deterministic_under_order_changes() -> (
+    None
+):
     store = _store()
     reversed_store = CharterStore(
         claims=tuple(reversed(store.claims)),

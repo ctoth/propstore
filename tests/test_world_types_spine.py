@@ -127,7 +127,9 @@ def test_render_policy_round_trips_through_the_document_codec() -> None:
 
 
 def test_render_policy_normalizes_merge_operator_and_freezes_collections() -> None:
-    policy = RenderPolicy(merge_operator="max", branch_filter=["a"], overrides={"c": "x"})
+    policy = RenderPolicy(
+        merge_operator="max", branch_filter=["a"], overrides={"c": "x"}
+    )
     assert policy.merge_operator is MergeOperator.MAX
     assert policy.branch_filter == ("a",)
     assert isinstance(policy.integrity_constraints, tuple)
@@ -149,7 +151,9 @@ def test_render_policy_admits_lifecycle_visibility(
     include_blocked: bool,
     expected: bool,
 ) -> None:
-    policy = RenderPolicy(include_drafts=include_drafts, include_blocked=include_blocked)
+    policy = RenderPolicy(
+        include_drafts=include_drafts, include_blocked=include_blocked
+    )
     assert policy.admits(status) is expected
 
 
@@ -170,8 +174,12 @@ def test_apply_decision_criterion_projected_probability() -> None:
 
 
 def test_apply_decision_criterion_bounds_and_hurwicz() -> None:
-    assert apply_decision_criterion(0.6, 0.1, 0.3, 0.5, None, "lower_bound").value == pytest.approx(0.6)
-    assert apply_decision_criterion(0.6, 0.1, 0.3, 0.5, None, "upper_bound").value == pytest.approx(0.9)
+    assert apply_decision_criterion(
+        0.6, 0.1, 0.3, 0.5, None, "lower_bound"
+    ).value == pytest.approx(0.6)
+    assert apply_decision_criterion(
+        0.6, 0.1, 0.3, 0.5, None, "upper_bound"
+    ).value == pytest.approx(0.9)
     # Denoeux 2019 (p.17): α·Bel + (1-α)·Pl, with Bel=0.6, Pl=0.9, α=0.5.
     assert apply_decision_criterion(
         0.6, 0.1, 0.3, 0.5, None, "hurwicz", pessimism_index=0.5
@@ -200,7 +208,10 @@ def test_coerce_value_status() -> None:
 
 
 def test_resolution_strategy_string_membership() -> None:
-    assert ResolutionStrategy("assignment_selection_merge") is ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE
+    assert (
+        ResolutionStrategy("assignment_selection_merge")
+        is ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE
+    )
 
 
 def test_normalize_merge_operator() -> None:
@@ -231,7 +242,9 @@ def test_integrity_constraint_requires_concept_ids() -> None:
 
 def test_integrity_constraint_rejects_duplicate_concept_ids() -> None:
     with pytest.raises(ValueError, match="duplicate concept ids"):
-        IntegrityConstraint(kind=IntegrityConstraintKind.RANGE, concept_ids=("c1", "c1"))
+        IntegrityConstraint(
+            kind=IntegrityConstraintKind.RANGE, concept_ids=("c1", "c1")
+        )
 
 
 def test_custom_integrity_constraint_requires_a_callable_predicate() -> None:
@@ -258,7 +271,9 @@ def test_queryable_assumption_from_cel_is_deterministic() -> None:
 
 
 def test_coerce_queryable_assumptions_dedups_and_sorts() -> None:
-    coerced = coerce_queryable_assumptions(["x == 1", "x == 1", QueryableAssumption.from_cel("y == 2")])
+    coerced = coerce_queryable_assumptions(
+        ["x == 1", "x == 1", QueryableAssumption.from_cel("y == 2")]
+    )
     assert len(coerced) == 2
     assert all(isinstance(item, QueryableAssumption) for item in coerced)
     # coerce_queryable_assumptions returns the deduped set ordered by (cel, id).

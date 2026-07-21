@@ -57,7 +57,9 @@ class ParameterizationEvaluation:
         return cls(ParameterizationEvaluationStatus.VALUE, value=value)
 
 
-def _status_from_numeric(evaluation: NumericEvaluation) -> ParameterizationEvaluationStatus:
+def _status_from_numeric(
+    evaluation: NumericEvaluation,
+) -> ParameterizationEvaluationStatus:
     """Re-express a numeric-evaluation status in the parameterization vocabulary.
 
     The two status enums deliberately share the same value strings for every

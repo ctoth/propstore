@@ -97,7 +97,9 @@ class RevisionScope(
             "context_id",
             None if self.context_id is None else to_context_id(self.context_id),
         )
-        object.__setattr__(self, "merge_parent_commits", tuple(self.merge_parent_commits))
+        object.__setattr__(
+            self, "merge_parent_commits", tuple(self.merge_parent_commits)
+        )
 
 
 class BeliefBase(
@@ -120,7 +122,9 @@ class BeliefBase(
             self,
             "support_sets",
             {
-                str(atom_id): tuple(to_assumption_ids(support_set) for support_set in support_sets)
+                str(atom_id): tuple(
+                    to_assumption_ids(support_set) for support_set in support_sets
+                )
                 for atom_id, support_sets in self.support_sets.items()
             },
         )
@@ -153,9 +157,22 @@ class FormalRevisionDecisionReport(
     ranking_provenance: RankingProvenance | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "input_formula_ids", tuple(str(item) for item in self.input_formula_ids))
-        object.__setattr__(self, "accepted_formula_ids", tuple(str(item) for item in self.accepted_formula_ids))
-        object.__setattr__(self, "rejected_formula_ids", tuple(str(item) for item in self.rejected_formula_ids))
+        object.__setattr__(
+            self,
+            "input_formula_ids",
+            tuple(str(item) for item in self.input_formula_ids),
+        )
+        object.__setattr__(
+            self,
+            "accepted_formula_ids",
+            tuple(str(item) for item in self.accepted_formula_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_formula_ids",
+            tuple(str(item) for item in self.rejected_formula_ids),
+        )
+
 
 class SupportRevisionRealization(
     msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
@@ -171,15 +188,30 @@ class SupportRevisionRealization(
     replay_status: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
-        object.__setattr__(self, "source_claim_ids", tuple(str(claim_id) for claim_id in self.source_claim_ids))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
+        object.__setattr__(
+            self,
+            "source_claim_ids",
+            tuple(str(claim_id) for claim_id in self.source_claim_ids),
+        )
         object.__setattr__(
             self,
             "reasons",
             {str(atom_id): detail for atom_id, detail in self.reasons.items()},
         )
+
 
 @dataclass(frozen=True)
 class RevisionResult:
@@ -187,14 +219,26 @@ class RevisionResult:
     accepted_atom_ids: tuple[str, ...]
     rejected_atom_ids: tuple[str, ...]
     incision_set: tuple[str, ...] = field(default_factory=tuple)
-    explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict[str, RevisionAtomDetail])
+    explanation: Mapping[str, RevisionAtomDetail] = field(
+        default_factory=dict[str, RevisionAtomDetail]
+    )
     decision: FormalRevisionDecisionReport | None = None
     realization: SupportRevisionRealization | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(
             self,
             "explanation",
@@ -229,7 +273,11 @@ class RevisionEvent(
     def __post_init__(self) -> None:
         object.__setattr__(self, "operation", str(self.operation))
         object.__setattr__(self, "pre_state_hash", str(self.pre_state_hash))
-        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
+        object.__setattr__(
+            self,
+            "target_atom_ids",
+            tuple(str(atom_id) for atom_id in self.target_atom_ids),
+        )
         object.__setattr__(
             self,
             "policy_snapshot",
@@ -270,11 +318,19 @@ class RevisionMergeRequiredFailure(ValueError):
         self.reason = str(reason)
         self.parent_commits = tuple(str(commit) for commit in parent_commits)
         self.decision_report = decision_report
-        self.profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in profile_atom_ids)
+        self.profile_atom_ids = tuple(
+            tuple(str(atom_id) for atom_id in profile) for profile in profile_atom_ids
+        )
         self.integrity_constraint = integrity_constraint
-        self.selected_worlds_hash = None if selected_worlds_hash is None else str(selected_worlds_hash)
+        self.selected_worlds_hash = (
+            None if selected_worlds_hash is None else str(selected_worlds_hash)
+        )
         self.event = event
-        message = "merge point requires IC merge" if self.reason == "merge_required" else self.reason
+        message = (
+            "merge point requires IC merge"
+            if self.reason == "merge_required"
+            else self.reason
+        )
         if self.parent_commits:
             message += f": {', '.join(self.parent_commits)}"
         super().__init__(message)
@@ -299,10 +355,24 @@ class RevisionEpisode(
     event: RevisionEvent | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
-        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "target_atom_ids",
+            tuple(str(atom_id) for atom_id in self.target_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "rejected_atom_ids",
+            tuple(str(atom_id) for atom_id in self.rejected_atom_ids),
+        )
+        object.__setattr__(
+            self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set)
+        )
         object.__setattr__(
             self,
             "explanation",
@@ -328,8 +398,16 @@ class EpistemicState(
     history: tuple[RevisionEpisode, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
-        object.__setattr__(self, "ranked_atom_ids", tuple(str(atom_id) for atom_id in self.ranked_atom_ids))
+        object.__setattr__(
+            self,
+            "accepted_atom_ids",
+            tuple(str(atom_id) for atom_id in self.accepted_atom_ids),
+        )
+        object.__setattr__(
+            self,
+            "ranked_atom_ids",
+            tuple(str(atom_id) for atom_id in self.ranked_atom_ids),
+        )
         object.__setattr__(
             self,
             "ranking",
@@ -338,7 +416,10 @@ class EpistemicState(
         object.__setattr__(
             self,
             "entrenchment_reasons",
-            {str(atom_id): reason for atom_id, reason in self.entrenchment_reasons.items()},
+            {
+                str(atom_id): reason
+                for atom_id, reason in self.entrenchment_reasons.items()
+            },
         )
         object.__setattr__(self, "history", tuple(self.history))
 

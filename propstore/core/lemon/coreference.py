@@ -45,7 +45,9 @@ class CoreferenceQuery(msgspec.Struct, frozen=True):
     framework: ArgumentationFramework
     merge_arguments: tuple[CoreferenceMergeArgument, ...]
 
-    def _clusters_for_extension(self, accepted: frozenset[str]) -> frozenset[frozenset[str]]:
+    def _clusters_for_extension(
+        self, accepted: frozenset[str]
+    ) -> frozenset[frozenset[str]]:
         """Merge the supports of every accepted argument into connected clusters."""
 
         by_id = {argument.argument_id: argument for argument in self.merge_arguments}
@@ -88,7 +90,9 @@ class CoreferenceQuery(msgspec.Struct, frozen=True):
         """
 
         if semantics == "grounded":
-            return tuple(self._clusters_for_extension(grounded_extension(self.framework)))
+            return tuple(
+                self._clusters_for_extension(grounded_extension(self.framework))
+            )
         if semantics == "preferred":
             clusters: set[frozenset[str]] = set()
             for extension in preferred_extensions(self.framework):

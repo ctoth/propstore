@@ -350,7 +350,9 @@ class LiftingSystem:
 
 def _support_for_source(kind: str, source_id: str) -> SupportEvidence:
     return SupportEvidence(
-        ProvenancePolynomial.variable(SourceVariableId(f"ps:source:{kind}:{source_id}")),
+        ProvenancePolynomial.variable(
+            SourceVariableId(f"ps:source:{kind}:{source_id}")
+        ),
         SupportQuality.EXACT,
     )
 

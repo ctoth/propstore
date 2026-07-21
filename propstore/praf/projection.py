@@ -39,7 +39,9 @@ def build_praf(
         shared_analyzer_input_from_store,
     )
 
-    shared = shared_analyzer_input_from_store(store, active_claim_ids, comparison=comparison)
+    shared = shared_analyzer_input_from_store(
+        store, active_claim_ids, comparison=comparison
+    )
     return build_praf_from_shared_input(shared)
 
 

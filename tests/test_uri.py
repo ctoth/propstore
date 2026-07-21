@@ -14,8 +14,12 @@ _TOKEN_CHARS = st.characters(
     whitelist_categories=("Ll", "Lu", "Nd"),
     whitelist_characters=("_", "-", "."),
 )
-_AUTHORITY_NAME = st.from_regex(r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,30}[A-Za-z0-9])?", fullmatch=True)
-_URI_AUTHORITIES = st.builds(lambda name, year: f"{name},{year}", _AUTHORITY_NAME, st.integers(2000, 2099))
+_AUTHORITY_NAME = st.from_regex(
+    r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,30}[A-Za-z0-9])?", fullmatch=True
+)
+_URI_AUTHORITIES = st.builds(
+    lambda name, year: f"{name},{year}", _AUTHORITY_NAME, st.integers(2000, 2099)
+)
 _URI_TOKENS = st.text(_TOKEN_CHARS, min_size=1, max_size=32).filter(
     lambda value: value.strip("._-") != ""
 )
@@ -32,7 +36,9 @@ def test_repository_uri_authority_reads_repo_config(tmp_path: Path) -> None:
 
 
 @pytest.mark.property
-@given(authority=_URI_AUTHORITIES, kind=_URI_TOKENS, name=st.text(min_size=1, max_size=64))
+@given(
+    authority=_URI_AUTHORITIES, kind=_URI_TOKENS, name=st.text(min_size=1, max_size=64)
+)
 @settings(deadline=None)
 def test_tag_uri_is_deterministic_prefixed_and_normalizes_spaces(
     authority: str,
@@ -104,7 +110,9 @@ def test_ni_uri_for_bytes_is_deterministic(payload: bytes) -> None:
 @pytest.mark.property
 @given(left=st.binary(max_size=256), right=st.binary(max_size=256))
 @settings(deadline=None)
-def test_ni_uri_for_bytes_changes_when_payload_changes(left: bytes, right: bytes) -> None:
+def test_ni_uri_for_bytes_changes_when_payload_changes(
+    left: bytes, right: bytes
+) -> None:
     assume(left != right)
 
     assert ni_uri_for_bytes(left) != ni_uri_for_bytes(right)

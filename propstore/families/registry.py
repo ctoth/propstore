@@ -257,9 +257,9 @@ def semantic_init_roots() -> tuple[str, ...]:
     return tuple(dict.fromkeys(roots))
 
 
-def semantic_import_families() -> (
-    tuple[FamilyDefinition[object, object, object, object], ...]
-):
+def semantic_import_families() -> tuple[
+    FamilyDefinition[object, object, object, object], ...
+]:
     """Importable semantic families in foreign-key dependency order.
 
     The order is derived from the charter foreign-key graph: a family is placed
@@ -310,9 +310,7 @@ def _foreign_key_topo_order(charters: list[FamilyCharter]) -> list[FamilyCharter
     placed: set[str] = set()
     remaining = set(by_name)
     while remaining:
-        ready = sorted(
-            name for name in remaining if prerequisites[name] <= placed
-        )
+        ready = sorted(name for name in remaining if prerequisites[name] <= placed)
         if not ready:
             # Residual cycle: break it deterministically by name so the order is
             # still total and stable.

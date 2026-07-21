@@ -27,21 +27,33 @@ from propstore.support_revision.state import BeliefAtom
 
 
 class ExpandInput(
-    msgspec.Struct, frozen=True, forbid_unknown_fields=True, tag_field="operator", tag="expand"
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    tag_field="operator",
+    tag="expand",
 ):
     formula: BeliefAtom
     max_candidates: int
 
 
 class ContractInput(
-    msgspec.Struct, frozen=True, forbid_unknown_fields=True, tag_field="operator", tag="contract"
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    tag_field="operator",
+    tag="contract",
 ):
     targets: tuple[str, ...]
     max_candidates: int
 
 
 class ReviseInput(
-    msgspec.Struct, frozen=True, forbid_unknown_fields=True, tag_field="operator", tag="revise"
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    tag_field="operator",
+    tag="revise",
 ):
     formula: BeliefAtom
     max_candidates: int
@@ -67,7 +79,11 @@ class IteratedReviseInput(
 
 
 class ICMergeInput(
-    msgspec.Struct, frozen=True, forbid_unknown_fields=True, tag_field="operator", tag="ic_merge"
+    msgspec.Struct,
+    frozen=True,
+    forbid_unknown_fields=True,
+    tag_field="operator",
+    tag="ic_merge",
 ):
     profile_atom_ids: tuple[tuple[str, ...], ...]
     integrity_constraint: IntegrityConstraintSpec

@@ -7,6 +7,7 @@ tier. The workflow functions take a :class:`~propstore.core.environment.WorldSto
 :class:`~propstore.support_revision.workflows.RevisionWorldRequest`; this adapter
 only parses flags, calls them, and renders the typed results.
 """
+
 from __future__ import annotations
 
 import json
@@ -91,8 +92,7 @@ def world_revision_base(
         base: BeliefBase = revision_base(world_query, _request(args, context))
 
     emit(
-        f"Revision base ({len(base.atoms)} atoms, "
-        f"{len(base.assumptions)} assumptions)"
+        f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)"
     )
     for atom in base.atoms:
         emit(f"  {atom.atom_id}")
@@ -127,7 +127,9 @@ def world_revision_entrenchment(
     for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
         reason = report.reasons.get(atom_id)
         support_count = (
-            0 if reason is None or reason.support_count is None else reason.support_count
+            0
+            if reason is None or reason.support_count is None
+            else reason.support_count
         )
         essential = () if reason is None else reason.essential_support
         override = None if reason is None else reason.override_priority

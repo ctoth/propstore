@@ -29,8 +29,12 @@ _BATCH_FILE = click.option(
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     help="Batch YAML file to ingest.",
 )
-_READER = click.option("--reader", default=None, help="Who extracted these (name or model id).")
-_METHOD = click.option("--method", default=None, help="Extraction method (skill name, 'manual', …).")
+_READER = click.option(
+    "--reader", default=None, help="Who extracted these (name or model id)."
+)
+_METHOD = click.option(
+    "--method", default=None, help="Extraction method (skill name, 'manual', …)."
+)
 
 
 @source.command("add-concepts")
@@ -105,5 +109,7 @@ def add_stance(
 ) -> None:
     """Ingest a stances-batch YAML onto a source branch."""
     repo = require_repo(obj)
-    sha = commit_source_stances_batch(repo, name, batch_file, reader=reader, method=method)
+    sha = commit_source_stances_batch(
+        repo, name, batch_file, reader=reader, method=method
+    )
     emit_success(f"Wrote stances to source/{name} ({sha[:12]})")

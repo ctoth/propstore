@@ -123,9 +123,7 @@ class _GraphOverlayStore:
         if concept_id is None:
             return self._claims
         resolved = self.resolve_concept(concept_id) or concept_id
-        return [
-            claim for claim in self._claims if _value_concept_id(claim) == resolved
-        ]
+        return [claim for claim in self._claims if _value_concept_id(claim) == resolved]
 
     def claims_by_ids(self, claim_ids: set[str]) -> Mapping[str, Claim]:
         return {
@@ -201,7 +199,9 @@ class _GraphOverlayStore:
     def similar_concepts(
         self, concept_id: str, model_name: str | None = None, top_k: int = 10
     ) -> list[ConceptSimilarityHit]:
-        return self._base.similar_concepts(concept_id, model_name=model_name, top_k=top_k)
+        return self._base.similar_concepts(
+            concept_id, model_name=model_name, top_k=top_k
+        )
 
     def stats(self) -> WorldStoreStats:
         return self._base.stats()
@@ -244,7 +244,8 @@ class OverlayWorld(BeliefSpace):
         base_store = base.store
 
         self._removed_ids = {
-            base_store.resolve_claim(claim_id) or claim_id for claim_id in (remove or [])
+            base_store.resolve_claim(claim_id) or claim_id
+            for claim_id in (remove or [])
         }
         solver = base_store.condition_solver()
         self._synthetics = [
@@ -281,7 +282,9 @@ class OverlayWorld(BeliefSpace):
         for synthetic in self._synthetics:
             if synthetic.id in existing_ids:
                 continue
-            overlay_claims.append(_synthetic_claim(synthetic, existing=None, solver=solver))
+            overlay_claims.append(
+                _synthetic_claim(synthetic, existing=None, solver=solver)
+            )
 
         overlay_claim_ids = {str(claim.claim_id) for claim in overlay_claims}
         overlay_stances = list(base_store.stances_between(overlay_claim_ids))
@@ -310,7 +313,9 @@ class OverlayWorld(BeliefSpace):
             stances=overlay_stances,
             conflicts=overlay_conflicts,
         )
-        self._compiled: CompiledWorldGraph = build_compiled_world_graph(self._overlay_store)
+        self._compiled: CompiledWorldGraph = build_compiled_world_graph(
+            self._overlay_store
+        )
         active_graph = activate_compiled_world_graph(
             self._compiled,
             environment=base.environment,
@@ -455,8 +460,4 @@ def _conditions_ir(conditions: Sequence[str], solver: ConditionSolver) -> str | 
 
 
 def _value_set(result: ValueResult) -> set[object]:
-    return {
-        value
-        for claim in result.claims
-        if (value := claim.value) is not None
-    }
+    return {value for claim in result.claims if (value := claim.value) is not None}

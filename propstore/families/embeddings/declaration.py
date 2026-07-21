@@ -333,7 +333,9 @@ class SidecarConceptEmbeddingStore(_SidecarEntityStore):
                     "id": entity_id,
                     "distance": float(row["distance"]),
                     "primary_logical_id": None,
-                    "canonical_name": None if concept is None else concept.canonical_name,
+                    "canonical_name": None
+                    if concept is None
+                    else concept.canonical_name,
                     "definition": None if concept is None else concept.definition,
                 }
             )
@@ -347,10 +349,10 @@ def _claim_concept_id(claim: Claim) -> str | None:
     return None
 
 
-def _claim_store(conn: Connection, claims: Sequence[Claim]) -> SidecarClaimEmbeddingStore:
-    return SidecarClaimEmbeddingStore(
-        conn, claims, _rowids(conn, "claim", "claim_id")
-    )
+def _claim_store(
+    conn: Connection, claims: Sequence[Claim]
+) -> SidecarClaimEmbeddingStore:
+    return SidecarClaimEmbeddingStore(conn, claims, _rowids(conn, "claim", "claim_id"))
 
 
 def _concept_store(
@@ -465,7 +467,9 @@ def embed_claims_at(
 
     with embedding_connection(path, readonly=False) as conn:
         ensure_embedding_tables(conn)
-        return embed_claims(conn, claims, model_name, claim_ids, batch_size, on_progress)
+        return embed_claims(
+            conn, claims, model_name, claim_ids, batch_size, on_progress
+        )
 
 
 def embed_concepts_at(

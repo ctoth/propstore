@@ -362,7 +362,9 @@ def build_merge_framework(
             argument for argument in emitted if integrity_constraint.accepts(argument)
         ]
         integrity_constraint.assert_satisfied(emitted)
-    emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.assertion_id))
+    emitted.sort(
+        key=lambda argument: (argument.canonical_claim_id, argument.assertion_id)
+    )
     argument_index = {argument.assertion_id: argument for argument in emitted}
 
     _classify_cross_branch_pairs(

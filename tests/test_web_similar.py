@@ -47,7 +47,9 @@ def _embed_demo(repo: Repository) -> None:
         claims = list(world.claims_for(None))
         concepts = list(world.all_concepts())
         path = world.sidecar_path
-    with patch("propstore.heuristic.embed.require_litellm", return_value=_fake_litellm()):
+    with patch(
+        "propstore.heuristic.embed.require_litellm", return_value=_fake_litellm()
+    ):
         embed_claims_at(path, claims, "fake/model")
         embed_concepts_at(path, concepts, "fake/model")
 

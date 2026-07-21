@@ -144,7 +144,9 @@ def test_promote_rule_proposals_selective_and_idempotent(
     repo = Repository.init(tmp_path / "knowledge")
     proposal_sha = _seed_rule_proposals(monkeypatch, repo)
 
-    plan = plan_rule_proposal_promotion(repo, source_paper=PAPER, rule_ids=("rule-001",))
+    plan = plan_rule_proposal_promotion(
+        repo, source_paper=PAPER, rule_ids=("rule-001",)
+    )
     result = promote_rule_proposals(repo, plan)
 
     assert result.moved == 1

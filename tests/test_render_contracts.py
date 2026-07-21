@@ -64,7 +64,9 @@ def test_summary_reports_json_ready(tmp_path: Path) -> None:
 def test_neighborhood_report_json_ready(tmp_path: Path) -> None:
     repo = build_demo_repo(tmp_path)
     with WorldQuery(repo) as world:
-        report = build_semantic_neighborhood(world, "claim", "p_speed", policy=_policy())
+        report = build_semantic_neighborhood(
+            world, "claim", "p_speed", policy=_policy()
+        )
     payload = report.to_json()
     assert _is_json_serializable(payload)
     # ViewState lowers to its string value, not an enum repr.

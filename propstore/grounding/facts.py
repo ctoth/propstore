@@ -69,11 +69,16 @@ def extract_facts(
                 predicate.predicate_id, spec, inputs.concepts, registry, collected
             )
         else:
-            _collect_claim_facts(predicate.predicate_id, spec, inputs.claims, registry, collected)
+            _collect_claim_facts(
+                predicate.predicate_id, spec, inputs.claims, registry, collected
+            )
     return tuple(
         sorted(
             collected,
-            key=lambda atom: (atom.predicate, tuple(str(arg) for arg in atom.arguments)),
+            key=lambda atom: (
+                atom.predicate,
+                tuple(str(arg) for arg in atom.arguments),
+            ),
         )
     )
 
@@ -104,7 +109,9 @@ def _collect_concept_relation_facts(
             if str(target) != spec.target:
                 continue
             collected.add(
-                gunray.GroundAtom(predicate=predicate_id, arguments=(concept.canonical_name,))
+                gunray.GroundAtom(
+                    predicate=predicate_id, arguments=(concept.canonical_name,)
+                )
             )
 
 
@@ -120,7 +127,9 @@ def _collect_claim_facts(
         if spec.kind == "claim_attribute" and spec.attribute is not None:
             value = getattr(claim, spec.attribute, None)
             if value is not None:
-                _add_claim_scalar_fact(predicate_id, claim_id, value, registry, collected)
+                _add_claim_scalar_fact(
+                    predicate_id, claim_id, value, registry, collected
+                )
         elif spec.kind == "claim_condition" and spec.condition is not None:
             for authored_condition in claim.conditions:
                 if authored_condition == spec.condition:
@@ -130,7 +139,11 @@ def _collect_claim_facts(
         elif spec.kind == "claim_role" and spec.role is not None:
             for concept_id in _claim_role_bindings(claim, spec.role):
                 _add_fact(
-                    predicate_id, (claim_id, concept_id), ("Claim", "Concept"), registry, collected
+                    predicate_id,
+                    (claim_id, concept_id),
+                    ("Claim", "Concept"),
+                    registry,
+                    collected,
                 )
         elif spec.kind == "claim_context":
             if claim.context_id is not None:
@@ -144,7 +157,9 @@ def _collect_claim_facts(
         elif spec.kind == "claim_provenance" and spec.provenance_field is not None:
             value = getattr(claim, spec.provenance_field, None)
             if value is not None:
-                _add_claim_scalar_fact(predicate_id, claim_id, value, registry, collected)
+                _add_claim_scalar_fact(
+                    predicate_id, claim_id, value, registry, collected
+                )
 
 
 def _claim_role_bindings(claim: Claim, role: str) -> tuple[str, ...]:

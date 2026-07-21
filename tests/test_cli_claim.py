@@ -11,6 +11,7 @@ Ported and adapted from the reference ``test_cli`` claim display cases; cases
 whose owner does not exist in the rewrite (``embed`` / ``similar`` / ``relate`` /
 ``validate`` / ``conflicts``) are deferred and noted in the worker report.
 """
+
 from __future__ import annotations
 
 import json

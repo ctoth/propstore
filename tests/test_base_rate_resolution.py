@@ -193,7 +193,9 @@ def test_recursive_base_rate_dependency_is_unresolved() -> None:
 @pytest.mark.property
 @given(
     st.lists(
-        st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False),
+        st.floats(
+            min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False
+        ),
         min_size=1,
         max_size=8,
     )

@@ -32,7 +32,12 @@ from propstore.conflict_detector import (
 from propstore.conflict_detector.models import ConflictClaim
 from propstore.core.graph_types import ParameterizationEdge
 from propstore.core.id_types import to_concept_id, to_concept_ids
-from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.families.claims import ClaimType, Exactness
 from propstore.conflict_detector.parameterization_conflicts import (
     detect_parameterization_conflicts,
@@ -119,16 +124,26 @@ def _claim(payload: dict[str, Any]) -> ConflictClaim:
     )
 
 
-def _param_claim(claim_id: str, concept_id: str, value: float, **extra: Any) -> ConflictClaim:
+def _param_claim(
+    claim_id: str, concept_id: str, value: float, **extra: Any
+) -> ConflictClaim:
     return _claim(
-        {"id": claim_id, "type": "parameter", "output_concept": concept_id, "value": value, **extra}
+        {
+            "id": claim_id,
+            "type": "parameter",
+            "output_concept": concept_id,
+            "value": value,
+            **extra,
+        }
     )
 
 
 # ── single-hop derivation ────────────────────────────────────────────
 
 
-def test_detect_param_conflicts_handles_equality_parameterizations_without_warning() -> None:
+def test_detect_param_conflicts_handles_equality_parameterizations_without_warning() -> (
+    None
+):
     by_concept = {
         "concept1": [_claim({"id": "claim_a", "value": 10.0})],
         "concept2": [_claim({"id": "claim_b", "value": 9.807})],
@@ -151,7 +166,9 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         concepts, parameterizations = _inputs(concept_registry)
-        records = detect_parameterization_conflicts(by_concept, concepts, parameterizations, [])
+        records = detect_parameterization_conflicts(
+            by_concept, concepts, parameterizations, []
+        )
 
     param_warnings = [
         warning
@@ -302,7 +319,9 @@ def test_single_hop_conflict_carries_derived_conditions() -> None:
         ),
     }
     concepts, parameterizations = _inputs(concept_registry)
-    records = detect_parameterization_conflicts(by_concept, concepts, parameterizations, [])
+    records = detect_parameterization_conflicts(
+        by_concept, concepts, parameterizations, []
+    )
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
     assert [str(condition) for condition in records[0].conditions_b] == [

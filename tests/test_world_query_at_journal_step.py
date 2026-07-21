@@ -25,7 +25,11 @@ from propstore.families.relations import Stance
 from propstore.stances import StanceType
 from propstore.support_revision.state import RevisionScope
 from propstore.world.bridge import at_journal_step
-from propstore.world.journal_replay import cache_stats, register_fixture_commit, reset_cache
+from propstore.world.journal_replay import (
+    cache_stats,
+    register_fixture_commit,
+    reset_cache,
+)
 from tests.fixtures.journal import (
     direct_dispatch,
     make_assertion_atom,
@@ -111,8 +115,7 @@ def test_p5_at_journal_step_matches_direct_dispatch(triple) -> None:
         }
         view = at_journal_step(space, journal, k)
         assert view.claim_ids() == ground_truth_claim_ids, (
-            f"step {k}: oracle={ground_truth_claim_ids}, "
-            f"bridge={view.claim_ids()}"
+            f"step {k}: oracle={ground_truth_claim_ids}, bridge={view.claim_ids()}"
         )
 
 

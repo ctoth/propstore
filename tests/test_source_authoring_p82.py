@@ -120,7 +120,9 @@ def test_concept_proposal_rejects_unknown_form_when_forms_exist(
     repo = _new_source(tmp_path)
     repo.families.form.save(
         "dimensionless",
-        FormDefinition(name="dimensionless", kind=KindType.QUANTITY, is_dimensionless=True),
+        FormDefinition(
+            name="dimensionless", kind=KindType.QUANTITY, is_dimensionless=True
+        ),
         message="seed form",
     )
     with pytest.raises(ValueError, match="Unknown form"):

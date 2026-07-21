@@ -322,9 +322,7 @@ def _concepts_report(request: Request) -> ConceptListReport | ConceptSearchRepor
         return search_concepts(world, query, policy=policy, limit=limit)
 
 
-def _neighborhood_report(
-    claim_id: str, request: Request
-) -> SemanticNeighborhoodReport:
+def _neighborhood_report(claim_id: str, request: Request) -> SemanticNeighborhoodReport:
     policy = _policy(request)
     limit = _parse_limit(request.query_params.get("limit"))
     with open_app_world_model(_repo(request)) as world:
@@ -382,9 +380,7 @@ def _policy(request: Request) -> RenderPolicy:
 def _revision_request(request: Request) -> RevisionWorldRequest:
     reserved = {"context"}
     bindings = {
-        key: value
-        for key, value in request.query_params.items()
-        if key not in reserved
+        key: value for key, value in request.query_params.items() if key not in reserved
     }
     return RevisionWorldRequest(
         bindings=bindings,

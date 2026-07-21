@@ -4,6 +4,7 @@
 :mod:`propstore.world.reasoning_reports` owner tier. ``world_status`` is also the
 synthetic root ``pks status`` command (the lazy registry maps ``status`` here).
 """
+
 from __future__ import annotations
 
 import click
@@ -216,9 +217,6 @@ def world_algorithms(
         return
     emit_table(
         ("ID", "Name", "Concept"),
-        [
-            (claim.claim_id, claim.name, claim.concept_id)
-            for claim in report.algorithms
-        ],
+        [(claim.claim_id, claim.name, claim.concept_id) for claim in report.algorithms],
     )
     emit(f"\n{len(report.algorithms)} algorithm claim(s).")

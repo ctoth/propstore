@@ -266,7 +266,9 @@ def _bundle(
         context_id=context_id,
         claims=claims,
         version_id=version_id,
-        evidence=(MicropublicationEvidence(kind="paper_page", reference=f"demo:{page}"),),
+        evidence=(
+            MicropublicationEvidence(kind="paper_page", reference=f"demo:{page}"),
+        ),
         assumptions=("domain == 'argumentation'",),
         provenance=SourceProvenanceDocument(paper="demo", page=page),
         source=source_id,
@@ -276,9 +278,7 @@ def _bundle(
 def test_micropub_id_is_trusty_uri_over_canonical_payload() -> None:
     left = _bundle()
     # Same semantic content, different recursive identity fields.
-    right = _bundle(
-        artifact_id="ps:micropub:different", version_id="different-version"
-    )
+    right = _bundle(artifact_id="ps:micropub:different", version_id="different-version")
     assert canonical_micropub_payload(left) == canonical_micropub_payload(right)
     assert micropub_artifact_id(left) == micropub_artifact_id(right)
     assert micropub_artifact_id(left).startswith("ni:///sha-256;")
@@ -364,9 +364,7 @@ def test_stamp_source_artifact_codes_is_deterministic_and_content_sensitive(
     # Editing claim content changes its code (and not the source code).
     edited_claims = msgspec.structs.replace(
         claims_doc,
-        claims=(
-            msgspec.structs.replace(claims_doc.claims[0], statement="edited"),
-        ),
+        claims=(msgspec.structs.replace(claims_doc.claims[0], statement="edited"),),
     )
     _, edited_out, _, _ = stamp_source_artifact_codes(
         source_doc, edited_claims, None, None

@@ -6,6 +6,7 @@ command they name is actually invoked, so asking for one command never imports a
 unrelated family. Command families with sibling modules are packages; this module
 owns only the root group, the lazy registry, and the aliases.
 """
+
 from __future__ import annotations
 
 import os
@@ -19,39 +20,99 @@ if TYPE_CHECKING:
     from propstore.repository import Repository
 
 _COMMANDS: dict[str, tuple[str, str, str]] = {
-    "build": ("propstore.cli.compiler_cmds", "build", "Validate, build sidecar, and run conflict detection."),
-    "checkout": ("propstore.cli.history_cmds", "checkout_cmd", "Checkout a repository commit."),
+    "build": (
+        "propstore.cli.compiler_cmds",
+        "build",
+        "Validate, build sidecar, and run conflict detection.",
+    ),
+    "checkout": (
+        "propstore.cli.history_cmds",
+        "checkout_cmd",
+        "Checkout a repository commit.",
+    ),
     "claim": ("propstore.cli.claim", "claim", "Manage claims."),
     "concept": ("propstore.cli.concept", "concept", "Manage concepts in the registry."),
-    "contract-manifest": ("propstore.cli.contracts", "contract_manifest", "Render or write contract manifest."),
+    "contract-manifest": (
+        "propstore.cli.contracts",
+        "contract_manifest",
+        "Render or write contract manifest.",
+    ),
     "context": ("propstore.cli.context", "context", "Manage contexts."),
     "diff": ("propstore.cli.history_cmds", "diff_cmd", "Show repository changes."),
-    "event": ("propstore.cli.event", "event", "Query render-time description-claim coreference."),
-    "export-aliases": ("propstore.cli.compiler_cmds", "export_aliases", "Export concept aliases."),
+    "event": (
+        "propstore.cli.event",
+        "event",
+        "Query render-time description-claim coreference.",
+    ),
+    "export-aliases": (
+        "propstore.cli.compiler_cmds",
+        "export_aliases",
+        "Export concept aliases.",
+    ),
     "form": ("propstore.cli.form", "form", "Manage form definitions."),
-    "grounding": ("propstore.cli.grounding_cmds", "grounding", "Inspect grounding artifacts."),
+    "grounding": (
+        "propstore.cli.grounding_cmds",
+        "grounding",
+        "Inspect grounding artifacts.",
+    ),
     "import-repository": (
         "propstore.cli.repository_import_cmd",
         "import_repository_cmd",
         "Import a repository snapshot.",
     ),
-    "init": ("propstore.cli.init", "init", "Initialize a propstore knowledge repository."),
-    "log": ("propstore.cli.history_cmds", "log_cmd", "Show knowledge repository history."),
-    "materialize": ("propstore.cli.materialize", "materialize_cmd", "Project committed artifacts to loose files."),
+    "init": (
+        "propstore.cli.init",
+        "init",
+        "Initialize a propstore knowledge repository.",
+    ),
+    "log": (
+        "propstore.cli.history_cmds",
+        "log_cmd",
+        "Show knowledge repository history.",
+    ),
+    "materialize": (
+        "propstore.cli.materialize",
+        "materialize_cmd",
+        "Project committed artifacts to loose files.",
+    ),
     "merge": ("propstore.cli.merge_cmds", "merge", "Merge repository branches."),
     "micropub": ("propstore.cli.micropub", "micropub", "Manage micropublications."),
-    "observatory": ("propstore.cli.observatory", "observatory", "Run epistemic observatory fixtures."),
-    "predicate": ("propstore.cli.predicate", "predicate", "Declare DeLP/Datalog predicates."),
+    "observatory": (
+        "propstore.cli.observatory",
+        "observatory",
+        "Run epistemic observatory fixtures.",
+    ),
+    "predicate": (
+        "propstore.cli.predicate",
+        "predicate",
+        "Declare DeLP/Datalog predicates.",
+    ),
     "proposal": ("propstore.cli.proposal", "proposal", "Manage proposal artifacts."),
     "rule": ("propstore.cli.rule", "rule", "Author DeLP rules."),
     "show": ("propstore.cli.history_cmds", "show_cmd", "Show a repository commit."),
-    "source": ("propstore.cli.source", "source", "Manage source-local authoring state."),
-    "temporal": ("propstore.cli.temporal", "temporal", "Author temporal evidence and query happens-before order."),
-    "validate": ("propstore.cli.compiler_cmds", "validate", "Validate concepts and claims."),
+    "source": (
+        "propstore.cli.source",
+        "source",
+        "Manage source-local authoring state.",
+    ),
+    "temporal": (
+        "propstore.cli.temporal",
+        "temporal",
+        "Author temporal evidence and query happens-before order.",
+    ),
+    "validate": (
+        "propstore.cli.compiler_cmds",
+        "validate",
+        "Validate concepts and claims.",
+    ),
     "verify": ("propstore.cli.verify", "verify", "Verify repository evidence."),
     "web": ("propstore.cli.web", "web", "Serve the propstore web UI."),
     "world": ("propstore.cli.world", "world", "Query the world model."),
-    "worldline": ("propstore.cli.worldline", "worldline", "Manage materialized query artifacts."),
+    "worldline": (
+        "propstore.cli.worldline",
+        "worldline",
+        "Manage materialized query artifacts.",
+    ),
 }
 
 _QUICKSTART_COMMANDS = (
@@ -170,7 +231,9 @@ class _LazyCLIGroup(click.Group):
         module_name, attribute_name, _help = spec
         return _load_command(module_name, attribute_name)
 
-    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_commands(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         rows = [
             (
                 name,
@@ -205,7 +268,9 @@ class _AdvancedCLIGroup(click.Group):
         module_name, attribute_name, _help = spec
         return _load_command(module_name, attribute_name)
 
-    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_commands(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
         rows = [(name, _COMMANDS[name][2]) for name in _ADVANCED_COMMANDS]
         if rows:
             with formatter.section("Commands"):

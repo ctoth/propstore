@@ -110,7 +110,9 @@ class TemporalFrame(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     provenance: Provenance
 
 
-class DescriptionTemporalAnchor(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+class DescriptionTemporalAnchor(
+    msgspec.Struct, frozen=True, forbid_unknown_fields=True
+):
     """The validity interval of a description claim within one declared frame.
 
     Bounds are OPTIONAL: an absent bound is honest ignorance (CLAUDE.md
@@ -270,17 +272,29 @@ _RELATION_EXPRESSIONS: dict[AllenRelation, CelExpr] = {
         "left_from < right_from && right_from < left_until && left_until < right_until"
     ),
     AllenRelation.DURING: CelExpr("right_from < left_from && left_until < right_until"),
-    AllenRelation.STARTS: CelExpr("left_from == right_from && left_until < right_until"),
-    AllenRelation.FINISHES: CelExpr("right_from < left_from && left_until == right_until"),
-    AllenRelation.EQUALS: CelExpr("left_from == right_from && left_until == right_until"),
+    AllenRelation.STARTS: CelExpr(
+        "left_from == right_from && left_until < right_until"
+    ),
+    AllenRelation.FINISHES: CelExpr(
+        "right_from < left_from && left_until == right_until"
+    ),
+    AllenRelation.EQUALS: CelExpr(
+        "left_from == right_from && left_until == right_until"
+    ),
     AllenRelation.AFTER: CelExpr("right_until < left_from"),
     AllenRelation.MET_BY: CelExpr("right_until == left_from"),
     AllenRelation.OVERLAPPED_BY: CelExpr(
         "right_from < left_from && left_from < right_until && right_until < left_until"
     ),
-    AllenRelation.CONTAINS: CelExpr("left_from < right_from && right_until < left_until"),
-    AllenRelation.STARTED_BY: CelExpr("left_from == right_from && right_until < left_until"),
-    AllenRelation.FINISHED_BY: CelExpr("left_from < right_from && left_until == right_until"),
+    AllenRelation.CONTAINS: CelExpr(
+        "left_from < right_from && right_until < left_until"
+    ),
+    AllenRelation.STARTED_BY: CelExpr(
+        "left_from == right_from && right_until < left_until"
+    ),
+    AllenRelation.FINISHED_BY: CelExpr(
+        "left_from < right_from && left_until == right_until"
+    ),
 }
 
 

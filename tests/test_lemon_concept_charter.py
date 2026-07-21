@@ -59,7 +59,9 @@ def _lemon_concept() -> Concept:
         )
     )
     sense = LexicalSense(
-        reference=OntologyReference(uri="tag:prop.store,2026:concept/temperature", label="Temperature"),
+        reference=OntologyReference(
+            uri="tag:prop.store,2026:concept/temperature", label="Temperature"
+        ),
         usage="A thermal state quantity.",
         provenance=_provenance(),
         qualia=QualiaStructure(
@@ -79,7 +81,9 @@ def _lemon_concept() -> Concept:
             slots=(
                 ParticipantSlot(
                     name="instrument",
-                    type_constraint=OntologyReference(uri="ps:concept:measurement_instrument"),
+                    type_constraint=OntologyReference(
+                        uri="ps:concept:measurement_instrument"
+                    ),
                     proto_role_bundle=bundle,
                 ),
             ),
@@ -120,7 +124,9 @@ def test_concept_with_lemon_entry_round_trips_through_git() -> None:
     assert loaded_sense.description_kind is not None
     assert loaded_sense.description_kind.slots[0].name == "instrument"
     assert loaded_sense.role_bundles is not None
-    assert loaded_sense.role_bundles["instrument"].proto_agent_entailments[0].value == 0.75
+    assert (
+        loaded_sense.role_bundles["instrument"].proto_agent_entailments[0].value == 0.75
+    )
 
 
 def test_lemon_concept_projects_into_sidecar(tmp_path) -> None:

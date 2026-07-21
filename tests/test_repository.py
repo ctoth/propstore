@@ -11,7 +11,10 @@ from quire.git_store import GitStore
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
 from propstore.families.claims import Claim
-from propstore.families.micropublications import Micropublication, MicropublicationEvidence
+from propstore.families.micropublications import (
+    Micropublication,
+    MicropublicationEvidence,
+)
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.repository import (
     PROPSTORE_REPOSITORY_FORMAT_VERSION,
@@ -84,7 +87,9 @@ def test_micropublication_round_trips_with_resolved_references(tmp_path: Path) -
     # and claim references resolve saves and loads through one bound store, and
     # the registry's foreign-key validation accepts the resolved references.
     repo = Repository.init(tmp_path)
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="C"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="C"), message="m"
+    )
     repo.families.claim.save("cl1", Claim(claim_id="cl1"), message="m")
     micropub = Micropublication(
         artifact_id="mp1",

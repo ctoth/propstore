@@ -85,7 +85,10 @@ def test_conflict_between_joint_conditions_prunes_via_nogood() -> None:
     )
     engine = bound.atms_engine()
     nogood = make_environment_key(
-        assumption_ids=(assumption_id_for(bound, "a == 1"), assumption_id_for(bound, "b == 1"))
+        assumption_ids=(
+            assumption_id_for(bound, "a == 1"),
+            assumption_id_for(bound, "b == 1"),
+        )
     )
     assert nogood in engine.nogoods.environments
 
@@ -100,7 +103,9 @@ def test_conflict_between_joint_conditions_prunes_via_nogood() -> None:
 def test_parameterization_materializes_derived_support() -> None:
     bound = build_bound(
         claims=[ClaimSpec("claim_a", "concept1", value=4.0, conditions=("a == 1",))],
-        parameterizations=[ParamSpec("concept3", ("concept1",), "Eq(concept3, concept1)", "z=a")],
+        parameterizations=[
+            ParamSpec("concept3", ("concept1",), "Eq(concept3, concept1)", "z=a")
+        ],
         bindings={"a": 1},
     )
     derived = bound.derived_value("concept3")
@@ -127,7 +132,10 @@ def test_derived_value_contradiction_is_conflicted_and_seeds_nogood() -> None:
     assert result.status is ValueStatus.CONFLICTED
     assert result.value is None
     nogood = make_environment_key(
-        assumption_ids=(assumption_id_for(bound, "a == 1"), assumption_id_for(bound, "b == 2"))
+        assumption_ids=(
+            assumption_id_for(bound, "a == 1"),
+            assumption_id_for(bound, "b == 2"),
+        )
     )
     assert nogood in bound.atms_engine().nogoods.environments
 
@@ -164,7 +172,10 @@ def test_relevance_marks_the_flipping_queryable() -> None:
     )
     relevant = bound.claim_relevant_queryables(
         "c_cond",
-        [QueryableAssumption.from_cel("x == 1"), QueryableAssumption.from_cel("y == 9")],
+        [
+            QueryableAssumption.from_cel("x == 1"),
+            QueryableAssumption.from_cel("y == 9"),
+        ],
         limit=16,
     )
     assert "x == 1" in relevant
@@ -181,7 +192,9 @@ def test_interventions_and_next_queryables_target_in() -> None:
     assert all(plan.target_status is ATMSNodeStatus.IN for plan in plans)
     assert any("x == 1" in plan.queryable_cels for plan in plans)
 
-    suggestions = bound.claim_next_queryables("c_cond", queryables, ATMSNodeStatus.IN, limit=8)
+    suggestions = bound.claim_next_queryables(
+        "c_cond", queryables, ATMSNodeStatus.IN, limit=8
+    )
     assert any(suggestion.queryable_cel == "x == 1" for suggestion in suggestions)
 
 
@@ -207,7 +220,10 @@ def test_explain_nogood_returns_provenance() -> None:
         bindings={"a": 1, "b": 1},
     )
     nogood = make_environment_key(
-        assumption_ids=(assumption_id_for(bound, "a == 1"), assumption_id_for(bound, "b == 1"))
+        assumption_ids=(
+            assumption_id_for(bound, "a == 1"),
+            assumption_id_for(bound, "b == 1"),
+        )
     )
     detail = bound.explain_nogood(nogood)
     assert detail is not None

@@ -35,10 +35,17 @@ def _base_repo(tmp_path: Path) -> Repository:
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.claim.save(
         "cl1",
-        Claim(claim_id="cl1", context_id="ctx1", claim_type=ClaimType.OBSERVATION, statement="x"),
+        Claim(
+            claim_id="cl1",
+            context_id="ctx1",
+            claim_type=ClaimType.OBSERVATION,
+            statement="x",
+        ),
         message="m",
     )
     return repo

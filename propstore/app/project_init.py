@@ -157,7 +157,9 @@ def _form_from_seed(seed: _SeedForm) -> FormDefinition:
         unit_symbol=seed.unit_symbol,
         is_dimensionless=seed.dimensionless,
         dimensions=seed.dimensions,
-        conversions={alt.unit: _unit_conversion(alt) for alt in seed.common_alternatives},
+        conversions={
+            alt.unit: _unit_conversion(alt) for alt in seed.common_alternatives
+        },
         delta_conversions={
             alt.unit: _unit_conversion(alt) for alt in seed.delta_alternatives
         },
@@ -181,7 +183,9 @@ def _seed_forms() -> list[FormDefinition]:
 # ── concept mapping ──────────────────────────────────────────────────────────
 
 
-def _proto_role_bundle(slot: _SeedSlot, provenance: Provenance) -> ProtoRoleBundle | None:
+def _proto_role_bundle(
+    slot: _SeedSlot, provenance: Provenance
+) -> ProtoRoleBundle | None:
     if slot.proto_agent is None and slot.proto_patient is None:
         return None
     return ProtoRoleBundle(
@@ -226,7 +230,9 @@ def _qualia_references(
             type_constraint=(
                 None
                 if reference.type_constraint is None
-                else TypeConstraint(reference=OntologyReference(uri=reference.type_constraint))
+                else TypeConstraint(
+                    reference=OntologyReference(uri=reference.type_constraint)
+                )
             ),
         )
         for reference in references
@@ -247,7 +253,9 @@ def _concept_from_seed(seed: _SeedConcept, provenance: Provenance) -> Concept:
         reference=OntologyReference(uri=seed.artifact_id, label=seed.name),
         usage=seed.definition,
         provenance=provenance,
-        qualia=None if seed.qualia is None else _qualia_structure(seed.qualia, provenance),
+        qualia=None
+        if seed.qualia is None
+        else _qualia_structure(seed.qualia, provenance),
         description_kind=(
             None
             if seed.description_kind is None

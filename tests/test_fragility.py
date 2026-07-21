@@ -270,13 +270,21 @@ class TestUtilityScores:
             arguments=frozenset({"A", "B"}),
             defeats=frozenset({("A", "B"), ("B", "A")}),
         )
-        assert score_conflict(framework, "A", "B") == score_conflict(framework, "B", "A")
+        assert score_conflict(framework, "A", "B") == score_conflict(
+            framework, "B", "A"
+        )
 
     def test_weighted_epistemic_score_applies_out_sign_correction(self) -> None:
         witnesses = [{"future_idx": 0}, {"future_idx": 1}]
-        assert weighted_epistemic_score(witnesses, 4, current_in_extension=True) == pytest.approx(0.5)
-        assert weighted_epistemic_score(witnesses, 4, current_in_extension=False) == pytest.approx(0.5)
-        assert weighted_epistemic_score([{"future_idx": 0}], 4, current_in_extension=False) == pytest.approx(0.75)
+        assert weighted_epistemic_score(
+            witnesses, 4, current_in_extension=True
+        ) == pytest.approx(0.5)
+        assert weighted_epistemic_score(
+            witnesses, 4, current_in_extension=False
+        ) == pytest.approx(0.5)
+        assert weighted_epistemic_score(
+            [{"future_idx": 0}], 4, current_in_extension=False
+        ) == pytest.approx(0.75)
 
     def test_support_derivative_fragility_uses_live_support(self) -> None:
         a = SourceVariableId("ps:source:assumption:a")
@@ -295,12 +303,15 @@ class TestUtilityScores:
             live_nogoods=(nogood,),
             total_worlds=4,
         ) == pytest.approx(0.25)
-        assert support_derivative_fragility(
-            support,
-            b,
-            live_nogoods=(nogood,),
-            total_worlds=4,
-        ) == 0.0
+        assert (
+            support_derivative_fragility(
+                support,
+                b,
+                live_nogoods=(nogood,),
+                total_worlds=4,
+            )
+            == 0.0
+        )
 
     def test_imps_rev_requires_explicit_probabilistic_inputs(self) -> None:
         from argumentation.core.dung import ArgumentationFramework
@@ -330,15 +341,23 @@ class TestUtilityScores:
         )
         provenance = Provenance(status=ProvenanceStatus.VACUOUS, witnesses=())
         p_args = {
-            "A": OpinionWithProvenance(opinion=Opinion.vacuous(0.5), provenance=provenance),
-            "B": OpinionWithProvenance(opinion=Opinion.vacuous(0.5), provenance=provenance),
+            "A": OpinionWithProvenance(
+                opinion=Opinion.vacuous(0.5), provenance=provenance
+            ),
+            "B": OpinionWithProvenance(
+                opinion=Opinion.vacuous(0.5), provenance=provenance
+            ),
         }
         p_defeats = {
-            ("A", "B"): OpinionWithProvenance(opinion=Opinion.vacuous(0.5), provenance=provenance)
+            ("A", "B"): OpinionWithProvenance(
+                opinion=Opinion.vacuous(0.5), provenance=provenance
+            )
         }
         seen: list[tuple[object, object, object]] = []
 
-        def fake_dfquad(graph: object, *, base_scores: object, support_weights: object) -> object:
+        def fake_dfquad(
+            graph: object, *, base_scores: object, support_weights: object
+        ) -> object:
             seen.append((graph, base_scores, support_weights))
 
             class Result:
@@ -378,8 +397,8 @@ def _mock_bound_for_atms(queryable_order: list[str]) -> MagicMock:
             conditions=tuple(queryable_order),
         )
     ]
-    bound.active_claims.side_effect = (
-        lambda concept_id=None: [{"claim_id": "claim1"}] if concept_id == "c1" else []
+    bound.active_claims.side_effect = lambda concept_id=None: (
+        [{"claim_id": "claim1"}] if concept_id == "c1" else []
     )
     engine = MagicMock()
     queryables = [QueryableAssumption.from_cel(cel) for cel in queryable_order]
@@ -412,7 +431,9 @@ class TestATMSInterventions:
     @pytest.mark.property
     @given(st.permutations(["x == 1", "y == 2"]))
     @settings(deadline=None)
-    def test_queryable_order_does_not_change_assumption_ids(self, ordered_conditions: tuple[str, str]) -> None:
+    def test_queryable_order_does_not_change_assumption_ids(
+        self, ordered_conditions: tuple[str, str]
+    ) -> None:
         bound = _mock_bound_for_atms(list(ordered_conditions))
         ranked = collect_assumption_interventions(bound, ["c1"], None, atms_limit=8)
         assert {item.target.intervention_id for item in ranked} == {
@@ -432,7 +453,10 @@ class TestATMSInterventions:
             include_bridge=False,
         )
         assert report.interventions
-        assert all(item.target.kind is InterventionKind.ASSUMPTION for item in report.interventions)
+        assert all(
+            item.target.kind is InterventionKind.ASSUMPTION
+            for item in report.interventions
+        )
 
     def test_assumption_interventions_carry_derivative_support(self) -> None:
         bound = _mock_bound_for_atms(["x == 1", "y == 2"])
@@ -451,7 +475,9 @@ class TestMissingMeasurementInterventions:
     @pytest.mark.property
     @given(st.permutations(["viscosity", "temperature"]))
     @settings(deadline=None)
-    def test_parameterization_order_does_not_change_missing_measurement_ids(self, inputs: tuple[str, str]) -> None:
+    def test_parameterization_order_does_not_change_missing_measurement_ids(
+        self, inputs: tuple[str, str]
+    ) -> None:
         bound = MagicMock()
         bound.store.all_parameterizations.return_value = [
             ParameterizationEdge(
@@ -465,7 +491,9 @@ class TestMissingMeasurementInterventions:
             "missing_measurement:temperature",
             "missing_measurement:viscosity",
         }
-        assert all(item.target.kind is InterventionKind.MISSING_MEASUREMENT for item in ranked)
+        assert all(
+            item.target.kind is InterventionKind.MISSING_MEASUREMENT for item in ranked
+        )
 
 
 class TestConflictInterventions:
@@ -618,68 +646,88 @@ class TestRankFragility:
         from unittest.mock import patch
 
         bound = MagicMock()
-        with patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]), \
-             patch("propstore.fragility.collect_assumption_interventions", return_value=()), \
-             patch(
-                 "propstore.fragility.collect_missing_measurement_interventions",
-                 return_value=(
-                     RankedIntervention(
-                         target=InterventionTarget(
-                             intervention_id="missing_measurement:expensive",
-                             kind=InterventionKind.MISSING_MEASUREMENT,
-                             family=InterventionFamily.DISCOVERY,
-                             subject_id="expensive",
-                             description="expensive",
-                             cost_tier=3,
-                             provenance=InterventionProvenance(
-                                 family=InterventionFamily.DISCOVERY,
-                                 source_ids=("x",),
-                                 subject_concept_ids=("x",),
-                             ),
-                             payload=MissingMeasurementTarget(
-                                 concept_id="expensive",
-                                 discovered_from_parameterizations=("x",),
-                                 downstream_subjects=("x",),
-                             ),
-                         ),
-                         local_fragility=0.9,
-                         roi=0.3,
-                         ranking_policy=RankingPolicy.HEURISTIC_ROI,
-                         score_explanation="expensive",
-                     ),
-                     RankedIntervention(
-                         target=InterventionTarget(
-                             intervention_id="missing_measurement:cheap",
-                             kind=InterventionKind.MISSING_MEASUREMENT,
-                             family=InterventionFamily.DISCOVERY,
-                             subject_id="cheap",
-                             description="cheap",
-                             cost_tier=1,
-                             provenance=InterventionProvenance(
-                                 family=InterventionFamily.DISCOVERY,
-                                 source_ids=("y",),
-                                 subject_concept_ids=("y",),
-                             ),
-                             payload=MissingMeasurementTarget(
-                                 concept_id="cheap",
-                                 discovered_from_parameterizations=("y",),
-                                 downstream_subjects=("y",),
-                             ),
-                         ),
-                         local_fragility=0.6,
-                         roi=0.6,
-                         ranking_policy=RankingPolicy.HEURISTIC_ROI,
-                         score_explanation="cheap",
-                     ),
-                 ),
-             ), \
-             patch("propstore.fragility.collect_conflict_interventions", return_value=()), \
-             patch("propstore.fragility.collect_ground_fact_interventions", return_value=()), \
-             patch("propstore.fragility.collect_grounded_rule_interventions", return_value=()), \
-             patch("propstore.fragility.collect_bridge_undercut_interventions", return_value=()), \
-             patch("propstore.fragility.build_bound_bridge_inputs", return_value=((), [], [])):
+        with (
+            patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]),
+            patch(
+                "propstore.fragility.collect_assumption_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_missing_measurement_interventions",
+                return_value=(
+                    RankedIntervention(
+                        target=InterventionTarget(
+                            intervention_id="missing_measurement:expensive",
+                            kind=InterventionKind.MISSING_MEASUREMENT,
+                            family=InterventionFamily.DISCOVERY,
+                            subject_id="expensive",
+                            description="expensive",
+                            cost_tier=3,
+                            provenance=InterventionProvenance(
+                                family=InterventionFamily.DISCOVERY,
+                                source_ids=("x",),
+                                subject_concept_ids=("x",),
+                            ),
+                            payload=MissingMeasurementTarget(
+                                concept_id="expensive",
+                                discovered_from_parameterizations=("x",),
+                                downstream_subjects=("x",),
+                            ),
+                        ),
+                        local_fragility=0.9,
+                        roi=0.3,
+                        ranking_policy=RankingPolicy.HEURISTIC_ROI,
+                        score_explanation="expensive",
+                    ),
+                    RankedIntervention(
+                        target=InterventionTarget(
+                            intervention_id="missing_measurement:cheap",
+                            kind=InterventionKind.MISSING_MEASUREMENT,
+                            family=InterventionFamily.DISCOVERY,
+                            subject_id="cheap",
+                            description="cheap",
+                            cost_tier=1,
+                            provenance=InterventionProvenance(
+                                family=InterventionFamily.DISCOVERY,
+                                source_ids=("y",),
+                                subject_concept_ids=("y",),
+                            ),
+                            payload=MissingMeasurementTarget(
+                                concept_id="cheap",
+                                discovered_from_parameterizations=("y",),
+                                downstream_subjects=("y",),
+                            ),
+                        ),
+                        local_fragility=0.6,
+                        roi=0.6,
+                        ranking_policy=RankingPolicy.HEURISTIC_ROI,
+                        score_explanation="cheap",
+                    ),
+                ),
+            ),
+            patch(
+                "propstore.fragility.collect_conflict_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_ground_fact_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_grounded_rule_interventions",
+                return_value=(),
+            ),
+            patch(
+                "propstore.fragility.collect_bridge_undercut_interventions",
+                return_value=(),
+            ),
+            patch(
+                "propstore.fragility.build_bound_bridge_inputs",
+                return_value=((), [], []),
+            ),
+        ):
             report = rank_fragility(bound, ranking_policy=RankingPolicy.HEURISTIC_ROI)
-        assert [item.target.subject_id for item in report.interventions] == ["cheap", "expensive"]
+        assert [item.target.subject_id for item in report.interventions] == [
+            "cheap",
+            "expensive",
+        ]
 
     def test_family_local_only_relabels_items_and_sorts_within_family(self) -> None:
         from unittest.mock import patch
@@ -761,15 +809,38 @@ class TestRankFragility:
             ranking_policy=RankingPolicy.HEURISTIC_ROI,
             score_explanation="discovery",
         )
-        with patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]), \
-             patch("propstore.fragility.collect_assumption_interventions", return_value=(atms_low, atms_high)), \
-             patch("propstore.fragility.collect_missing_measurement_interventions", return_value=(discovery,)), \
-             patch("propstore.fragility.collect_conflict_interventions", return_value=()), \
-             patch("propstore.fragility.collect_ground_fact_interventions", return_value=()), \
-             patch("propstore.fragility.collect_grounded_rule_interventions", return_value=()), \
-             patch("propstore.fragility.collect_bridge_undercut_interventions", return_value=()), \
-             patch("propstore.fragility.build_bound_bridge_inputs", return_value=((), [], [])):
-            report = rank_fragility(bound, ranking_policy=RankingPolicy.FAMILY_LOCAL_ONLY)
+        with (
+            patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]),
+            patch(
+                "propstore.fragility.collect_assumption_interventions",
+                return_value=(atms_low, atms_high),
+            ),
+            patch(
+                "propstore.fragility.collect_missing_measurement_interventions",
+                return_value=(discovery,),
+            ),
+            patch(
+                "propstore.fragility.collect_conflict_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_ground_fact_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_grounded_rule_interventions",
+                return_value=(),
+            ),
+            patch(
+                "propstore.fragility.collect_bridge_undercut_interventions",
+                return_value=(),
+            ),
+            patch(
+                "propstore.fragility.build_bound_bridge_inputs",
+                return_value=((), [], []),
+            ),
+        ):
+            report = rank_fragility(
+                bound, ranking_policy=RankingPolicy.FAMILY_LOCAL_ONLY
+            )
         assert [item.target.intervention_id for item in report.interventions] == [
             "assumption:high",
             "assumption:low",
@@ -832,14 +903,34 @@ class TestRankFragility:
             ranking_policy=RankingPolicy.HEURISTIC_ROI,
             score_explanation="dominant",
         )
-        with patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]), \
-             patch("propstore.fragility.collect_assumption_interventions", return_value=()), \
-             patch("propstore.fragility.collect_missing_measurement_interventions", return_value=(dominated, dominant)), \
-             patch("propstore.fragility.collect_conflict_interventions", return_value=()), \
-             patch("propstore.fragility.collect_ground_fact_interventions", return_value=()), \
-             patch("propstore.fragility.collect_grounded_rule_interventions", return_value=()), \
-             patch("propstore.fragility.collect_bridge_undercut_interventions", return_value=()), \
-             patch("propstore.fragility.build_bound_bridge_inputs", return_value=((), [], [])):
+        with (
+            patch("propstore.fragility.derive_scored_concepts", return_value=["c1"]),
+            patch(
+                "propstore.fragility.collect_assumption_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_missing_measurement_interventions",
+                return_value=(dominated, dominant),
+            ),
+            patch(
+                "propstore.fragility.collect_conflict_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_ground_fact_interventions", return_value=()
+            ),
+            patch(
+                "propstore.fragility.collect_grounded_rule_interventions",
+                return_value=(),
+            ),
+            patch(
+                "propstore.fragility.collect_bridge_undercut_interventions",
+                return_value=(),
+            ),
+            patch(
+                "propstore.fragility.build_bound_bridge_inputs",
+                return_value=((), [], []),
+            ),
+        ):
             report = rank_fragility(bound, ranking_policy=RankingPolicy.PARETO)
         assert [item.target.subject_id for item in report.interventions] == ["dominant"]
         assert report.interventions[0].ranking_policy is RankingPolicy.PARETO

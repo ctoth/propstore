@@ -42,7 +42,9 @@ class SemanticNeighborhoodAppError(Exception):
 
 class SemanticNeighborhoodUnsupportedFocusError(SemanticNeighborhoodAppError):
     def __init__(self, focus_kind: str) -> None:
-        super().__init__(f"Semantic neighborhoods for {focus_kind!r} are not implemented.")
+        super().__init__(
+            f"Semantic neighborhoods for {focus_kind!r} are not implemented."
+        )
         self.focus_kind = focus_kind
 
 
@@ -296,9 +298,13 @@ def _edges(
         target_display = _display_for_id(world, target_id)
         relation = _stance_verb(stance.stance_type)
         if target_id == focus_id:
-            sentence = f"Claim {source_display} {relation} the focus claim {target_display}."
+            sentence = (
+                f"Claim {source_display} {relation} the focus claim {target_display}."
+            )
         elif source_id == focus_id:
-            sentence = f"Focus claim {source_display} {relation} claim {target_display}."
+            sentence = (
+                f"Focus claim {source_display} {relation} claim {target_display}."
+            )
         else:
             sentence = f"Claim {source_display} {relation} claim {target_display}."
         edges.append(

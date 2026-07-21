@@ -99,8 +99,12 @@ def test_shared_claim_graph_grounded_matches_compute() -> None:
     )
     shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
 
-    result = analyze_claim_graph(shared, semantics="grounded", target_claim_ids=("c1", "c2"))
-    expected = compute_claim_graph_justified_claims(store, {"c1", "c2"}, semantics="grounded")
+    result = analyze_claim_graph(
+        shared, semantics="grounded", target_claim_ids=("c1", "c2")
+    )
+    expected = compute_claim_graph_justified_claims(
+        store, {"c1", "c2"}, semantics="grounded"
+    )
 
     assert _accepted(result) == {frozenset(expected)}
     assert result.projection is not None
@@ -128,7 +132,9 @@ def test_compute_claim_graph_justified_preferred_and_stable() -> None:
         )
     )
     for semantics in ("preferred", "stable"):
-        accepted = compute_claim_graph_justified_claims(store, {"c1", "c2"}, semantics=semantics)
+        accepted = compute_claim_graph_justified_claims(
+            store, {"c1", "c2"}, semantics=semantics
+        )
         assert frozenset({"c1"}) in accepted
         assert frozenset({"c2"}) in accepted
 
@@ -192,7 +198,10 @@ def test_conflict_synthesizes_rebuts_and_fabricates_no_opinions() -> None:
 def test_build_praf_deterministic() -> None:
     store = _store(
         CompiledWorldGraph(
-            claims=(_claim("c1", 100.0, sample_size=50), _claim("c2", 200.0, sample_size=10)),
+            claims=(
+                _claim("c1", 100.0, sample_size=50),
+                _claim("c2", 200.0, sample_size=10),
+            ),
             stances=(_edge("c1", "c2", "rebuts", **_OPINION_STRONG),),
         )
     )
@@ -212,7 +221,9 @@ def test_build_praf_deterministic() -> None:
 
 
 def test_build_praf_no_stances() -> None:
-    store = _store(CompiledWorldGraph(claims=(_claim("c1", 100.0), _claim("c2", 200.0))))
+    store = _store(
+        CompiledWorldGraph(claims=(_claim("c1", 100.0), _claim("c2", 200.0)))
+    )
     praf = build_praf(store, {"c1", "c2"})
     assert praf.framework.arguments == frozenset({"c1", "c2"})
     assert len(praf.framework.defeats) == 0
@@ -222,7 +233,10 @@ def test_build_praf_no_stances() -> None:
 def test_build_praf_uncertain_defeat_probabilities() -> None:
     store = _store(
         CompiledWorldGraph(
-            claims=(_claim("c1", 100.0, sample_size=50), _claim("c2", 200.0, sample_size=50)),
+            claims=(
+                _claim("c1", 100.0, sample_size=50),
+                _claim("c2", 200.0, sample_size=50),
+            ),
             stances=(
                 _edge("c1", "c2", "rebuts", **_OPINION_WEAK),
                 _edge("c2", "c1", "rebuts", **_OPINION_STRONG),
@@ -239,7 +253,10 @@ def test_build_praf_uncertain_defeat_probabilities() -> None:
 def test_analyze_praf_metadata_exposes_query_contract() -> None:
     store = _store(
         CompiledWorldGraph(
-            claims=(_claim("c1", 100.0, sample_size=50), _claim("c2", 200.0, sample_size=50)),
+            claims=(
+                _claim("c1", 100.0, sample_size=50),
+                _claim("c2", 200.0, sample_size=50),
+            ),
             stances=(
                 _edge("c1", "c2", "rebuts", **_OPINION_WEAK),
                 _edge("c2", "c1", "rebuts", **_OPINION_STRONG),
@@ -311,7 +328,9 @@ def test_build_aspic_projection_from_active_graph() -> None:
         claims=(_claim("premise", 1.0), _claim("goal", 2.0)),
         stances=(_edge("premise", "goal", "supports"),),
     )
-    active_graph = ActiveWorldGraph(compiled=compiled, active_claim_ids=("premise", "goal"))
+    active_graph = ActiveWorldGraph(
+        compiled=compiled, active_claim_ids=("premise", "goal")
+    )
     active_claims = [ActiveClaim(claim_id="premise"), ActiveClaim(claim_id="goal")]
 
     projection = build_aspic_projection(

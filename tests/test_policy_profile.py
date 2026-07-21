@@ -49,7 +49,9 @@ def test_identical_policy_collapses_to_one_identity() -> None:
     # journal only ever writes one.)
     def _profile() -> PolicyProfile:
         return PolicyProfile(
-            revision=RevisionPolicy(operator="lexicographic", allow_reintroduction=True),
+            revision=RevisionPolicy(
+                operator="lexicographic", allow_reintroduction=True
+            ),
             merge=MergePolicy(operator=MergeOperator.MAX, branch_filter=("main", "rc")),
             admissibility=AdmissibilityProfile(
                 semantics=ArgumentationSemantics.PREFERRED,

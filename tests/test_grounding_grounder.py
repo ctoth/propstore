@@ -32,8 +32,18 @@ def _registry() -> PredicateRegistry:
 
 def _bird_penguin_rules() -> tuple[DefeasibleRule, ...]:
     return (
-        DefeasibleRule(rule_id="s1", kind="strict", head=_atom("animal", "X"), body=(_pos("bird", "X"),)),
-        DefeasibleRule(rule_id="r1", kind="defeasible", head=_atom("flies", "X"), body=(_pos("bird", "X"),)),
+        DefeasibleRule(
+            rule_id="s1",
+            kind="strict",
+            head=_atom("animal", "X"),
+            body=(_pos("bird", "X"),),
+        ),
+        DefeasibleRule(
+            rule_id="r1",
+            kind="defeasible",
+            head=_atom("flies", "X"),
+            body=(_pos("bird", "X"),),
+        ),
         DefeasibleRule(
             rule_id="d1",
             kind="proper_defeater",
@@ -83,7 +93,10 @@ def test_arguments_returned_by_default() -> None:
 
 def test_arguments_suppressed_when_not_requested() -> None:
     bundle = ground(
-        _bird_penguin_rules(), _bird_penguin_facts(), _registry(), return_arguments=False
+        _bird_penguin_rules(),
+        _bird_penguin_facts(),
+        _registry(),
+        return_arguments=False,
     )
     assert bundle.arguments == ()
 
@@ -91,7 +104,9 @@ def test_arguments_suppressed_when_not_requested() -> None:
 def test_arguments_are_deterministically_ordered() -> None:
     first = ground(_bird_penguin_rules(), _bird_penguin_facts(), _registry()).arguments
     second = ground(_bird_penguin_rules(), _bird_penguin_facts(), _registry()).arguments
-    assert [a.conclusion.predicate for a in first] == [a.conclusion.predicate for a in second]
+    assert [a.conclusion.predicate for a in first] == [
+        a.conclusion.predicate for a in second
+    ]
 
 
 def test_grounding_inspection_rule_instances_counts_each_kind_once() -> None:

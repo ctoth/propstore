@@ -38,7 +38,9 @@ def test_pignistic_is_betp_for_binomial_opinion() -> None:
     """Smets & Kennes (1994, p.202): BetP(x) = b + u/2 for a binomial opinion."""
 
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
-    result = apply_decision_criterion(b, d, u, a, confidence=None, criterion="pignistic")
+    result = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="pignistic"
+    )
     assert result.source is DecisionValueSource.OPINION
     assert result.value == pytest.approx(b + u / 2.0)
     assert result.value == pytest.approx(0.75)
@@ -58,14 +60,18 @@ def test_projected_probability_equals_expectation() -> None:
 
 def test_lower_bound_equals_belief() -> None:
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
-    result = apply_decision_criterion(b, d, u, a, confidence=None, criterion="lower_bound")
+    result = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="lower_bound"
+    )
     assert result.source is DecisionValueSource.OPINION
     assert result.value == pytest.approx(b)
 
 
 def test_upper_bound_equals_plausibility() -> None:
     b, d, u, a = 0.6, 0.1, 0.3, 0.5
-    result = apply_decision_criterion(b, d, u, a, confidence=None, criterion="upper_bound")
+    result = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="upper_bound"
+    )
     assert result.source is DecisionValueSource.OPINION
     assert result.value == pytest.approx(1.0 - d)
 
@@ -96,9 +102,15 @@ def test_vacuous_opinion_decision_values() -> None:
     """Total ignorance (0, 0, 1, a): bounds span [0, 1], pignistic = 0.5."""
 
     b, d, u, a = 0.0, 0.0, 1.0, 0.5
-    pignistic = apply_decision_criterion(b, d, u, a, confidence=None, criterion="pignistic")
-    lower = apply_decision_criterion(b, d, u, a, confidence=None, criterion="lower_bound")
-    upper = apply_decision_criterion(b, d, u, a, confidence=None, criterion="upper_bound")
+    pignistic = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="pignistic"
+    )
+    lower = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="lower_bound"
+    )
+    upper = apply_decision_criterion(
+        b, d, u, a, confidence=None, criterion="upper_bound"
+    )
     assert pignistic.value == pytest.approx(0.5)
     assert lower.value == pytest.approx(0.0)
     assert upper.value == pytest.approx(1.0)
@@ -142,7 +154,9 @@ def test_uncertainty_interval_is_belief_plausibility() -> None:
     assert bel == pytest.approx(b)
     assert pl == pytest.approx(1.0 - d)
     assert RenderPolicy().show_uncertainty_interval is False
-    assert RenderPolicy(show_uncertainty_interval=True).show_uncertainty_interval is True
+    assert (
+        RenderPolicy(show_uncertainty_interval=True).show_uncertainty_interval is True
+    )
 
 
 # ── RenderPolicy serialization ──────────────────────────────────
@@ -192,8 +206,15 @@ def test_decision_values_stay_inside_belief_plausibility(
 ) -> None:
     b, d, u, a = opinion
     bel, pl = b, 1.0 - d
-    for criterion in ("pignistic", "projected_probability", "lower_bound", "upper_bound"):
-        result = apply_decision_criterion(b, d, u, a, confidence=None, criterion=criterion)
+    for criterion in (
+        "pignistic",
+        "projected_probability",
+        "lower_bound",
+        "upper_bound",
+    ):
+        result = apply_decision_criterion(
+            b, d, u, a, confidence=None, criterion=criterion
+        )
         assert result.source is DecisionValueSource.OPINION
         assert result.value is not None
         assert bel - 1e-9 <= result.value <= pl + 1e-9

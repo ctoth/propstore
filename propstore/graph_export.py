@@ -106,7 +106,10 @@ class KnowledgeGraph:
         for edge in self.edges:
             color = _EDGE_COLORS.get(edge.edge_type, "black")
             label = str(edge.metadata.get("type") or edge.edge_type)
-            edge_attributes: list[tuple[str, str]] = [("color", color), ("label", label)]
+            edge_attributes: list[tuple[str, str]] = [
+                ("color", color),
+                ("label", label),
+            ]
             lines.append(
                 f"  {_dot_quote(edge.source)} -> {_dot_quote(edge.target)}"
                 f"{_dot_attributes(edge_attributes)}"
@@ -307,7 +310,11 @@ def build_knowledge_graph(
     for claim in claims:
         claim_id = str(claim.claim_id)
         concept_id = _claim_concept_id(claim)
-        if concept_id is not None and str(concept_id) in node_ids and claim_id in node_ids:
+        if (
+            concept_id is not None
+            and str(concept_id) in node_ids
+            and claim_id in node_ids
+        ):
             graph.edges.append(
                 GraphEdge(
                     source=claim_id,

@@ -35,13 +35,17 @@ def test_context_document_rejects_inherits_and_excludes(banned: str) -> None:
 
 def test_gate_without_solver_is_unknown() -> None:
     system = _system()
-    decisions = system.lift_decisions_between("ctx_source", "ctx_target", "claim_source")
+    decisions = system.lift_decisions_between(
+        "ctx_source", "ctx_target", "claim_source"
+    )
     assert [d.status for d in decisions] == [LiftingDecisionStatus.UNKNOWN]
 
 
 def test_lifting_is_directional() -> None:
     system = _system()
-    assert system.lift_decisions_between("ctx_target", "ctx_source", "claim_source") == ()
+    assert (
+        system.lift_decisions_between("ctx_target", "ctx_source", "claim_source") == ()
+    )
 
 
 def test_unknown_decision_does_not_materialize() -> None:

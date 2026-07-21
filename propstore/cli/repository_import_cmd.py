@@ -5,6 +5,7 @@ committed-snapshot import from a source repository and (unless ``--plan``)
 commits it onto the destination's ``import/<name>`` branch, emitting the typed
 result as YAML. No import logic lives here (CLAUDE.md "CLI adapter discipline").
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -29,7 +30,9 @@ from propstore.importing.repository_import import (
     default=None,
     help="Branch that receives the import commit (default: import/<name>).",
 )
-@click.option("--message", default=None, help="Override the default import commit message.")
+@click.option(
+    "--message", default=None, help="Override the default import commit message."
+)
 @click.option(
     "--plan",
     "plan_only",

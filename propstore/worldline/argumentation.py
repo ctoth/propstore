@@ -54,7 +54,9 @@ def capture_argumentation_state(
 
     active = tuple(bound.active_claims())
     active_ids = {claim.claim_id for claim in active}
-    active_graph = bound.active_world_graph() if isinstance(bound, HasActiveGraph) else None
+    active_graph = (
+        bound.active_world_graph() if isinstance(bound, HasActiveGraph) else None
+    )
     reasoning_backend = policy.reasoning_backend
     _, normalized_semantics = validate_backend_semantics(
         reasoning_backend,
@@ -99,7 +101,11 @@ def capture_argumentation_state(
             {to_claim_id(claim_id) for claim_id in active_ids},
         )
 
-    return argumentation_state, stance_dependencies, {to_claim_id(c) for c in active_ids}
+    return (
+        argumentation_state,
+        stance_dependencies,
+        {to_claim_id(c) for c in active_ids},
+    )
 
 
 def _capture_claim_graph(
@@ -145,10 +151,7 @@ def _capture_claim_graph(
             comparison=policy.comparison,
         )
         if isinstance(current, frozenset):
-            justified_claims = frozenset(
-                to_claim_id(claim_id)
-                for claim_id in current
-            )
+            justified_claims = frozenset(to_claim_id(claim_id) for claim_id in current)
             extension_claim_sets = (justified_claims,)
 
     if justified_claims is None:
@@ -308,7 +311,9 @@ def _capture_praf(
         strategy_used=None if strategy_used is None else str(strategy_used),
         samples=None if samples is None else int(samples),
         confidence_interval_half=(
-            None if confidence_interval_half is None else float(confidence_interval_half)
+            None
+            if confidence_interval_half is None
+            else float(confidence_interval_half)
         ),
         semantics=_semantics_value(normalized_semantics),
     )
@@ -337,7 +342,9 @@ def active_stance_dependencies(
     world: WorldlineStore,
     active_ids: set[ClaimId],
 ) -> list[str]:
-    active_graph = bound.active_world_graph() if isinstance(bound, HasActiveGraph) else None
+    active_graph = (
+        bound.active_world_graph() if isinstance(bound, HasActiveGraph) else None
+    )
 
     if active_graph is not None:
         payloads: list[dict[str, Any]] = []

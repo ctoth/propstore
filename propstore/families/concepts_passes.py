@@ -108,9 +108,7 @@ class ConceptCheckPass:
         self, value: ConceptAuthoredSet, context: object
     ) -> PassResult[ConceptCheckedRegistry]:
         form_registry: Mapping[str, FormDefinition] = (
-            context.form_registry
-            if isinstance(context, ConceptPipelineContext)
-            else {}
+            context.form_registry if isinstance(context, ConceptPipelineContext) else {}
         )
         errors: list[PassDiagnostic] = []
         warnings: list[PassDiagnostic] = []
@@ -123,8 +121,11 @@ class ConceptCheckPass:
             if not concept.concept_id:
                 errors.append(
                     _diagnostic(
-                        "error", "concept.id.missing", "concept missing 'concept_id'",
-                        loaded, self.name,
+                        "error",
+                        "concept.id.missing",
+                        "concept missing 'concept_id'",
+                        loaded,
+                        self.name,
                     )
                 )
                 continue
@@ -183,9 +184,7 @@ class ConceptCheckPass:
                 )
                 continue
             entry = concept.lexical_entry
-            form_name = (
-                None if entry is None else entry.physical_dimension_form
-            )
+            form_name = None if entry is None else entry.physical_dimension_form
             form = None if not form_name else form_registry.get(form_name)
             if form_name and form is None:
                 warnings.append(

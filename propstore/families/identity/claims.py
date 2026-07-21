@@ -28,6 +28,8 @@ CLAIM_VERSION_ID_EXCLUDED_FIELDS = (
     "source_local_id",
     "source",
 )
+
+
 def derive_claim_artifact_id(namespace: str, value: str) -> str:
     """Derive a deterministic claim artifact ID from a logical handle."""
 

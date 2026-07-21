@@ -371,7 +371,9 @@ def _resolve_chain_target(
     value_result: Any,
 ) -> WorldlineTargetValue | None:
     del value_result
-    strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
+    strategy_enum = (
+        context.policy.strategy if context.policy.strategy is not None else None
+    )
     chain_bindings: dict[str, Any] = {}
     if isinstance(context.query_world, HasEnvironment):
         chain_bindings = dict(context.query_world.environment.bindings)

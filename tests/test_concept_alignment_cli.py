@@ -8,7 +8,12 @@ from click.testing import CliRunner, Result
 from condition_ir import KindType
 
 from propstore.cli import cli
-from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.families.alignment import ConceptAlignmentArtifact, ConceptAlignmentRef
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition

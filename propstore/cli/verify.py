@@ -13,7 +13,12 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.helpers import EXIT_VALIDATION, CliContext, exit_with_code, require_repo
+from propstore.cli.helpers import (
+    EXIT_VALIDATION,
+    CliContext,
+    exit_with_code,
+    require_repo,
+)
 from propstore.cli.output import emit_yaml
 from propstore.reporting import json_ready
 from propstore.verify import verify_claim_tree

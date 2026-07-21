@@ -59,7 +59,9 @@ class KindContributor:
 
 
 INVENTORY_REGISTRY: tuple[KindContributor, ...] = (
-    KindContributor(kind="concepts", href="/concepts", count=lambda stats: stats.concepts),
+    KindContributor(
+        kind="concepts", href="/concepts", count=lambda stats: stats.concepts
+    ),
     KindContributor(kind="claims", href="/claims", count=lambda stats: stats.claims),
     KindContributor(kind="conflicts", href=None, count=lambda stats: stats.conflicts),
 )
@@ -72,7 +74,9 @@ def build_repository_overview(
 
     stats = world.stats()
     summary = summarize_render_policy(policy)
-    inventory_rows = tuple(_inventory_row(contributor, stats) for contributor in INVENTORY_REGISTRY)
+    inventory_rows = tuple(
+        _inventory_row(contributor, stats) for contributor in INVENTORY_REGISTRY
+    )
     return RepositoryOverviewReport(
         render_policy=summary,
         inventory_rows=inventory_rows,
@@ -92,7 +96,9 @@ def build_repository_overview(
     )
 
 
-def _inventory_row(contributor: KindContributor, stats: WorldStoreStats) -> InventoryRow:
+def _inventory_row(
+    contributor: KindContributor, stats: WorldStoreStats
+) -> InventoryRow:
     count = contributor.count(stats)
     return InventoryRow(
         kind=contributor.kind,

@@ -66,7 +66,10 @@ def test_capture_revision_state_serializes_revision_event_contract() -> None:
     )
 
     assert captured.event is not None
-    assert captured.event.pre_state_hash == EpistemicSnapshot.from_state(initial_state).content_hash
+    assert (
+        captured.event.pre_state_hash
+        == EpistemicSnapshot.from_state(initial_state).content_hash
+    )
     assert captured.event.operation == "revise"
     assert captured.event.input_atom_id == new_atom.atom_id
     assert captured.event.target_atom_ids == (ids["legacy"],)

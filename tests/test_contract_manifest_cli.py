@@ -16,7 +16,9 @@ def test_contract_manifest_renders_to_stdout(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
     assert payload["package"]["name"] == "propstore"
-    assert payload["registry"]["name"] == build_propstore_contract_manifest().registry_name
+    assert (
+        payload["registry"]["name"] == build_propstore_contract_manifest().registry_name
+    )
     assert payload["contracts"]
 
 

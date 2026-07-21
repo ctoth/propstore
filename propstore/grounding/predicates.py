@@ -96,26 +96,45 @@ def parse_derived_from(spec: str) -> DerivedFromSpec:
     if spec == "claim.context":
         return DerivedFromSpec(kind="claim_context")
     if ":" not in spec:
-        raise DerivedFromParseError(f"derived_from spec missing ':' separator: {spec!r}")
+        raise DerivedFromParseError(
+            f"derived_from spec missing ':' separator: {spec!r}"
+        )
     prefix, _, remainder = spec.partition(":")
     if prefix == "concept.relation":
         if ":" not in remainder:
-            raise DerivedFromParseError(f"concept.relation spec missing target: {spec!r}")
+            raise DerivedFromParseError(
+                f"concept.relation spec missing target: {spec!r}"
+            )
         relation, _, target = remainder.partition(":")
         if relation == "":
-            raise DerivedFromParseError(f"concept.relation spec has empty relation: {spec!r}")
+            raise DerivedFromParseError(
+                f"concept.relation spec has empty relation: {spec!r}"
+            )
         if target == "":
-            raise DerivedFromParseError(f"concept.relation spec has empty target: {spec!r}")
-        return DerivedFromSpec(kind="concept_relation", relation=relation, target=target)
+            raise DerivedFromParseError(
+                f"concept.relation spec has empty target: {spec!r}"
+            )
+        return DerivedFromSpec(
+            kind="concept_relation", relation=relation, target=target
+        )
     if prefix == "claim.attribute":
-        return DerivedFromSpec(kind="claim_attribute", attribute=_single_segment(spec, remainder, "attribute"))
+        return DerivedFromSpec(
+            kind="claim_attribute",
+            attribute=_single_segment(spec, remainder, "attribute"),
+        )
     if prefix == "claim.condition":
-        return DerivedFromSpec(kind="claim_condition", condition=_single_segment(spec, remainder, "condition"))
+        return DerivedFromSpec(
+            kind="claim_condition",
+            condition=_single_segment(spec, remainder, "condition"),
+        )
     if prefix == "claim.role":
-        return DerivedFromSpec(kind="claim_role", role=_single_segment(spec, remainder, "role"))
+        return DerivedFromSpec(
+            kind="claim_role", role=_single_segment(spec, remainder, "role")
+        )
     if prefix == "claim.provenance":
         return DerivedFromSpec(
-            kind="claim_provenance", provenance_field=_single_segment(spec, remainder, "provenance")
+            kind="claim_provenance",
+            provenance_field=_single_segment(spec, remainder, "provenance"),
         )
     raise DerivedFromParseError(f"unknown derived_from prefix {prefix!r}: {spec!r}")
 
@@ -126,7 +145,9 @@ def _single_segment(spec: str, remainder: str, label: str) -> str:
     if remainder == "":
         raise DerivedFromParseError(f"claim.{label} spec has empty {label}: {spec!r}")
     if ":" in remainder:
-        raise DerivedFromParseError(f"claim.{label} spec has extra ':' in {label}: {spec!r}")
+        raise DerivedFromParseError(
+            f"claim.{label} spec has extra ':' in {label}: {spec!r}"
+        )
     return remainder
 
 

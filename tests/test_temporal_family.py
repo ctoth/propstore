@@ -39,7 +39,9 @@ def test_families_are_registered() -> None:
 def test_frame_anchor_edge_round_trip() -> None:
     repository = TemporalRepository(backend=GitStore.init_memory())
     repository.author_frame(
-        TemporalFrameDoc(frame_id="f1", description="machine clock", provenance=stated_provenance()),
+        TemporalFrameDoc(
+            frame_id="f1", description="machine clock", provenance=stated_provenance()
+        ),
         message="declare f1",
     )
     # An anchor with only ONE bound: the other stays absent (honest ignorance).
@@ -146,7 +148,9 @@ def test_repo_backed_repository_authors_to_master(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
     repository = TemporalRepository(backend=repo.require_git())
     repository.author_frame(
-        TemporalFrameDoc(frame_id="f1", description="clock", provenance=stated_provenance()),
+        TemporalFrameDoc(
+            frame_id="f1", description="clock", provenance=stated_provenance()
+        ),
         message="declare f1",
     )
     assert {frame.frame_id for frame in repository.iter_frames()} == {"f1"}

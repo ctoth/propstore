@@ -88,8 +88,12 @@ def test_merge_is_deterministic() -> None:
     }
     base = [param_claim("claim1", "concept_x", 250.0)]
 
-    merge_a = build_merge_framework(branches, "master", "paper/conflict", base_claims=base)
-    merge_b = build_merge_framework(branches, "master", "paper/conflict", base_claims=base)
+    merge_a = build_merge_framework(
+        branches, "master", "paper/conflict", base_claims=base
+    )
+    merge_b = build_merge_framework(
+        branches, "master", "paper/conflict", base_claims=base
+    )
 
     assert merge_a.framework == merge_b.framework
     assert [argument.assertion_id for argument in merge_a.arguments] == [
@@ -122,7 +126,9 @@ def test_integrity_constraint_filters_forbidden_artifacts() -> None:
         },
         "master",
         "paper/x",
-        integrity_constraint=IntegrityConstraint(forbidden_artifact_ids=frozenset({"claimB"})),
+        integrity_constraint=IntegrityConstraint(
+            forbidden_artifact_ids=frozenset({"claimB"})
+        ),
     )
 
     assert {argument.artifact_id for argument in merge.arguments} == {"claimA"}
@@ -166,8 +172,12 @@ def test_merge_emits_exact_union_of_disjoint_branch_additions(
     assume(set(left_ids).isdisjoint(right_ids))
 
     branches = {
-        "master": [obs_claim(cid, f"{cid} statement", [f"concept_{cid}"]) for cid in left_ids],
-        "paper/p": [obs_claim(cid, f"{cid} statement", [f"concept_{cid}"]) for cid in right_ids],
+        "master": [
+            obs_claim(cid, f"{cid} statement", [f"concept_{cid}"]) for cid in left_ids
+        ],
+        "paper/p": [
+            obs_claim(cid, f"{cid} statement", [f"concept_{cid}"]) for cid in right_ids
+        ],
     }
     merge = build_merge_framework(branches, "master", "paper/p")
 

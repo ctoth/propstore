@@ -78,9 +78,7 @@ def test_analyzer_result_carries_label_and_metadata() -> None:
     result = AnalyzerResult(
         backend="aspic",
         semantics="grounded",
-        extensions=(
-            ExtensionResult(name="grounded", accepted_claim_ids=("a",)),
-        ),
+        extensions=(ExtensionResult(name="grounded", accepted_claim_ids=("a",)),),
         projection=ClaimProjection(target_claim_ids=("a",), survivor_claim_ids=("a",)),
         support_label=Label.empty(),
         metadata=(("k", "v"),),

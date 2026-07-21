@@ -91,9 +91,7 @@ def compare_algorithm_claims(
     body_a = claim_a.body
     body_b = claim_b.body
     if not body_a or not body_b:
-        raise ClaimComparisonError(
-            "Both claims must be algorithm claims with a body."
-        )
+        raise ClaimComparisonError("Both claims must be algorithm claims with a body.")
 
     known_values = None if request.known_values is None else dict(request.known_values)
     try:
@@ -143,7 +141,9 @@ def list_claim_views(
     """Summary rows for every policy-visible claim, optionally scoped to a concept."""
 
     concept_filter = _resolve_concept_filter(world, concept)
-    claims = sorted(world.claims_with_policy(concept_filter, policy), key=_claim_sort_key)
+    claims = sorted(
+        world.claims_with_policy(concept_filter, policy), key=_claim_sort_key
+    )
     entries = tuple(_summary_entry(world, claim) for claim in claims[:limit])
     return ClaimSummaryReport(entries=entries)
 
@@ -161,7 +161,9 @@ def search_claim_views(
     needle = query.casefold()
     concept_filter = _resolve_concept_filter(world, concept)
     matches: list[ClaimSummaryEntry] = []
-    for claim in sorted(world.claims_with_policy(concept_filter, policy), key=_claim_sort_key):
+    for claim in sorted(
+        world.claims_with_policy(concept_filter, policy), key=_claim_sort_key
+    ):
         focus = claim_focus_concept(world, claim)
         if not _matches_query(claim, focus, needle):
             continue

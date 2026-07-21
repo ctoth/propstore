@@ -44,8 +44,7 @@ def validated_revision_target(operation: str, target: object) -> str | None:
         return None
     target_id = str(target)
     if operation == "contract" and not (
-        target_id.startswith("ps:assertion:")
-        or target_id.startswith("assumption:")
+        target_id.startswith("ps:assertion:") or target_id.startswith("assumption:")
     ):
         raise WorldlineRevisionTargetValidationError(
             "Worldline revision target must be an assertion or assumption atom id: "
@@ -207,7 +206,9 @@ class WorldlineArgumentationState:
     essential_support: Mapping[str, SerializedEnvironment | None] = field(
         default_factory=dict[str, SerializedEnvironment | None]
     )
-    status_reasons: Mapping[str, str | None] = field(default_factory=dict[str, str | None])
+    status_reasons: Mapping[str, str | None] = field(
+        default_factory=dict[str, str | None]
+    )
     nogood_details: tuple[ATMSNogoodDetail, ...] = ()
     declared_queryables: tuple[str, ...] = ()
     future_statuses: Mapping[str, ATMSFutureStatusReport] = field(
@@ -222,7 +223,9 @@ class WorldlineArgumentationState:
     witness_futures: Mapping[str, tuple[ATMSNodeFutureStatusEntry, ...]] = field(
         default_factory=dict[str, tuple[ATMSNodeFutureStatusEntry, ...]]
     )
-    why_out: Mapping[str, ATMSWhyOutReport] = field(default_factory=dict[str, ATMSWhyOutReport])
+    why_out: Mapping[str, ATMSWhyOutReport] = field(
+        default_factory=dict[str, ATMSWhyOutReport]
+    )
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "justified", tuple(self.justified))
@@ -230,7 +233,9 @@ class WorldlineArgumentationState:
         object.__setattr__(
             self,
             "extensions",
-            tuple(tuple(str(item) for item in extension) for extension in self.extensions),
+            tuple(
+                tuple(str(item) for item in extension) for extension in self.extensions
+            ),
         )
         object.__setattr__(self, "acceptance_probs", dict(self.acceptance_probs))
         object.__setattr__(self, "supported", tuple(self.supported))

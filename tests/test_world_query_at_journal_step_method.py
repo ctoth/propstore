@@ -161,8 +161,8 @@ def test_world_query_method_heavy_replay_populates_stances_and_conflicts(
         assert {
             (str(s.source_claim_id), str(s.target_claim_id)) for s in view.stances
         } == {("cl1", "cl2")}
-        assert {
-            (str(c.claim_a_id), str(c.claim_b_id)) for c in view.conflicts
-        } == {("cl1", "cl2")}
+        assert {(str(c.claim_a_id), str(c.claim_b_id)) for c in view.conflicts} == {
+            ("cl1", "cl2")
+        }
     finally:
         world.close()

@@ -6,6 +6,7 @@ and ``fragility`` (:func:`propstore.fragility.query_fragility`). The consistency
 and fragility owners take a :class:`~propstore.core.environment.WorldStore`; a
 :class:`~propstore.world.WorldQuery` is one, so it is passed directly.
 """
+
 from __future__ import annotations
 
 import json

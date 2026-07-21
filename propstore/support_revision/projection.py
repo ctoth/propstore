@@ -25,7 +25,11 @@ import json
 from typing import TYPE_CHECKING
 
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
+from propstore.core.assertions.refs import (
+    ConditionRef,
+    ContextReference,
+    ProvenanceGraphRef,
+)
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import AssumptionId
 from propstore.core.labels import SupportQuality, environment_assumption_ids
@@ -73,7 +77,9 @@ def situated_assertion_from_active_claim(
     )
 
 
-def project_belief_base(bound: BoundWorld, *, include_assumptions: bool = True) -> BeliefBase:
+def project_belief_base(
+    bound: BoundWorld, *, include_assumptions: bool = True
+) -> BeliefBase:
     """Project a scoped BoundWorld into a minimal revision-facing belief base.
 
     V1 includes only claims with exact ATMS-reconstructible support.
@@ -94,9 +100,12 @@ def project_belief_base(bound: BoundWorld, *, include_assumptions: bool = True) 
         atom_id = str(assertion.assertion_id)
         if label is not None:
             for environment in label.environments:
-                supporting_assumption_ids.update(environment_assumption_ids(environment))
+                supporting_assumption_ids.update(
+                    environment_assumption_ids(environment)
+                )
             support_sets.setdefault(atom_id, set()).update(
-                environment_assumption_ids(environment) for environment in label.environments
+                environment_assumption_ids(environment)
+                for environment in label.environments
             )
         else:
             support_sets.setdefault(atom_id, set())
@@ -108,7 +117,9 @@ def project_belief_base(bound: BoundWorld, *, include_assumptions: bool = True) 
         atoms_by_id[atom_id] = AssertionAtom(
             atom_id=atom_id,
             assertion=assertion,
-            source_claims=((claim,) if existing is None else existing.source_claims + (claim,)),
+            source_claims=(
+                (claim,) if existing is None else existing.source_claims + (claim,)
+            ),
             label=label if existing is None else existing.label,
         )
 
@@ -130,7 +141,8 @@ def project_belief_base(bound: BoundWorld, *, include_assumptions: bool = True) 
             atom_id: tuple(sorted(support)) for atom_id, support in support_sets.items()
         },
         essential_support={
-            atom_id: tuple(sorted(support)) for atom_id, support in essential_support.items()
+            atom_id: tuple(sorted(support))
+            for atom_id, support in essential_support.items()
         },
     )
 

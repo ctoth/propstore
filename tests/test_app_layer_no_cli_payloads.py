@@ -6,6 +6,7 @@ requests; the owner never accepts a ``*_json`` blob or a stringly-typed
 flag-shaped field where a domain type exists. This walks every ``*Request``
 dataclass under ``propstore/app`` and fails on the known CLI-payload smells.
 """
+
 from __future__ import annotations
 
 import ast
@@ -33,7 +34,9 @@ def _dataclass_request_fields() -> dict[str, dict[str, ast.AST | None]]:
                 continue
             fields: dict[str, ast.AST | None] = {}
             for stmt in node.body:
-                if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                if isinstance(stmt, ast.AnnAssign) and isinstance(
+                    stmt.target, ast.Name
+                ):
                     fields[stmt.target.id] = stmt.annotation
             requests[node.name] = fields
     return requests

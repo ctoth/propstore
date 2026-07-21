@@ -72,7 +72,9 @@ class AssignmentSelectionRequest:
     def __post_init__(self) -> None:
         object.__setattr__(self, "concept_ids", tuple(self.concept_ids))
         object.__setattr__(self, "sources", tuple(self.sources))
-        object.__setattr__(self, "integrity_constraints", tuple(self.integrity_constraints))
+        object.__setattr__(
+            self, "integrity_constraints", tuple(self.integrity_constraints)
+        )
         object.__setattr__(self, "operator", MergeOperator(self.operator))
 
 
@@ -111,7 +113,9 @@ def _compile_cel_constraint(constraint: IntegrityConstraint) -> Constraint:
     solver = ConditionSolver(registry)
 
     def _holds(assignment: Assignment) -> bool:
-        return solver.is_condition_satisfied(checked, _cel_bindings(assignment, registry))
+        return solver.is_condition_satisfied(
+            checked, _cel_bindings(assignment, registry)
+        )
 
     return Constraint(
         concept_ids=constraint.concept_ids,
@@ -153,14 +157,18 @@ def _compile_category_constraint(constraint: IntegrityConstraint) -> Constraint:
     allowed_values: tuple[object, ...] | list[object] | None = constraint.metadata.get(
         "allowed_values"
     )
-    allowed: tuple[object, ...] = () if allowed_values is None else tuple(allowed_values)
+    allowed: tuple[object, ...] = (
+        () if allowed_values is None else tuple(allowed_values)
+    )
     extensible = bool(constraint.metadata.get("extensible", False))
     concept_ids = constraint.concept_ids
 
     def _holds(assignment: Assignment) -> bool:
         if extensible:
             return True
-        return all(assignment.value_for(concept_id) in allowed for concept_id in concept_ids)
+        return all(
+            assignment.value_for(concept_id) in allowed for concept_id in concept_ids
+        )
 
     return Constraint(
         concept_ids=concept_ids,
@@ -172,12 +180,16 @@ def _compile_category_constraint(constraint: IntegrityConstraint) -> Constraint:
 def _compile_custom_constraint(constraint: IntegrityConstraint) -> Constraint:
     predicate = constraint.metadata.get("predicate")
     if not callable(predicate):
-        raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
+        raise TypeError(
+            "CUSTOM integrity constraint requires callable metadata['predicate']"
+        )
     typed_predicate: Callable[[Mapping[str, object]], object] = predicate
     concept_ids = constraint.concept_ids
 
     def _holds(assignment: Assignment) -> bool:
-        scoped = {concept_id: assignment.value_for(concept_id) for concept_id in concept_ids}
+        scoped = {
+            concept_id: assignment.value_for(concept_id) for concept_id in concept_ids
+        }
         return bool(typed_predicate(scoped))
 
     return Constraint(
@@ -187,7 +199,9 @@ def _compile_custom_constraint(constraint: IntegrityConstraint) -> Constraint:
     )
 
 
-_CONSTRAINT_COMPILERS: dict[IntegrityConstraintKind, Callable[[IntegrityConstraint], Constraint]] = {
+_CONSTRAINT_COMPILERS: dict[
+    IntegrityConstraintKind, Callable[[IntegrityConstraint], Constraint]
+] = {
     IntegrityConstraintKind.RANGE: _compile_range_constraint,
     IntegrityConstraintKind.CATEGORY: _compile_category_constraint,
     IntegrityConstraintKind.CEL: _compile_cel_constraint,

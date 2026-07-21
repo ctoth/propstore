@@ -88,9 +88,7 @@ class SensitivityResult:
     concept_id: ConceptId
     formula: str
     entries: list[SensitivityEntry] = field(default_factory=list[SensitivityEntry])
-    input_values: dict[ConceptId, float] = field(
-        default_factory=dict[ConceptId, float]
-    )
+    input_values: dict[ConceptId, float] = field(default_factory=dict[ConceptId, float])
     output_value: float | None = None
     method: str = "local_oat"
 
@@ -119,8 +117,7 @@ class GlobalSensitivityResult:
             for concept_id, value in self.first_order.items()
         }
         self.total = {
-            str(concept_id): float(value)
-            for concept_id, value in self.total.items()
+            str(concept_id): float(value) for concept_id, value in self.total.items()
         }
 
 
@@ -255,9 +252,7 @@ def analyze_sensitivity(
     if len(input_values) != len(effective_inputs):
         return None
 
-    base_overrides = {
-        str(input_id): value for input_id, value in input_values.items()
-    }
+    base_overrides = {str(input_id): value for input_id, value in input_values.items()}
     output_value = _evaluate_output(bound, lookup_concept_id, base_overrides)
 
     entries: list[SensitivityEntry] = []
@@ -278,11 +273,7 @@ def analyze_sensitivity(
             partial_value = (f_forward - f_backward) / (2.0 * step)
 
         elasticity: float | None = None
-        if (
-            partial_value is not None
-            and output_value is not None
-            and output_value != 0
-        ):
+        if partial_value is not None and output_value is not None and output_value != 0:
             elasticity = partial_value * x_value / output_value
 
         entries.append(
@@ -294,7 +285,9 @@ def analyze_sensitivity(
         )
 
     entries.sort(
-        key=lambda entry: abs(entry.elasticity) if entry.elasticity is not None else -1.0,
+        key=lambda entry: (
+            abs(entry.elasticity) if entry.elasticity is not None else -1.0
+        ),
         reverse=True,
     )
 
@@ -332,8 +325,7 @@ def analyze_global_sensitivity(
         raise ValueError("method must be 'sobol_first_order' or 'sobol_total'")
 
     midpoint_overrides = {
-        key: (float(low) + float(high)) / 2.0
-        for key, (low, high) in bounds.items()
+        key: (float(low) + float(high)) / 2.0 for key, (low, high) in bounds.items()
     }
     local = analyze_sensitivity(
         world,
@@ -415,12 +407,10 @@ def analyze_global_sensitivity(
     for input_id in input_ids:
         mixed_values = cross_samples[input_id]
         first_order[input_id] = sum(
-            b * (mixed - a)
-            for a, b, mixed in zip(samples_a, samples_b, mixed_values)
+            b * (mixed - a) for a, b, mixed in zip(samples_a, samples_b, mixed_values)
         ) / (n_samples * variance)
         total[input_id] = sum(
-            (a - mixed) ** 2
-            for a, mixed in zip(samples_a, mixed_values)
+            (a - mixed) ** 2 for a, mixed in zip(samples_a, mixed_values)
         ) / (2.0 * n_samples * variance)
 
     return GlobalSensitivityResult(

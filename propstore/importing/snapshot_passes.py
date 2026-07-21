@@ -111,9 +111,7 @@ def _normalize_concept_batch(
     for path in paths:
         concept: Concept = coercer.coerce(_decode(writes[path], path=path), source=path)
         source_identity = normalize_source_slug(concept.concept_id)
-        new_id = derive_concept_artifact_id(
-            f"{repository_identity}_{source_identity}"
-        )
+        new_id = derive_concept_artifact_id(f"{repository_identity}_{source_identity}")
         state.concept_ref_map[concept.concept_id] = new_id
         rekeyed = msgspec.structs.replace(concept, concept_id=new_id)
         planned = _planned_write(bound, family_name, new_id, rekeyed)

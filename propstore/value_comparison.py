@@ -78,7 +78,9 @@ def intervals_compatible(
     return lo_a <= hi_b + tolerance and lo_b <= hi_a + tolerance
 
 
-def _normalize_interval(interval: Interval, unit: str | None, form: FormDefinition) -> Interval:
+def _normalize_interval(
+    interval: Interval, unit: str | None, form: FormDefinition
+) -> Interval:
     center, lo, hi = interval
     return (
         normalize_to_si(center, unit, form),
@@ -112,7 +114,9 @@ def values_compatible(
                 form_def = forms[concept_form]
                 unit_a = _as_unit(_claim_field(claim_a, "unit"))
                 unit_b = _as_unit(_claim_field(claim_b, "unit"))
-                if (unit_a is not None or unit_b is not None) and form_def.unit_symbol is not None:
+                if (
+                    unit_a is not None or unit_b is not None
+                ) and form_def.unit_symbol is not None:
                     interval_a = _normalize_interval(interval_a, unit_a, form_def)
                     interval_b = _normalize_interval(interval_b, unit_b, form_def)
             return intervals_compatible(interval_a, interval_b, tolerance)
@@ -124,7 +128,9 @@ def values_compatible(
     return value_a == value_b
 
 
-def value_str(value: object, claim: object | None = None, *, with_unit: bool = False) -> str:
+def value_str(
+    value: object, claim: object | None = None, *, with_unit: bool = False
+) -> str:
     """Render a claim's value as a string.
 
     With ``with_unit``, the claim's unit is appended when it carries one. Use it

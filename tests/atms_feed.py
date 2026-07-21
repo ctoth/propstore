@@ -32,7 +32,10 @@ from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.environment import Environment
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import ParameterizationEdge, RelationEdge
-from propstore.core.labels import binding_condition_to_cel, compile_environment_assumptions
+from propstore.core.labels import (
+    binding_condition_to_cel,
+    compile_environment_assumptions,
+)
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
@@ -56,7 +59,9 @@ def registry_for_sources(sources: Sequence[str]) -> dict[str, ConceptInfo]:
                 or f"{name} != '" in source
                 or f'{name} != "' in source
             )
-            names[name] = KindType.CATEGORY if quoted else names.get(name, KindType.QUANTITY)
+            names[name] = (
+                KindType.CATEGORY if quoted else names.get(name, KindType.QUANTITY)
+            )
     return with_standard_synthetic_bindings(
         {
             name: ConceptInfo(
@@ -70,12 +75,16 @@ def registry_for_sources(sources: Sequence[str]) -> dict[str, ConceptInfo]:
     )
 
 
-def _conditions_ir(conditions: Sequence[str], registry: dict[str, ConceptInfo]) -> str | None:
+def _conditions_ir(
+    conditions: Sequence[str], registry: dict[str, ConceptInfo]
+) -> str | None:
     if not conditions:
         return None
     return json.dumps(
         checked_condition_set_to_json(
-            checked_condition_set(check_condition_ir(source, registry) for source in conditions)
+            checked_condition_set(
+                check_condition_ir(source, registry) for source in conditions
+            )
         ),
         sort_keys=True,
     )
@@ -144,15 +153,22 @@ class InMemoryWorldStore:
         return [
             claim
             for claim in self.claims
-            if concept_id in (claim.output_concept, claim.target_concept, *claim.concepts)
+            if concept_id
+            in (claim.output_concept, claim.target_concept, *claim.concepts)
         ]
 
     def get_claim(self, claim_id: str) -> Claim | None:
-        return next((claim for claim in self.claims if claim.claim_id == claim_id), None)
+        return next(
+            (claim for claim in self.claims if claim.claim_id == claim_id), None
+        )
 
     def get_concept(self, concept_id: str) -> Concept | None:
         return next(
-            (concept for concept in self.concepts if str(concept.concept_id) == concept_id),
+            (
+                concept
+                for concept in self.concepts
+                if str(concept.concept_id) == concept_id
+            ),
             None,
         )
 
@@ -170,7 +186,9 @@ class InMemoryWorldStore:
 
     def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationEdge]:
         return [
-            edge for edge in self.parameterizations if str(edge.output_concept_id) == concept_id
+            edge
+            for edge in self.parameterizations
+            if str(edge.output_concept_id) == concept_id
         ]
 
     def group_members(self, concept_id: str) -> list[str]:
@@ -207,14 +225,17 @@ class InMemoryWorldStore:
         return [
             stance
             for stance in self.stances
-            if stance.source_claim_id in claim_ids and stance.target_claim_id in claim_ids
+            if stance.source_claim_id in claim_ids
+            and stance.target_claim_id in claim_ids
         ]
 
     def all_micropublications(self) -> Sequence[Micropublication]:
         return self.micropublications
 
     def explain(self, claim_id: str) -> Sequence[Stance]:
-        return [stance for stance in self.stances if str(stance.target_claim_id) == claim_id]
+        return [
+            stance for stance in self.stances if str(stance.target_claim_id) == claim_id
+        ]
 
     def condition_solver(self) -> ConditionSolver:
         return self.solver
@@ -235,7 +256,9 @@ def build_bound(
     """Build a ``BoundWorld`` from lightweight specs under an environment."""
 
     bindings = dict(bindings or {})
-    binding_sources = [binding_condition_to_cel(key, value) for key, value in bindings.items()]
+    binding_sources = [
+        binding_condition_to_cel(key, value) for key, value in bindings.items()
+    ]
     all_sources: list[str] = [str(source) for source in binding_sources]
     all_sources.extend(str(source) for source in effective_assumptions)
     for claim in claims:
@@ -331,9 +354,13 @@ def build_bound(
         ),
     )
     compiled = build_compiled_world_graph(store)
-    active = activate_compiled_world_graph(compiled, environment=environment, solver=solver)
+    active = activate_compiled_world_graph(
+        compiled, environment=environment, solver=solver
+    )
     effective_policy = policy or RenderPolicy(reasoning_backend=backend)
-    return BoundWorld(store, environment=environment, policy=effective_policy, active_graph=active)
+    return BoundWorld(
+        store, environment=environment, policy=effective_policy, active_graph=active
+    )
 
 
 def assumption_id_for(bound: BoundWorld, cel: str) -> str:

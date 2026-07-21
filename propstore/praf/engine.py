@@ -109,7 +109,9 @@ class PropstorePrAF:
     attack_relations: tuple[ProbabilisticRelation, ...] = ()
     support_relations: tuple[ProbabilisticRelation, ...] = ()
     direct_defeat_relations: tuple[ProbabilisticRelation, ...] = ()
-    omitted_arguments: Mapping[str, NoCalibration] = field(default_factory=_empty_arg_omissions)
+    omitted_arguments: Mapping[str, NoCalibration] = field(
+        default_factory=_empty_arg_omissions
+    )
     omitted_relations: Mapping[tuple[str, str], NoCalibration] = field(
         default_factory=_empty_edge_omissions
     )
@@ -149,7 +151,9 @@ def _prov(status: ProvenanceStatus, *operations: str) -> Provenance:
     return Provenance(status=status, operations=operations)
 
 
-def _owp(opinion: Opinion, status: ProvenanceStatus, *operations: str) -> OpinionWithProvenance:
+def _owp(
+    opinion: Opinion, status: ProvenanceStatus, *operations: str
+) -> OpinionWithProvenance:
     return OpinionWithProvenance(opinion=opinion, provenance=_prov(status, *operations))
 
 
@@ -310,7 +314,9 @@ def enforce_coh(
 
     attacks = praf.framework.attacks
     if attacks is None:
-        raise PreferenceLayerError("enforce_coh requires explicit pre-preference attacks")
+        raise PreferenceLayerError(
+            "enforce_coh requires explicit pre-preference attacks"
+        )
 
     expectations: dict[str, float] = {}
     evidence_n: dict[str, float] = {}
@@ -399,7 +405,11 @@ def enforce_coh(
         omitted_arguments=praf.omitted_arguments,
         omitted_relations=praf.omitted_relations,
     )
-    return EnforceCohResult(enforced, True, iterations, max_violation) if soft else enforced
+    return (
+        EnforceCohResult(enforced, True, iterations, max_violation)
+        if soft
+        else enforced
+    )
 
 
 def summarize_defeat_relations(
@@ -416,9 +426,13 @@ def summarize_defeat_relations(
     """
 
     kernel = propstore_praf_kernel(praf)
-    probabilities = _kernel_summarize_defeat_relations(kernel, include_derived=include_derived)
+    probabilities = _kernel_summarize_defeat_relations(
+        kernel, include_derived=include_derived
+    )
     direct_defeats = (
-        kernel.base_defeats if kernel.base_defeats is not None else kernel.framework.defeats
+        kernel.base_defeats
+        if kernel.base_defeats is not None
+        else kernel.framework.defeats
     )
     return tuple(
         ProbabilisticRelation(

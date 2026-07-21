@@ -130,21 +130,34 @@ def test_telic_qualia_chain_is_recoverable(
         return
     graph = {
         first_uri: QualiaStructure(
-            telic=(QualiaReference(reference=_ref(second_uri), provenance=_provenance("telic")),)
+            telic=(
+                QualiaReference(
+                    reference=_ref(second_uri), provenance=_provenance("telic")
+                ),
+            )
         ),
         second_uri: QualiaStructure(
-            telic=(QualiaReference(reference=_ref(third_uri), provenance=_provenance("telic")),)
+            telic=(
+                QualiaReference(
+                    reference=_ref(third_uri), provenance=_provenance("telic")
+                ),
+            )
         ),
     }
 
-    assert purposive_chain(_ref(first_uri), graph) == (_ref(second_uri), _ref(third_uri))
+    assert purposive_chain(_ref(first_uri), graph) == (
+        _ref(second_uri),
+        _ref(third_uri),
+    )
 
 
 # --- Dowty proto-roles ------------------------------------------------------
 
 
 @pytest.mark.property
-@given(value=st.floats(allow_nan=False, allow_infinity=False, min_value=0.0, max_value=1.0))
+@given(
+    value=st.floats(allow_nan=False, allow_infinity=False, min_value=0.0, max_value=1.0)
+)
 @settings(deadline=None)
 def test_proto_role_entailments_are_graded_and_provenance_bearing(value: float) -> None:
     entailment = GradedEntailment(
@@ -194,7 +207,10 @@ def test_dowty_argument_selection_prefers_highest_proto_agent_weight() -> None:
         )
     )
 
-    assert predicted_subject_role({"observer": observer, "observed": observed}) == "observer"
+    assert (
+        predicted_subject_role({"observer": observer, "observed": observed})
+        == "observer"
+    )
 
 
 # --- description kinds + sense semantic content -----------------------------
@@ -305,7 +321,9 @@ def test_coreference_between_description_claims_is_an_argument_not_a_fact() -> N
     assert argument.supports == ("ps:claim:first", "ps:claim:second")
 
 
-def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters() -> None:
+def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters() -> (
+    None
+):
     kind = DescriptionKind(
         name="Observation",
         reference=_ref("tag:propstore:test:description-kind/observation"),
@@ -344,7 +362,10 @@ def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters(
 
     query = coreference_query(
         (first_second, first_rival),
-        attacks=(("arg:first-second", "arg:first-rival"), ("arg:first-rival", "arg:first-second")),
+        attacks=(
+            ("arg:first-second", "arg:first-rival"),
+            ("arg:first-rival", "arg:first-second"),
+        ),
     )
 
     assert isinstance(query, CoreferenceQuery)
@@ -376,10 +397,18 @@ def _frame(frame_id: str) -> TemporalFrame:
 
 @pytest.mark.property
 @given(
-    start=st.floats(allow_nan=False, allow_infinity=False, min_value=-1_000_000, max_value=1_000_000),
-    first_width=st.floats(allow_nan=False, allow_infinity=False, min_value=1.0, max_value=10_000.0),
-    gap=st.floats(allow_nan=False, allow_infinity=False, min_value=1.0, max_value=10_000.0),
-    second_width=st.floats(allow_nan=False, allow_infinity=False, min_value=1.0, max_value=10_000.0),
+    start=st.floats(
+        allow_nan=False, allow_infinity=False, min_value=-1_000_000, max_value=1_000_000
+    ),
+    first_width=st.floats(
+        allow_nan=False, allow_infinity=False, min_value=1.0, max_value=10_000.0
+    ),
+    gap=st.floats(
+        allow_nan=False, allow_infinity=False, min_value=1.0, max_value=10_000.0
+    ),
+    second_width=st.floats(
+        allow_nan=False, allow_infinity=False, min_value=1.0, max_value=10_000.0
+    ),
 )
 @settings(deadline=None, max_examples=25)
 def test_fully_bound_same_frame_reproduces_allen_truths(

@@ -64,9 +64,7 @@ class _ConflictedView:
         return ValueResult(
             concept_id=concept_id,
             status=ValueStatus.CONFLICTED,
-            claims=[
-                claim for claim in self._claims if claim.concept_id == concept_id
-            ],
+            claims=[claim for claim in self._claims if claim.concept_id == concept_id],
         )
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
@@ -212,9 +210,7 @@ def test_sample_size_resolves_through_resolve() -> None:
 
 
 def test_override_selects_named_claim() -> None:
-    view = _ConflictedView(
-        [_claim("a", value=1.0), _claim("b", value=2.0)]
-    )
+    view = _ConflictedView([_claim("a", value=1.0), _claim("b", value=2.0)])
     result = resolve(
         view,
         "concept1",
@@ -251,9 +247,7 @@ def test_no_claims_passes_through() -> None:
 
 
 def test_no_strategy_stays_conflicted() -> None:
-    view = _ConflictedView(
-        [_claim("a", value=1.0), _claim("b", value=2.0)]
-    )
+    view = _ConflictedView([_claim("a", value=1.0), _claim("b", value=2.0)])
     result = resolve(view, "concept1")
     assert result.status is ValueStatus.CONFLICTED
     assert result.reason == "no resolution strategy configured"
@@ -348,9 +342,7 @@ def test_claim_graph_resolution_sole_survivor_wins(
     )
 
     result = resolve(
-        _ConflictedView(
-            [_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]
-        ),
+        _ConflictedView([_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]),
         "concept1",
         strategy=ResolutionStrategy.ARGUMENTATION,
         world=_ArgumentationWorld(),
@@ -361,9 +353,7 @@ def test_claim_graph_resolution_sole_survivor_wins(
 
 
 def test_argumentation_without_store_stays_conflicted() -> None:
-    view = _ConflictedView(
-        [_claim("a", value=1.0), _claim("b", value=2.0)]
-    )
+    view = _ConflictedView([_claim("a", value=1.0), _claim("b", value=2.0)])
     result = resolve(
         view,
         "concept1",
@@ -427,9 +417,7 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(
     )
 
     result = resolve(
-        _ConflictedView(
-            [_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]
-        ),
+        _ConflictedView([_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]),
         "concept1",
         strategy=ResolutionStrategy.ARGUMENTATION,
         world=_ArgumentationWorld(),
@@ -474,9 +462,7 @@ def test_praf_resolution_picks_highest_acceptance(
     )
 
     result = resolve(
-        _ConflictedView(
-            [_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]
-        ),
+        _ConflictedView([_claim("claim_a", value=1.0), _claim("claim_b", value=2.0)]),
         "concept1",
         strategy=ResolutionStrategy.ARGUMENTATION,
         world=_ArgumentationWorld(),
@@ -539,7 +525,9 @@ def test_assignment_selection_merge_reports_duplicate_source() -> None:
         policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
     )
     assert result.status is ValueStatus.CONFLICTED
-    assert result.reason == "source 'a' has multiple active claims for concept 'concept1'"
+    assert (
+        result.reason == "source 'a' has multiple active claims for concept 'concept1'"
+    )
 
 
 def test_assignment_selection_merge_branch_filter_narrows_sources() -> None:

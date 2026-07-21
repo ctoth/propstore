@@ -140,9 +140,7 @@ class ClaimCheckPass:
     output_stage = ClaimStage.CHECKED
 
     def run(self, value: ClaimFiles, context: object) -> PassResult[ClaimCheckedBundle]:
-        checked = tuple(
-            _check_one(loaded, value.context) for loaded in value.claims
-        )
+        checked = tuple(_check_one(loaded, value.context) for loaded in value.claims)
         bundle = ClaimCheckedBundle(claims=checked)
         return PassResult(output=bundle, diagnostics=bundle.diagnostics)
 

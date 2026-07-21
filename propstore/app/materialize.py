@@ -57,7 +57,9 @@ def materialize_repository(
     :class:`MaterializeError`.
     """
 
-    target_repo = repo if request.directory is None else Repository.find(request.directory)
+    target_repo = (
+        repo if request.directory is None else Repository.find(request.directory)
+    )
     try:
         return target_repo.snapshot.materialize(
             commit=request.commit,

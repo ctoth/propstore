@@ -14,6 +14,7 @@ flag-to-:class:`RenderPolicy` path, world opening, JSON emission). The sibling
 command modules are imported at the bottom so they can attach commands via
 ``@concept.command``.
 """
+
 from __future__ import annotations
 
 import json

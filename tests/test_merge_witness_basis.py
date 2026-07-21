@@ -8,7 +8,9 @@ def test_every_merge_argument_has_source_artifact_witness_basis() -> None:
     merge = build_merge_framework(
         {
             "master": [obs_claim("left", "Left", ["concept_left"], paper="left_paper")],
-            "paper/right": [obs_claim("right", "Right", ["concept_right"], paper="right_paper")],
+            "paper/right": [
+                obs_claim("right", "Right", ["concept_right"], paper="right_paper")
+            ],
         },
         "master",
         "paper/right",

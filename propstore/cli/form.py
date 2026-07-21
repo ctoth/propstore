@@ -7,6 +7,7 @@ the single-form show view (no list / search / mutation owner), so this module
 builds only ``show``; the absent surfaces are deferred to the phase that lands
 their owners rather than fabricated here.
 """
+
 from __future__ import annotations
 
 import click

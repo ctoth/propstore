@@ -53,7 +53,9 @@ class BaseRateProfile:
 
     def __post_init__(self) -> None:
         if self.value <= 0.0 or self.value >= 1.0:
-            raise ValueError("BaseRateProfile.value must be in the open interval (0, 1)")
+            raise ValueError(
+                "BaseRateProfile.value must be in the open interval (0, 1)"
+            )
         if self.stratum < 0:
             raise ValueError("BaseRateProfile.stratum must be non-negative")
         object.__setattr__(
@@ -215,7 +217,9 @@ class BaseRateResolver:
         object.__setattr__(self, "profiles", tuple(profiles))
         object.__setattr__(self, "_by_target", by_target)
 
-    def resolve(self, assertion_id: AssertionId) -> BaseRateResolved | BaseRateUnresolved:
+    def resolve(
+        self, assertion_id: AssertionId
+    ) -> BaseRateResolved | BaseRateUnresolved:
         assertion = _assertion_id(assertion_id, "assertion_id")
         return self._resolve(assertion, seen=frozenset())
 

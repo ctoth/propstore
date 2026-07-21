@@ -50,7 +50,10 @@ def test_init_creates_at_custom_path(empty_workspace: Path) -> None:
 
     root = empty_workspace / "myproject"
     assert (root / ".git").is_dir()
-    assert Repository.find(root).families.concept.load("ps:concept:measurement") is not None
+    assert (
+        Repository.find(root).families.concept.load("ps:concept:measurement")
+        is not None
+    )
 
 
 def test_init_already_initialized_is_idempotent(empty_workspace: Path) -> None:
@@ -71,7 +74,10 @@ def test_init_with_directory_flag(empty_workspace: Path) -> None:
 
     root = parent / "knowledge"
     assert (root / ".git").is_dir()
-    assert Repository.find(root).families.concept.load("ps:concept:measurement") is not None
+    assert (
+        Repository.find(root).families.concept.load("ps:concept:measurement")
+        is not None
+    )
 
 
 def test_init_validate_after_init(empty_workspace: Path) -> None:

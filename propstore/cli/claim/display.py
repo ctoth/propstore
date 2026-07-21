@@ -7,6 +7,7 @@ over :mod:`propstore.app.neighborhoods`, and ``compare`` over
 reader, calls the owner builder under a lifecycle render policy, and renders the
 typed report; typed owner failures map to clean exit codes via ``fail``.
 """
+
 from __future__ import annotations
 
 import click
@@ -159,7 +160,9 @@ def claim_search(
 
 @claim.command("neighborhood")
 @click.argument("claim_id")
-@click.option("--limit", default=50, type=click.IntRange(min=1), help="Maximum neighbors.")
+@click.option(
+    "--limit", default=50, type=click.IntRange(min=1), help="Maximum neighbors."
+)
 @lifecycle_options
 @format_option
 @click.pass_obj

@@ -38,7 +38,9 @@ class WorldlineRevisionQuery:
     operation: str = ""
     atom: RevisionAtomRef | None = None
     target: str | None = None
-    conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
+    conflicts: RevisionConflictSelection = field(
+        default_factory=RevisionConflictSelection
+    )
     operator: str | None = None
     profile_atom_ids: tuple[tuple[str, ...], ...] = ()
     integrity_constraint: IntegrityConstraintSpec | None = None

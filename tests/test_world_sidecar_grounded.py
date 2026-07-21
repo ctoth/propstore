@@ -53,7 +53,9 @@ def test_authored_rules_ground_facts_into_sidecar(tmp_path: Path) -> None:
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
-    repo.families.context.save("ctx1", Context(context_id="ctx1", name="ctx"), message="m")
+    repo.families.context.save(
+        "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
+    )
     repo.families.claim.save(
         "cl1",
         Claim(
@@ -88,7 +90,9 @@ def test_authored_rules_ground_facts_into_sidecar(tmp_path: Path) -> None:
             body=(
                 BodyLiteral(
                     kind="positive",
-                    atom=Atom(predicate="has_value", terms=(Term(kind="var", name="X"),)),
+                    atom=Atom(
+                        predicate="has_value", terms=(Term(kind="var", name="X"),)
+                    ),
                 ),
             ),
         ),

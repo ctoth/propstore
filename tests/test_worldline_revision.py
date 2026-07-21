@@ -5,7 +5,10 @@ from msgspec.structs import replace
 from msgspec.structs import replace as replace_struct
 
 from propstore.support_revision.history import EpistemicSnapshot
-from propstore.support_revision.iterated import epistemic_state_payload, make_epistemic_state
+from propstore.support_revision.iterated import (
+    epistemic_state_payload,
+    make_epistemic_state,
+)
 from propstore.support_revision.state import RevisionScope
 from tests.support_revision.formal_realization_helpers import revise_via_formal_decision
 from tests.test_revision_iterated import _history_sensitive_base
@@ -34,8 +37,7 @@ def _revision_query(
         atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id, value=value),
         conflicts=RevisionConflictSelection(
             targets_by_atom_id={
-                key: tuple(targets)
-                for key, targets in (conflicts or {}).items()
+                key: tuple(targets) for key, targets in (conflicts or {}).items()
             }
         ),
         operator=operator,
@@ -118,8 +120,14 @@ def test_worldline_result_preserves_revision_payload() -> None:
 
 def test_compute_worldline_content_hash_changes_when_revision_payload_changes() -> None:
     from propstore.worldline.hashing import compute_worldline_content_hash
-    from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
-    from propstore.worldline.revision_types import WorldlineRevisionResult, WorldlineRevisionState
+    from propstore.worldline.result_types import (
+        WorldlineDependencies,
+        WorldlineTargetValue,
+    )
+    from propstore.worldline.revision_types import (
+        WorldlineRevisionResult,
+        WorldlineRevisionState,
+    )
 
     left = compute_worldline_content_hash(
         values={"target": WorldlineTargetValue(status="determined", value=1.0)},
@@ -168,8 +176,12 @@ class _RevisionBound:
         self.calls.append(("revise", atom, conflicts, None, max_candidates))
         return self.one_shot_result
 
-    def iterated_revise(self, atom, *, conflicts=None, max_candidates, operator="restrained"):
-        self.calls.append(("iterated_revise", atom, conflicts, operator, max_candidates))
+    def iterated_revise(
+        self, atom, *, conflicts=None, max_candidates, operator="restrained"
+    ):
+        self.calls.append(
+            ("iterated_revise", atom, conflicts, operator, max_candidates)
+        )
         if self.merge_error is not None:
             raise self.merge_error
         return self.iterated_result
@@ -210,10 +222,15 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     )
     bound = _RevisionBound(
         one_shot_result=one_shot_result,
-        one_shot_explanation=build_revision_explanation(one_shot_result, entrenchment=entrenchment),
+        one_shot_explanation=build_revision_explanation(
+            one_shot_result, entrenchment=entrenchment
+        ),
     )
 
-    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
+    monkeypatch.setattr(
+        "propstore.worldline.runner._resolve_concept_name",
+        lambda *args, **kwargs: "concept:target",
+    )
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),
@@ -239,7 +256,9 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     assert result.revision.result.accepted_atom_ids == one_shot_result.accepted_atom_ids
     assert result.revision.result.rejected_atom_ids == one_shot_result.rejected_atom_ids
     assert len(bound.calls) == 1
-    call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = bound.calls[0]
+    call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = (
+        bound.calls[0]
+    )
     assert call_operation == "revise"
     assert call_atom == synthetic.atom_id
     assert call_conflicts == {synthetic.atom_id: (ids["legacy"],)}
@@ -273,10 +292,15 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     )
     bound = _RevisionBound(
         iterated_result=iterated_result,
-        iterated_explanation=build_revision_explanation(iterated_result[0], entrenchment=entrenchment),
+        iterated_explanation=build_revision_explanation(
+            iterated_result[0], entrenchment=entrenchment
+        ),
     )
 
-    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
+    monkeypatch.setattr(
+        "propstore.worldline.runner._resolve_concept_name",
+        lambda *args, **kwargs: "concept:target",
+    )
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),
@@ -300,9 +324,13 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     assert result.revision is not None
     assert result.revision.operation == "iterated_revise"
     assert result.revision.state is not None
-    assert result.revision.state.to_dict() == epistemic_state_payload(iterated_result[1])
+    assert result.revision.state.to_dict() == epistemic_state_payload(
+        iterated_result[1]
+    )
     assert len(bound.calls) == 1
-    call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = bound.calls[0]
+    call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = (
+        bound.calls[0]
+    )
     assert call_operation == "iterated_revise"
     assert call_atom == new.atom_id
     assert call_conflicts == {new.atom_id: (ids["legacy"],)}
@@ -319,16 +347,23 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
     merge_state = make_epistemic_state(
         replace_struct(
             base,
-            scope=RevisionScope(bindings={}, branch="topic", merge_parent_commits=("abc", "def")),
+            scope=RevisionScope(
+                bindings={}, branch="topic", merge_parent_commits=("abc", "def")
+            ),
         ),
         entrenchment,
     )
     bound = _RevisionBound(
         iterated_result=(None, merge_state),
-        merge_error=ValueError("iterated revision is undefined at a merge point; use an explicit merge path"),
+        merge_error=ValueError(
+            "iterated revision is undefined at a merge point; use an explicit merge path"
+        ),
     )
 
-    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
+    monkeypatch.setattr(
+        "propstore.worldline.runner._resolve_concept_name",
+        lambda *args, **kwargs: "concept:target",
+    )
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),

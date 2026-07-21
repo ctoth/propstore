@@ -57,7 +57,8 @@ def test_plan_defaults_branch_and_name_from_source(tmp_path: Path) -> None:
     destination = _init(tmp_path / "dest")
     source = _init(tmp_path / "repo-b")
     source.families.concept.save(
-        "concept:legacy", Concept(concept_id="concept:legacy", canonical_name="Mass"),
+        "concept:legacy",
+        Concept(concept_id="concept:legacy", canonical_name="Mass"),
         message="author concept",
     )
 
@@ -72,7 +73,8 @@ def test_plan_uses_committed_head_not_worktree(tmp_path: Path) -> None:
     destination = _init(tmp_path / "dest")
     source = _init(tmp_path / "repo-b")
     source.families.concept.save(
-        "concept:legacy", Concept(concept_id="concept:legacy", canonical_name="Mass"),
+        "concept:legacy",
+        Concept(concept_id="concept:legacy", canonical_name="Mass"),
         message="author concept",
     )
     committed = source.require_git().head_sha()
@@ -80,7 +82,9 @@ def test_plan_uses_committed_head_not_worktree(tmp_path: Path) -> None:
 
     plan = plan_repository_import(destination, source.root.parent)
     assert plan.source_commit == committed
-    new_concept_path = f"concept/{_imported_concept_id('repo-b', 'concept:legacy')}.yaml"
+    new_concept_path = (
+        f"concept/{_imported_concept_id('repo-b', 'concept:legacy')}.yaml"
+    )
     assert new_concept_path in plan.writes
 
 
@@ -88,7 +92,8 @@ def test_plan_limits_to_semantic_tree_and_excludes_non_semantic(tmp_path: Path) 
     destination = _init(tmp_path / "dest")
     source = _init(tmp_path / "repo-b")
     source.families.concept.save(
-        "concept:legacy", Concept(concept_id="concept:legacy", canonical_name="Mass"),
+        "concept:legacy",
+        Concept(concept_id="concept:legacy", canonical_name="Mass"),
         message="author concept",
     )
     source.require_git().commit_files(
@@ -107,7 +112,9 @@ def test_plan_limits_to_semantic_tree_and_excludes_non_semantic(tmp_path: Path) 
     )
 
 
-def test_commit_writes_target_branch_and_reconciles_concept_refs(tmp_path: Path) -> None:
+def test_commit_writes_target_branch_and_reconciles_concept_refs(
+    tmp_path: Path,
+) -> None:
     destination = _init(tmp_path / "dest")
     destination_git = destination.require_git()
     master_before = destination_git.head_sha()
@@ -117,7 +124,8 @@ def test_commit_writes_target_branch_and_reconciles_concept_refs(tmp_path: Path)
         "ctx", Context(context_id="ctx", name="Import context"), message="ctx"
     )
     source.families.concept.save(
-        "concept:legacy", Concept(concept_id="concept:legacy", canonical_name="Mass"),
+        "concept:legacy",
+        Concept(concept_id="concept:legacy", canonical_name="Mass"),
         message="concept",
     )
     source.families.claim.save(
@@ -188,14 +196,24 @@ def test_same_named_concepts_from_rival_repositories_keep_distinct_identity(
     concept_a_id = _imported_concept_id("repo-a", "concept:mass")
     concept_b_id = _imported_concept_id("repo-b", "concept:mass")
     assert concept_a_id != concept_b_id
-    assert destination.families.concept.pin(
-        branch=result_a.target_branch,
-        commit=result_a.commit_sha,
-    ).require(concept_a_id).canonical_name == "Mass"
-    assert destination.families.concept.pin(
-        branch=result_b.target_branch,
-        commit=result_b.commit_sha,
-    ).require(concept_b_id).canonical_name == "Mass"
+    assert (
+        destination.families.concept.pin(
+            branch=result_a.target_branch,
+            commit=result_a.commit_sha,
+        )
+        .require(concept_a_id)
+        .canonical_name
+        == "Mass"
+    )
+    assert (
+        destination.families.concept.pin(
+            branch=result_b.target_branch,
+            commit=result_b.commit_sha,
+        )
+        .require(concept_b_id)
+        .canonical_name
+        == "Mass"
+    )
 
 
 def test_commit_rewrites_stance_claim_refs(tmp_path: Path) -> None:
@@ -243,17 +261,18 @@ def test_commit_target_master_does_not_materialize_worktree(tmp_path: Path) -> N
     destination = _init(tmp_path / "dest")
     source = _init(tmp_path / "repo-b")
     source.families.concept.save(
-        "concept:legacy", Concept(concept_id="concept:legacy", canonical_name="Mass"),
+        "concept:legacy",
+        Concept(concept_id="concept:legacy", canonical_name="Mass"),
         message="concept",
     )
 
-    plan = plan_repository_import(destination, source.root.parent, target_branch="master")
+    plan = plan_repository_import(
+        destination, source.root.parent, target_branch="master"
+    )
     result = commit_repository_import(destination, plan)
 
     assert plan.target_branch == "master"
-    imported_path = (
-        f"concept/{_imported_concept_id('repo-b', 'concept:legacy')}.yaml"
-    )
+    imported_path = f"concept/{_imported_concept_id('repo-b', 'concept:legacy')}.yaml"
     # colon-bearing canonical paths are never materialized to the worktree.
     assert not (destination.root / Path(imported_path)).exists()
     imported = _read_yaml(destination, imported_path, commit=result.commit_sha)
@@ -274,7 +293,8 @@ def test_plan_deletes_paths_missing_from_latest_snapshot(tmp_path: Path) -> None
 
     source = _init(tmp_path / "repo-b")
     source.families.concept.save(
-        "concept:fresh", Concept(concept_id="concept:fresh", canonical_name="Fresh"),
+        "concept:fresh",
+        Concept(concept_id="concept:fresh", canonical_name="Fresh"),
         message="fresh",
     )
 
@@ -295,7 +315,8 @@ def test_import_attaches_stated_provenance_note(tmp_path: Path) -> None:
     destination = _init(tmp_path / "dest")
     source = _init(tmp_path / "repo-b")
     source.families.concept.save(
-        "concept:legacy", Concept(concept_id="concept:legacy", canonical_name="Mass"),
+        "concept:legacy",
+        Concept(concept_id="concept:legacy", canonical_name="Mass"),
         message="concept",
     )
 
@@ -304,7 +325,9 @@ def test_import_attaches_stated_provenance_note(tmp_path: Path) -> None:
     )
 
     source_commit = source.require_git().head_sha()
-    provenance = read_provenance_note(destination.require_git().raw_repo, result.commit_sha)
+    provenance = read_provenance_note(
+        destination.require_git().raw_repo, result.commit_sha
+    )
     assert provenance is not None
     assert provenance.status is ProvenanceStatus.STATED
     assert provenance.operations == ("repository-import",)
@@ -326,7 +349,8 @@ def test_import_is_convergent_under_repeated_commits(tmp_path: Path) -> None:
     destination = _init(tmp_path / "dest")
     source = _init(tmp_path / "repo-b")
     source.families.concept.save(
-        "concept:legacy", Concept(concept_id="concept:legacy", canonical_name="Mass"),
+        "concept:legacy",
+        Concept(concept_id="concept:legacy", canonical_name="Mass"),
         message="concept",
     )
     source.families.claim.save(

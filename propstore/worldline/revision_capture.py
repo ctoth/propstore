@@ -5,7 +5,10 @@ from typing import Any
 
 
 from propstore.policies import PolicyProfile
-from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR, DEFAULT_MAX_ALPHABET_SIZE
+from propstore.support_revision.belief_set_adapter import (
+    DEFAULT_ITERATED_OPERATOR,
+    DEFAULT_MAX_ALPHABET_SIZE,
+)
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.operator_inputs import (
     ContractInput,
@@ -279,20 +282,30 @@ def _journal_operator_input(
             ),
         )
     if operation == "ic_merge":
-        profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in revision_query.profile_atom_ids)
+        profile_atom_ids = tuple(
+            tuple(str(atom_id) for atom_id in profile)
+            for profile in revision_query.profile_atom_ids
+        )
         if not profile_atom_ids:
             raise ValueError("IC merge journal capture requires profile_atom_ids")
         integrity_constraint = revision_query.integrity_constraint
         if integrity_constraint is None:
             raise ValueError("IC merge journal capture requires integrity_constraint")
-        merge_parent_commits = tuple(revision_query.merge_parent_commits or state.scope.merge_parent_commits)
-        target_atom_ids = tuple(dict.fromkeys(atom_id for profile in profile_atom_ids for atom_id in profile))
+        merge_parent_commits = tuple(
+            revision_query.merge_parent_commits or state.scope.merge_parent_commits
+        )
+        target_atom_ids = tuple(
+            dict.fromkeys(
+                atom_id for profile in profile_atom_ids for atom_id in profile
+            )
+        )
         operator_input = ICMergeInput(
             profile_atom_ids=profile_atom_ids,
             merge_parent_commits=merge_parent_commits,
             integrity_constraint=integrity_constraint,
             merge_operator=revision_query.operator or "sigma",
-            max_alphabet_size=revision_query.max_alphabet_size or DEFAULT_MAX_ALPHABET_SIZE,
+            max_alphabet_size=revision_query.max_alphabet_size
+            or DEFAULT_MAX_ALPHABET_SIZE,
         )
         return (
             JournalOperator.IC_MERGE,
@@ -306,7 +319,9 @@ def _journal_operator_input(
     raise ValueError(f"Unknown revision operation: {operation}")
 
 
-def _normalize_query_atom(state: EpistemicState, atom: RevisionAtomRef | None) -> BeliefAtom:
+def _normalize_query_atom(
+    state: EpistemicState, atom: RevisionAtomRef | None
+) -> BeliefAtom:
     if atom is None:
         raise ValueError("journal revision operation requires an atom")
     return normalize_revision_input(state.base, atom.to_belief_atom_input())
@@ -324,7 +339,9 @@ def _query_target_atom_ids(target: Any) -> list[str]:
     if isinstance(target, str):
         if target.startswith("ps:assertion:") or target.startswith("assumption:"):
             return [target]
-        raise ValueError(f"Worldline revision target must be an assertion or assumption atom id: {target}")
+        raise ValueError(
+            f"Worldline revision target must be an assertion or assumption atom id: {target}"
+        )
     return [str(target)]
 
 
