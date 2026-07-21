@@ -86,6 +86,7 @@ from propstore.core.labels import (
     make_environment_key,
     merge_labels,
 )
+from propstore.core.scalars import ScalarValue
 from propstore.families.micropublications import Micropublication
 from propstore.families.claims import Claim
 from propstore.propagation import (
@@ -274,7 +275,7 @@ class ATMSClaimNode:
         return None
 
     @property
-    def value(self) -> float | None:
+    def value(self) -> ScalarValue | None:
         return self.claim.value
 
 
