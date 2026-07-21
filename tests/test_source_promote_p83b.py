@@ -4,7 +4,7 @@ Ports the behavioural assertions of the reference promote/trust suites
 (test_promote_atomicity, test_promote_claim_immutability,
 test_promote_writes_provenance_note, test_source_promote_dangling_refs,
 test_trust_calibration_runs_at_promote, test_source_trust) to the rewrite's owner
-API and flat charter shapes, and adds the two store-write-boundary invariant
+API and canonical charter shapes, and adds the two store-write-boundary invariant
 tests the non-commitment discipline turns on:
 
 * ``test_blocked_claim_is_quarantined_not_dropped`` — a claim that cannot promote
@@ -26,10 +26,14 @@ from pathlib import Path
 
 import pytest
 import yaml
+from condition_ir import KindType
 
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims import Claim, ClaimStatus, ClaimType
 from propstore.families.contexts import Context
+from propstore.families.concepts import Concept
+from propstore.families.forms import FormDefinition
+from propstore.families.sources import SourceConceptFormParametersDocument
 from propstore.provenance import ProvenanceStatus, read_provenance_note
 from propstore.repository import Repository
 from propstore.source import (
@@ -50,6 +54,13 @@ _SOURCE = "Demo Paper 2024"
 
 def _new_source(tmp_path: Path) -> Repository:
     repo = Repository.init(tmp_path)
+    repo.families.form.save(
+        "dimensionless",
+        FormDefinition(
+            name="dimensionless", kind=KindType.QUANTITY, is_dimensionless=True
+        ),
+        message="seed dimensionless form",
+    )
     init_source_branch(
         repo,
         _SOURCE,
@@ -168,6 +179,66 @@ def test_promoted_claim_is_immutable_rebuild_with_lowered_concept(tmp_path: Path
     assert promoted.concepts[0] != "widget"
     assert repo.families.concept.load(promoted.concepts[0]) is not None
     assert promoted.context_id == "ctx"
+
+
+def test_promoted_concepts_preserve_form_and_category_semantics(tmp_path: Path) -> None:
+    repo = _new_source(tmp_path)
+    repo.families.form.save(
+        "category",
+        FormDefinition(name="category", kind=KindType.CATEGORY),
+        message="seed category form",
+    )
+    repo.families.form.save(
+        "quantity",
+        FormDefinition(
+            name="quantity", kind=KindType.QUANTITY, is_dimensionless=True
+        ),
+        message="seed quantity form",
+    )
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="severity",
+        definition="An ordered severity label.",
+        form="category",
+        form_parameters=SourceConceptFormParametersDocument(
+            values=("low", "medium", "high"),
+            extensible=False,
+        ),
+    )
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="score",
+        definition="A numeric score.",
+        form="quantity",
+    )
+    finalize_source_branch(repo, _SOURCE)
+
+    promote_source_branch(repo, _SOURCE)
+
+    promoted = {
+        handle.document.canonical_name: handle.document
+        for handle in repo.families.concept.iter_handles()
+        if isinstance(handle.document, Concept)
+    }
+    severity = promoted["severity"]
+    reloaded_severity = repo.families.concept.load(severity.concept_id)
+    assert reloaded_severity == severity
+    assert reloaded_severity is not None
+    assert reloaded_severity.lexical_entry is not None
+    assert reloaded_severity.lexical_entry.physical_dimension_form == "category"
+    assert reloaded_severity.category_values == ("low", "medium", "high")
+    assert reloaded_severity.category_extensible is False
+
+    score = promoted["score"]
+    reloaded_score = repo.families.concept.load(score.concept_id)
+    assert reloaded_score == score
+    assert reloaded_score is not None
+    assert reloaded_score.lexical_entry is not None
+    assert reloaded_score.lexical_entry.physical_dimension_form == "quantity"
+    assert reloaded_score.category_values == ()
+    assert reloaded_score.category_extensible is True
 
 
 # ---------------------------------------------------------------------------

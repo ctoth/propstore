@@ -254,6 +254,7 @@ promotion.
 Active production boundary:
 
 - `propstore/families/concepts.py`
+- `propstore/families/registry.py`
 - `propstore/source/promote.py`
 - charter-derived contract manifest
 
@@ -261,6 +262,9 @@ Execution order:
 
 - [ ] Add the two typed category fields to `Concept` and bump the concept charter
    contract version from `2026.06.28` to `2026.07.21`.
+- [ ] Bump `PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION` from `2026.07.21.1`
+   to `2026.07.21.2`; the concept charter change also changes the derived
+   `family-registry:propstore` contract body.
 - [ ] Delete the flat promoted-Concept construction that drops form data.
 - [ ] Rebuild that exact caller path with the already-owned lemon objects, carrying
    proposed name, definition, form, values, and extensibility into the canonical
@@ -277,7 +281,7 @@ Runtime gate:
 
 ```powershell
 powershell -File scripts/run_logged_pytest.ps1 -Label condition-registry-s2 tests/test_source_promote_p83b.py tests/test_source_finalize_p83a.py tests/test_cli_source_p101.py tests/test_lemon_concept_charter.py tests/test_concept_skeleton.py tests/test_contract_manifest.py -q
-uv run ruff check propstore/families/concepts.py propstore/source/promote.py tests/test_source_promote_p83b.py tests/test_source_finalize_p83a.py tests/test_cli_source_p101.py tests/test_lemon_concept_charter.py tests/test_concept_skeleton.py tests/test_contract_manifest.py
+uv run ruff check propstore/families/concepts.py propstore/families/registry.py propstore/source/promote.py tests/test_source_promote_p83b.py tests/test_source_finalize_p83a.py tests/test_cli_source_p101.py tests/test_lemon_concept_charter.py tests/test_concept_skeleton.py tests/test_contract_manifest.py
 uv run pyright propstore
 ```
 

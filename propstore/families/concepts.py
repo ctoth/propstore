@@ -60,7 +60,7 @@ class ConceptStatus(str, Enum):
 @charter(
     key="concept",
     name="concept",
-    contract_version="2026.06.28",
+    contract_version="2026.07.21",
     placement="concept",
     identity_field="concept_id",
     semantic="propstore.concept",
@@ -78,6 +78,8 @@ class Concept(CharterDoc):
     canonical_name: str
     status: ConceptStatus = ConceptStatus.AUTHORED
     definition: str | None = None
+    category_values: Annotated[tuple[str, ...], charter_field(json=True)] = ()
+    category_extensible: bool = True
     ontology_reference: Annotated[OntologyReference | None, charter_field(json=True)] = None
     lexical_entry: Annotated[
         LexicalEntry | None,

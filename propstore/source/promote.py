@@ -34,6 +34,12 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import msgspec
 from quire.references import FamilyReferenceIndex
 
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.families.claims import Claim
 from propstore.families.concepts import Concept, ConceptStatus
 from propstore.families.diagnostics import BuildDiagnostic
@@ -174,10 +180,10 @@ def resolve_source_concept_promotions(
     """Map each proposed source concept to a canonical id (reusing or minting).
 
     A registry-matched or name-matched proposal reuses the existing canonical id;
-    an unmatched proposal mints ``ps:concept:<sha>`` and a new flat
+    an unmatched proposal mints ``ps:concept:<sha>`` and a complete canonical
     :class:`Concept`. A minted id that collides with an existing concept, or with
-    a second proposal carrying a different handle, is ambiguous: it is recorded in
-    ``blocked_concept_refs`` (quarantined) rather than merging two rivals.
+    a second proposal carrying a different handle, is ambiguous: it is recorded
+    in ``blocked_concept_refs`` (quarantined) rather than merging two rivals.
     """
 
     concepts_doc = load_source_concepts_document(repo, source_name)
@@ -239,11 +245,33 @@ def resolve_source_concept_promotions(
             continue
 
         minted_by_handle[concept_id] = seed
+        form_parameters = entry.form_parameters
         concept_documents[concept_id] = Concept(
             concept_id=concept_id,
-            canonical_name=str(entry.proposed_name or entry.local_name or slug).strip(),
+            canonical_name=seed,
             status=ConceptStatus.AUTHORED,
             definition=(entry.definition or None),
+            category_values=(
+                ()
+                if form_parameters is None or form_parameters.values is None
+                else form_parameters.values
+            ),
+            category_extensible=(
+                True
+                if form_parameters is None or form_parameters.extensible is None
+                else form_parameters.extensible
+            ),
+            lexical_entry=LexicalEntry(
+                identifier=f"entry:{slug}",
+                canonical_form=LexicalForm(written_rep=seed, language="en"),
+                senses=(
+                    LexicalSense(
+                        reference=OntologyReference(uri=concept_id),
+                        usage=entry.definition or None,
+                    ),
+                ),
+                physical_dimension_form=entry.form,
+            ),
         )
         for handle in (entry.local_name, entry.proposed_name):
             if isinstance(handle, str) and handle:

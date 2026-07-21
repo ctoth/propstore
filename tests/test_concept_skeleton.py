@@ -35,7 +35,17 @@ def test_charter_projection_falls_out_of_the_charter() -> None:
 
     schema_object = Concept.__charter__.to_schema_object()
     column_names = {field.name for field in schema_object.fields}
-    assert {"concept_id", "canonical_name", "status", "definition"} <= column_names
+    assert {
+        "concept_id",
+        "canonical_name",
+        "status",
+        "definition",
+        "category_values",
+        "category_extensible",
+    } <= column_names
+    assert {"local_name", "form", "form_parameters", "registry_match"}.isdisjoint(
+        column_names
+    )
     # The generated SQLAlchemy model name is derived, not separately authored.
     assert Concept.__charter_model__.__name__ == "ConceptModel"
 

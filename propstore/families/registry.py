@@ -72,7 +72,7 @@ from propstore.families.rules import RuleProposalRef as RuleProposalRef
 # ``propstore.families.registry`` as the one import site for the worldline ref.
 from propstore.worldline.definition import WorldlineRef as WorldlineRef
 
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.21.1")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.21.2")
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
 # The charter-bearing document classes, in authoring order. The registry's
