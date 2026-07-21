@@ -26,6 +26,7 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     "contract-manifest": ("propstore.cli.contracts", "contract_manifest", "Render or write contract manifest."),
     "context": ("propstore.cli.context", "context", "Manage contexts."),
     "diff": ("propstore.cli.history_cmds", "diff_cmd", "Show repository changes."),
+    "event": ("propstore.cli.event", "event", "Query render-time description-claim coreference."),
     "export-aliases": ("propstore.cli.compiler_cmds", "export_aliases", "Export concept aliases."),
     "form": ("propstore.cli.form", "form", "Manage form definitions."),
     "grounding": ("propstore.cli.grounding_cmds", "grounding", "Inspect grounding artifacts."),
@@ -69,6 +70,7 @@ _QUICKSTART_COMMANDS = (
 )
 
 _ADVANCED_COMMANDS = (
+    "event",
     "grounding",
     "micropub",
     "proposal",

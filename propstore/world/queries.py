@@ -36,6 +36,7 @@ from propstore.core.store_results import ConceptSearchHit
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context, LiftingRule
+from propstore.families.coreference import CoreferenceMergeArgumentDoc
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
 from propstore.families.micropublications import Micropublication
@@ -216,6 +217,28 @@ def select_incident_stances(session: DerivedSession, claim_id: str) -> list[Stan
         .order_by(model.stance_id)
     )
     return [Stance.__charter__.document_from_model(row, Stance) for row in rows]
+
+
+# ── coreference merge-argument proposals ─────────────────────────────────────
+
+
+def select_coreference_merge_arguments(
+    session: DerivedSession,
+) -> list[CoreferenceMergeArgumentDoc]:
+    """Every stored coreference merge-argument proposal in the sidecar.
+
+    Returns EVERY row — two mutually-attacking rival hypotheses both come back
+    (non-commitment; the coreference verdict is a render-time decision made by the
+    app layer under an argumentation semantics, never a read-time filter).
+    """
+
+    model = session.schema.model("proposal_coreference")
+    return [
+        CoreferenceMergeArgumentDoc.__charter__.document_from_model(
+            row, CoreferenceMergeArgumentDoc
+        )
+        for row in session.scalars(select(model))
+    ]
 
 
 # ── contexts + lifting rules ─────────────────────────────────────────────────

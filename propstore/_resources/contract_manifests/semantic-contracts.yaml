@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.13.1
+  contract_version: 2026.07.21
   body:
     families:
     - contract_version: 2026.06.28
@@ -182,6 +182,9 @@ contracts:
     - contract_version: 2026.06.29
       key: proposal_stances
       name: proposal_stances
+    - contract_version: 2026.07.21
+      key: proposal_coreference
+      name: proposal_coreference
     - contract_version: 2026.06.29
       key: justification
       name: justification
@@ -585,6 +588,39 @@ contracts:
     foreign_keys: []
     identity_field: predicate_id
     key: predicate
+- kind: family
+  name: proposal_coreference
+  contract_version: 2026.07.21
+  body:
+    accessor: proposal_coreference
+    artifact_family: proposal_coreference
+    artifact_family_contract:
+      doc_type: propstore.families.coreference.CoreferenceMergeArgumentDocModel
+      placement:
+        branch:
+          fixed_branch: proposal/coreference
+          policy: fixed
+        codec: colon_to_double_underscore
+        extension: .yaml
+        kind: flat-yaml
+        namespace: coreference
+        ref_field: argument_id
+    artifact_family_contract_version: 2026.07.21
+    foreign_keys:
+    - many: true
+      required: false
+      source_family: proposal_coreference
+      source_field: supports[]
+      target_family: claim
+      target_field: claim_id
+    - many: true
+      required: false
+      source_family: proposal_coreference
+      source_field: description_claim_ids[]
+      target_family: claim
+      target_field: claim_id
+    identity_field: argument_id
+    key: proposal_coreference
 - kind: family
   name: proposal_predicates
   contract_version: 2026.06.29
@@ -1004,4 +1040,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.13.1
+  contract_version: 2026.07.21

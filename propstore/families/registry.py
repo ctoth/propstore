@@ -31,6 +31,7 @@ from propstore.families.claims import Claim
 from propstore.families.concepts import Concept
 from propstore.families.conflicts import ConflictProjection
 from propstore.families.contexts import Context, LiftingMaterialization, LiftingRule
+from propstore.families.coreference import CoreferenceMergeArgumentDoc
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
 from propstore.families.justifications import Justification
@@ -66,7 +67,7 @@ from propstore.families.rules import RuleProposalRef as RuleProposalRef
 # ``propstore.families.registry`` as the one import site for the worldline ref.
 from propstore.worldline.definition import WorldlineRef as WorldlineRef
 
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.13.1")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.21")
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
 # The charter-bearing document classes, in authoring order. The registry's
@@ -88,6 +89,7 @@ _CHARTER_MODELS = (
     PredicateProposal,
     RuleProposal,
     StanceProposal,
+    CoreferenceMergeArgumentDoc,
     Justification,
     Micropublication,
     SourceDocument,
@@ -146,6 +148,7 @@ class PropstoreFamily(StrEnum):
     PROPOSAL_PREDICATES = "proposal_predicates"
     PROPOSAL_RULES = "proposal_rules"
     PROPOSAL_STANCES = "proposal_stances"
+    PROPOSAL_COREFERENCE = "proposal_coreference"
     JUSTIFICATION = "justification"
     MICROPUBLICATION = "micropublication"
     SOURCE_DOCUMENTS = "source_documents"
