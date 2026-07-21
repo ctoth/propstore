@@ -26,7 +26,10 @@ import msgspec
 
 from quire.canonical import canonical_json_sha256
 
-from propstore.families.identity.claims import canonicalize_claim_for_version
+from propstore.families.identity.claims import (
+    CLAIM_VERSION_ID_EXCLUDED_FIELDS,
+    canonicalize_claim_for_version,
+)
 from propstore.families.sources import (
     SourceClaimDocument,
     SourceClaimsDocument,
@@ -82,7 +85,9 @@ def claim_artifact_code(
     justification_codes: Sequence[str],
     stance_codes: Sequence[str],
 ) -> str:
-    canonical = canonicalize_claim_for_version(_payload(claim))
+    canonical = _payload(canonicalize_claim_for_version(claim))
+    for field in CLAIM_VERSION_ID_EXCLUDED_FIELDS:
+        canonical.pop(field, None)
     canonical.pop("artifact_code", None)
     payload = {
         "source_artifact_code": source_code,

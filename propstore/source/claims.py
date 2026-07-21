@@ -20,8 +20,6 @@ branch with provenance; there is no truth-gate and no render-time filtering here
 
 from __future__ import annotations
 
-import hashlib
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -42,11 +40,13 @@ from propstore.families.forms import FormDefinition
 from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
+    stable_claim_logical_value,
 )
 from propstore.families.identity.logical_ids import normalize_logical_value
 from propstore.families.registry import SourceRef
 from propstore.families.sources import (
     ClaimSourceDocument,
+    ClaimLogicalIdDocument,
     ExtractionProvenanceDocument,
     SourceClaimDocument,
     SourceClaimsDocument,
@@ -73,30 +73,6 @@ def coerce_claim_type(value: object) -> ClaimType:
     if isinstance(value, ClaimType):
         return value
     return ClaimType(str(value))
-
-
-def _claim_to_payload(claim: SourceClaimDocument) -> dict[str, object]:
-    """Round-trip a source claim into a mutable ``dict[str, object]`` payload."""
-
-    return msgspec.json.decode(msgspec.json.encode(claim), type=dict[str, object])
-
-
-def stable_claim_logical_value(
-    claim: SourceClaimDocument, *, source_uri: str
-) -> str:
-    """Return a content-stable ``claim_<sha>`` logical value for *claim*."""
-
-    canonical = _claim_to_payload(claim)
-    for field in ("id", "artifact_id", "version_id", "logical_ids", "source_local_id"):
-        canonical.pop(field, None)
-    payload = json.dumps(
-        {"source_uri": source_uri, "claim": canonical},
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-    return f"claim_{digest}"
 
 
 def source_concept_handles(repo: Repository, source_name: str) -> set[str]:
@@ -364,26 +340,35 @@ def normalize_source_claims_payload(
     normalized_claims: list[SourceClaimDocument] = []
     local_to_canonical: dict[str, str] = {}
     for claim in data.claims:
-        payload = _claim_to_payload(claim)
         raw_local_id = claim.source_local_id or claim.id
         stable_value = stable_claim_logical_value(claim, source_uri=source_uri)
-        payload["id"] = stable_value
-        payload.pop("artifact_code", None)
-        logical_ids: list[dict[str, str]] = [
-            {"namespace": namespace, "value": stable_value}
+        logical_ids: list[ClaimLogicalIdDocument] = [
+            ClaimLogicalIdDocument(namespace=namespace, value=stable_value)
         ]
         if isinstance(raw_local_id, str) and raw_local_id:
-            payload["source_local_id"] = raw_local_id
             local_to_canonical[raw_local_id] = stable_value
             local_value = normalize_logical_value(raw_local_id)
             if local_value != stable_value:
-                logical_ids.append({"namespace": namespace, "value": local_value})
+                logical_ids.append(
+                    ClaimLogicalIdDocument(namespace=namespace, value=local_value)
+                )
         else:
-            payload.pop("source_local_id", None)
-        payload["logical_ids"] = logical_ids
-        payload["artifact_id"] = derive_claim_artifact_id(namespace, stable_value)
-        payload["version_id"] = compute_claim_version_id(payload)
-        normalized_claims.append(msgspec.convert(payload, SourceClaimDocument))
+            raw_local_id = None
+        normalized = msgspec.structs.replace(
+            claim,
+            id=stable_value,
+            source_local_id=raw_local_id,
+            artifact_code=None,
+            logical_ids=tuple(logical_ids),
+            artifact_id=derive_claim_artifact_id(namespace, stable_value),
+            version_id=None,
+        )
+        normalized_claims.append(
+            msgspec.structs.replace(
+                normalized,
+                version_id=compute_claim_version_id(normalized),
+            )
+        )
 
     return (
         SourceClaimsDocument(
@@ -566,10 +551,11 @@ def _restore_authored_claim(claim: SourceClaimDocument) -> SourceClaimDocument:
     re-derives a stable identity rather than chaining off the previous one.
     """
 
-    payload = _claim_to_payload(claim)
-    for field in ("source_local_id", "logical_ids", "artifact_id", "version_id"):
-        payload.pop(field, None)
-    local_id = claim.source_local_id
-    if local_id:
-        payload["id"] = local_id
-    return msgspec.convert(payload, SourceClaimDocument)
+    return msgspec.structs.replace(
+        claim,
+        id=claim.source_local_id or claim.id,
+        source_local_id=None,
+        logical_ids=(),
+        artifact_id=None,
+        version_id=None,
+    )

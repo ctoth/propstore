@@ -9,14 +9,17 @@ the immutable artifact id is provenance-free.
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
-from typing import TypeGuard
+from typing import TYPE_CHECKING
 
+import msgspec
 from quire.canonical import canonical_json_sha256
 
 from propstore.families.identity import logical_ids
+
+if TYPE_CHECKING:
+    from propstore.families.sources import SourceClaimDocument
 
 CLAIM_VERSION_ID_EXCLUDED_FIELDS = (
     "artifact_id",
@@ -25,9 +28,6 @@ CLAIM_VERSION_ID_EXCLUDED_FIELDS = (
     "source_local_id",
     "source",
 )
-CLAIM_SOURCE_LOCAL_FIELDS = ("id", "source_local_id", "artifact_code")
-
-
 def derive_claim_artifact_id(namespace: str, value: str) -> str:
     """Derive a deterministic claim artifact ID from a logical handle."""
 
@@ -39,65 +39,57 @@ def derive_claim_artifact_id(namespace: str, value: str) -> str:
     return f"ps:claim:{digest}"
 
 
-def _is_object_list(value: object) -> TypeGuard[list[object]]:
-    """Narrow an arbitrary JSON value to a homogeneous ``list[object]``.
-
-    The one TypeGuard the JSON-payload canonicalization needs: ``isinstance``
-    on a bare ``list`` narrows to ``list[Unknown]``, which strict pyright
-    rejects; this restores the element type as ``object`` without a cast.
-    """
-
-    return isinstance(value, list)
+def _encoded_sort_key(value: msgspec.Struct) -> bytes:
+    return msgspec.json.encode(value)
 
 
-def _json_sort_key(value: object) -> str:
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str
+def canonicalize_claim_for_version(
+    claim: SourceClaimDocument,
+) -> SourceClaimDocument:
+    """Order one typed claim's unordered authored collections for hashing."""
+
+    return msgspec.structs.replace(
+        claim,
+        conditions=tuple(sorted(claim.conditions)),
+        logical_ids=tuple(sorted(claim.logical_ids, key=_encoded_sort_key)),
+        stances=tuple(sorted(claim.stances, key=_encoded_sort_key)),
     )
 
 
-def canonicalize_claim_for_version(claim: dict[str, object]) -> dict[str, object]:
-    """Normalize a claim into deterministic canonical content for hashing.
-
-    Drops the identity/source-local fields, sorts the authored ``conditions``,
-    and orders the ``logical_ids`` / ``stances`` lists by their canonical JSON so
-    re-authoring identical content (in any list order) yields one version id.
-    """
-
-    canonical = copy.deepcopy(claim)
+def _version_payload(claim: SourceClaimDocument) -> dict[str, object]:
+    payload = msgspec.json.decode(
+        msgspec.json.encode(canonicalize_claim_for_version(claim)),
+        type=dict[str, object],
+    )
     for field in CLAIM_VERSION_ID_EXCLUDED_FIELDS:
-        canonical.pop(field, None)
-
-    raw_conditions = canonical.get("conditions")
-    if _is_object_list(raw_conditions):
-        canonical["conditions"] = sorted(
-            value for value in raw_conditions if isinstance(value, str)
-        )
-
-    for list_field in ("logical_ids", "stances"):
-        raw = canonical.get(list_field)
-        if _is_object_list(raw):
-            canonical[list_field] = sorted(raw, key=_json_sort_key)
-
-    return canonical
+        payload.pop(field, None)
+    return payload
 
 
-def compute_claim_version_id(claim: dict[str, object]) -> str:
-    """Compute the immutable ``sha256:`` version identifier for a claim payload."""
+def compute_claim_version_id(claim: SourceClaimDocument) -> str:
+    """Compute the immutable content version of one typed source claim."""
 
-    return canonical_json_sha256(canonicalize_claim_for_version(claim))
+    return canonical_json_sha256(_version_payload(claim))
 
 
-def normalize_canonical_claim_payload(
-    data: dict[str, object],
+def stable_claim_logical_value(
+    claim: SourceClaimDocument,
     *,
-    strip_source_local: bool = False,
-) -> dict[str, object]:
-    """Return a copy of *data* with a freshly-stamped ``version_id``."""
+    source_uri: str,
+) -> str:
+    """Return the source-scoped stable logical value of one typed claim."""
 
-    normalized = copy.deepcopy(data)
-    if strip_source_local:
-        for field in CLAIM_SOURCE_LOCAL_FIELDS:
-            normalized.pop(field, None)
-    normalized["version_id"] = compute_claim_version_id(normalized)
-    return normalized
+    payload = msgspec.json.decode(
+        msgspec.json.encode(canonicalize_claim_for_version(claim)),
+        type=dict[str, object],
+    )
+    for field in ("id", "artifact_id", "version_id", "logical_ids", "source_local_id"):
+        payload.pop(field, None)
+    encoded = json.dumps(
+        {"source_uri": source_uri, "claim": payload},
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+    return f"claim_{digest}"

@@ -241,6 +241,38 @@ def test_normalize_non_reserved_namespace_succeeds() -> None:
     assert local_map == {"c1": claim.logical_ids[0].value}
 
 
+def test_typed_claim_identity_is_independent_of_condition_order() -> None:
+    first, _ = normalize_source_claims_payload(
+        SourceClaimsDocument(
+            claims=(
+                SourceClaimDocument(
+                    id="c1",
+                    type=ClaimType.OBSERVATION,
+                    conditions=("b == 2", "a == 1"),
+                ),
+            )
+        ),
+        source_uri="tag:test",
+        source_namespace="my_paper",
+    )
+    second, _ = normalize_source_claims_payload(
+        SourceClaimsDocument(
+            claims=(
+                SourceClaimDocument(
+                    id="c1",
+                    type=ClaimType.OBSERVATION,
+                    conditions=("a == 1", "b == 2"),
+                ),
+            )
+        ),
+        source_uri="tag:test",
+        source_namespace="my_paper",
+    )
+
+    assert first.claims[0].artifact_id == second.claims[0].artifact_id
+    assert first.claims[0].version_id == second.claims[0].version_id
+
+
 # ---------------------------------------------------------------------------
 # value-bound guard
 # ---------------------------------------------------------------------------
