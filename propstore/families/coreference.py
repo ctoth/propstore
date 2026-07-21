@@ -11,7 +11,7 @@ SAME stored arguments yield DIFFERENT clusters under grounded vs preferred.
 
 This module owns the ONE storable spelling of a merge argument,
 :class:`CoreferenceMergeArgumentDoc`, and its repository. The doc mirrors the
-lemon :class:`~propstore.core.lemon.description_kinds.MergeArgument` data field for
+lemon :class:`~propstore.core.lemon.description_kinds.CoreferenceMergeArgument` data field for
 field; the app layer lowers a stored doc to that lemon struct at query time (there
 is no second in-memory spelling — the lemon struct is the compute form, this
 charter is the storage form, and lowering is a construction, not a conversion).
@@ -115,7 +115,7 @@ class CoreferenceMergeArgumentDoc(CharterDoc):
     ``description_claim_ids`` are the description claims it reasons over, and
     ``attacks`` are the ids of the rival merge arguments this one attacks. Every
     field mirrors the lemon
-    :class:`~propstore.core.lemon.description_kinds.MergeArgument`; the app layer
+    :class:`~propstore.core.lemon.description_kinds.CoreferenceMergeArgument`; the app layer
     lowers a stored doc to that struct at render time.
     """
 

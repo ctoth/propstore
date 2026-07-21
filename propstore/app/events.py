@@ -34,7 +34,7 @@ from typing import TYPE_CHECKING
 from quire.sqlalchemy_store import readonly_session
 
 from propstore.core.lemon.coreference import coreference_query
-from propstore.core.lemon.description_kinds import MergeArgument
+from propstore.core.lemon.description_kinds import CoreferenceMergeArgument
 from propstore.core.reasoning import ArgumentationSemantics
 from propstore.core.render_policy import RenderPolicy
 from propstore.families.coreference import (
@@ -264,10 +264,10 @@ def _load_merge_arguments(repo: Repository) -> list[CoreferenceMergeArgumentDoc]
             return select_coreference_merge_arguments(session)
 
 
-def _to_merge_argument(document: CoreferenceMergeArgumentDoc) -> MergeArgument:
+def _to_merge_argument(document: CoreferenceMergeArgumentDoc) -> CoreferenceMergeArgument:
     """Lower a stored proposal doc to the lemon compute struct (a construction)."""
 
-    return MergeArgument(
+    return CoreferenceMergeArgument(
         argument_id=document.argument_id,
         description_claim_ids=document.description_claim_ids,
         supports=document.supports,

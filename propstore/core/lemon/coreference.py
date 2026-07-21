@@ -1,6 +1,6 @@
 """Render-time coreference resolution over description-claim merge arguments.
 
-Coreference is NOT stored. Given a set of :class:`MergeArgument` hypotheses and
+Coreference is NOT stored. Given a set of :class:`CoreferenceMergeArgument` hypotheses and
 the attacks among them, this module builds a Dung
 :class:`~argumentation.core.dung.ArgumentationFramework` and resolves which merges hold
 *at render time* under a chosen argumentation semantics. Because the result is
@@ -28,7 +28,7 @@ from argumentation.core.dung import (
 
 from propstore.core.lemon.description_kinds import (
     DescriptionKindMergeProtocol,
-    MergeArgument,
+    CoreferenceMergeArgument,
 )
 
 
@@ -43,7 +43,7 @@ class CoreferenceQuery(msgspec.Struct, frozen=True):
 
     protocol: DescriptionKindMergeProtocol
     framework: ArgumentationFramework
-    merge_arguments: tuple[MergeArgument, ...]
+    merge_arguments: tuple[CoreferenceMergeArgument, ...]
 
     def _clusters_for_extension(self, accepted: frozenset[str]) -> frozenset[frozenset[str]]:
         """Merge the supports of every accepted argument into connected clusters."""
@@ -98,7 +98,7 @@ class CoreferenceQuery(msgspec.Struct, frozen=True):
 
 
 def coreference_query(
-    merge_arguments: tuple[MergeArgument, ...],
+    merge_arguments: tuple[CoreferenceMergeArgument, ...],
     *,
     attacks: tuple[tuple[str, str], ...] = (),
 ) -> CoreferenceQuery:

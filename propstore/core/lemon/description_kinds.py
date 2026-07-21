@@ -6,7 +6,7 @@ an optional Dowty proto-role bundle. A :class:`DescriptionClaim` instantiates a
 kind by binding its slots; bindings are type-checked against the slot constraints.
 
 Coreference between description claims is NOT a stored fact. It is a defeasible
-*merge argument* (:class:`MergeArgument`) that says "these claims may denote the
+*merge argument* (:class:`CoreferenceMergeArgument`) that says "these claims may denote the
 same thing". Whether two claims actually corefer is decided at RENDER time by
 running Dung argumentation over the merge arguments — see
 :mod:`propstore.core.lemon.coreference`. This module holds only the argument DATA
@@ -102,7 +102,7 @@ class DescriptionClaim(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
             raise ValueError("; ".join(validation.errors))
 
 
-class MergeArgument(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
+class CoreferenceMergeArgument(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     """A defeasible argument that some description claims corefer.
 
     ``supports`` are the claim ids this argument would merge if accepted. This is
@@ -119,7 +119,7 @@ class MergeArgument(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
 class DescriptionKindMergeProtocol(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
     """A set of coreference merge arguments and the attacks among them."""
 
-    merge_arguments: tuple[MergeArgument, ...]
+    merge_arguments: tuple[CoreferenceMergeArgument, ...]
     attacks: tuple[tuple[str, str], ...] = ()
 
     @property
@@ -145,10 +145,10 @@ def coreference_argument(
     *,
     argument_id: str,
     provenance: Provenance,
-) -> MergeArgument:
+) -> CoreferenceMergeArgument:
     """Build a merge argument asserting that ``first`` and ``second`` corefer."""
 
-    return MergeArgument(
+    return CoreferenceMergeArgument(
         argument_id=argument_id,
         description_claim_ids=(first.claim_id, second.claim_id),
         supports=(first.claim_id, second.claim_id),
