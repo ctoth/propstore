@@ -19,6 +19,7 @@ from argumentation.core.dung import ArgumentationFramework
 
 from propstore.core.lemon import (
     AllenRelation,
+    AllenVerdict,
     CausalAccount,
     CausalConnectionAssertion,
     CoreferenceQuery,
@@ -27,6 +28,7 @@ from propstore.core.lemon import (
     DescriptionKindMergeProtocol,
     DescriptionTemporalAnchor,
     GradedEntailment,
+    HappensBeforeEdge,
     LexicalSense,
     OntologyReference,
     ParticipantSlot,
@@ -37,6 +39,8 @@ from propstore.core.lemon import (
     QualiaRole,
     QualiaStructure,
     SlotBinding,
+    TemporalFrame,
+    TemporalOrderVerdict,
     TypeConstraint,
     causal_transitivity_allowed,
     coerce_via_qualia,
@@ -46,6 +50,7 @@ from propstore.core.lemon import (
     predicted_subject_role,
     proto_agent_weight,
     purposive_chain,
+    temporal_order,
     validate_slot_bindings,
 )
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
@@ -358,6 +363,14 @@ def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters(
 # --- Allen temporal reduces to TIMEPOINT/Z3 via condition-ir ----------------
 
 
+def _frame(frame_id: str) -> TemporalFrame:
+    return TemporalFrame(
+        frame_id=frame_id,
+        description=f"declared frame {frame_id}",
+        provenance=_provenance("temporal-frame"),
+    )
+
+
 @pytest.mark.property
 @given(
     start=st.floats(allow_nan=False, allow_infinity=False, min_value=-1_000_000, max_value=1_000_000),
@@ -366,27 +379,287 @@ def test_coreference_query_is_dung_argumentation_with_policy_dependent_clusters(
     second_width=st.floats(allow_nan=False, allow_infinity=False, min_value=1.0, max_value=10_000.0),
 )
 @settings(deadline=None, max_examples=25)
-def test_description_temporal_relations_reduce_to_timepoint_z3(
+def test_fully_bound_same_frame_reproduces_allen_truths(
     start: float,
     first_width: float,
     gap: float,
     second_width: float,
 ) -> None:
+    """(1) Fully-bound same-frame anchors reproduce the old HOLDS/FAILS truths."""
+
+    frame = _frame("clock-A")
     first = DescriptionTemporalAnchor(
         claim_id="ps:claim:first",
+        frame=frame,
         valid_from=start,
         valid_until=start + first_width,
         provenance=_provenance("temporal-anchor"),
     )
     second = DescriptionTemporalAnchor(
         claim_id="ps:claim:second",
+        frame=frame,
         valid_from=start + first_width + gap,
         valid_until=start + first_width + gap + second_width,
         provenance=_provenance("temporal-anchor"),
     )
 
-    assert description_temporal_relation(first, second, AllenRelation.BEFORE)
-    assert not description_temporal_relation(first, second, AllenRelation.OVERLAPS)
+    assert (
+        description_temporal_relation(first, second, AllenRelation.BEFORE)
+        is AllenVerdict.HOLDS
+    )
+    assert (
+        description_temporal_relation(first, second, AllenRelation.OVERLAPS)
+        is AllenVerdict.FAILS
+    )
+
+
+def test_missing_bound_yields_undecided_where_bounds_do_not_decide() -> None:
+    """(2a) A fully-open right anchor leaves BEFORE undecided."""
+
+    frame = _frame("clock-A")
+    left = DescriptionTemporalAnchor(
+        claim_id="ps:claim:left",
+        frame=frame,
+        valid_from=0.0,
+        valid_until=3.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    right = DescriptionTemporalAnchor(
+        claim_id="ps:claim:right",
+        frame=frame,
+        provenance=_provenance("temporal-anchor"),
+    )
+
+    assert (
+        description_temporal_relation(left, right, AllenRelation.BEFORE)
+        is AllenVerdict.UNDECIDED
+    )
+
+
+def test_partial_bounds_can_still_decide_holds() -> None:
+    """(2b) left_until=3, right_from=5 decides BEFORE HOLDS with the other two free."""
+
+    frame = _frame("clock-A")
+    left = DescriptionTemporalAnchor(
+        claim_id="ps:claim:left",
+        frame=frame,
+        valid_until=3.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    right = DescriptionTemporalAnchor(
+        claim_id="ps:claim:right",
+        frame=frame,
+        valid_from=5.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+
+    assert (
+        description_temporal_relation(left, right, AllenRelation.BEFORE)
+        is AllenVerdict.HOLDS
+    )
+
+
+def test_partial_bounds_can_still_decide_fails() -> None:
+    """(2c) left_from=5, right_until=3 decides BEFORE FAILS with the other two free."""
+
+    frame = _frame("clock-A")
+    left = DescriptionTemporalAnchor(
+        claim_id="ps:claim:left",
+        frame=frame,
+        valid_from=5.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    right = DescriptionTemporalAnchor(
+        claim_id="ps:claim:right",
+        frame=frame,
+        valid_until=3.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+
+    assert (
+        description_temporal_relation(left, right, AllenRelation.BEFORE)
+        is AllenVerdict.FAILS
+    )
+
+
+def test_cross_frame_allen_query_raises() -> None:
+    """(3) Allen relations are frame-local; a cross-frame query is a category error."""
+
+    left = DescriptionTemporalAnchor(
+        claim_id="ps:claim:left",
+        frame=_frame("clock-A"),
+        valid_from=0.0,
+        valid_until=1.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    right = DescriptionTemporalAnchor(
+        claim_id="ps:claim:right",
+        frame=_frame("clock-B"),
+        valid_from=0.0,
+        valid_until=1.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+
+    with pytest.raises(ValueError, match="frame-local"):
+        description_temporal_relation(left, right, AllenRelation.BEFORE)
+
+
+def test_authored_edges_transitively_order_across_frames() -> None:
+    """(4) Authored happens-before edges + transitivity yield BEFORE / AFTER cross-frame."""
+
+    a_before_b = HappensBeforeEdge(
+        edge_id="e:ab",
+        earlier_claim_id="ps:claim:a",
+        later_claim_id="ps:claim:b",
+        provenance=_provenance("happens-before"),
+    )
+    b_before_c = HappensBeforeEdge(
+        edge_id="e:bc",
+        earlier_claim_id="ps:claim:b",
+        later_claim_id="ps:claim:c",
+        provenance=_provenance("happens-before"),
+    )
+    edges = (a_before_b, b_before_c)
+
+    assert (
+        temporal_order("ps:claim:a", "ps:claim:c", anchors=(), edges=edges)
+        is TemporalOrderVerdict.BEFORE
+    )
+    assert (
+        temporal_order("ps:claim:c", "ps:claim:a", anchors=(), edges=edges)
+        is TemporalOrderVerdict.AFTER
+    )
+
+
+def test_cyclic_edges_are_conflicted() -> None:
+    """(5) Rival orderings (a->b and b->a) surface as CONFLICTED, never tie-broken."""
+
+    edges = (
+        HappensBeforeEdge(
+            edge_id="e:ab",
+            earlier_claim_id="ps:claim:a",
+            later_claim_id="ps:claim:b",
+            provenance=_provenance("happens-before"),
+        ),
+        HappensBeforeEdge(
+            edge_id="e:ba",
+            earlier_claim_id="ps:claim:b",
+            later_claim_id="ps:claim:a",
+            provenance=_provenance("happens-before"),
+        ),
+    )
+
+    assert (
+        temporal_order("ps:claim:a", "ps:claim:b", anchors=(), edges=edges)
+        is TemporalOrderVerdict.CONFLICTED
+    )
+
+
+def test_overlapping_same_frame_intervals_are_concurrent() -> None:
+    """(6) Overlapping bounded intervals prove CONCURRENT even open-world."""
+
+    frame = _frame("clock-A")
+    left = DescriptionTemporalAnchor(
+        claim_id="ps:claim:left",
+        frame=frame,
+        valid_from=0.0,
+        valid_until=10.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    right = DescriptionTemporalAnchor(
+        claim_id="ps:claim:right",
+        frame=frame,
+        valid_from=5.0,
+        valid_until=15.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+
+    assert (
+        temporal_order(
+            "ps:claim:left",
+            "ps:claim:right",
+            anchors=(left, right),
+            edges=(),
+            assume_complete=False,
+        )
+        is TemporalOrderVerdict.CONCURRENT
+    )
+
+
+def test_cross_frame_no_edges_is_unknown_but_concurrent_when_complete() -> None:
+    """(7) Cross-frame with no evidence: UNKNOWN by default, CONCURRENT when declared complete."""
+
+    left = DescriptionTemporalAnchor(
+        claim_id="ps:claim:left",
+        frame=_frame("clock-A"),
+        valid_from=0.0,
+        valid_until=1.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    right = DescriptionTemporalAnchor(
+        claim_id="ps:claim:right",
+        frame=_frame("clock-B"),
+        valid_from=0.0,
+        valid_until=1.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    anchors = (left, right)
+
+    assert (
+        temporal_order(
+            "ps:claim:left", "ps:claim:right", anchors=anchors, edges=()
+        )
+        is TemporalOrderVerdict.UNKNOWN
+    )
+    assert (
+        temporal_order(
+            "ps:claim:left",
+            "ps:claim:right",
+            anchors=anchors,
+            edges=(),
+            assume_complete=True,
+        )
+        is TemporalOrderVerdict.CONCURRENT
+    )
+
+
+def test_one_sided_bounds_construct_but_misorder_raises() -> None:
+    """(8) Only-from / only-until anchors construct; both-present misorder still raises."""
+
+    frame = _frame("clock-A")
+    DescriptionTemporalAnchor(
+        claim_id="ps:claim:from-only",
+        frame=frame,
+        valid_from=5.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+    DescriptionTemporalAnchor(
+        claim_id="ps:claim:until-only",
+        frame=frame,
+        valid_until=5.0,
+        provenance=_provenance("temporal-anchor"),
+    )
+
+    with pytest.raises(ValueError, match="valid_from <= valid_until"):
+        DescriptionTemporalAnchor(
+            claim_id="ps:claim:misordered",
+            frame=frame,
+            valid_from=10.0,
+            valid_until=1.0,
+            provenance=_provenance("temporal-anchor"),
+        )
+
+
+def test_happens_before_edge_rejects_self_loop() -> None:
+    """A happens-before posit must relate two distinct descriptions."""
+
+    with pytest.raises(ValueError, match="distinct"):
+        HappensBeforeEdge(
+            edge_id="e:self",
+            earlier_claim_id="ps:claim:a",
+            later_claim_id="ps:claim:a",
+            provenance=_provenance("happens-before"),
+        )
 
 
 # --- causal transitivity is account-sensitive -------------------------------

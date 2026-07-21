@@ -2,10 +2,11 @@
 
 The lemon model links linguistic entries (forms, senses) to ontology references
 and carries sense-level semantic content (Pustejovsky qualia, Dowty proto-roles,
-description kinds). Coreference over description claims and Allen temporal
-relations are resolved by CONSUMING substrate packages directly (``argumentation``
-for the render-time Dung query; ``condition-ir`` for timepoint/Z3 reasoning) —
-see :mod:`propstore.core.lemon.coreference` and
+description kinds). Coreference over description claims is resolved by CONSUMING
+the ``argumentation`` package directly for the render-time Dung query; temporal
+order is a happens-before partial order (Lamport 1978) with declared-frame
+TIMEPOINT projections decided three-valued through ``condition-ir`` — see
+:mod:`propstore.core.lemon.coreference` and
 :mod:`propstore.core.lemon.temporal`.
 """
 
@@ -49,8 +50,13 @@ from propstore.core.lemon.qualia import (
 from propstore.core.lemon.references import OntologyReference
 from propstore.core.lemon.temporal import (
     AllenRelation,
+    AllenVerdict,
     DescriptionTemporalAnchor,
+    HappensBeforeEdge,
+    TemporalFrame,
+    TemporalOrderVerdict,
     description_temporal_relation,
+    temporal_order,
 )
 from propstore.core.lemon.types import (
     LexicalEntry,
@@ -61,6 +67,7 @@ from propstore.core.lemon.types import (
 
 __all__ = [
     "AllenRelation",
+    "AllenVerdict",
     "BindingValidation",
     "CausalAccount",
     "CausalConnectionAssertion",
@@ -71,6 +78,7 @@ __all__ = [
     "DescriptionKindMergeProtocol",
     "DescriptionTemporalAnchor",
     "GradedEntailment",
+    "HappensBeforeEdge",
     "LexicalEntry",
     "LexicalForm",
     "LexicalSense",
@@ -84,6 +92,8 @@ __all__ = [
     "QualiaRole",
     "QualiaStructure",
     "SlotBinding",
+    "TemporalFrame",
+    "TemporalOrderVerdict",
     "TypeConstraint",
     "causal_transitivity_allowed",
     "coerce_via_qualia",
@@ -99,5 +109,6 @@ __all__ = [
     "purposive_chain",
     "qualia_references",
     "require_text",
+    "temporal_order",
     "validate_slot_bindings",
 ]
