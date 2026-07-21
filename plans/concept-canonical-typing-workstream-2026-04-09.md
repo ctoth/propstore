@@ -2,6 +2,10 @@
 
 Date: 2026-04-09
 
+Registry ownership closeout (2026-07-21): the remaining cluster C registry
+ownership work in this historical plan is superseded by the completed
+`plans/condition-registry-convergence-2026-07-21.md` plan.
+
 ## Goal
 
 Replace canonical concept-as-`dict` usage with explicit dataclasses across the concept pipeline.

@@ -1,7 +1,7 @@
 # Condition Registry Convergence Plan
 
 Date: 2026-07-21
-Status: in progress; plan activated, source mutation has not started
+Status: implementation and fixed-point closeout complete; final convergence gates pending
 Control surface: `protocols:cleanup-refactor`
 
 This plan supersedes only the still-open CEL-registry ownership work in:
@@ -207,21 +207,21 @@ Active production boundary:
 
 Execution order:
 
-- [ ] Delete the old producer assignment `canonical_name=seed.name`; replace it
+- [x] Delete the old producer assignment `canonical_name=seed.name`; replace it
    directly with `canonical_name=seed.ref`. Keep `seed.name` only in the lexical
    form and ontology-reference label.
-- [ ] In `ConceptCheckPass`, use `cel_parser.parse`/`Ident` directly to reject a
+- [x] In `ConceptCheckPass`, use `cel_parser.parse`/`Ident` directly to reject a
    non-identifier canonical name and reject duplicate canonical names. Add
    diagnostic codes `concept.canonical_name.invalid` and
    `concept.canonical_name.duplicate`.
-- [ ] At the source authoring boundary, validate `proposed_name` by the same direct
+- [x] At the source authoring boundary, validate `proposed_name` by the same direct
    parser operation before it can become a future canonical name. Do not
    normalize an invalid name into a valid one.
-- [ ] Classify and repair fixtures exposed by those changes. A display phrase in
+- [x] Classify and repair fixtures exposed by those changes. A display phrase in
    `canonical_name` is a valid concept with the wrong representation; retain its
    human phrase only in `LexicalForm.written_rep` and give it an explicit CEL
    symbol.
-- [ ] Prove a concept with id `ps:concept:frequency`, canonical name `frequency`,
+- [x] Prove a concept with id `ps:concept:frequency`, canonical name `frequency`,
    and lexical written form `Fundamental frequency` preserves all three values.
 
 Runtime gate:
@@ -239,6 +239,9 @@ rg -n "canonical_name=seed\.name" propstore tests
 ```
 
 Expected result: zero hits.
+
+Result (2026-07-21): 55 focused tests passed; changed-path Ruff and package
+Pyright passed; the search gate had zero hits. Kept commit `35b18e88`.
 
 Commit:
 
@@ -260,18 +263,18 @@ Active production boundary:
 
 Execution order:
 
-- [ ] Add the two typed category fields to `Concept` and bump the concept charter
+- [x] Add the two typed category fields to `Concept` and bump the concept charter
    contract version from `2026.06.28` to `2026.07.21`.
-- [ ] Bump `PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION` from `2026.07.21.1`
+- [x] Bump `PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION` from `2026.07.21.1`
    to `2026.07.21.2`; the concept charter change also changes the derived
    `family-registry:propstore` contract body.
-- [ ] Delete the flat promoted-Concept construction that drops form data.
-- [ ] Rebuild that exact caller path with the already-owned lemon objects, carrying
+- [x] Delete the flat promoted-Concept construction that drops form data.
+- [x] Rebuild that exact caller path with the already-owned lemon objects, carrying
    proposed name, definition, form, values, and extensibility into the canonical
    `Concept`. Do not add a constructor helper or alternate Concept type.
-- [ ] Add a source proposal -> promotion -> canonical reload proof for a closed
+- [x] Add a source proposal -> promotion -> canonical reload proof for a closed
    category and a quantity concept.
-- [ ] Regenerate the checked-in manifest with the existing owner command:
+- [x] Regenerate the checked-in manifest with the existing owner command:
 
    ```powershell
    uv run pks contract-manifest --write
@@ -293,6 +296,10 @@ Required proof:
 - no source-local handle or source-only document type enters the canonical
   Concept charter.
 
+Result (2026-07-21): 89 focused tests passed; changed-path Ruff, package
+Pyright, manifest regeneration, and contract compatibility passed. The closed
+category and quantity promotion/reload proofs passed. Kept commit `faa6851e`.
+
 Commit:
 
 ```text
@@ -308,33 +315,33 @@ still depends on the deleted surfaces.
 
 Execution order:
 
-- [ ] Delete `propstore/cel_registry.py` in full.
-- [ ] Delete `lower_concept` and `condition_registry` from
+- [x] Delete `propstore/cel_registry.py` in full.
+- [x] Delete `lower_concept` and `condition_registry` from
    `propstore/claim_conditions.py`.
-- [ ] Delete `tests/test_cel_registry.py`; move surviving behavioral assertions to
+- [x] Delete `tests/test_cel_registry.py`; move surviving behavioral assertions to
    the actual owner tests rather than preserving an obsolete module contract.
-- [ ] Extend `ConceptCheckedRegistry` and `ConceptCheckPass` with the direct
+- [x] Extend `ConceptCheckedRegistry` and `ConceptCheckPass` with the direct
    condition-ir projection described above. Do not introduce a replacement
    builder function.
-- [ ] Delete `build_authored_concept_registry` and
+- [x] Delete `build_authored_concept_registry` and
    `build_compilation_context_from_loaded`. Make compilation context consume the
    already-checked concept registry and rename its field to
    `condition_registry`.
-- [ ] Update compiler workflows to pass `concept_result.output`, not the original
+- [x] Update compiler workflows to pass `concept_result.output`, not the original
    loaded concepts, into compilation-context construction.
-- [ ] Update source promotion revalidation to run the concept pass before the
+- [x] Update source promotion revalidation to run the concept pass before the
    claim pass.
-- [ ] Update source claim CEL validation to combine the checked primary registry
+- [x] Update source claim CEL validation to combine the checked primary registry
    with source-local typed `ConceptInfo` values keyed by proposed/local CEL name.
-- [ ] Update `WorldQuery.condition_solver()` to run the concept pass over its
+- [x] Update `WorldQuery.condition_solver()` to run the concept pass over its
    canonical concepts/forms and use `ConceptCheckedRegistry.condition_registry`
    directly. Preserve synthetic bindings by calling condition-ir's package API
    directly at the caller that requests them.
-- [ ] Classify every import/type/test breakage before editing it. Allowed
+- [x] Classify every import/type/test breakage before editing it. Allowed
     dispositions are direct use of `ConceptCheckedRegistry`, direct use of
     condition-ir at a true source/runtime boundary, or deletion of an obsolete
     caller/test.
-- [ ] Continue the fixed-point loop until every forbidden search is clean before
+- [x] Continue the fixed-point loop until every forbidden search is clean before
     committing.
 
 Focused runtime gate:
@@ -376,6 +383,11 @@ Expected result: zero production hits. Any test/document hit must be either
 deleted as an obsolete contract or recorded with a precise non-production
 disposition before the slice commits.
 
+Result (2026-07-21): 159 focused tests passed; package Pyright, all import
+contracts, and changed-path Ruff passed; all six searches had zero hits. All
+eight behavioral proofs passed through the checked owner paths. Kept commit
+`f68d2209`.
+
 Commit:
 
 ```text
@@ -386,14 +398,19 @@ refactor(conditions): derive registries from checked concepts
 
 This slice changes records, not architecture.
 
-- [ ] Rerun every search gate from all slices.
-- [ ] Update the four historical CEL/concept plan files named at the top with a
+- [x] Rerun every search gate from all slices.
+- [x] Update the four historical CEL/concept plan files named at the top with a
    dated note that their remaining registry ownership work is superseded by
    this completed plan. Do not rewrite their historical records.
-- [ ] Update this plan's status and every checkbox/result only after the evidence
+- [x] Update this plan's status and every checkbox/result only after the evidence
    exists.
-- [ ] Update `notes-condition-registry-convergence.md` with commits, logs, exact
+- [x] Update `notes-condition-registry-convergence.md` with commits, logs, exact
    residual hits, and the next action or fixed-point completion.
+
+Result (2026-07-21): all seven prior search gates have zero hits, the four
+historical plans carry dated supersession notes, and the uncommitted
+fixed-point record names the commits, logs, zero residual hits, and next action.
+Final convergence gates remain pending and are not reported as complete.
 
 Commit:
 

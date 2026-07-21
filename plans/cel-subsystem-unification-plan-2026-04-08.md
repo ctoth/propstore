@@ -2,6 +2,10 @@
 
 Date: 2026-04-08
 
+Registry ownership closeout (2026-07-21): the remaining phase U1 registry
+ownership work in this historical plan is superseded by the completed
+`plans/condition-registry-convergence-2026-07-21.md` plan.
+
 Goal: replace the current split CEL implementation with one clean production
 subsystem that:
 

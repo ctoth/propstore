@@ -2,6 +2,11 @@
 
 Date: 2026-04-16
 Status: completed
+
+Registry ownership closeout (2026-07-21): the remaining registry ownership
+questions in this historical workstream are superseded by the completed
+`plans/condition-registry-convergence-2026-07-21.md` plan.
+
 Builds on completed CEL cleanup tracks:
 
 - `plans/cel-subsystem-unification-plan-2026-04-08.md`

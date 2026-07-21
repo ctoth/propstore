@@ -4,6 +4,10 @@ Date: 2026-04-14
 Status: active
 Refines: `plans/cel-subsystem-unification-plan-2026-04-08.md` phase `U1`
 
+Registry ownership closeout (2026-07-21): the remaining registry ownership
+work in this historical workstream is superseded by the completed
+`plans/condition-registry-convergence-2026-07-21.md` plan.
+
 ## Goal
 
 Finish the registry cleanup as an architectural boundary change, not just a
