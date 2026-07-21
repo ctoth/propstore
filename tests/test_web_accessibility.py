@@ -97,8 +97,8 @@ def test_concept_page_has_accessible_tables(tmp_path: Path) -> None:
     html = demo_client(tmp_path).get("/concept/speed").text
     audit = _audit(html)
 
-    assert audit.h1_texts == ["Concept Speed"]
-    assert audit.title_text == "Concept Speed - propstore"
+    assert audit.h1_texts == ["Concept speed"]
+    assert audit.title_text == "Concept speed - propstore"
     assert audit.main_count == 1
     assert {
         "Summary",

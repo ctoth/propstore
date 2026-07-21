@@ -11,7 +11,7 @@ def test_concept_json_renders_view(tmp_path: Path) -> None:
     payload = demo_client(tmp_path).get("/concept/speed.json").json()
 
     assert payload["concept_id"] == "speed"
-    assert payload["canonical_name"] == "Speed"
+    assert payload["canonical_name"] == "speed"
     assert "claim_groups" in payload
     assert "render_policy" in payload
 
@@ -20,7 +20,7 @@ def test_concept_html_has_section_landmarks(tmp_path: Path) -> None:
     html = demo_client(tmp_path).get("/concept/speed").text
 
     assert "<h1" in html
-    assert "Concept Speed" in html
+    assert "Concept speed" in html
     assert "Claims By Type" in html
     assert "Related Claims" in html
 

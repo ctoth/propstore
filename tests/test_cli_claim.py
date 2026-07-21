@@ -36,7 +36,7 @@ def test_show_renders_fields(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "Claim p_speed" in result.output
     assert "Value is 3.0 m/s" in result.output
-    assert "Speed" in result.output
+    assert "The claim is about speed." in result.output
 
 
 def test_show_json_shape(tmp_path: Path) -> None:

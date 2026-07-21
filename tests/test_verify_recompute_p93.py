@@ -12,10 +12,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import msgspec
+from condition_ir import KindType
 
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims import ClaimType
 from propstore.families.contexts import Context
+from propstore.families.forms import FormDefinition
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.source import (
@@ -41,6 +43,13 @@ def _new_source(
     content_file: Path | None = None,
 ) -> Repository:
     repo = Repository.init(tmp_path / "knowledge")
+    repo.families.form.save(
+        "dimensionless",
+        FormDefinition(
+            name="dimensionless", kind=KindType.QUANTITY, is_dimensionless=True
+        ),
+        message="seed dimensionless form",
+    )
     init_source_branch(
         repo,
         _SOURCE,

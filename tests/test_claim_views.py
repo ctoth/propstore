@@ -33,7 +33,7 @@ def test_known_value_concept_and_condition(tmp_path: Path) -> None:
     with WorldQuery(repo) as world:
         report = build_claim_view(world, "p_speed", policy=_default_policy())
     assert report.concept.state is ViewState.KNOWN
-    assert report.concept.canonical_name == "Speed"
+    assert report.concept.canonical_name == "speed"
     assert report.concept.form == "velocity"
     assert report.value.state is ViewState.KNOWN
     assert report.value.value == 3.0
@@ -119,8 +119,8 @@ def test_summary_value_displays(tmp_path: Path) -> None:
     assert by_id["p_speed"].value_display == "3.0 m/s"
     assert by_id["eq1"].value_display == "v = d / t"
     assert by_id["p_missingval"].value_display == "(missing)"
-    # eq1 lists its variable concepts, so the display names them.
-    assert by_id["eq1"].concept_display == "Speed, Distance"
+    # eq1 lists its variable concepts by canonical CEL symbol.
+    assert by_id["eq1"].concept_display == "speed, distance"
 
 
 def test_search_matches_statement(tmp_path: Path) -> None:

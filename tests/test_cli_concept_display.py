@@ -30,7 +30,6 @@ def test_list_shows_visible_hides_drafts(tmp_path: Path) -> None:
     result = _invoke(repo, ["list"])
     assert result.exit_code == 0, result.output
     assert "speed" in result.output
-    assert "Speed" in result.output
     assert "draftconcept" not in result.output
 
 
@@ -52,7 +51,7 @@ def test_show_renders_concept(tmp_path: Path) -> None:
     repo = build_demo_repo(tmp_path)
     result = _invoke(repo, ["show", "speed"])
     assert result.exit_code == 0, result.output
-    assert "Concept Speed" in result.output
+    assert "Concept speed" in result.output
     assert "velocity" in result.output
 
 
@@ -62,7 +61,7 @@ def test_show_json_shape(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     data = json.loads(result.output)
     assert data["concept_id"] == "speed"
-    assert data["canonical_name"] == "Speed"
+    assert data["canonical_name"] == "speed"
 
 
 def test_show_unknown_concept_fails(tmp_path: Path) -> None:
