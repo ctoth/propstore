@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from condition_ir import ConceptInfo
 from quire.documents import DocumentSchemaError
 
 from propstore.cel_validation import structural_concepts_in_expression
@@ -238,7 +239,7 @@ def _load_documents(
 def _enforce_cel_structural_invariants(
     loaded_claims: Sequence[LoadedClaim],
     loaded_contexts: Sequence[LoadedContext],
-    cel_registry: Mapping[str, object],
+    condition_registry: Mapping[str, ConceptInfo],
 ) -> None:
     """Abort if a structural concept appears in any CEL expression.
 
@@ -247,16 +248,13 @@ def _enforce_cel_structural_invariants(
     handled here — they quarantine through the claim pipeline.
     """
 
-    from condition_ir import ConceptInfo
-
-    typed_registry: Mapping[str, ConceptInfo] = {
-        key: value for key, value in cel_registry.items() if isinstance(value, ConceptInfo)
-    }
     diagnostics: list[PassDiagnostic] = []
     for loaded in loaded_claims:
         claim = loaded.claim
         for condition in claim.conditions:
-            for name in structural_concepts_in_expression(condition, typed_registry):
+            for name in structural_concepts_in_expression(
+                condition, condition_registry
+            ):
                 diagnostics.append(
                     PassDiagnostic(
                         level="error",
@@ -275,7 +273,9 @@ def _enforce_cel_structural_invariants(
     for loaded_context in loaded_contexts:
         ctx = loaded_context.context
         for assumption in ctx.assumptions:
-            for name in structural_concepts_in_expression(assumption, typed_registry):
+            for name in structural_concepts_in_expression(
+                assumption, condition_registry
+            ):
                 diagnostics.append(
                     PassDiagnostic(
                         level="error",
