@@ -470,14 +470,19 @@ def _revalidate_promoted_claims(
     decoded source claims.
     """
 
-    from propstore.compiler.context import build_compilation_context_from_loaded
+    from propstore.compiler.context import build_compilation_context
     from propstore.compiler.ir import ClaimCheckedBundle
     from propstore.families.claims_passes import (
         ClaimFiles,
         LoadedClaim,
         run_claim_pipeline,
     )
-    from propstore.families.concepts_passes import LoadedConcept
+    from propstore.families.concepts_passes import (
+        ConceptCheckedRegistry,
+        ConceptPipelineContext,
+        LoadedConcept,
+        run_concept_pipeline,
+    )
     from propstore.families.forms import FormDefinition
 
     promoted: dict[str, Claim] = {}
@@ -489,9 +494,6 @@ def _revalidate_promoted_claims(
         promoted[artifact_id] = build_promoted_claim(
             claim, concept_map=concept_map, unresolved=unresolved
         )
-    if not promoted:
-        return {}
-
     master_concepts = [
         handle.document
         for handle in repo.families.concept.iter_handles(commit=master_commit)
@@ -503,8 +505,19 @@ def _revalidate_promoted_claims(
         for handle in repo.families.by_name("form").iter_handles(commit=master_commit)
         if isinstance(handle.document, FormDefinition)
     }
-    compilation_context = build_compilation_context_from_loaded(
+    concept_result = run_concept_pipeline(
         [LoadedConcept(concept=concept) for concept in concepts],
+        context=ConceptPipelineContext(form_registry=form_registry),
+    )
+    if not isinstance(concept_result.output, ConceptCheckedRegistry):
+        message = "; ".join(
+            diagnostic.message for diagnostic in concept_result.diagnostics
+        )
+        raise ValueError(f"concept validation failed during promotion: {message}")
+    if not promoted:
+        return {}
+    compilation_context = build_compilation_context(
+        concept_result.output,
         form_registry=form_registry,
         claims=tuple(promoted.values()),
         context_ids=master_context_ids(repo),

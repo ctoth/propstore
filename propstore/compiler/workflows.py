@@ -27,7 +27,7 @@ from quire.documents import DocumentSchemaError
 from propstore.cel_validation import structural_concepts_in_expression
 from propstore.compiler.context import (
     CompilationContext,
-    build_compilation_context_from_loaded,
+    build_compilation_context,
 )
 from propstore.build_diagnostics import collect_authoring_lints, upgrade_lints_to_errors
 from propstore.compiler.errors import CompilerWorkflowError
@@ -320,7 +320,15 @@ def _compile_repository(
         if isinstance(document, Concept)
     ]
     if not loaded_concepts:
-        empty_context = build_compilation_context_from_loaded([])
+        empty_result = run_concept_pipeline([])
+        if not isinstance(empty_result.output, ConceptCheckedRegistry):
+            raise _abort(
+                PropstoreFamily.CONCEPT,
+                ConceptStage.CHECKED,
+                "Build aborted: concept validation failed.",
+                empty_result.errors,
+            )
+        empty_context = build_compilation_context(empty_result.output)
         return _CompiledRepository(
             concepts=(),
             form_registry={},
@@ -410,15 +418,15 @@ def _compile_repository(
             )
         context_ids = context_result.output.context_ids
 
-    compilation_context = build_compilation_context_from_loaded(
-        loaded_concepts,
+    compilation_context = build_compilation_context(
+        concept_result.output,
         form_registry=form_registry,
         claims=tuple(loaded.claim for loaded in loaded_claims),
         context_ids=context_ids,
     )
 
     _enforce_cel_structural_invariants(
-        loaded_claims, loaded_contexts, compilation_context.cel_registry
+        loaded_claims, loaded_contexts, compilation_context.condition_registry
     )
 
     claim_result = run_claim_pipeline(

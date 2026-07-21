@@ -28,7 +28,6 @@ from provenance_semiring import (
     SupportQuality,
 )
 
-import propstore.claim_conditions as cc
 from propstore.defeasibility import (
     CelBinding,
     CelScalar,
@@ -43,9 +42,9 @@ from propstore.defeasibility import (
 
 
 def _age_solver() -> ConditionSolver:
-    registry = cc.condition_registry(
-        [ConceptInfo(id="age", canonical_name="age", kind=KindType.QUANTITY)]
-    )
+    registry = {
+        "age": ConceptInfo(id="age", canonical_name="age", kind=KindType.QUANTITY)
+    }
     return ConditionSolver(registry)
 
 

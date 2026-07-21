@@ -8,9 +8,15 @@ claim pipeline ALWAYS produces a bundle (invalid claims are blocked, quarantined
 
 from __future__ import annotations
 
-from condition_ir import KindType
+from condition_ir import (
+    ConditionBinary,
+    ConditionReference,
+    KindType,
+    check_cel_expression,
+    check_condition_ir,
+)
 
-from propstore.compiler.context import build_compilation_context_from_loaded
+from propstore.compiler.context import build_compilation_context
 from propstore.compiler.ir import ClaimCheckedBundle
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.claims_passes import ClaimFiles, LoadedClaim, run_claim_pipeline
@@ -74,11 +80,12 @@ def test_form_pipeline_invalid_dimensions_short_circuits() -> None:
 # --- concepts -------------------------------------------------------------- #
 
 
-def test_concept_pipeline_builds_registry() -> None:
+def test_concept_pipeline_keeps_missing_form_out_of_condition_registry() -> None:
     concepts = [LoadedConcept(concept=Concept(concept_id="c1", canonical_name="C1"))]
     result = run_concept_pipeline(concepts)
     assert isinstance(result.output, ConceptCheckedRegistry)
     assert "c1" in result.output.by_id
+    assert result.output.condition_registry == {}
 
 
 def test_concept_pipeline_preserves_identity_symbol_and_lexical_form() -> None:
@@ -95,9 +102,19 @@ def test_concept_pipeline_preserves_identity_symbol_and_lexical_form() -> None:
                     reference=OntologyReference(uri="ps:concept:frequency")
                 ),
             ),
+            physical_dimension_form="frequency",
         ),
     )
-    result = run_concept_pipeline([LoadedConcept(concept=concept)])
+    result = run_concept_pipeline(
+        [LoadedConcept(concept=concept)],
+        context=ConceptPipelineContext(
+            form_registry={
+                "frequency": FormDefinition(
+                    name="frequency", kind=KindType.QUANTITY
+                )
+            }
+        ),
+    )
 
     assert isinstance(result.output, ConceptCheckedRegistry)
     checked = result.output.by_id["ps:concept:frequency"]
@@ -105,6 +122,88 @@ def test_concept_pipeline_preserves_identity_symbol_and_lexical_form() -> None:
     assert checked.canonical_name == "frequency"
     assert checked.lexical_entry is not None
     assert checked.lexical_entry.canonical_form.written_rep == "Fundamental frequency"
+    info = result.output.condition_registry["frequency"]
+    assert info.id == "ps:concept:frequency"
+
+    assert not check_cel_expression(
+        "frequency > 10", result.output.condition_registry
+    )
+    lowered = check_condition_ir(
+        "frequency > 10", result.output.condition_registry
+    ).ir
+    assert isinstance(lowered, ConditionBinary)
+    assert isinstance(lowered.left, ConditionReference)
+    assert lowered.left.concept_id == "ps:concept:frequency"
+    assert check_cel_expression(
+        "ps:concept:frequency > 10", result.output.condition_registry
+    )
+
+
+def test_concept_pipeline_projects_explicit_closed_category() -> None:
+    concept = Concept(
+        concept_id="ps:concept:severity",
+        canonical_name="severity",
+        category_values=("low", "medium", "high"),
+        category_extensible=False,
+        lexical_entry=LexicalEntry(
+            identifier="entry:severity",
+            canonical_form=LexicalForm(written_rep="Severity", language="en"),
+            senses=(
+                LexicalSense(
+                    reference=OntologyReference(uri="ps:concept:severity")
+                ),
+            ),
+            physical_dimension_form="category",
+        ),
+    )
+    result = run_concept_pipeline(
+        [LoadedConcept(concept=concept)],
+        context=ConceptPipelineContext(
+            form_registry={
+                "category": FormDefinition(name="category", kind=KindType.CATEGORY)
+            }
+        ),
+    )
+
+    assert isinstance(result.output, ConceptCheckedRegistry)
+    info = result.output.condition_registry["severity"]
+    assert info.kind is KindType.CATEGORY
+    assert info.category_values == ["low", "medium", "high"]
+    assert info.category_extensible is False
+
+
+def test_concept_pipeline_rejects_category_metadata_on_quantity() -> None:
+    concept = Concept(
+        concept_id="ps:concept:frequency",
+        canonical_name="frequency",
+        category_values=("low", "high"),
+        lexical_entry=LexicalEntry(
+            identifier="entry:frequency",
+            canonical_form=LexicalForm(written_rep="Frequency", language="en"),
+            senses=(
+                LexicalSense(
+                    reference=OntologyReference(uri="ps:concept:frequency")
+                ),
+            ),
+            physical_dimension_form="frequency",
+        ),
+    )
+    result = run_concept_pipeline(
+        [LoadedConcept(concept=concept)],
+        context=ConceptPipelineContext(
+            form_registry={
+                "frequency": FormDefinition(
+                    name="frequency", kind=KindType.QUANTITY
+                )
+            }
+        ),
+    )
+
+    assert result.output is None
+    assert any(
+        diagnostic.code == "concept.category_metadata.invalid_kind"
+        for diagnostic in result.errors
+    )
 
 
 def test_concept_pipeline_duplicate_id_short_circuits() -> None:
@@ -162,6 +261,7 @@ def test_concept_pipeline_dangling_form_is_warning_not_abort() -> None:
     )
     assert isinstance(result.output, ConceptCheckedRegistry)
     assert any(d.code == "concept.form.dangling" and d.is_warning for d in result.warnings)
+    assert "width" not in result.output.condition_registry
 
 
 # --- contexts -------------------------------------------------------------- #
@@ -200,7 +300,11 @@ def test_context_pipeline_missing_lifting_target_short_circuits() -> None:
 
 
 def test_claim_pipeline_valid_claim_not_blocked() -> None:
-    context = build_compilation_context_from_loaded([], context_ids={"ctx1"})
+    concept_result = run_concept_pipeline([])
+    assert isinstance(concept_result.output, ConceptCheckedRegistry)
+    context = build_compilation_context(
+        concept_result.output, context_ids={"ctx1"}
+    )
     claim = Claim(
         claim_id="c1",
         context_id="ctx1",
@@ -217,7 +321,11 @@ def test_claim_pipeline_valid_claim_not_blocked() -> None:
 
 
 def test_claim_pipeline_invalid_claim_is_blocked_not_aborted() -> None:
-    context = build_compilation_context_from_loaded([], context_ids={"ctx1"})
+    concept_result = run_concept_pipeline([])
+    assert isinstance(concept_result.output, ConceptCheckedRegistry)
+    context = build_compilation_context(
+        concept_result.output, context_ids={"ctx1"}
+    )
     # PARAMETER requires output_concept; this one omits it -> blocked, retained.
     claim = Claim(claim_id="c2", context_id="ctx1", claim_type=ClaimType.PARAMETER)
     result = run_claim_pipeline(
@@ -233,7 +341,11 @@ def test_claim_pipeline_dangling_context_is_blocked() -> None:
     # A claim whose context is not among the known contexts is quarantined
     # (blocked) at the pass level. (Through the canonical store the FK is also
     # enforced on write; the pass is a defensive net for out-of-band content.)
-    context = build_compilation_context_from_loaded([], context_ids={"ctx1"})
+    concept_result = run_concept_pipeline([])
+    assert isinstance(concept_result.output, ConceptCheckedRegistry)
+    context = build_compilation_context(
+        concept_result.output, context_ids={"ctx1"}
+    )
     claim = Claim(
         claim_id="c4",
         context_id="ghost",
@@ -251,7 +363,11 @@ def test_claim_pipeline_dangling_context_is_blocked() -> None:
 
 
 def test_claim_pipeline_normalizes_conditions_ir() -> None:
-    context = build_compilation_context_from_loaded([], context_ids={"ctx1"})
+    concept_result = run_concept_pipeline([])
+    assert isinstance(concept_result.output, ConceptCheckedRegistry)
+    context = build_compilation_context(
+        concept_result.output, context_ids={"ctx1"}
+    )
     claim = Claim(
         claim_id="c3",
         context_id="ctx1",

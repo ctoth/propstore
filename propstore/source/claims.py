@@ -30,9 +30,14 @@ from condition_ir import ConceptInfo, KindType, check_cel_expression
 from quire.documents import decode_document_path
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
-from propstore.claim_conditions import condition_registry, lower_concept
 from propstore.families.claims import ClaimType
 from propstore.families.concepts import Concept
+from propstore.families.concepts_passes import (
+    ConceptCheckedRegistry,
+    ConceptPipelineContext,
+    LoadedConcept,
+    run_concept_pipeline,
+)
 from propstore.families.forms import FormDefinition
 from propstore.families.identity.claims import (
     compute_claim_version_id,
@@ -144,65 +149,12 @@ def validate_source_claim_concepts(
         raise ValueError(f"unknown concept reference(s): {formatted}")
 
 
-def _form_kind_by_name(repo: Repository) -> dict[str, KindType]:
-    kinds: dict[str, KindType] = {}
-    for handle in repo.families.form.iter_handles():
-        form = handle.document
-        if isinstance(form, FormDefinition):
-            kinds[form.name] = form.kind
-    return kinds
-
-
 def _concept_form_name(concept: Concept) -> str | None:
     entry = concept.lexical_entry
     if entry is None:
         return None
     form_name = entry.physical_dimension_form
     return form_name if isinstance(form_name, str) and form_name else None
-
-
-def _cel_concept_infos(repo: Repository, source_name: str) -> list[ConceptInfo]:
-    """Build ``ConceptInfo`` for master + source-branch concepts (by kind).
-
-    Master concepts win on name overlap (they carry the authored kind). A
-    concept whose form/kind cannot be resolved is skipped — it is not yet a
-    usable CEL binding (promote/build reports it explicitly).
-    """
-
-    form_kinds = _form_kind_by_name(repo)
-    infos: list[ConceptInfo] = []
-    seen_names: set[str] = set()
-    for handle in repo.families.concept.iter_handles():
-        concept = handle.document
-        if not isinstance(concept, Concept):
-            continue
-        form_name = _concept_form_name(concept)
-        kind = form_kinds.get(form_name) if form_name is not None else None
-        if kind is None:
-            continue
-        infos.append(lower_concept(concept, kind))
-        seen_names.add(concept.canonical_name)
-
-    concepts_doc = load_source_concepts_document(repo, source_name)
-    if concepts_doc is not None:
-        for entry in concepts_doc.concepts:
-            handle_name = entry.proposed_name or entry.local_name
-            if not isinstance(handle_name, str) or not handle_name:
-                continue
-            if handle_name in seen_names:
-                continue
-            kind = form_kinds.get(entry.form) if entry.form is not None else None
-            if kind is None:
-                continue
-            infos.append(
-                ConceptInfo(
-                    id=f"ps:source:{normalize_source_slug(source_name)}:concept:{handle_name}",
-                    canonical_name=handle_name,
-                    kind=kind,
-                )
-            )
-            seen_names.add(handle_name)
-    return infos
 
 
 def validate_source_claim_cel_expressions(
@@ -216,10 +168,61 @@ def validate_source_claim_cel_expressions(
     type-checked again at promote/build.
     """
 
-    infos = _cel_concept_infos(repo, source_name)
-    if not infos:
+    forms = _forms_by_name(repo)
+    primary_concepts = [
+        handle.document
+        for handle in repo.families.concept.iter_handles()
+        if isinstance(handle.document, Concept)
+    ]
+    primary_result = run_concept_pipeline(
+        [LoadedConcept(concept=concept) for concept in primary_concepts],
+        context=ConceptPipelineContext(form_registry=forms),
+    )
+    if not isinstance(primary_result.output, ConceptCheckedRegistry):
+        detail = "; ".join(
+            diagnostic.message for diagnostic in primary_result.diagnostics
+        )
+        raise ValueError(f"primary concept validation failed: {detail}")
+    registry = dict(primary_result.output.condition_registry)
+
+    concepts_doc = load_source_concepts_document(repo, source_name)
+    if concepts_doc is not None:
+        for entry in concepts_doc.concepts:
+            canonical_name = entry.proposed_name or entry.local_name
+            if not isinstance(canonical_name, str) or not canonical_name:
+                continue
+            form = forms.get(entry.form) if entry.form is not None else None
+            if form is None:
+                continue
+            form_parameters = entry.form_parameters
+            info = ConceptInfo(
+                id=(
+                    f"ps:source:{normalize_source_slug(source_name)}:"
+                    f"concept:{canonical_name}"
+                ),
+                canonical_name=canonical_name,
+                kind=form.kind,
+                category_values=(
+                    list(form_parameters.values)
+                    if form.kind is KindType.CATEGORY
+                    and form_parameters is not None
+                    and form_parameters.values is not None
+                    else []
+                ),
+                category_extensible=(
+                    form_parameters.extensible
+                    if form.kind is KindType.CATEGORY
+                    and form_parameters is not None
+                    and form_parameters.extensible is not None
+                    else True
+                ),
+            )
+            for name in (entry.proposed_name, entry.local_name):
+                if isinstance(name, str) and name and name not in registry:
+                    registry[name] = info
+
+    if not registry:
         return
-    registry = condition_registry(infos)
     for claim in data.claims:
         if not claim.conditions:
             continue

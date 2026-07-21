@@ -28,6 +28,7 @@ import pytest
 import yaml
 from condition_ir import KindType
 
+from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims import Claim, ClaimStatus, ClaimType
 from propstore.families.contexts import Context
@@ -48,6 +49,7 @@ from propstore.source.common import (
 )
 from propstore.source.claims import commit_source_claim_proposal
 from propstore.source.concepts import commit_source_concept_proposal
+from propstore.world import WorldQuery
 
 _SOURCE = "Demo Paper 2024"
 
@@ -239,6 +241,34 @@ def test_promoted_concepts_preserve_form_and_category_semantics(tmp_path: Path) 
     assert reloaded_score.lexical_entry.physical_dimension_form == "quantity"
     assert reloaded_score.category_values == ()
     assert reloaded_score.category_extensible is True
+
+    compiler_info = build_compilation_context_from_repo(repo).condition_registry[
+        "severity"
+    ]
+    with WorldQuery(repo) as world:
+        world_info = world.condition_solver().registry["severity"]
+    assert compiler_info == world_info
+    assert compiler_info.id == reloaded_severity.concept_id
+    assert compiler_info.category_values == list(reloaded_severity.category_values)
+    assert compiler_info.category_extensible is reloaded_severity.category_extensible
+
+
+def test_promotion_rejects_category_metadata_on_quantity_without_claims(
+    tmp_path: Path,
+) -> None:
+    repo = _new_source(tmp_path)
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="invalid_quantity",
+        definition="A quantity with category metadata.",
+        form="dimensionless",
+        form_parameters=SourceConceptFormParametersDocument(values=("low", "high")),
+    )
+    finalize_source_branch(repo, _SOURCE)
+
+    with pytest.raises(ValueError, match="concept validation failed during promotion"):
+        promote_source_branch(repo, _SOURCE)
 
 
 # ---------------------------------------------------------------------------

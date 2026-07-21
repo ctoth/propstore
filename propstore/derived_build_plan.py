@@ -187,7 +187,7 @@ def _compile_conflicts(
     records = detect_conflicts(
         conflict_claims,
         {str(concept.concept_id): concept for concept in checked.concepts},
-        checked.compilation_context.cel_registry,
+        checked.compilation_context.condition_registry,
         lifting_system=lifting_system,
         forms=dict(checked.form_registry),
         parameterizations=_parameterizations_by_output(checked.claims),

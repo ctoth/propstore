@@ -98,7 +98,7 @@ def _check_one(
             _error("claim.contract", problem.message, loaded, problem.field)
         )
 
-    condition_report = check_claim_conditions(claim, context.cel_registry)
+    condition_report = check_claim_conditions(claim, context.condition_registry)
     for condition_problem in condition_report.diagnostics:
         diagnostics.append(
             _error(
@@ -124,7 +124,7 @@ def _check_one(
             )
         )
 
-    normalized = check_claim(claim, context.cel_registry)
+    normalized = check_claim(claim, context.condition_registry)
     return CheckedClaim(
         claim=normalized,
         blocked=bool(diagnostics),

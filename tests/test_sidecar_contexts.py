@@ -22,7 +22,6 @@ from condition_ir import (
     SolverUnknownReason,
 )
 
-import propstore.claim_conditions as cc
 from propstore.context_lifting import LiftingSystem
 from propstore.defeasibility import CelScalar
 from propstore.families.contexts import (
@@ -48,17 +47,15 @@ class _TimeoutSolver:
 
 
 def _solver() -> ConditionSolver:
-    registry = cc.condition_registry(
-        [
-            ConceptInfo(
-                id="task",
-                canonical_name="task",
-                kind=KindType.CATEGORY,
-                category_values=["speech", "text"],
-                category_extensible=True,
-            )
-        ]
-    )
+    registry = {
+        "task": ConceptInfo(
+            id="task",
+            canonical_name="task",
+            kind=KindType.CATEGORY,
+            category_values=["speech", "text"],
+            category_extensible=True,
+        )
+    }
     return ConditionSolver(registry)
 
 

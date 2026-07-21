@@ -15,7 +15,6 @@ import msgspec
 import pytest
 from condition_ir import ConceptInfo, ConditionSolver, KindType
 
-import propstore.claim_conditions as cc
 from propstore.context_lifting import (
     IstProposition,
     LiftingException,
@@ -31,17 +30,15 @@ from propstore.families.contexts import (
 
 
 def _category_solver(name: str, values: tuple[str, ...]) -> ConditionSolver:
-    registry = cc.condition_registry(
-        [
-            ConceptInfo(
-                id=name,
-                canonical_name=name,
-                kind=KindType.CATEGORY,
-                category_values=list(values),
-                category_extensible=True,
-            )
-        ]
-    )
+    registry = {
+        name: ConceptInfo(
+            id=name,
+            canonical_name=name,
+            kind=KindType.CATEGORY,
+            category_values=list(values),
+            category_extensible=True,
+        )
+    }
     return ConditionSolver(registry)
 
 

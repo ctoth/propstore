@@ -771,11 +771,28 @@ class WorldQuery(WorldStore):
 
     def condition_solver(self) -> ConditionSolver:
         if self._solver is None:
-            from propstore.cel_registry import build_canonical_cel_registry
+            from propstore.families.concepts_passes import (
+                ConceptCheckedRegistry,
+                ConceptPipelineContext,
+                LoadedConcept,
+                run_concept_pipeline,
+            )
 
             form_registry = {form.name: form for form in select_forms(self._session)}
+            result = run_concept_pipeline(
+                [
+                    LoadedConcept(concept=concept)
+                    for concept in self.all_concepts()
+                ],
+                context=ConceptPipelineContext(form_registry=form_registry),
+            )
+            if not isinstance(result.output, ConceptCheckedRegistry):
+                detail = "; ".join(
+                    diagnostic.message for diagnostic in result.diagnostics
+                )
+                raise ValueError(f"concept validation failed: {detail}")
             registry = with_standard_synthetic_bindings(
-                build_canonical_cel_registry(self.all_concepts(), form_registry)
+                result.output.condition_registry
             )
             self._solver = ConditionSolver(registry)
         return self._solver

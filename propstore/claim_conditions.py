@@ -9,12 +9,6 @@ no wrapper that merely re-exports a package function.
 
 What propstore contributes (CLAUDE.md substrate boundary, generic-package rule):
 
-* It supplies its specifics by passing ARGUMENTS to condition-ir's generic
-  registry builder (``with_standard_synthetic_bindings(..., synthetic_binding_names=…)``),
-  never by wrapping it.
-* It lowers a propstore :class:`~propstore.families.concepts.Concept` into
-  condition-ir's own ``ConceptInfo`` at ONE point (:func:`lower_concept`) — a
-  one-direction lower, not a mirror.
 * It orchestrates claim-level operations: checking a claim's authored CEL
   conditions into condition-ir's ``CheckedConditionSet`` (with non-committal
   diagnostics for invalid conditions — never an abort or a drop), serializing
@@ -26,7 +20,7 @@ What propstore contributes (CLAUDE.md substrate boundary, generic-package rule):
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import msgspec
@@ -35,60 +29,15 @@ from condition_ir import (
     CheckedConditionSet,
     ConceptInfo,
     ConditionSolver,
-    KindType,
     SolverResult,
     check_cel_expression,
     check_condition_ir,
     checked_condition_set,
     checked_condition_set_from_json,
     checked_condition_set_to_json,
-    with_standard_synthetic_bindings,
 )
 
 from propstore.families.claims import Claim
-from propstore.families.concepts import Concept
-
-
-def lower_concept(
-    concept: Concept,
-    kind: KindType,
-    *,
-    category_values: Iterable[str] = (),
-    category_extensible: bool = True,
-) -> ConceptInfo:
-    """Lower a propstore :class:`Concept` into condition-ir's ``ConceptInfo``.
-
-    This is the single one-direction lowering point. The concept's measurement
-    ``kind`` is not carried on the Concept charter itself (it derives from the
-    concept's linked form), so it is supplied by the caller that resolved it.
-    The result is condition-ir's own canonical type, used directly downstream.
-    """
-
-    return ConceptInfo(
-        id=concept.concept_id,
-        canonical_name=concept.canonical_name,
-        kind=kind,
-        category_values=list(category_values),
-        category_extensible=category_extensible,
-    )
-
-
-def condition_registry(
-    concept_infos: Iterable[ConceptInfo],
-    *,
-    synthetic_binding_names: Iterable[str] = (),
-) -> dict[str, ConceptInfo]:
-    """Build a condition-ir registry keyed by concept id, with synthetic bindings.
-
-    propstore's specifics (which synthetic bindings to admit) are passed as the
-    ``synthetic_binding_names`` ARGUMENT to condition-ir's generic builder — the
-    package is parameterized, not wrapped.
-    """
-
-    base: dict[str, ConceptInfo] = {info.id: info for info in concept_infos}
-    return with_standard_synthetic_bindings(
-        base, synthetic_binding_names=tuple(synthetic_binding_names)
-    )
 
 
 @dataclass(frozen=True)

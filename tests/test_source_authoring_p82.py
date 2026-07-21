@@ -24,6 +24,7 @@ from propstore.families.registry import SourceRef
 from propstore.families.sources import (
     SourceClaimDocument,
     SourceClaimsDocument,
+    SourceConceptFormParametersDocument,
 )
 from propstore.repository import Repository
 from propstore.source.claim_concepts import rewrite_claim_concept_refs
@@ -292,6 +293,50 @@ def test_claim_value_within_form_bounds_is_accepted(tmp_path: Path) -> None:
         value=37.0,
     )
     assert claim.value == 37.0
+
+
+def test_source_claim_cel_uses_closed_category_metadata(tmp_path: Path) -> None:
+    repo = _new_source(tmp_path)
+    repo.families.form.save(
+        "category",
+        FormDefinition(name="category", kind=KindType.CATEGORY),
+        message="seed category form",
+    )
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="severity",
+        definition="A severity label.",
+        form="category",
+        form_parameters=SourceConceptFormParametersDocument(
+            values=("low", "medium", "high"),
+            extensible=False,
+        ),
+    )
+
+    accepted = commit_source_claim_proposal(
+        repo,
+        _SOURCE,
+        claim_id="known_severity",
+        claim_type=ClaimType.OBSERVATION,
+        context="ctx",
+        statement="Known severity.",
+        concepts=("severity",),
+        conditions=("severity == 'low'",),
+    )
+    assert accepted.conditions == ("severity == 'low'",)
+
+    with pytest.raises(ValueError, match="invalid CEL condition"):
+        commit_source_claim_proposal(
+            repo,
+            _SOURCE,
+            claim_id="unknown_severity",
+            claim_type=ClaimType.OBSERVATION,
+            context="ctx",
+            statement="Unknown severity.",
+            concepts=("severity",),
+            conditions=("severity == 'critical'",),
+        )
 
 
 # ---------------------------------------------------------------------------

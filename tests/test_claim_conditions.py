@@ -22,26 +22,26 @@ from condition_ir import (
 
 from propstore import claim_conditions as cc
 from propstore.families.claims import Claim
-from propstore.families.concepts import Concept
 
 
 def _quantity_registry() -> dict[str, condition_ir.ConceptInfo]:
-    freq = Concept(concept_id="freq", canonical_name="frequency")
-    return cc.condition_registry([cc.lower_concept(freq, KindType.QUANTITY)])
+    return {
+        "freq": condition_ir.ConceptInfo(
+            id="ps:concept:frequency",
+            canonical_name="freq",
+            kind=KindType.QUANTITY,
+        )
+    }
 
 
 def _timepoint_registry() -> dict[str, condition_ir.ConceptInfo]:
-    onset = Concept(concept_id="onset", canonical_name="onset")
-    return cc.condition_registry([cc.lower_concept(onset, KindType.TIMEPOINT)])
-
-
-def test_lower_concept_yields_condition_ir_type() -> None:
-    """propstore lowers its Concept into condition-ir's OWN ConceptInfo (no mirror)."""
-
-    info = cc.lower_concept(Concept(concept_id="freq", canonical_name="f"), KindType.QUANTITY)
-    assert isinstance(info, condition_ir.ConceptInfo)
-    assert info.id == "freq"
-    assert info.kind is KindType.QUANTITY
+    return {
+        "onset": condition_ir.ConceptInfo(
+            id="ps:concept:onset",
+            canonical_name="onset",
+            kind=KindType.TIMEPOINT,
+        )
+    }
 
 
 def test_check_claim_conditions_returns_package_checked_set() -> None:
