@@ -30,6 +30,7 @@ from propstore.families.contexts import Context
 from propstore.families.forms import FormDefinition
 from propstore.repository import Repository
 from propstore.source.common import (
+    load_source_claims_document,
     load_source_concepts_document,
     load_source_document,
 )
@@ -477,6 +478,48 @@ def test_propose_claim_reports_artifact(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "Proposed claim 'c1'" in result.output
     assert "ps:claim:" in result.output
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected", "expected_type"),
+    (
+        ("red", "red", str),
+        ("true", True, bool),
+        ("7", 7, int),
+        ("7.5", 7.5, float),
+    ),
+)
+def test_propose_claim_preserves_cli_scalar_type(
+    tmp_path: Path,
+    raw_value: str,
+    expected: object,
+    expected_type: type[object],
+) -> None:
+    repo = _init_repo(tmp_path)
+    _propose_widget_and_claim(repo)
+    result = _invoke(
+        repo,
+        "propose-claim",
+        "demo",
+        "--id",
+        "c1",
+        "--type",
+        "observation",
+        "--context",
+        "ctx",
+        "--statement",
+        "widgets exist",
+        "--concept-ref",
+        "widget",
+        "--value",
+        raw_value,
+    )
+
+    assert result.exit_code == 0, result.output
+    document = load_source_claims_document(repo, "demo")
+    assert document is not None
+    assert document.claims[0].value == expected
+    assert type(document.claims[0].value) is expected_type
 
 
 def test_propose_claim_unknown_concept_rejected(tmp_path: Path) -> None:

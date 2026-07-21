@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import Environment, WorldStore
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
 from propstore.reporting import JsonReportMixin
 from propstore.world import OverlayWorld, SyntheticClaim, resolve
@@ -305,7 +306,7 @@ class WorldExplainReport(JsonReportMixin):
     claim_display_id: str
     claim_type: str
     concept_display_id: str | None
-    value: float | None
+    value: ScalarValue | None
     stances: tuple[WorldStanceLine, ...]
 
 

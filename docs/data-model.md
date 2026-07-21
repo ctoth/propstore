@@ -416,4 +416,6 @@ Claims reference their context via `context: {id: ...}`. The compiler validates 
 
 ## Schema
 
-The data model is defined in [LinkML](https://linkml.io/) at `schema/concept_registry.linkml.yaml` and `schema/claim.linkml.yaml`. JSON Schema is generated from these for validation. Run `schema/generate.py` to regenerate.
+Claim and concept contracts are derived from their Quire charters. The remaining
+standalone JSON Schema resources describe forms; Claim has no parallel LinkML or
+generated JSON Schema representation.

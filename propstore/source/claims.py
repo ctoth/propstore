@@ -28,6 +28,7 @@ from condition_ir import ConceptInfo, KindType, check_cel_expression
 from quire.documents import decode_document_path
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.concepts_passes import (
@@ -232,8 +233,8 @@ def _form_bearing_concept_for_claim(claim: SourceClaimDocument) -> str | None:
 
 def _value_fields_for_claim(claim: SourceClaimDocument) -> list[tuple[str, float]]:
     fields: list[tuple[str, float]] = []
-    if claim.value is not None:
-        fields.append(("value", claim.value))
+    if isinstance(claim.value, int | float) and not isinstance(claim.value, bool):
+        fields.append(("value", float(claim.value)))
     if claim.lower_bound is not None:
         fields.append(("lower_bound", claim.lower_bound))
     if claim.upper_bound is not None:
@@ -450,7 +451,7 @@ def commit_source_claim_proposal(
     context: str,
     statement: str | None = None,
     concept: str | None = None,
-    value: float | None = None,
+    value: ScalarValue | None = None,
     lower_bound: float | None = None,
     upper_bound: float | None = None,
     unit: str | None = None,

@@ -29,6 +29,7 @@ import yaml
 from condition_ir import KindType
 
 from propstore.compiler.context import build_compilation_context_from_repo
+from propstore.core.scalars import ScalarValue
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims import Claim, ClaimStatus, ClaimType
 from propstore.families.contexts import Context
@@ -161,6 +162,61 @@ def test_promote_writes_valid_claims_and_concepts_to_master(tmp_path: Path) -> N
     # The minted canonical concept is on master in the same promotion.
     assert len(promoted.concepts) == 1
     assert repo.families.concept.load(promoted.concepts[0]) is not None
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_type"),
+    (
+        ("red", str),
+        (True, bool),
+        (7, int),
+        (7.5, float),
+        (None, type(None)),
+    ),
+)
+def test_claim_scalar_preserves_type_from_source_through_world_query(
+    tmp_path: Path,
+    value: ScalarValue | None,
+    expected_type: type[object],
+) -> None:
+    repo = _new_source(tmp_path)
+    _seed_context(repo)
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="widget",
+        definition="a thing",
+        form="dimensionless",
+    )
+    stored = commit_source_claim_proposal(
+        repo,
+        _SOURCE,
+        claim_id="c1",
+        claim_type=ClaimType.OBSERVATION,
+        context="ctx",
+        statement="it holds",
+        concepts=("widget",),
+        value=value,
+    )
+    assert stored.artifact_id is not None
+    source_document = load_source_claims_document(repo, _SOURCE)
+    assert source_document is not None
+    assert source_document.claims[0].value == value
+    assert type(source_document.claims[0].value) is expected_type
+
+    finalize_source_branch(repo, _SOURCE)
+    promote_source_branch(repo, _SOURCE)
+
+    promoted = repo.families.claim.load(stored.artifact_id)
+    assert promoted is not None
+    assert promoted.value == value
+    assert type(promoted.value) is expected_type
+    with WorldQuery(repo) as world:
+        projected = world.get_claim(stored.artifact_id)
+    assert projected is not None
+    assert projected.value == value
+    assert type(projected.value) is expected_type
+    assert projected.claim_id == stored.artifact_id
 
 
 def test_promoted_claim_is_immutable_rebuild_with_lowered_concept(

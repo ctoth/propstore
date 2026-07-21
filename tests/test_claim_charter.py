@@ -44,6 +44,29 @@ def test_claim_columns_fall_out_of_the_charter() -> None:
     assert Claim.__charter_model__.__name__ == "ClaimModel"
 
 
+def test_claim_value_storage_is_charter_derived_messagepack() -> None:
+    value_field = next(
+        field
+        for field in Claim.__charter__.to_schema_object().fields
+        if field.name == "value"
+    )
+
+    assert value_field.sql_type.storage_kind == "messagepack"
+    assert value_field.sql_type.ddl_name == "BLOB"
+    assert value_field.payload()["storage_codec"] == "messagepack"
+
+
+@pytest.mark.parametrize(
+    "value",
+    (2**63, -(2**63) - 1, float("nan"), float("inf"), float("-inf")),
+)
+def test_claim_scalar_rejects_values_outside_storage_contract(
+    value: int | float,
+) -> None:
+    with pytest.raises(ValueError):
+        Claim(claim_id="invalid", value=value)
+
+
 def test_author_then_get_round_trips_the_raw_claim(repo: ClaimRepository) -> None:
     claim = Claim(
         claim_id="c1",

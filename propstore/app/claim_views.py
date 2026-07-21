@@ -23,6 +23,7 @@ from dataclasses import dataclass
 
 from propstore.app.rendering import RenderPolicySummary, summarize_render_policy
 from propstore.app.view_state import ViewState
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.reporting import JsonReportMixin
@@ -78,7 +79,7 @@ class ClaimViewConcept:
 @dataclass(frozen=True)
 class ClaimViewValue:
     state: ViewState
-    value: float | None
+    value: ScalarValue | None
     unit: str | None
     sentence: str
 

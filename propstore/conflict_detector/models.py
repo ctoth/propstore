@@ -55,7 +55,12 @@ class ConflictClaim:
             output_concept_id=claim.output_concept,
             target_concept_id=claim.target_concept,
             measure=claim.measure,
-            value=claim.value,
+            value=(
+                float(claim.value)
+                if isinstance(claim.value, int | float)
+                and not isinstance(claim.value, bool)
+                else None
+            ),
             lower_bound=claim.lower_bound,
             upper_bound=claim.upper_bound,
             unit=claim.unit,

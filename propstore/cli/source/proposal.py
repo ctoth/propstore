@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.cli.helpers import CliContext, fail, require_repo
+from propstore.cli.helpers import CliContext, coerce_cli_scalar, fail, require_repo
 from propstore.cli.output import emit_success
 from propstore.cli.source import source
 from propstore.families.sources import SourceConceptFormParametersDocument
@@ -98,7 +98,7 @@ def propose_concept(
     "--concept-ref", "concept_refs", multiple=True, help="Additional concept handle(s)."
 )
 @click.option("--condition", "conditions", multiple=True, help="CEL condition(s).")
-@click.option("--value", type=float, default=None)
+@click.option("--value", type=str, default=None)
 @click.option("--lower-bound", type=float, default=None)
 @click.option("--upper-bound", type=float, default=None)
 @click.option("--unit", default=None)
@@ -121,7 +121,7 @@ def propose_claim(
     concept: str | None,
     concept_refs: tuple[str, ...],
     conditions: tuple[str, ...],
-    value: float | None,
+    value: str | None,
     lower_bound: float | None,
     upper_bound: float | None,
     unit: str | None,
@@ -146,7 +146,7 @@ def propose_claim(
         concept=concept,
         concepts=concept_refs,
         conditions=conditions,
-        value=value,
+        value=None if value is None else coerce_cli_scalar(value),
         lower_bound=lower_bound,
         upper_bound=upper_bound,
         unit=unit,

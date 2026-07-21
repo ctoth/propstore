@@ -10,6 +10,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+from propstore.core.scalars import ScalarValue
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims import ClaimType
 from propstore.importing.contract import (
@@ -66,6 +69,25 @@ def test_coerce_claim_rows_flags_duplicate_handle_without_dropping() -> None:
     # Non-commitment: both rivals are kept, the collision is surfaced as a warning.
     assert len(document.claims) == 2
     assert any("duplicate imported claim handle 'c1'" in w for w in warnings)
+
+
+@pytest.mark.parametrize("value", ["red", True, 7, 7.5])
+def test_coerce_claim_rows_preserves_scalar_runtime_type(value: ScalarValue) -> None:
+    document, warnings = coerce_claim_rows(
+        (
+            ImportClaimRow(
+                local_id="c1",
+                claim_type=ClaimType.OBSERVATION,
+                context="ctx",
+                value=value,
+            ),
+        ),
+        paper="external_kb",
+    )
+
+    assert warnings == ()
+    assert document.claims[0].value == value
+    assert type(document.claims[0].value) is type(value)
 
 
 def test_pipeline_assigns_content_stable_identity(tmp_path: Path) -> None:

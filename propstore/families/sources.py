@@ -35,6 +35,7 @@ from quire.charter_class import CharterDoc, charter, charter_field
 from quire.refs import single_field_ref_type
 
 from propstore.core.algorithm_stage import AlgorithmStage
+from propstore.core.scalars import ScalarValue, validate_scalar_value
 from propstore.core.source_types import SourceKind
 from propstore.families.claims import ClaimType, Exactness
 from propstore.families.micropublications import MicropublicationEvidence
@@ -281,10 +282,13 @@ class SourceClaimDocument(_Struct):
     uncertainty_type: str | None = None
     unit: str | None = None
     upper_bound: float | None = None
-    value: float | None = None
+    value: ScalarValue | None = None
     variables: tuple[VariableBindingDocument, ...] = ()
     source_local_id: str | None = None
     artifact_code: str | None = None
+
+    def __post_init__(self) -> None:
+        validate_scalar_value(self.value)
 
 
 class SourceAttackTargetDocument(_Struct):

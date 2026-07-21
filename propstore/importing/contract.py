@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.core.scalars import ScalarValue, validate_scalar_value
 from propstore.families.claims import ClaimType
 from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType, coerce_stance_type
@@ -78,7 +79,7 @@ class ImportClaimRow:
     statement: str | None = None
     concept: str | None = None
     concepts: tuple[str, ...] = ()
-    value: float | None = None
+    value: ScalarValue | None = None
     unit: str | None = None
     conditions: tuple[str, ...] = ()
     notes: str | None = None
@@ -90,6 +91,7 @@ class ImportClaimRow:
         object.__setattr__(
             self, "context", _require_non_empty(self.context, "claim context")
         )
+        validate_scalar_value(self.value)
 
 
 @dataclass(frozen=True)

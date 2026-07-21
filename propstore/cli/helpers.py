@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, NoReturn, TypedDict
 
 import click
 
+from propstore.core.scalars import ScalarValue
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -52,11 +54,11 @@ def parse_kv_pairs(
             remaining.append(arg)
             continue
         key, _, value = arg.partition("=")
-        parsed[key] = _coerce_cli_scalar(value) if coerce else value
+        parsed[key] = coerce_cli_scalar(value) if coerce else value
     return parsed, remaining
 
 
-def _coerce_cli_scalar(value: str) -> object:
+def coerce_cli_scalar(value: str) -> ScalarValue:
     """Coerce basic CLI scalars while leaving ordinary strings untouched."""
     lowered = value.lower()
     if lowered == "true":

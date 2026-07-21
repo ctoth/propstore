@@ -46,6 +46,7 @@ from quire.sqlalchemy_store import (
 )
 from sqlalchemy import select
 
+from propstore.core.scalars import ScalarValue, validate_scalar_value
 from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 
 
@@ -118,7 +119,7 @@ class ClaimVariable(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
 @charter(
     key="claim",
     name="claim",
-    contract_version="2026.07.12",
+    contract_version="2026.07.21",
     placement="claim",
     identity_field="claim_id",
     semantic="propstore.claim",
@@ -227,7 +228,10 @@ class Claim(CharterDoc):
     equations: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     conditions: Annotated[tuple[str, ...], charter_field(json=True)] = ()
     conditions_ir: str | None = None
-    value: float | None = None
+    value: Annotated[
+        ScalarValue | None,
+        charter_field(nullable=True, storage_codec="messagepack"),
+    ] = None
     lower_bound: float | None = None
     upper_bound: float | None = None
     uncertainty: float | None = None
@@ -235,6 +239,10 @@ class Claim(CharterDoc):
     confidence: float | None = None
     unit: str | None = None
     sample_size: int | None = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        validate_scalar_value(self.value)
 
 
 @dataclass(frozen=True)
@@ -272,7 +280,7 @@ class _ClaimRow(Protocol):
     equations: tuple[str, ...]
     conditions: tuple[str, ...]
     conditions_ir: str | None
-    value: float | None
+    value: ScalarValue | None
     lower_bound: float | None
     upper_bound: float | None
     uncertainty: float | None
