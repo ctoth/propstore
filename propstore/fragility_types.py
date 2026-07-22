@@ -26,6 +26,7 @@ from provenance_semiring import SupportEvidence
 
 from propstore.core.environment import WorldStore
 from propstore.core.graph_types import ActiveWorldGraph
+from propstore.grounding.bundle import GroundingStatus
 from propstore.reporting import JsonReportMixin
 from propstore.world.types import (
     ATMSConceptStabilityReport,
@@ -246,6 +247,8 @@ class FragilityReport(JsonReportMixin):
     world_fragility: float = 0.0
     analysis_scope: str = ""
     interactions: tuple[FragilityInteraction, ...] = ()
+    grounding_status: GroundingStatus | None = None
+    grounding_budget_reason: str | None = None
 
 
 @runtime_checkable

@@ -8,6 +8,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
 from propstore.families.relations import Stance
+from propstore.grounding.bundle import GroundingStatus
 from propstore.reporting import json_ready
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -209,10 +210,18 @@ def _capture_aspic(
     if not isinstance(world, GroundingBundleStore):
         return None
 
+    bundle = world.grounding_bundle()
+    if bundle.status is not GroundingStatus.COMPLETE:
+        return WorldlineArgumentationState(
+            backend="aspic",
+            status="grounding_budget_exceeded",
+            reason=bundle.budget_reason,
+        )
+
     projection = build_aspic_projection(
         world,
         active,
-        bundle=world.grounding_bundle(),
+        bundle=bundle,
         support_metadata=support_metadata,
         comparison=policy.comparison,
         link=policy.link,

@@ -17,7 +17,8 @@ Porting notes (Phase 7b-3 rewrite):
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import gunray
 import pytest
@@ -52,6 +53,11 @@ from propstore.fragility import (
 )
 from propstore.fragility_contributors import _in_extension
 from propstore.grounding.grounder import ground
+from propstore.grounding.bundle import (
+    GroundedRulesBundle,
+    GroundingStatus,
+    build_empty_sections,
+)
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.world.types import (
@@ -76,6 +82,8 @@ class TestInterventionModel:
         assert report.interventions == ()
         assert report.world_fragility == 0.0
         assert report.analysis_scope == ""
+        assert report.grounding_status is None
+        assert report.grounding_budget_reason is None
 
     def test_target_is_immutable_and_hashable(self) -> None:
         target = InterventionTarget(
@@ -642,6 +650,136 @@ class TestRankFragility:
         assert callable(query_fragility)
         assert not hasattr(BoundWorld, "fragility")
 
+    def test_grounding_fragility_requires_bundle_capability(self) -> None:
+        bound = SimpleNamespace(store=object())
+
+        with pytest.raises(
+            TypeError,
+            match=(
+                "grounding or bridge fragility requires a grounded "
+                "bundle-capable store"
+            ),
+        ):
+            rank_fragility(
+                bound,
+                concept_id="c1",
+                include_atms=False,
+                include_discovery=False,
+                include_conflict=False,
+                include_grounding=True,
+                include_bridge=False,
+            )
+
+    def test_unrequested_grounding_leaves_completeness_fields_absent(self) -> None:
+        report = rank_fragility(
+            SimpleNamespace(store=object()),
+            concept_id="c1",
+            include_atms=False,
+            include_discovery=False,
+            include_conflict=False,
+            include_grounding=False,
+            include_bridge=False,
+        )
+
+        assert report.grounding_status is None
+        assert report.grounding_budget_reason is None
+
+    def test_incomplete_grounding_skips_grounding_and_bridge_only(self) -> None:
+        discovery = RankedIntervention(
+            target=InterventionTarget(
+                intervention_id="missing_measurement:c1",
+                kind=InterventionKind.MISSING_MEASUREMENT,
+                family=InterventionFamily.DISCOVERY,
+                subject_id="c1",
+                description="measure c1",
+                cost_tier=1,
+                provenance=InterventionProvenance(
+                    family=InterventionFamily.DISCOVERY,
+                    source_ids=("c1",),
+                    subject_concept_ids=("c1",),
+                ),
+                payload=MissingMeasurementTarget(
+                    concept_id="c1",
+                    discovered_from_parameterizations=("c1",),
+                    downstream_subjects=("c1",),
+                ),
+            ),
+            local_fragility=0.5,
+            roi=0.5,
+            ranking_policy=RankingPolicy.HEURISTIC_ROI,
+            score_explanation="discovery remains enabled",
+        )
+        incomplete = GroundedRulesBundle(
+            source_rules=(),
+            source_facts=(),
+            sections=build_empty_sections(),
+            status=GroundingStatus.BUDGET_EXCEEDED,
+            budget_reason="argument enumeration exceeded max_arguments=1",
+            max_arguments=1,
+            partial_candidate_count=2,
+        )
+        bound = MagicMock()
+        bound.store = SimpleNamespace(
+            grounding_bundle=MagicMock(return_value=incomplete)
+        )
+
+        with (
+            patch(
+                "propstore.fragility.collect_missing_measurement_interventions",
+                return_value=(discovery,),
+            ),
+            patch(
+                "propstore.fragility.collect_ground_fact_interventions",
+                side_effect=AssertionError("ground fact collector must be skipped"),
+            ),
+            patch(
+                "propstore.fragility.collect_grounded_rule_interventions",
+                side_effect=AssertionError("grounded rule collector must be skipped"),
+            ),
+            patch(
+                "propstore.fragility.build_bound_bridge_inputs",
+                side_effect=AssertionError("bridge inputs must be skipped"),
+            ),
+            patch("propstore.fragility.detect_interactions", return_value=()),
+        ):
+            report = rank_fragility(
+                bound,
+                concept_id="c1",
+                include_atms=False,
+                include_discovery=True,
+                include_conflict=False,
+                include_grounding=True,
+                include_bridge=True,
+            )
+
+        assert [item.target.intervention_id for item in report.interventions] == [
+            "missing_measurement:c1"
+        ]
+        assert report.grounding_status is GroundingStatus.BUDGET_EXCEEDED
+        assert (
+            report.grounding_budget_reason
+            == "argument enumeration exceeded max_arguments=1"
+        )
+
+    def test_complete_requested_grounding_records_complete_status(self) -> None:
+        bound = MagicMock()
+        bound.store = SimpleNamespace(
+            grounding_bundle=MagicMock(return_value=GroundedRulesBundle.empty())
+        )
+
+        report = rank_fragility(
+            bound,
+            concept_id="c1",
+            include_atms=False,
+            include_discovery=False,
+            include_conflict=False,
+            include_grounding=True,
+            include_bridge=False,
+        )
+
+        assert report.grounding_status is GroundingStatus.COMPLETE
+        assert report.grounding_budget_reason is None
+
     def test_heuristic_roi_policy_sorts_by_roi(self) -> None:
         from unittest.mock import patch
 
@@ -723,7 +861,12 @@ class TestRankFragility:
                 return_value=((), [], []),
             ),
         ):
-            report = rank_fragility(bound, ranking_policy=RankingPolicy.HEURISTIC_ROI)
+            report = rank_fragility(
+                bound,
+                ranking_policy=RankingPolicy.HEURISTIC_ROI,
+                include_grounding=False,
+                include_bridge=False,
+            )
         assert [item.target.subject_id for item in report.interventions] == [
             "cheap",
             "expensive",
@@ -839,7 +982,10 @@ class TestRankFragility:
             ),
         ):
             report = rank_fragility(
-                bound, ranking_policy=RankingPolicy.FAMILY_LOCAL_ONLY
+                bound,
+                ranking_policy=RankingPolicy.FAMILY_LOCAL_ONLY,
+                include_grounding=False,
+                include_bridge=False,
             )
         assert [item.target.intervention_id for item in report.interventions] == [
             "assumption:high",
@@ -931,6 +1077,11 @@ class TestRankFragility:
                 return_value=((), [], []),
             ),
         ):
-            report = rank_fragility(bound, ranking_policy=RankingPolicy.PARETO)
+            report = rank_fragility(
+                bound,
+                ranking_policy=RankingPolicy.PARETO,
+                include_grounding=False,
+                include_bridge=False,
+            )
         assert [item.target.subject_id for item in report.interventions] == ["dominant"]
         assert report.interventions[0].ranking_policy is RankingPolicy.PARETO

@@ -7,9 +7,14 @@ from unittest.mock import MagicMock, patch
 from propstore.world.types import Environment
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
 from propstore.worldline.definition import WorldlineDefinition, WorldlineInputs
+from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.runner import run_worldline
 from propstore.reporting import json_ready
-from propstore.worldline.result_types import WorldlineTargetValue
+from propstore.worldline.result_types import (
+    WorldlineArgumentationState,
+    WorldlineDependencies,
+    WorldlineTargetValue,
+)
 
 
 class _FakeWorld:
@@ -100,3 +105,32 @@ def test_ws_j_equivalent_argumentation_failures_have_same_content_hash() -> None
     assert right.argumentation.error == WorldlineCaptureError.ARGUMENTATION
     assert json_ready(left.argumentation)["error"] == "argumentation"
     assert left.content_hash == right.content_hash
+
+
+def test_grounding_incompleteness_reason_is_durable_hash_input() -> None:
+    left = compute_worldline_content_hash(
+        values={},
+        steps=(),
+        dependencies=WorldlineDependencies(),
+        sensitivity=None,
+        argumentation=WorldlineArgumentationState(
+            backend="aspic",
+            status="grounding_budget_exceeded",
+            reason="budget 1 exceeded",
+        ),
+        revision=None,
+    )
+    right = compute_worldline_content_hash(
+        values={},
+        steps=(),
+        dependencies=WorldlineDependencies(),
+        sensitivity=None,
+        argumentation=WorldlineArgumentationState(
+            backend="aspic",
+            status="grounding_budget_exceeded",
+            reason="budget 2 exceeded",
+        ),
+        revision=None,
+    )
+
+    assert left != right

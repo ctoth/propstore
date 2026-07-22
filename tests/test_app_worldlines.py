@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from propstore.app.world import open_app_world_model
 from propstore.app.worldlines import (
     WorldlineAlreadyExistsError,
     WorldlineCreateRequest,
@@ -31,9 +32,21 @@ from propstore.app.worldlines import (
 )
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
-from propstore.world.types import ResolutionStrategy
 from propstore.families.contexts import Context
+from propstore.families.predicates import Predicate
+from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
+from propstore.fragility import rank_fragility
+from propstore.grounding.bundle import GroundingStatus
 from propstore.repository import Repository
+from propstore.world.resolution import resolve
+from propstore.world.types import (
+    Environment,
+    ReasoningBackend,
+    RenderPolicy,
+    ResolutionStrategy,
+    ValueStatus,
+)
+from propstore.worldline.runner import run_worldline
 
 
 def _repo(tmp_path: Path) -> Repository:
@@ -106,6 +119,112 @@ def test_materialize_requires_targets_for_new_worldline(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     with pytest.raises(WorldlineValidationError):
         materialize_worldline(repo, WorldlineRunRequest(name="wl"))
+
+
+def test_incomplete_aspic_worldline_is_diagnostic_but_not_materialized(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    repo.families.claim.save(
+        "cl2",
+        Claim(
+            claim_id="cl2",
+            context_id="ctx1",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="c1",
+            value=11.0,
+        ),
+        message="m",
+    )
+    repo.families.predicate.save(
+        "has_value",
+        Predicate(
+            predicate_id="has_value",
+            arity=1,
+            arg_types=("Claim",),
+            derived_from="claim.attribute:value",
+        ),
+        message="m",
+    )
+    repo.families.predicate.save(
+        "important",
+        Predicate(predicate_id="important", arity=1, arg_types=("Claim",)),
+        message="m",
+    )
+    repo.families.defeasible_rule.save(
+        "r1",
+        DefeasibleRule(
+            rule_id="r1",
+            kind="defeasible",
+            head=Atom(predicate="important", terms=(Term(kind="var", name="X"),)),
+            body=(
+                BodyLiteral(
+                    kind="positive",
+                    atom=Atom(
+                        predicate="has_value",
+                        terms=(Term(kind="var", name="X"),),
+                    ),
+                ),
+            ),
+        ),
+        message="m",
+    )
+    repo.require_git().commit_files(
+        {"propstore.yaml": b"grounding_max_arguments: 1\n"},
+        "Set tiny grounding budget",
+    )
+    policy = WorldlinePolicyOptions(
+        strategy="argumentation",
+        reasoning_backend="aspic",
+    )
+    create_worldline(
+        repo,
+        WorldlineCreateRequest(name="wl", targets=("Speed",), policy=policy),
+    )
+    definition = show_worldline(repo, WorldlineShowRequest(name="wl")).definition
+
+    with open_app_world_model(repo) as world:
+        bound = world.bind(Environment())
+        resolved = resolve(
+            bound,
+            "c1",
+            policy=RenderPolicy(
+                strategy=ResolutionStrategy.ARGUMENTATION,
+                reasoning_backend=ReasoningBackend.ASPIC,
+            ),
+            world=world,
+        )
+        diagnostic = run_worldline(definition, world)
+        fragility = rank_fragility(
+            bound,
+            concept_id="c1",
+            include_atms=False,
+            include_discovery=False,
+            include_conflict=False,
+            include_grounding=True,
+            include_bridge=False,
+        )
+    assert resolved.status is ValueStatus.CONFLICTED
+    assert resolved.reason is not None
+    assert diagnostic.argumentation is not None
+    assert diagnostic.argumentation.backend == "aspic"
+    assert diagnostic.argumentation.status == "grounding_budget_exceeded"
+    assert diagnostic.argumentation.reason is not None
+    assert resolved.reason == diagnostic.argumentation.reason
+    assert fragility.grounding_status is GroundingStatus.BUDGET_EXCEEDED
+    assert fragility.grounding_budget_reason == diagnostic.argumentation.reason
+
+    head_before = repo.require_git().head_sha()
+    with pytest.raises(
+        WorldlineValidationError,
+        match="argument enumeration budget exceeded",
+    ):
+        materialize_worldline(repo, WorldlineRunRequest(name="wl"))
+    assert repo.require_git().head_sha() == head_before
+    assert (
+        show_worldline(repo, WorldlineShowRequest(name="wl")).definition.results
+        is None
+    )
 
 
 def test_freshly_materialized_worldline_is_not_stale(tmp_path: Path) -> None:

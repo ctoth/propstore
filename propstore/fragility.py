@@ -56,7 +56,7 @@ from propstore.fragility_types import (
     RankedIntervention,
     RankingPolicy,
 )
-from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.bundle import GroundingStatus
 from propstore.world.types import GroundingBundleStore, QueryableAssumption
 
 if TYPE_CHECKING:
@@ -209,27 +209,36 @@ def rank_fragility(
     if include_conflict:
         interventions.extend(collect_conflict_interventions(bound, concept_ids))
 
-    store = bound.store
-    bundle = (
-        store.grounding_bundle()
-        if isinstance(store, GroundingBundleStore)
-        else GroundedRulesBundle.empty()
-    )
-
-    if include_grounding:
-        interventions.extend(collect_ground_fact_interventions(bundle))
-        interventions.extend(collect_grounded_rule_interventions(bundle))
-
-    if include_bridge:
-        active_claims, justifications, stance_rows = build_bound_bridge_inputs(bound)
-        interventions.extend(
-            collect_bridge_undercut_interventions(
-                bundle,
-                active_claims,
-                justifications,
-                stance_rows,
+    grounding_status: GroundingStatus | None = None
+    grounding_budget_reason: str | None = None
+    if include_grounding or include_bridge:
+        store = bound.store
+        if not isinstance(store, GroundingBundleStore):
+            raise TypeError(
+                "grounding or bridge fragility requires a grounded "
+                "bundle-capable store"
             )
-        )
+        bundle = store.grounding_bundle()
+        grounding_status = bundle.status
+        grounding_budget_reason = bundle.budget_reason
+
+        if bundle.status is GroundingStatus.COMPLETE:
+            if include_grounding:
+                interventions.extend(collect_ground_fact_interventions(bundle))
+                interventions.extend(collect_grounded_rule_interventions(bundle))
+
+            if include_bridge:
+                active_claims, justifications, stance_rows = (
+                    build_bound_bridge_inputs(bound)
+                )
+                interventions.extend(
+                    collect_bridge_undercut_interventions(
+                        bundle,
+                        active_claims,
+                        justifications,
+                        stance_rows,
+                    )
+                )
 
     normalized_policy = RankingPolicy(ranking_policy)
     ranked = _apply_ranking_policy(interventions, normalized_policy)
@@ -249,6 +258,8 @@ def rank_fragility(
         world_fragility=world_fragility,
         analysis_scope=scope,
         interactions=interactions,
+        grounding_status=grounding_status,
+        grounding_budget_reason=grounding_budget_reason,
     )
 
 

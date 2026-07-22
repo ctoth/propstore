@@ -185,6 +185,7 @@ class WorldlineArgumentationState:
 
     backend: str | None = None
     status: str | None = None
+    reason: str | None = None
     error: WorldlineCaptureError | None = None
     justified: tuple[str, ...] = ()
     defeated: tuple[str, ...] = ()

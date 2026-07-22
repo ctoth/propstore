@@ -232,3 +232,72 @@ Next slice:
 
 - B1 Slice 4 only after every Slice 3 gate passes and this iteration is
   committed.
+
+## Iteration 4 - `B1 Slice 4`
+
+Slice read:
+
+- `propstore/world/resolution.py`
+- `propstore/worldline/argumentation.py`
+- `propstore/worldline/result_types.py`
+- `propstore/app/worldlines.py`
+- `propstore/fragility.py`
+- `propstore/fragility_types.py`
+- focused resolution, worldline, hashing, fragility, and CLI tests named by the
+  active plan
+
+Surfaces:
+
+- ASPIC projection without a completeness guard
+  - Classification: valid capability with wrong representation handling.
+  - Disposition: inspect the existing bundle status before projection and
+    return no winner with the exact budget reason when it is incomplete.
+  - Evidence: partial Gunray evidence is diagnostic input, not a complete
+    structured theory.
+- ASPIC worldline capture projecting an incomplete bundle
+  - Classification: valid capability with wrong representation handling.
+  - Disposition: return the existing typed argumentation state with exact
+    `grounding_budget_exceeded` status and reason before projection.
+  - Evidence: diagnostic `run_worldline()` must remain inspectable without
+    treating partial grounding as accepted argumentation output.
+- worldline materialization assigning and saving incomplete ASPIC results
+  - Classification: wrong caller accepting an incomplete owner result.
+  - Disposition: raise `WorldlineValidationError` immediately after the run and
+    before assigning `definition.results` or saving.
+  - Evidence: committed worldlines are complete semantic artifacts.
+- fragility `else GroundedRulesBundle.empty()` fallback
+  - Classification: wrong caller hiding absent/incomplete capability.
+  - Disposition: delete the substitution; require `GroundingBundleStore` only
+    when grounding or bridge analysis is requested.
+  - Evidence: a fabricated empty bundle is indistinguishable from a complete
+    empty program and falsely authorizes ranking.
+- fragility result without grounding completeness evidence
+  - Classification: valid capability with wrong representation.
+  - Disposition: add the exact status/reason fields to the existing
+    `FragilityReport`; skip grounding and bridge collectors for incomplete
+    bundles while preserving other enabled families.
+  - Evidence: no separate report or generic status owner is needed.
+
+Gate results:
+
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 tests/test_resolution.py tests/test_app_worldlines.py tests/test_worldline_hash_excludes_transient_errors.py tests/test_fragility.py tests/test_cli_phase10_advanced.py -q`
+  - 94 passed in 8.63s.
+  - Log: `logs/test-runs/pytest-20260722-124235.log`.
+- Pass: the real tiny-budget integration proof uses one committed sidecar for
+  ASPIC resolution, diagnostic worldline capture, fragility completeness, and
+  the no-worldline-commit materialization refusal; each reports the same exact
+  owner reason.
+- Pass: every B1 search gate.
+  - Deleted result storage, deleted wrapper, CLI-local re-grounding, obsolete
+    surface classifier, fragility empty fallback, and loose status construction
+    all returned zero hits.
+  - Exactly one production `WorldQuery.grounding_bundle()` and one grounding
+    owner `load_grounded_bundle_from_sidecar()` remain.
+- Pass: `uv run lint-imports`
+  - 3 contracts kept, 0 broken.
+- Pass: `uv run pyright propstore`
+  - 0 errors, 0 warnings, 0 informations.
+
+Commit:
+
+- This commit: `fix(argumentation): fail closed on incomplete grounding`

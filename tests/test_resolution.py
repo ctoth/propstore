@@ -17,7 +17,11 @@ import pytest
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.core.scalars import ScalarValue
-from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.bundle import (
+    GroundedRulesBundle,
+    GroundingStatus,
+    build_empty_sections,
+)
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
     _resolve_recency,
@@ -106,8 +110,11 @@ class _ArgumentationWorld:
     patched in every structured test.
     """
 
+    def __init__(self, bundle: GroundedRulesBundle | None = None) -> None:
+        self._bundle = bundle or GroundedRulesBundle.empty()
+
     def grounding_bundle(self) -> GroundedRulesBundle:
-        return GroundedRulesBundle.empty()
+        return self._bundle
 
     def stances_between(self, claim_ids: set[str]) -> tuple[object, ...]:
         return (object(),)
@@ -453,6 +460,39 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(
     assert result.status is ValueStatus.RESOLVED
     assert calls
     assert calls[0]["link"] == "weakest"
+
+
+def test_aspic_resolution_refuses_incomplete_grounding_before_projection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bundle = GroundedRulesBundle(
+        source_rules=(),
+        source_facts=(),
+        sections=build_empty_sections(),
+        status=GroundingStatus.BUDGET_EXCEEDED,
+        budget_reason="argument enumeration exceeded max_arguments=1",
+        max_arguments=1,
+        partial_candidate_count=2,
+    )
+
+    def fail_projection(*args: Any, **kwargs: Any) -> None:
+        pytest.fail("incomplete grounding reached ASPIC projection")
+
+    monkeypatch.setattr(
+        "propstore.aspic_bridge.build_aspic_projection", fail_projection
+    )
+
+    result = resolve(
+        _ConflictedView([_claim("claim_a"), _claim("claim_b", value=2.0)]),
+        "concept1",
+        strategy=ResolutionStrategy.ARGUMENTATION,
+        world=_ArgumentationWorld(bundle),
+        reasoning_backend=ReasoningBackend.ASPIC,
+    )
+
+    assert result.status is ValueStatus.CONFLICTED
+    assert result.winning_claim_id is None
+    assert result.reason == "argument enumeration exceeded max_arguments=1"
 
 
 # --- ARGUMENTATION: PrAF backend -------------------------------------------

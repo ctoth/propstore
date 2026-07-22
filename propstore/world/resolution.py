@@ -48,6 +48,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import AuthoredJustificationStore
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
+from propstore.grounding.bundle import GroundingStatus
 from propstore.world.assignment_selection_merge import (
     AssignmentSelectionRequest,
     solve_assignment_selection_merge,
@@ -400,6 +401,8 @@ def _resolve_structured_argumentation(
         view.active_world_graph() if isinstance(view, HasActiveGraph) else None
     )
     bundle = world.grounding_bundle()
+    if bundle.status is not GroundingStatus.COMPLETE:
+        return None, bundle.budget_reason
     if active_graph is None:
         # WorldStore always exposes ``stances_between``; only the authored-
         # justification surface is optional.
