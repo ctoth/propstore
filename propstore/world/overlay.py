@@ -35,6 +35,7 @@ from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import CompiledWorldGraph
 from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
@@ -346,7 +347,7 @@ class OverlayWorld(BeliefSpace):
         self,
         concept_id: str,
         *,
-        override_values: Mapping[str, float | str | None] | None = None,
+        override_values: Mapping[str, ScalarValue | None] | None = None,
     ) -> DerivedResult:
         return self._overlay.derived_value(concept_id, override_values=override_values)
 

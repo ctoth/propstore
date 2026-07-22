@@ -9,6 +9,9 @@ Phase 9; it satisfies the same ``WorldStore`` protocol and reuses this glue.
 
 from __future__ import annotations
 
+import pytest
+
+from propstore.core.scalars import ScalarValue
 from propstore.world import model
 from propstore.world.bound import BoundWorld
 from propstore.core.environment import Environment
@@ -31,6 +34,17 @@ def test_compiled_graph_lowers_store_to_graph() -> None:
     compiled = model.compiled_graph(store)
     assert isinstance(compiled, CompiledWorldGraph)
     assert {str(node.claim_id) for node in compiled.claims} == {"c1"}
+
+
+@pytest.mark.parametrize("value", [True, "2"])
+def test_bound_derivation_rejects_nonnumeric_override(value: ScalarValue) -> None:
+    bound = build_bound(
+        claims=(ClaimSpec(claim_id="a", concept_id="A", value=1.0),),
+        parameterizations=(ParamSpec(output="B", inputs=("A",), sympy="A"),),
+    )
+
+    with pytest.raises(ValueError, match="Invalid override value"):
+        bound.derived_value("B", override_values={"A": value})
 
 
 def test_active_graph_partitions_under_environment() -> None:

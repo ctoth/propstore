@@ -204,10 +204,7 @@ class ActiveClaimResolver:
             )
 
         if derived_candidates:
-            derived_values = {
-                self._normalize_value(candidate.value)
-                for candidate in derived_candidates
-            }
+            derived_values = {candidate.value for candidate in derived_candidates}
             if len(derived_values) != 1:
                 return DerivedResult(
                     concept_id=typed_concept_id, status=ValueStatus.CONFLICTED
@@ -561,12 +558,6 @@ class ActiveClaimResolver:
                 f"Invalid override value for {override_key!r}: {override_value!r}"
             )
         return float(override_value)
-
-    @staticmethod
-    def _normalize_value(value: float | str | None) -> float | str | None:
-        if isinstance(value, int | float) and not isinstance(value, bool):
-            return float(value)
-        return value
 
     def _algorithm_matches_direct_value(
         self,

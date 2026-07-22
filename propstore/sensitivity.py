@@ -61,7 +61,7 @@ class SensitivityBound(Protocol):
         self,
         concept_id: str,
         *,
-        override_values: Mapping[str, float | str | None] | None = None,
+        override_values: Mapping[str, float] | None = None,
     ) -> DerivedResult: ...
 
     def collect_known_values(

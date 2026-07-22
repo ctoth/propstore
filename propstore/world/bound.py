@@ -51,6 +51,7 @@ from propstore.core.labels import (
     make_environment_key,
     merge_labels,
 )
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType, ClaimVariable
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
@@ -434,7 +435,7 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         *,
-        override_values: Mapping[str, float | str | None] | None = None,
+        override_values: Mapping[str, ScalarValue | None] | None = None,
     ) -> DerivedResult:
         normalized_override_values = self._normalize_override_values(override_values)
         result = self._resolver.derived_value(
@@ -642,11 +643,11 @@ class BoundWorld(BeliefSpace):
 
     def _normalize_override_values(
         self,
-        override_values: Mapping[str, float | str | None] | None,
-    ) -> Mapping[str, float | str | None] | None:
+        override_values: Mapping[str, ScalarValue | None] | None,
+    ) -> Mapping[str, ScalarValue | None] | None:
         if override_values is None:
             return None
-        normalized: dict[str, float | str | None] = {}
+        normalized: dict[str, ScalarValue | None] = {}
         for key, value in override_values.items():
             normalized[self._store.resolve_concept(key) or key] = value
         return normalized
@@ -655,7 +656,7 @@ class BoundWorld(BeliefSpace):
         self,
         result: DerivedResult,
         *,
-        override_values: Mapping[str, float | str | None] | None,
+        override_values: Mapping[str, ScalarValue | None] | None,
     ) -> DerivedResult:
         if result.status is not ValueStatus.DERIVED:
             return result
@@ -723,7 +724,7 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         *,
-        override_values: Mapping[str, float | str | None] | None,
+        override_values: Mapping[str, ScalarValue | None] | None,
         seen: set[str],
     ) -> Label | None:
         if override_values and concept_id in override_values:
