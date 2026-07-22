@@ -81,7 +81,11 @@ def load_grounding_repo(
 
 
 def build_grounded_bundle(
-    repo: GroundingRepo, *, commit: str | None = None, return_arguments: bool = False
+    repo: GroundingRepo,
+    *,
+    commit: str | None = None,
+    return_arguments: bool = False,
+    max_arguments: int | None = None,
 ) -> GroundedRulesBundle:
     """Ground the authored substrate into a bundle.
 
@@ -97,7 +101,7 @@ def build_grounded_bundle(
                 "knowledge root has rules/ but no predicates/; "
                 "grounding requires declared predicates"
             )
-        return GroundedRulesBundle.empty()
+        return GroundedRulesBundle.empty(max_arguments=max_arguments)
     registry = PredicateRegistry.from_documents(repo.predicates)
     facts = extract_facts(
         GroundingFactInputs(concepts=repo.concepts, claims=repo.claims), registry
@@ -108,4 +112,5 @@ def build_grounded_bundle(
         registry,
         superiority=repo.rule_superiority,
         return_arguments=return_arguments,
+        max_arguments=max_arguments,
     )

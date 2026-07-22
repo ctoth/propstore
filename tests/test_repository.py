@@ -19,6 +19,7 @@ from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.repository import (
     PROPSTORE_REPOSITORY_FORMAT_VERSION,
     Repository,
+    RepositoryConfigDocument,
     RepositoryNotFound,
 )
 from propstore.storage.git_policy import PROPSTORE_GIT_POLICY
@@ -107,6 +108,43 @@ def test_micropublication_round_trips_with_resolved_references(tmp_path: Path) -
 def test_uri_authority_defaults_without_config(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path)
     assert repo.uri_authority is DEFAULT_URI_AUTHORITY
+
+
+def test_repository_config_is_typed_and_commit_aware(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path)
+    git = repo.require_git()
+    first = git.commit_files(
+        {
+            "propstore.yaml": (
+                b"uri_authority: first.example,2026\ngrounding_max_arguments: 3\n"
+            )
+        },
+        "Set first repository config",
+    )
+    git.commit_files(
+        {
+            "propstore.yaml": (
+                b"uri_authority: second.example,2026\ngrounding_max_arguments: 7\n"
+            )
+        },
+        "Set second repository config",
+    )
+
+    assert repo.config == RepositoryConfigDocument(
+        uri_authority="second.example,2026",
+        grounding_max_arguments=7,
+    )
+    assert repo.config_at(first) == RepositoryConfigDocument(
+        uri_authority="first.example,2026",
+        grounding_max_arguments=3,
+    )
+
+
+def test_historical_config_requires_git(tmp_path: Path) -> None:
+    repo = Repository(tmp_path)
+
+    with pytest.raises(ValueError, match="config_at.*git-backed"):
+        repo.config_at("deadbeef")
 
 
 def test_snapshot_lists_the_primary_branch(tmp_path: Path) -> None:

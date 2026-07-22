@@ -73,11 +73,12 @@ Decision — 2026-07-18:
 
 ### Q2. Incomplete reasoning policy
 
-Recommended: resolution and committed worldline materialization fail closed on
-incomplete computation; diagnostic/inspection commands may display partial
-evidence only when the partial status is explicit.
-
-Decision required: confirm this policy for grounding, ASPIC, PrAF, and ATMS.
+Decision confirmed 2026-07-22: resolution and committed worldline
+materialization fail closed on incomplete computation for grounding, ASPIC,
+PrAF, and ATMS. Diagnostic and inspection surfaces may display partial evidence
+only when the backend-specific partial status is explicit. No partial or failed
+result may be rendered, persisted, or used to select a winner as though it were
+complete.
 
 ### Q3. Calibration authority
 
@@ -205,24 +206,370 @@ Completion evidence — 2026-07-21:
 
 ## Workstream B — Reasoning completeness propagation
 
-Resolve Q2 first. Execute each backend as a separate committed slice.
+Q2 is resolved above. Keep each backend isolated from the others; within B1,
+execute the four atomic slices below in order and commit each kept slice before
+starting the next.
 
 ### B1. Grounding
 
-- [ ] Thread `max_arguments` through `build_grounded_bundle` and production
-  callers.
-- [ ] Preserve `GroundedRulesBundle.status`, partial arguments, and reason through
-  inspection/CLI/build surfaces.
-- [ ] Persist or otherwise make build status available beside grounded rows.
-- [ ] Prevent a budget-exceeded bundle from entering ASPIC as a complete theory.
+- [ ] Make `GroundedRulesBundle` the sole grounding-result owner. Its typed,
+  backend-specific result carries status, the selected `max_arguments`, partial
+  arguments and inspection, Gunray's candidate count, and the budget reason.
+- [ ] Make `grounding_max_arguments` positive optional repository configuration
+  in `propstore.yaml`; read it from the requested commit for historical builds,
+  include it in the world-sidecar content hash, and project that exact value as
+  a typed derived-only grounding-configuration charter for sidecar-only readers.
+- [ ] Delete the production-unread raw `grounded_fact` table and the
+  `propstore.grounding.sidecar` create/populate/read API. Do not replace them
+  with another result table, status table, Gunray codec/DTO, alias, wrapper, or
+  fallback reader.
+- [ ] Derive and memoize the full bundle in production
+  `WorldQuery.grounding_bundle()` from the canonical checked predicate, rule,
+  superiority, claim, concept, and grounding-configuration sidecar documents.
+  Repo-backed and derived-store-only readers must use the same path.
+- [ ] Preserve the canonical bundle through build reports and grounding CLI
+  inspection. CLI query output must not call an atom absent when grounding is
+  incomplete.
+- [ ] Prevent a budget-exceeded bundle from entering ASPIC projection,
+  resolution, or committed worldline materialization as a complete theory.
+- [ ] Delete fragility's missing-capability substitution of
+  `GroundedRulesBundle.empty()` and report grounding incompleteness explicitly
+  on that diagnostic surface.
+
+Confirmed storage correction:
+
+- The earlier instruction to persist status beside grounded rows is superseded.
+  The raw rows have no production reader and cannot reconstruct the
+  `gunray.GroundingInspection` ASPIC requires. Persisting them and then
+  re-running Gunray would create two authorities for one result.
+- The durable authority is the canonical checked sidecar documents plus the
+  commit-pinned typed grounding configuration. The complete runtime bundle is a
+  deterministic projection of those inputs. No grounding result/status is
+  stored separately.
+- `RenderPolicy` is not the budget owner, and `BuildDiagnostic` is not the
+  grounding-configuration owner.
+
+Deletion-first classifications:
+
+- `GroundedRulesBundle.status: str`: valid capability with wrong
+  representation; rewrite it at the existing bundle owner to a
+  grounding-specific enum.
+- `build_grounded_bundle()` dropping `max_arguments`: already-owned capability
+  with an incomplete owner interface; extend the owner and thread the value.
+- raw `grounded_fact` storage and its create/populate/read functions:
+  IO-boundary carrier with no production reader and insufficient information
+  for ASPIC; delete the file/table/callers/tests first.
+- `derived_build._load_grounding_repo()`: wrong one-line wrapper; delete it with
+  the old build path.
+- CLI-local repository load and re-grounding: valid capability in the wrong
+  caller path; rewrite the CLI to inspect `WorldQuery.grounding_bundle()`.
+- `GroundingSurfaceState` / `grounding_surface_state()`: dead surface after the
+  CLI stops inspecting the authored repository directly; delete the type,
+  function, imports, and old state tests rather than retaining an uncalled
+  second classifier. An invalid rules-without-predicates repository continues
+  to fail at `build_grounded_bundle()` and the CLI maps that owner failure to a
+  nonzero presentation error.
+- `GroundingBundleStore`: valid optional structural capability; keep it and add
+  the missing production implementer without widening `WorldStore`.
+- fragility's empty-bundle fallback: wrong caller hiding absent/incomplete
+  capability; delete it.
+- production-empty `ConceptRelations.relationships`: valid capability with no
+  canonical relation owner. Record it as a separate gap and do not invent a
+  concept-relation family in B1.
+
+#### B1 exact execution contract — settled 2026-07-22
+
+No B1 naming, ownership, signature, persistence, or failure-policy decision is
+left implicit. Execute these exact contracts; if current code makes any one of
+them impossible, amend this plan before editing a substitute.
+
+Artifacts and version changes:
+
+- Create the tracked execution record at
+  `plans/grounding-completeness-fixed-point-log.md`. For every broken dependency
+  edge record the deleted surface, caller, required classification, disposition,
+  focused gate, kept commit, and next slice. Do not create a second log.
+- Create `propstore/families/grounding.py` containing the sole derived config
+  charter `GroundingBuildConfiguration`:
+  `key=name=placement="grounding_build_configuration"`,
+  `contract_version="2026.07.22"`,
+  `identity_field="configuration_id"`, and fields
+  `configuration_id: Annotated[str, charter_field(primary_key=True)]` plus
+  `max_arguments: int | None = None`. The build projects exactly one row whose
+  `configuration_id` is `"grounding"`.
+- Add that charter to `_CHARTER_MODELS`, add
+  `PropstoreFamily.GROUNDING_BUILD_CONFIGURATION =
+  "grounding_build_configuration"`, and add the family name to
+  `_COMPUTED_FAMILIES` so it is never scanned as authored content.
+- Set `PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION` to
+  `contract_version("2026.07.22")`, set the new charter contract version above,
+  and bump `WORLD_SIDECAR_SCHEMA_VERSION` from `1` to `2`.
+- Regenerate the checked manifest with the existing exact command
+  `uv run pks contract-manifest --write`; do not hand-edit
+  `propstore/_resources/contract_manifests/semantic-contracts.yaml`.
+
+Repository configuration API:
+
+- `RepositoryConfigDocument` has exactly
+  `uri_authority: str | None = None` and
+  `grounding_max_arguments: int | None = None`. Its `__post_init__` rejects zero
+  and negative values with
+  `ValueError("grounding_max_arguments must be positive")`.
+- Add
+  `Repository.config_at(self, commit: str | None = None) ->
+  RepositoryConfigDocument`. It calls the existing
+  `GitStore.read_file(REPOSITORY_CONFIG_PATH, commit=commit)`, returns an empty
+  `RepositoryConfigDocument()` when the file is absent, and raises the same
+  explicit non-git historical-read error pattern as `Repository.tree()` when a
+  non-`None` commit is requested without Git.
+- `Repository.config` remains a cached HEAD property but now returns
+  `RepositoryConfigDocument` by calling `config_at()`. `uri_authority` reads and
+  parses `self.config.uri_authority`; no dict, alias, or compatibility accessor
+  remains.
+
+Grounding result API:
+
+- In `propstore/grounding/bundle.py`, add exactly
+  `GroundingStatus(StrEnum)` with `COMPLETE = "complete"` and
+  `BUDGET_EXCEEDED = "budget_exceeded"`.
+- `GroundedRulesBundle` has the exact completeness fields
+  `status: GroundingStatus = GroundingStatus.COMPLETE`,
+  `budget_reason: str | None = None`,
+  `max_arguments: int | None = None`, and
+  `partial_candidate_count: int | None = None`. Keep `arguments` and
+  `grounding_inspection` as Gunray-owned typed values; add no result DTO.
+- `GroundedRulesBundle.empty(*, max_arguments: int | None = None)` preserves the
+  selected limit even for an empty complete program.
+- `ground()` records `max_arguments` on complete output. On
+  `gunray.EnumerationExceeded`, it records
+  `GroundingStatus.BUDGET_EXCEEDED`, `exc.reason`, `exc.max_arguments`, and
+  `exc.partial_count`; `partial_candidate_count` deliberately does not claim to
+  equal `len(exc.partial_arguments)` because Gunray also uses it for head-only
+  binding candidates.
+- `build_grounded_bundle(repo, *, commit=None, return_arguments=False,
+  max_arguments: int | None = None)` passes the limit to `ground()` and to
+  `GroundedRulesBundle.empty()`. The sidecar loader below always requests
+  `return_arguments=True`, so every production bundle is inspection- and
+  arguments-complete when its status is complete.
+
+Sidecar hash, projection, and typed load boundary:
+
+- Extend both `world_sidecar_hash_inputs()` and `world_sidecar_hash()` with the
+  keyword `grounding_max_arguments: int | None = None`. Add exactly
+  `"grounding_config": {"max_arguments": grounding_max_arguments}` to the
+  inspectable inputs and the hashed `extra_inputs`.
+- `materialize_world_sidecar()` resolves
+  `repo.config_at(resolved_commit).grounding_max_arguments` once, passes that
+  exact value to the hash and `_build_sidecar_file()`, and the builder projects
+  `GroundingBuildConfiguration(configuration_id="grounding",
+  max_arguments=grounding_max_arguments)` through `_project_documents()`.
+- Add exactly
+  `load_grounded_bundle_from_sidecar(session: DerivedSession) ->
+  GroundedRulesBundle` to `propstore/grounding/loading.py`. This is the only new
+  loader API. It directly reconstructs canonical `Predicate`,
+  `DefeasibleRule`, `RuleSuperiority`, checked `Claim`, and `Concept` documents
+  from their charter models; lowers each `Concept` only to the existing typed
+  `ConceptRelations`; requires exactly one `GroundingBuildConfiguration` row;
+  builds one `GroundingRepo`; and calls `build_grounded_bundle(...,
+  return_arguments=True, max_arguments=config.max_arguments)`. Neither loose
+  row dicts nor a second `load_grounding_repo_from_*` function crosses this
+  boundary.
+
+Production consumers and report fields:
+
+- `WorldQuery.grounding_bundle()` is a method, preserving the existing
+  `GroundingBundleStore` protocol. It memoizes one result in
+  `self._grounding_bundle: GroundedRulesBundle | None` and calls
+  `load_grounded_bundle_from_sidecar(self._session)` for both construction
+  modes.
+- Add exactly
+  `grounding_bundle: GroundedRulesBundle | None = None` to
+  `RepositoryBuildReport`. After materialization, `build_repository()` opens a
+  Quire `readonly_session` over `handle.path` with
+  `build_world_sidecar_schema()` and obtains this field through the same typed
+  loader. Do not change `materialize_world_sidecar()`'s `(handle, built)` return
+  contract and do not import `WorldQuery` into the compiler.
+- Build presentation renders `bundle.status.value`, `bundle.max_arguments`
+  (`"unbounded"` for `None`), and, when budget-exceeded,
+  `bundle.budget_reason`, `bundle.partial_candidate_count`, and
+  `len(bundle.arguments)`. It reads the bundle; it does not introduce a build
+  status report.
+- Grounding CLI commands open the production world through
+  `open_app_world_model(repo)` and use only `world.grounding_bundle()`.
+  `status`, `show`, and `arguments` label a budget-exceeded bundle before
+  rendering partial evidence. `query` emits an incomplete result containing
+  the exact status and reason and must not emit `status: absent`. The command
+  boundary catches `ValueError` from an invalid grounding program and calls the
+  existing `fail(str(exc))` presentation mapper. Delete `GroundingSurfaceState`
+  and `grounding_surface_state()` after this cutover.
+
+Fail-closed fields and behavior:
+
+- ASPIC resolution compares `bundle.status is GroundingStatus.COMPLETE` before
+  projection. A budget-exceeded bundle returns no winner and uses
+  `bundle.budget_reason` as the existing `ResolvedResult.reason` path.
+- Add `reason: str | None = None` beside `status` on the existing
+  `WorldlineArgumentationState`. ASPIC capture returns
+  `WorldlineArgumentationState(backend="aspic",
+  status="grounding_budget_exceeded", reason=bundle.budget_reason)` without
+  projection. `materialize_worldline()` checks that exact status immediately
+  after `run_worldline()` and raises
+  `WorldlineValidationError(result.argumentation.reason or
+  result.argumentation.status)` before assigning `definition.results` or
+  calling `save()`.
+- Add exactly `grounding_status: GroundingStatus | None = None` and
+  `grounding_budget_reason: str | None = None` to `FragilityReport`. When either
+  grounding or bridge analysis is requested, absence of `GroundingBundleStore`
+  raises `TypeError("grounding or bridge fragility requires a grounded bundle-capable store")`.
+  A budget-exceeded bundle sets both report fields and skips the grounding and
+  bridge collectors while preserving enabled ATMS/discovery/conflict results.
+  When neither family is requested both fields remain `None`; a complete
+  requested bundle records `GroundingStatus.COMPLETE` and a `None` reason.
+
+Exact file/test disposition:
+
+- Delete `propstore/grounding/sidecar.py` and
+  `tests/test_sidecar_grounded_facts.py` in Slice 2. Rewrite
+  `tests/test_world_sidecar_grounded.py` to prove the typed config-row and
+  full-bundle sidecar path; do not leave raw-SQL grounded-fact assertions.
+- Extend `tests/test_repository.py`, `tests/test_uri.py`, and
+  `tests/test_uri_authority_validation.py` for the typed current/historical
+  config and positive-budget contract; extend
+  `tests/test_grounder_budget_exceeded.py` and
+  `tests/test_grounding_loading.py` for enum identity and exact evidence.
+- Extend `tests/test_derived_build.py`,
+  `tests/test_semantic_family_registry.py`, `tests/test_semantic_passes.py`, and
+  `tests/test_contract_manifest.py` for the charter, cache input, schema/version,
+  and manifest changes.
+- Extend `tests/test_world_query.py`, `tests/test_cli_phase10_advanced.py`, and
+  `tests/test_cli_compiler_rendering.py` for both reader modes and complete versus
+  partial rendering. Replace the old `none/invalid/ready` CLI assertions; the
+  invalid-program case now asserts the owner error and nonzero exit.
+- Extend `tests/test_resolution.py`, `tests/test_app_worldlines.py`,
+  `tests/test_worldline_hash_excludes_transient_errors.py`, and
+  `tests/test_fragility.py` for the exact fail-closed behavior and report fields.
+  `tests/test_praf_argument_enumeration_budget.py` remains deferred to B3: B1
+  propagates grounding completeness into ASPIC, not PrAF convergence status.
+
+#### B1 Slice 1 — typed, commit-pinned budget and bundle evidence
+
+1. Verify branch/tracked state and create a tracked cleanup-refactor fixed-point
+   log under `plans/`; keep `notes-*.md` handoffs uncommitted.
+2. Make `RepositoryConfigDocument` the typed return of `Repository.config`
+   instead of erasing it to a dict; add optional positive
+   `grounding_max_arguments`.
+3. Add only the commit-aware repository-config read required by
+   `materialize_world_sidecar(commit=...)`; HEAD access remains the property.
+4. Replace loose bundle status with a grounding-specific enum. Preserve the
+   selected maximum and Gunray's `partial_count` under a name that identifies it
+   as a candidate count rather than assuming it equals
+   `len(partial_arguments)`.
+5. Thread `max_arguments` through `build_grounded_bundle()` into `ground()` and
+   preserve reason, partial arguments, inspection, and candidate count.
+6. Run
+   `powershell -File scripts/run_logged_pytest.ps1 tests/test_repository.py tests/test_uri.py tests/test_uri_authority_validation.py tests/test_grounder_budget_exceeded.py tests/test_grounder_default_returns_arguments.py tests/test_grounding_loading.py -q`,
+   then the applicable B1 searches and `uv run pyright propstore`. Update and
+   include the fixed-point log, then commit exactly as
+   `refactor(grounding): type budget completeness evidence` before Slice 2.
+
+#### B1 Slice 2 — delete duplicate result storage and project canonical inputs
+
+1. Delete `propstore/grounding/sidecar.py`, its derived-build imports/calls, and
+   its raw-table contract tests before adding the replacement path.
+2. Classify each deletion failure; never restore a table/helper/reader merely to
+   repair an import or test.
+3. Add one derived-only charter for selected grounding build configuration and
+   add it to the computed-family projection set. It carries configuration only,
+   never status, sections, arguments, or inspection.
+4. Resolve the config from the same requested commit for the sidecar hash and
+   builder. Hash only the grounding budget field in addition to existing inputs.
+5. Bump `WORLD_SIDECAR_SCHEMA_VERSION` for the sidecar-shape change.
+6. Add the typed sidecar load boundary over canonical predicates, rules,
+   superiorities, checked claims, concepts, and grounding configuration. Loose
+   rows/dicts must not cross the boundary.
+7. Prove a built sidecar and a derived-store-only session produce the same full
+   bundle from claim-derived facts. Concept-relation facts are explicitly not
+   evidence for B1 because their production input is a separate gap.
+8. Run `uv run pks contract-manifest --write`, then
+   `powershell -File scripts/run_logged_pytest.ps1 tests/test_derived_build.py tests/test_world_sidecar_grounded.py tests/test_semantic_family_registry.py tests/test_semantic_passes.py tests/test_contract_manifest.py -q`,
+   the applicable B1 deletion searches, `uv run lint-imports`, and
+   `uv run pyright propstore`. Update and include the fixed-point log, then
+   commit exactly as
+   `refactor(grounding): derive bundles from canonical sidecar` before Slice 3.
+
+#### B1 Slice 3 — production WorldQuery, build report, and inspection CLI
+
+1. Implement and per-instance memoize `WorldQuery.grounding_bundle()` through
+   the typed sidecar load boundary for both repo-backed and handle-only readers.
+2. Carry the canonical bundle on `RepositoryBuildReport`; do not create a
+   parallel status DTO. Build output renders exact status, selected budget,
+   reason, and partial candidate/argument counts.
+3. Rewrite `pks grounding status/show/query/arguments` to inspect the
+   `WorldQuery` bundle and label incomplete evidence before rendering it.
+4. Delete the CLI-local load/re-ground path; old and new paths must not coexist.
+5. Prove both `WorldQuery` construction modes return complete output by default
+   and `budget_exceeded` under a committed tiny configuration.
+6. Run
+   `powershell -File scripts/run_logged_pytest.ps1 tests/test_world_query.py tests/test_world_sidecar_grounded.py tests/test_cli_phase10_advanced.py tests/test_cli_compiler_rendering.py -q`,
+   the applicable B1 searches, and `uv run pyright propstore`. Update and
+   include the fixed-point log, then commit exactly as
+   `feat(grounding): wire production bundle inspection` before Slice 4.
+
+#### B1 Slice 4 — fail-closed ASPIC consumers and honest diagnostics
+
+1. ASPIC resolution inspects completeness before projection. Incomplete
+   grounding produces no winner and leaves `ResolvedResult` conflicted with the
+   exact grounding reason.
+2. ASPIC worldline capture does not project partial grounding; diagnostic
+   `run_worldline()` returns an explicit `grounding_budget_exceeded` state.
+3. `materialize_worldline()` detects that state and raises the existing app
+   validation failure before assigning or saving results.
+4. Delete fragility's empty-bundle fallback. When grounding/bridge diagnostics
+   are requested, require the capability and carry explicit grounding status
+   and reason on `FragilityReport`; never rank an incomplete bundle as complete
+   empty output.
+5. Prove one tiny-budget sidecar is visible as partial in diagnostics, refused
+   by ASPIC resolution, refused without a worldline commit, and never reported
+   complete by fragility.
+6. Run
+   `powershell -File scripts/run_logged_pytest.ps1 tests/test_resolution.py tests/test_app_worldlines.py tests/test_worldline_hash_excludes_transient_errors.py tests/test_fragility.py tests/test_cli_phase10_advanced.py -q`,
+   every B1 search, `uv run lint-imports`, and `uv run pyright propstore`.
+   Update and include the fixed-point log, then commit exactly as
+   `fix(argumentation): fail closed on incomplete grounding`.
 
 Gate: a deliberately tiny budget yields visible partial arguments and
 `budget_exceeded` at every production boundary; no caller renders it as complete.
 
+B1 search gates:
+
+- `rg -n "create_grounded_fact_table|populate_grounded_facts|read_grounded_facts|grounded_fact" propstore tests`
+  returns zero hits.
+- `rg -n "def _load_grounding_repo" propstore` returns zero hits.
+- `rg -n 'build_grounded_bundle\(' propstore/cli` returns zero hits.
+- `rg -n "GroundingSurfaceState|grounding_surface_state" propstore tests`
+  returns zero hits.
+- `rg -n "else GroundedRulesBundle.empty" propstore` returns zero hits.
+- `rg -n 'status: str = "complete"' propstore/grounding` returns zero hits.
+- `rg -n 'status="complete"|status="budget_exceeded"' propstore/grounding`
+  returns zero hits; construction uses `GroundingStatus` members.
+- `rg -n "def grounding_bundle" propstore/world/model.py` finds the one
+  production implementation.
+- `rg -n "def load_grounded_bundle_from_sidecar" propstore` finds the one
+  grounding-owned typed loader implementation.
+
+B1 final focused gate:
+
+`powershell -File scripts/run_logged_pytest.ps1 tests/test_repository.py tests/test_uri.py tests/test_uri_authority_validation.py tests/test_grounder_budget_exceeded.py tests/test_grounder_default_returns_arguments.py tests/test_grounding_loading.py tests/test_derived_build.py tests/test_world_sidecar_grounded.py tests/test_semantic_family_registry.py tests/test_semantic_passes.py tests/test_contract_manifest.py tests/test_world_query.py tests/test_resolution.py tests/test_app_worldlines.py tests/test_worldline_hash_excludes_transient_errors.py tests/test_fragility.py tests/test_cli_phase10_advanced.py tests/test_cli_compiler_rendering.py -q`
+
+Then run `uv run pyright propstore`, `uv run lint-imports`,
+`uv run ruff check .`, `uv run ruff format --check .`, and the full logged suite
+with `powershell -File scripts/run_logged_pytest.ps1 -q`. After every substantial
+passing test run, reread this plan and continue to the next unchecked B1 item.
+
 ### B2. ASPIC
 
-- [ ] Reject incomplete grounding by default or explicitly carry partial status,
-  according to Q2.
+- The grounding-to-ASPIC completeness handoff is owned and completed only by B1
+  Slice 4; B2 must not add a second grounding status or repeat that cutover.
 - [ ] Add an explicit completeness result for goal-directed `max_depth` exhaustion.
 - [ ] Promote optional solver `package_status` from generic metadata into the
   existing typed analyzer result surface.

@@ -24,6 +24,7 @@ from propstore.families.rules import DefeasibleRule, RuleSuperiority
 from propstore.grounding.bundle import (
     SECTION_NAMES,
     GroundedRulesBundle,
+    GroundingStatus,
     SectionMap,
     SectionRows,
     build_empty_sections,
@@ -46,8 +47,9 @@ def ground(
     """Ground ``rules`` over ``facts`` and return an immutable result bundle.
 
     On a gunray argument-enumeration budget overflow, returns a bundle with
-    ``status="budget_exceeded"``, the partial arguments, the partial inspection,
-    and empty (but all-four-key) sections — never raising past this boundary.
+    ``status=GroundingStatus.BUDGET_EXCEEDED``, the partial arguments, the partial
+    inspection, and empty (but all-four-key) sections — never raising past this
+    boundary.
     """
 
     theory = translate_to_theory(rules, facts, registry, superiority=superiority)
@@ -71,8 +73,10 @@ def ground(
             source_superiority=tuple(superiority),
             arguments=_sort_arguments(tuple(exc.partial_arguments)),
             grounding_inspection=inspection,
-            status="budget_exceeded",
+            status=GroundingStatus.BUDGET_EXCEEDED,
             budget_reason=exc.reason,
+            max_arguments=exc.max_arguments,
+            partial_candidate_count=exc.partial_count,
         )
 
     arguments = _sort_arguments(tuple(trace.arguments)) if return_arguments else ()
@@ -83,7 +87,8 @@ def ground(
         source_superiority=tuple(superiority),
         arguments=arguments,
         grounding_inspection=trace.grounding_inspection,
-        status="complete",
+        status=GroundingStatus.COMPLETE,
+        max_arguments=max_arguments,
     )
 
 

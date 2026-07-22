@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from types import MappingProxyType
 
 import gunray
@@ -22,6 +23,13 @@ SECTION_NAMES: tuple[str, str, str, str] = ("yes", "no", "undecided", "unknown")
 
 SectionRows = frozenset[tuple[gunray.Scalar, ...]]
 SectionMap = Mapping[str, Mapping[str, SectionRows]]
+
+
+class GroundingStatus(StrEnum):
+    """Completeness status for one grounding computation."""
+
+    COMPLETE = "complete"
+    BUDGET_EXCEEDED = "budget_exceeded"
 
 
 def build_empty_sections() -> SectionMap:
@@ -39,8 +47,9 @@ class GroundedRulesBundle:
 
     ``sections`` is a read-only mapping (``MappingProxyType`` outer and inner,
     ``frozenset`` rows) so the result cannot be mutated in place. ``status`` is
-    ``"complete"`` normally and ``"budget_exceeded"`` when argument enumeration
-    overflowed; ``budget_reason`` carries the overflow reason in that case.
+    :attr:`GroundingStatus.COMPLETE` normally and
+    :attr:`GroundingStatus.BUDGET_EXCEEDED` when argument enumeration overflowed;
+    ``budget_reason`` carries the overflow reason in that case.
     """
 
     source_rules: tuple[DefeasibleRule, ...]
@@ -49,11 +58,18 @@ class GroundedRulesBundle:
     source_superiority: tuple[RuleSuperiority, ...] = ()
     arguments: tuple[gunray.Argument, ...] = ()
     grounding_inspection: gunray.GroundingInspection | None = None
-    status: str = "complete"
+    status: GroundingStatus = GroundingStatus.COMPLETE
     budget_reason: str | None = None
+    max_arguments: int | None = None
+    partial_candidate_count: int | None = None
 
     @classmethod
-    def empty(cls) -> GroundedRulesBundle:
+    def empty(cls, *, max_arguments: int | None = None) -> GroundedRulesBundle:
         """An empty bundle whose sections still carry all four (empty) keys."""
 
-        return cls(source_rules=(), source_facts=(), sections=build_empty_sections())
+        return cls(
+            source_rules=(),
+            source_facts=(),
+            sections=build_empty_sections(),
+            max_arguments=max_arguments,
+        )

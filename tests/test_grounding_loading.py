@@ -6,14 +6,16 @@ import pytest
 
 from propstore.families.predicates import Predicate
 from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
-from propstore.grounding.bundle import SECTION_NAMES
+from propstore.grounding.bundle import SECTION_NAMES, GroundingStatus
 from propstore.grounding.facts import ConceptRelations
 from propstore.grounding.loading import GroundingRepo, build_grounded_bundle
 
 
 def test_empty_surface_yields_empty_bundle() -> None:
-    bundle = build_grounded_bundle(GroundingRepo())
-    assert bundle.status == "complete"
+    bundle = build_grounded_bundle(GroundingRepo(), max_arguments=11)
+    assert bundle.status is GroundingStatus.COMPLETE
+    assert bundle.max_arguments == 11
+    assert bundle.partial_candidate_count is None
     assert set(bundle.sections.keys()) == set(SECTION_NAMES)
     assert all(bundle.sections[name] == {} for name in SECTION_NAMES)
 

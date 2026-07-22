@@ -63,4 +63,22 @@ def test_repository_config_validates_uri_authority_at_load(tmp_path: Path) -> No
     )
 
     with pytest.raises(MalformedTaggingAuthority):
+        _ = repo.uri_authority
+
+
+@pytest.mark.parametrize("grounding_max_arguments", [0, -1])
+def test_repository_config_rejects_nonpositive_grounding_budget(
+    tmp_path: Path, grounding_max_arguments: int
+) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.require_git().commit_files(
+        {
+            "propstore.yaml": (
+                f"grounding_max_arguments: {grounding_max_arguments}\n".encode()
+            )
+        },
+        "Set invalid grounding budget",
+    )
+
+    with pytest.raises(ValueError, match="grounding_max_arguments must be positive"):
         _ = repo.config

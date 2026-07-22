@@ -5,6 +5,7 @@ from __future__ import annotations
 import gunray
 
 from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
+from propstore.grounding.bundle import GroundingStatus
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
 
@@ -30,7 +31,8 @@ def _program() -> tuple[tuple[DefeasibleRule, ...], tuple[gunray.GroundAtom, ...
 def test_ground_returns_arguments_by_default() -> None:
     rules, facts = _program()
     bundle = ground(rules, facts, PredicateRegistry.from_documents(()))
-    assert bundle.status == "complete"
+    assert bundle.status is GroundingStatus.COMPLETE
+    assert bundle.max_arguments is None
     assert len(bundle.arguments) > 0
 
 

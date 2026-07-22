@@ -6,7 +6,7 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from propstore.repository import Repository
+from propstore.repository import Repository, RepositoryConfigDocument
 from propstore.uri import ni_uri_for_bytes, tag_uri
 
 
@@ -32,6 +32,7 @@ def test_repository_uri_authority_reads_repo_config(tmp_path: Path) -> None:
         "Set repository config",
     )
 
+    assert repo.config == RepositoryConfigDocument(uri_authority="example.com,2026")
     assert str(repo.uri_authority) == "example.com,2026"
 
 

@@ -51,6 +51,14 @@ class RepositoryNotFound(Exception):
 
 class RepositoryConfigDocument(DocumentStruct):
     uri_authority: str | None = None
+    grounding_max_arguments: int | None = None
+
+    def __post_init__(self) -> None:
+        if (
+            self.grounding_max_arguments is not None
+            and self.grounding_max_arguments <= 0
+        ):
+            raise ValueError("grounding_max_arguments must be positive")
 
 
 class Repository:
@@ -67,31 +75,38 @@ class Repository:
     def derived_stores(self) -> DerivedStoreManager:
         return DerivedStoreManager(self._root / ".propstore" / "derived-stores")
 
-    @cached_property
-    def config(self) -> dict[str, TaggingAuthority]:
+    def config_at(self, commit: str | None = None) -> RepositoryConfigDocument:
+        """Return typed repository configuration at ``commit``."""
+
         git = self.git
         if git is None:
-            return {}
+            if commit is not None:
+                raise ValueError(
+                    "Repository.config_at(commit=...) requires a git-backed repository"
+                )
+            return RepositoryConfigDocument()
         try:
-            payload = git.read_file(REPOSITORY_CONFIG_PATH)
+            payload = git.read_file(REPOSITORY_CONFIG_PATH, commit=commit)
         except FileNotFoundError:
-            return {}
-        loaded = decode_document_bytes(
+            return RepositoryConfigDocument()
+        return decode_document_bytes(
             payload,
             RepositoryConfigDocument,
             source=REPOSITORY_CONFIG_PATH,
         )
-        config: dict[str, TaggingAuthority] = {}
-        if loaded.uri_authority is not None:
-            config["uri_authority"] = parse_tagging_authority(loaded.uri_authority)
-        return config
+
+    @cached_property
+    def config(self) -> RepositoryConfigDocument:
+        return self.config_at()
 
     @property
     def uri_authority(self) -> TaggingAuthority:
-        authority = self.config.get("uri_authority")
-        if isinstance(authority, TaggingAuthority):
-            return authority
-        return DEFAULT_URI_AUTHORITY
+        authority = self.config.uri_authority
+        return (
+            DEFAULT_URI_AUTHORITY
+            if authority is None
+            else parse_tagging_authority(authority)
+        )
 
     def tree(self, commit: str | None = None) -> TreePath:
         """Return a read-only semantic tree rooted at this repository."""
