@@ -134,12 +134,9 @@ def _compile_range_constraint(constraint: IntegrityConstraint) -> Constraint:
     def _holds(assignment: Assignment) -> bool:
         for concept_id in concept_ids:
             value = assignment.value_for(concept_id)
-            if not isinstance(value, (int, float, str)):
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
                 return False
-            try:
-                numeric = float(value)
-            except ValueError:
-                return False
+            numeric = float(value)
             if lower is not None and numeric < lower:
                 return False
             if upper is not None and numeric > upper:

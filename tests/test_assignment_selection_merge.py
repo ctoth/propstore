@@ -27,6 +27,7 @@ from condition_ir import ConceptInfo, KindType
 from propstore.world.assignment_selection_merge import (
     AssignmentSelectionRequest,
     _compile_cel_constraint,
+    _compile_range_constraint,
     assignment_satisfies_mu,
     solve_assignment_selection_merge,
 )
@@ -631,6 +632,18 @@ class TestStructuredConstraints:
 
         assert [winner.value_for("__value__") for winner in result.winners] == [10.0]
         assert result.admissible_count == 2
+
+    @pytest.mark.parametrize("value", [True, "5"])
+    def test_range_constraint_rejects_nonnumeric_scalar(self, value: object) -> None:
+        constraint = _compile_range_constraint(
+            IntegrityConstraint(
+                kind=IntegrityConstraintKind.RANGE,
+                concept_ids=("x",),
+                metadata={"lower": 0.0, "upper": 10.0},
+            )
+        )
+
+        assert not constraint.holds(Assignment({"x": value}))
 
     def test_category_constraint_rejects_non_member_values(self) -> None:
         request = _scalar_request(
