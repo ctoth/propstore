@@ -479,7 +479,7 @@ class ATMSLabelVerificationReport:
 class ResolvedResult:
     concept_id: ConceptId
     status: ValueStatus
-    value: float | str | None = None
+    value: ScalarValue | None = None
     claims: tuple[ActiveClaim, ...] = field(default_factory=tuple)
     winning_claim_id: ClaimId | None = None
     strategy: str | None = None

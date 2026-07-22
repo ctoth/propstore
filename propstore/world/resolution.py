@@ -75,16 +75,6 @@ if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
 
 
-def _normalize_numeric(value: object) -> float | str | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    if isinstance(value, str):
-        return value
-    return None
-
-
 def _optional_int(value: object) -> int | None:
     if isinstance(value, bool):
         return None
@@ -178,7 +168,7 @@ def _filtered_assignment_selection_claims(
     branch_filter = None if policy is None else policy.branch_filter
     filtered: list[ActiveClaim] = []
     for claim in active_claims:
-        if _normalize_numeric(claim.value) is None:
+        if isinstance(claim.value, bool) or not isinstance(claim.value, int | float):
             continue
         branch = claim.branch
         if (
@@ -234,10 +224,14 @@ def _build_assignment_selection_request(
         weight = 1.0
         if branch_weights is not None and branch is not None:
             weight = float(branch_weights.get(branch, 1.0))
-        values: dict[str, object] = {
-            concept_id: _normalize_numeric(claim.value)
-            for concept_id, claim in concept_claims.items()
-        }
+        values: dict[str, object] = {}
+        for concept_id, claim in concept_claims.items():
+            value = claim.value
+            if isinstance(value, bool) or not isinstance(value, int | float):
+                raise TypeError(
+                    "assignment-selection merge requires numeric claim values"
+                )
+            values[concept_id] = float(value)
         sources.append(
             SourceAssignment(
                 source_id=source_id,
@@ -289,7 +283,9 @@ def _resolve_assignment_selection_merge(
     matching_claims = [
         claim
         for claim in target_claims
-        if _normalize_numeric(claim.value) == winning_value
+        if not isinstance(claim.value, bool)
+        and isinstance(claim.value, int | float)
+        and float(claim.value) == winning_value
     ]
     if len(matching_claims) != 1:
         return None, (
@@ -763,7 +759,7 @@ def resolve(
         return ResolvedResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
     if vr.status is ValueStatus.DETERMINED:
-        value = _normalize_numeric(vr.claims[0].value) if vr.claims else None
+        value = vr.claims[0].value if vr.claims else None
         return ResolvedResult(
             concept_id=typed_concept_id,
             status=ValueStatus.DETERMINED,
@@ -886,7 +882,7 @@ def resolve(
 
     winning_claim = next((c for c in active if str(c.claim_id) == winner_id), None)
     winning_claim_id: ClaimId = to_claim_id(winner_id)
-    value = None if winning_claim is None else _normalize_numeric(winning_claim.value)
+    value = None if winning_claim is None else winning_claim.value
     return ResolvedResult(
         concept_id=typed_concept_id,
         status=ValueStatus.RESOLVED,

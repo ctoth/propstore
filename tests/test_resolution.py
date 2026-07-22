@@ -16,6 +16,7 @@ import pytest
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
+from propstore.core.scalars import ScalarValue
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
@@ -39,7 +40,7 @@ def _claim(
     claim_id: str,
     *,
     concept_id: str = "concept1",
-    value: float | None = 1.0,
+    value: ScalarValue | None = 1.0,
     branch: str | None = None,
     date: str | None = None,
     sample_size: int | None = None,
@@ -74,15 +75,18 @@ class _ConflictedView:
 
 
 class _DeterminedView:
+    def __init__(self, value: ScalarValue = 7.0) -> None:
+        self.value = value
+
     def value_of(self, concept_id: str) -> ValueResult:
         return ValueResult(
             concept_id=concept_id,
             status=ValueStatus.DETERMINED,
-            claims=[_claim("only", value=7.0)],
+            claims=[_claim("only", value=self.value)],
         )
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
-        return [_claim("only", value=7.0)]
+        return [_claim("only", value=self.value)]
 
 
 class _NoClaimsView:
@@ -235,10 +239,27 @@ def test_override_to_inactive_claim_raises() -> None:
         )
 
 
-def test_determined_passes_through() -> None:
-    result = resolve(_DeterminedView(), "concept1", strategy=ResolutionStrategy.RECENCY)
+@pytest.mark.parametrize("value", ["red", True, 7, 7.0])
+def test_determined_preserves_scalar_value_and_runtime_type(value: ScalarValue) -> None:
+    result = resolve(
+        _DeterminedView(value), "concept1", strategy=ResolutionStrategy.RECENCY
+    )
     assert result.status is ValueStatus.DETERMINED
-    assert result.value == 7.0
+    assert result.value == value
+    assert type(result.value) is type(value)
+
+
+def test_override_preserves_categorical_winner() -> None:
+    view = _ConflictedView([_claim("red", value="red"), _claim("blue", value="blue")])
+    result = resolve(
+        view,
+        "concept1",
+        strategy=ResolutionStrategy.OVERRIDE,
+        overrides={"concept1": "blue"},
+    )
+    assert result.status is ValueStatus.RESOLVED
+    assert result.value == "blue"
+    assert type(result.value) is str
 
 
 def test_no_claims_passes_through() -> None:
@@ -528,6 +549,21 @@ def test_assignment_selection_merge_reports_duplicate_source() -> None:
     assert (
         result.reason == "source 'a' has multiple active claims for concept 'concept1'"
     )
+
+
+@pytest.mark.parametrize("value", [True, "10"])
+def test_assignment_selection_merge_rejects_nonnumeric_claims(
+    value: ScalarValue,
+) -> None:
+    view = _ConflictedView([_claim("claim_a", value=value)])
+    result = resolve(
+        view,
+        "concept1",
+        strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
+        policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
+    )
+    assert result.status is ValueStatus.CONFLICTED
+    assert result.reason == "no assignment-selection merge sources after branch filter"
 
 
 def test_assignment_selection_merge_branch_filter_narrows_sources() -> None:
