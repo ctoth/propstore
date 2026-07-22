@@ -49,6 +49,7 @@ from quire.sqlalchemy_store import readonly_session, validate_sqlalchemy_store
 from propstore.conflict_detector.models import ConflictRecord
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
+from propstore.core.scalars import ScalarValue
 from propstore.core.environment import Environment, WorldStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import (
@@ -257,14 +258,12 @@ def chain_query(
         lifting_system=lifting_system,
     )
     steps: list[ChainStep] = []
-    resolved_values: dict[str, float | str | None] = {}
+    resolved_values: dict[str, ScalarValue | None] = {}
     visited: set[str] = set()
     unresolved_conflicted: list[str] = []
 
     for key, value in bindings.items():
-        steps.append(
-            ChainStep(concept_id=key, value=_as_scalar(value), source="binding")
-        )
+        steps.append(ChainStep(concept_id=key, value=value, source="binding"))
 
     group = store.group_members(target_concept_id)
     if not group:
@@ -345,7 +344,7 @@ def _target_result(
     bound: BoundWorld,
     target_concept_id: str,
     steps: list[ChainStep],
-    resolved_values: Mapping[str, float | str | None],
+    resolved_values: Mapping[str, ScalarValue | None],
 ) -> ValueResult | DerivedResult:
     if target_concept_id in resolved_values:
         target_step = next(
@@ -363,22 +362,10 @@ def _target_result(
     return bound.value_of(target_concept_id)
 
 
-def _claim_scalar(claim: ActiveClaim) -> float | str | None:
+def _claim_scalar(claim: ActiveClaim) -> ScalarValue | None:
     """The scalar value an active claim carries."""
 
-    return _as_scalar(claim.value)
-
-
-def _as_scalar(value: object) -> float | str | None:
-    """Narrow a keyword binding to the scalar a :class:`ChainStep` records."""
-
-    if value is None or isinstance(value, str):
-        return value
-    if isinstance(value, bool):
-        return str(value)
-    if isinstance(value, (int, float)):
-        return float(value)
-    return str(value)
+    return claim.value
 
 
 # The C3 query glue, bound here as private aliases so the repo-backed reader's

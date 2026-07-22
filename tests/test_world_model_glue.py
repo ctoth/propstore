@@ -139,10 +139,8 @@ def test_observe_builds_observation_world_over_compiled_graph() -> None:
 def test_chain_query_echoes_bindings_in_the_type_they_were_passed() -> None:
     """A binding comes back as the binding you gave, not a rewrite of it.
 
-    ``bindings_used`` used to be ``dict[str, Any]`` holding the result of the
-    narrowing that exists for ``ChainStep.value`` (``float | str | None``), so a
-    bool binding echoed back as the string ``"True"`` and an int as a float. A
-    binding scalar has one spelling — the one ``Environment.bindings`` and
+    Both the recorded step and ``bindings_used`` carry the canonical binding
+    scalar. A binding has one spelling — the one ``Environment.bindings`` and
     ``chain_query`` itself already declare.
     """
     store = _store_with(
@@ -158,3 +156,9 @@ def test_chain_query_echoes_bindings_in_the_type_they_were_passed() -> None:
         "label": "x",
         "ratio": 1.5,
     }
+    binding_steps = {
+        step.concept_id: step.value for step in result.steps if step.source == "binding"
+    }
+    assert binding_steps == result.bindings_used
+    assert type(binding_steps["flag"]) is bool
+    assert type(binding_steps["count"]) is int

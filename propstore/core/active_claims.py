@@ -15,6 +15,7 @@ from __future__ import annotations
 import msgspec
 from doxa import Opinion
 
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType, ClaimVariable
 
 _DOGMATIC_TOL = 1e-12
@@ -41,7 +42,7 @@ class ActiveClaim(
     canonical_name: str | None = None
     statement: str | None = None
     claim_type: ClaimType | None = None
-    value: float | str | None = None
+    value: ScalarValue | None = None
     body: str | None = None
     expression: str | None = None
     variables: tuple[ClaimVariable, ...] = ()

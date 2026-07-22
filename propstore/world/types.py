@@ -76,6 +76,7 @@ from propstore.core.reasoning import (
     supported_argumentation_semantics,
     validate_backend_semantics,
 )
+from propstore.core.scalars import ScalarValue
 from propstore.core.render_policy import (
     IntegrityConstraint,
     IntegrityConstraintKind,
@@ -546,7 +547,7 @@ class ClaimView:
 @dataclass
 class ChainStep:
     concept_id: str
-    value: float | str | None
+    value: ScalarValue | None
     source: str  # "binding" | "claim" | "derived" | "resolved"
 
 
@@ -556,11 +557,8 @@ class ChainResult:
     result: ValueResult | DerivedResult
     steps: list[ChainStep] = field(default_factory=list[ChainStep])
     # The bindings the chain was evaluated under, in the one canonical binding
-    # scalar type (``Environment.bindings``). This used to be ``dict[str, Any]``
-    # holding a *lossy* rewrite of them: the producer ran each value through the
-    # narrowing that exists for ``ChainStep.value``, so a bool binding came back
-    # as the string "True" and an int came back as a float. A binding is a
-    # binding; there is one spelling of its value.
+    # scalar type (``Environment.bindings``). ChainStep uses that same scalar
+    # owner, so neither surface rewrites bools or integers.
     bindings_used: dict[str, str | int | float | bool] = field(
         default_factory=dict[str, str | int | float | bool]
     )

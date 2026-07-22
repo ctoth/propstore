@@ -36,6 +36,7 @@ from propstore.core.labels import (
     binding_condition_to_cel,
     compile_environment_assumptions,
 )
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
@@ -94,7 +95,7 @@ def _conditions_ir(
 class ClaimSpec:
     claim_id: str
     concept_id: str
-    value: float | None = None
+    value: ScalarValue | None = None
     claim_type: ClaimType = ClaimType.PARAMETER
     conditions: tuple[str, ...] = ()
     context_id: str | None = None
