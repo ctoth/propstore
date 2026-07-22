@@ -5,6 +5,7 @@ from __future__ import annotations
 import gunray
 import pytest
 
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim
 from propstore.families.predicates import Predicate
 from propstore.grounding.facts import (
@@ -16,6 +17,7 @@ from propstore.grounding.predicates import (
     PredicateArityMismatchError,
     PredicateRegistry,
 )
+from propstore.grounding.translator import translate_to_theory
 
 
 def _registry(*predicates: Predicate) -> PredicateRegistry:
@@ -135,6 +137,46 @@ def test_claim_attribute_arity1_and_arity2() -> None:
     claim = Claim(claim_id="cl1", confidence=0.9)
     facts = extract_facts(GroundingFactInputs(claims=(claim,)), registry)
     assert _atoms(facts) == {("has_conf", ("cl1",)), ("conf_val", ("cl1", 0.9))}
+
+
+@pytest.mark.parametrize("value", ["fast", True, 2, 2.5])
+def test_claim_value_preserves_scalar_type_through_grounding(
+    value: ScalarValue,
+) -> None:
+    registry = _registry(
+        Predicate(
+            predicate_id="claim_value",
+            arity=2,
+            arg_types=("Claim", "Scalar"),
+            derived_from="claim.attribute:value",
+        )
+    )
+    claim = Claim(claim_id="cl1", value=value)
+
+    facts = extract_facts(GroundingFactInputs(claims=(claim,)), registry)
+    grounded_value = facts[0].arguments[1]
+    theory = translate_to_theory((), facts, registry)
+    theory_value = theory.facts["claim_value"][0][1]
+
+    assert grounded_value == value
+    assert type(grounded_value) is type(value)
+    assert theory_value == value
+    assert type(theory_value) is type(value)
+
+
+def test_claim_attribute_rejects_nonscalar_value() -> None:
+    registry = _registry(
+        Predicate(
+            predicate_id="claim_concepts",
+            arity=2,
+            arg_types=("Claim", "Scalar"),
+            derived_from="claim.attribute:concepts",
+        )
+    )
+    claim = Claim(claim_id="cl1", concepts=("a", "b"))
+
+    with pytest.raises(TypeError, match="Grounding scalar must be a canonical scalar"):
+        extract_facts(GroundingFactInputs(claims=(claim,)), registry)
 
 
 def test_claim_attribute_absent_contributes_nothing() -> None:

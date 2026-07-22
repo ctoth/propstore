@@ -19,6 +19,7 @@ from dataclasses import dataclass
 import gunray
 
 from propstore.families.claims import Claim
+from propstore.core.scalars import ScalarValue
 from propstore.grounding.predicates import (
     DerivedFromSpec,
     PredicateAtom,
@@ -196,10 +197,10 @@ def _add_claim_scalar_fact(
         )
 
 
-def _scalar_value(value: object) -> gunray.Scalar:
-    if isinstance(value, str | int | float | bool):
+def _scalar_value(value: object) -> ScalarValue:
+    if isinstance(value, str | bool | int | float):
         return value
-    return str(value)
+    raise TypeError(f"Grounding scalar must be a canonical scalar, got {value!r}")
 
 
 def _add_fact(
