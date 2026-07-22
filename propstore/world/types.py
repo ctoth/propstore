@@ -498,7 +498,7 @@ class SyntheticClaim:
     id: str
     concept_id: ConceptId
     type: ClaimType = ClaimType.PARAMETER
-    value: float | str | None = None
+    value: ScalarValue | None = None
     conditions: list[CelExpr] = field(default_factory=list[CelExpr])
     sample_size: int | None = None
     confidence: float | None = None

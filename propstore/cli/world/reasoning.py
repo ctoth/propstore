@@ -321,21 +321,6 @@ def world_hypothetical(
     _render_hypothetical_text(report)
 
 
-def _coerce_hypothetical_value(value: object) -> float | str | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise click.ClickException("--add JSON value must be a string or number")
-    if isinstance(value, (int, float)):
-        return float(value)
-    if not isinstance(value, str):
-        raise click.ClickException("--add JSON value must be a string or number")
-    try:
-        return float(value)
-    except ValueError:
-        return value
-
-
 def _parse_hypothetical_add(
     add_json: str | None,
 ) -> tuple[WorldHypotheticalSyntheticClaimSpec, ...]:
@@ -370,11 +355,14 @@ def _spec_from_entry(entry: object) -> WorldHypotheticalSyntheticClaimSpec:
     claim_type = entry.get("type", "parameter")
     if not isinstance(claim_type, str):
         raise click.ClickException("--add JSON type must be a string")
+    value = entry.get("value")
+    if value is not None and not isinstance(value, str | bool | int | float):
+        raise click.ClickException("--add JSON value must be a scalar")
     return WorldHypotheticalSyntheticClaimSpec(
         claim_id=claim_id,
         concept_id=concept_id,
         claim_type=claim_type,
-        value=_coerce_hypothetical_value(entry.get("value")),
+        value=value,
         conditions=tuple(str(condition) for condition in conditions),
     )
 

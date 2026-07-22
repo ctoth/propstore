@@ -456,7 +456,7 @@ class WorldAcceptanceProbabilityLine:
 class WorldResolveReport(JsonReportMixin):
     concept_display_id: str
     status: str
-    value: float | str | None
+    value: ScalarValue | None
     winning_claim_display_id: str | None
     strategy: str | None
     reason: str | None
@@ -517,7 +517,7 @@ class WorldChainConceptLine:
 @dataclass(frozen=True)
 class WorldChainStepLine:
     concept: WorldChainConceptLine
-    value: float | str | None
+    value: ScalarValue | None
     source: str
 
 
@@ -573,7 +573,7 @@ class WorldHypotheticalSyntheticClaimSpec:
     claim_id: str
     concept_id: str
     claim_type: str = "parameter"
-    value: float | str | None = None
+    value: ScalarValue | None = None
     conditions: tuple[str, ...] = ()
 
 

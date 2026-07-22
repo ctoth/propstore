@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import click
 import pytest
 from click.testing import CliRunner, Result
 
@@ -257,6 +258,35 @@ def test_hypothetical_json_shape(repo: Repository) -> None:
     data = json.loads(result.output)
     assert "changes" in data
     assert "extension_diff" in data
+
+
+def test_hypothetical_add_preserves_scalar_value_types() -> None:
+    from propstore.cli.world.reasoning import _parse_hypothetical_add
+
+    specs = _parse_hypothetical_add(
+        json.dumps(
+            [
+                {"id": "text", "concept_id": "A", "value": "fast"},
+                {"id": "boolean", "concept_id": "A", "value": True},
+                {"id": "integer", "concept_id": "A", "value": 2},
+                {"id": "float", "concept_id": "A", "value": 2.5},
+            ]
+        )
+    )
+
+    assert type(specs[0].value) is str
+    assert type(specs[1].value) is bool
+    assert type(specs[2].value) is int
+    assert type(specs[3].value) is float
+
+
+def test_hypothetical_add_rejects_nonscalar_value() -> None:
+    from propstore.cli.world.reasoning import _parse_hypothetical_add
+
+    with pytest.raises(click.ClickException, match="value must be a scalar"):
+        _parse_hypothetical_add(
+            json.dumps({"id": "nested", "concept_id": "A", "value": [1]})
+        )
 
 
 # ── analysis family ───────────────────────────────────────────────────────────
