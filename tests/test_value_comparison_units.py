@@ -6,6 +6,7 @@ form and the claims' units are available, so ``200 Hz`` and ``0.2 kHz`` match.
 
 from __future__ import annotations
 
+import pytest
 from condition_ir import KindType
 
 from propstore.conflict_detector.models import ConflictClaim
@@ -63,3 +64,21 @@ def test_values_compatible_no_forms_fallback() -> None:
         claim_a=_claim("a", 200.0, "Hz"),
         claim_b=_claim("b", 0.2, "kHz"),
     )
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "expected"),
+    [
+        ("5", 5, False),
+        (True, 1, False),
+        (1, 1.0, True),
+        ("5", "5", True),
+        (True, True, True),
+    ],
+)
+def test_values_compatible_separates_direct_and_numeric_scalars(
+    left: object,
+    right: object,
+    expected: bool,
+) -> None:
+    assert values_compatible(left, right) is expected

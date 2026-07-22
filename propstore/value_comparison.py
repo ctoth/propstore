@@ -31,11 +31,6 @@ def _as_float(value: object) -> float | None:
         return None
     if isinstance(value, (int, float)):
         return float(value)
-    if isinstance(value, str):
-        try:
-            return float(value)
-        except ValueError:
-            return None
     return None
 
 
@@ -125,7 +120,7 @@ def values_compatible(
     float_b = _as_float(value_b)
     if float_a is not None and float_b is not None:
         return abs(float_a - float_b) < tolerance
-    return value_a == value_b
+    return type(value_a) is type(value_b) and value_a == value_b
 
 
 def value_str(
