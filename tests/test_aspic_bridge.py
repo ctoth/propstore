@@ -10,7 +10,12 @@ from __future__ import annotations
 
 import pytest
 from argumentation.core.dung import grounded_extension
-from argumentation.structured.aspic.aspic import GroundAtom, Literal, conc
+from argumentation.structured.aspic.aspic import (
+    ArgumentBuildStatus,
+    GroundAtom,
+    Literal,
+    conc,
+)
 from argumentation.structured.aspic.datalog_grounding import GroundRuleOrigin  # noqa: F401
 
 from propstore.stances import StanceType
@@ -312,6 +317,24 @@ def test_query_claim_collects_arguments_for_and_against() -> None:
         _conclusion_claim_id(conc(argument)) for argument in result.arguments_against
     }
     assert "anti" in against_claims
+
+
+def test_query_claim_propagates_complete_and_depth_exhausted_construction() -> None:
+    claims = [_claim("source"), _claim("goal")]
+    justifications = [_reported("source"), _support("source", "goal")]
+
+    complete = query_claim("goal", claims, justifications, [], bundle=_bundle())
+    exhausted = query_claim(
+        "goal", claims, justifications, [], bundle=_bundle(), max_depth=0
+    )
+
+    assert complete.construction.status is ArgumentBuildStatus.COMPLETE
+    assert complete.construction.max_depth is None
+    assert complete.arguments_for
+    assert exhausted.construction.status is ArgumentBuildStatus.MAX_DEPTH_EXHAUSTED
+    assert exhausted.construction.max_depth == 0
+    assert exhausted.construction.cutoff_literals
+    assert exhausted.arguments_for == frozenset()
 
 
 def test_query_unknown_claim_raises() -> None:

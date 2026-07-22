@@ -31,6 +31,7 @@ from argumentation.structured.aspic.aspic import (
     KnowledgeBase,
     PreferenceConfig,
 )
+from argumentation.structured.aspic.aspic_encoding import ASPICQueryStatus
 
 from propstore.core.environment import (
     CompiledGraphStore,
@@ -599,7 +600,7 @@ def analyze_aspic_backend(
         backend=backend,
         semantics=query_semantics,
     )
-    if package_result.status == "success":
+    if package_result.status is ASPICQueryStatus.SUCCESS:
         extensions = (
             ExtensionResult(
                 name=package_result.semantics,
@@ -617,7 +618,6 @@ def analyze_aspic_backend(
     metadata: dict[str, object] = {
         "backend_requested": backend,
         "package_backend": package_result.backend,
-        "package_status": package_result.status,
         "encoding_signature": package_result.encoding.signature,
         "encoding": package_result.encoding.metadata["encoding"],
     }
@@ -627,6 +627,7 @@ def analyze_aspic_backend(
         backend="aspic",
         semantics=package_result.semantics,
         extensions=extensions,
+        aspic_query_status=package_result.status,
         metadata=tuple(metadata.items()),
     )
 

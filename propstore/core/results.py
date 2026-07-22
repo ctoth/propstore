@@ -6,6 +6,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from argumentation.structured.aspic.aspic_encoding import ASPICQueryStatus
+
 from propstore.core.labels import Label
 
 
@@ -80,6 +82,7 @@ class AnalyzerResult:
     extensions: tuple[ExtensionResult, ...] = ()
     projection: ClaimProjection | None = None
     support_label: Label | None = None
+    aspic_query_status: ASPICQueryStatus | None = None
     metadata: tuple[tuple[str, Any], ...] = ()
 
     def __post_init__(self) -> None:

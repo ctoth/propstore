@@ -590,6 +590,481 @@ passing test run, reread this plan and continue to the next unchecked B1 item.
 - [ ] Verify world and worldline never convert failed/partial ASPIC computation
   into an empty successful extension.
 
+#### B2 exact execution contract — settled 2026-07-22
+
+No B2 naming, ownership, return-shape, failure-policy, repository-order, or
+production-consumer decision is left implicit. This contract is based on direct
+page-image reading, not extracted text:
+
+- Modgil and Prakken, printed pp. 36-37
+  (`papers/Modgil_2014_ASPICFrameworkStructuredArgumentation/pngs/page-007.png`
+  and `page-008.png`), define ASPIC+ arguments recursively as finite argument
+  trees built from knowledge-base premises and inference rules. A bounded prefix
+  is not the defined full argument set.
+- Thimm, printed pp. 5-7
+  (`papers/Thimm_2020_ApproximateReasoningASPICArgumentSampling/pngs/page-004.png`
+  through `page-006.png`), explicitly separates approximate construction of a
+  subgraph from the unchanged abstract semantics run on that subgraph. Exact
+  semantics over a partial construction remains an approximate answer.
+
+Package repository and worktree authority:
+
+- Propstore currently pins formal-argumentation commit
+  `3ff70f3d824a27fc03eb50d3dc128e9c2dc14e05`. The current package `main` and
+  `origin/main` are both `099db662aaa5adb38282724f8a6a38f037eb5646`; the pin is
+  its ancestor, and the relevant ASPIC source/tests have no committed diff
+  between those commits.
+- The primary `C:\Users\Q\code\argumentation` checkout is dirty and is evidence
+  only. Do not edit, clean, stage, commit, or otherwise reconcile it in B2.
+- Before package mutation, verify the facts above again and create exactly the
+  absent clean worktree/branch with
+  `git -C C:\Users\Q\code\argumentation worktree add -b b2-aspic-completeness C:\Users\Q\code\argumentation-b2 099db662aaa5adb38282724f8a6a38f037eb5646`.
+  If the path, branch, base, or remote relation no longer matches, amend this
+  plan before taking a substitute action.
+- Load and follow `protocols:cleanup-refactor` before the first mutation in each
+  repository. Create and commit one execution record named
+  `plans/aspic-completeness-fixed-point-log.md` in each changed repository; the
+  two records are repository-local ledgers, not interchangeable substitutes.
+- Gate preflight on 2026-07-22 found the package's unchanged
+  `src/argumentation/solving/solver.py:831` already fails `uv run pyright src`:
+  the inferred `shared` dict value union omits the supported `engine: str` value.
+  This is not caused by B2 and must not be hidden in an ASPIC commit. Slice 1
+  therefore runs Pyright on its changed owner file; the separate gate-repair
+  slice below makes the package-wide gate green before the full package gate.
+
+Exact package construction API:
+
+- In `src/argumentation/structured/aspic/aspic.py`, add exactly
+  `ArgumentBuildStatus(StrEnum)` with `COMPLETE = "complete"` and
+  `MAX_DEPTH_EXHAUSTED = "max_depth_exhausted"`.
+- In that same owner module, add exactly the frozen dataclass
+  `ArgumentBuildResult` with required fields, in this order:
+  `arguments: frozenset[Argument]`, `status: ArgumentBuildStatus`,
+  `max_depth: int | None`, and `cutoff_literals: frozenset[Literal]`.
+- Change `build_arguments_for()` itself to return `ArgumentBuildResult`; do not
+  add a second function, compatibility wrapper, alias, iterable facade, or
+  result-unwrapping helper. Every package and Propstore caller must consume the
+  new owner result directly.
+- Change the parameter default to `max_depth: int | None = None`. `None` means
+  exact unbounded goal-directed construction. This is the default because the
+  finite grounded theory plus the existing `in_progress` cycle rejection
+  already terminates recursion; an arbitrary default of ten silently changes
+  semantics. Preserve an explicit integer bound as an opt-in resource limit.
+- Reject negative explicit bounds with exactly
+  `ValueError("max_depth must be non-negative")`; zero is valid.
+- On every branch where `depth > max_depth`, add the unresolved target literal
+  to `cutoff_literals` and return no arguments for that branch. If at least one
+  branch reaches the cutoff, the whole returned result is
+  `MAX_DEPTH_EXHAUSTED`, even when other partial arguments exist or a later
+  semantics calculation succeeds. Otherwise it is `COMPLETE`.
+- Existing finite-cycle rejection is not exhaustion and must leave status
+  `COMPLETE` with empty `cutoff_literals`. Do not infer completeness from
+  `bool(arguments)` and do not infer exhaustion from an empty argument set.
+- In `tests/structured/aspic/test_backward_chaining.py`, update every caller to
+  use `.arguments`. Add exact cases for: unbounded deep-chain equality with the
+  exhaustive goal subset; bounded empty exhaustion; bounded partial arguments;
+  attacker-side exhaustion; a sufficient explicit bound returning `COMPLETE`;
+  a finite cycle returning `COMPLETE`; deterministic cutoff literals; and the
+  negative-bound error.
+
+Exact package solver-status API:
+
+- In `src/argumentation/structured/aspic/aspic_encoding.py`, add exactly
+  `ASPICQueryStatus(StrEnum)` with `SUCCESS = "success"`,
+  `UNAVAILABLE_BACKEND = "unavailable_backend"`,
+  `BACKEND_ERROR = "backend_error"`, and
+  `PROTOCOL_ERROR = "protocol_error"`.
+- Change `ASPICQueryResult.status` and `_backend_failure_result(status=...)` to
+  `ASPICQueryStatus`. Construct and compare only enum members throughout that
+  module and its tests, and add `ASPICQueryStatus` to that module's existing
+  `__all__`. Do not retain parallel string constants or a Propstore-owned copy
+  of this vocabulary.
+- Update `tests/structured/aspic/test_aspic_encodings.py` and
+  `tests/structured/aspic/test_aspic_asp_differential.py` to assert enum identity
+  for every success and failure family.
+
+Exact Propstore propagation:
+
+- In `propstore/aspic_bridge/query.py`, add exactly
+  `construction: ArgumentBuildResult` to `ClaimQueryResult`. `query_claim()`
+  receives the package result once, derives its existing for/against/attack/
+  defeat views from `construction.arguments`, and returns that same result
+  object. Do not copy its status, limit, or cutoff literals into a Propstore DTO.
+- Preserve `query_claim(max_depth=...)` as an explicit diagnostic control, but
+  change its default to `None` to match the owner. A partial query remains
+  inspectable only because `result.construction.status` and cutoff evidence are
+  explicit; it must not be presented as complete.
+- In `propstore/core/results.py`, add exactly
+  `aspic_query_status: ASPICQueryStatus | None = None` to `AnalyzerResult` before
+  generic `metadata`. This is backend-specific by design; do not introduce a
+  generic execution-status enum or duplicate the package vocabulary.
+- In `analyze_aspic_backend()`, compare `package_result.status` by enum identity,
+  always populate `aspic_query_status`, and delete the `package_status` metadata
+  entry. Keep backend diagnostic detail such as `reason`, encoding, and requested
+  backend in metadata; metadata is no longer the control surface for success.
+- Add focused tests in `tests/test_core_analyzers_phase6.py` proving success and
+  each package failure status remain distinct even though every failure has
+  `extensions == ()`. Extend `tests/test_core_semantic_kernel.py` for the typed
+  dataclass field and `tests/test_aspic_bridge.py` for complete versus
+  depth-exhausted query propagation.
+
+Production world and worldline disposition:
+
+- Do not route production world/worldline through `analyze_aspic_backend()` and
+  do not add a shared adapter. That function owns the optional encoded-solver
+  query. Production instead constructs the complete materialized ASPIC+
+  projection through package `build_arguments()`, with no depth cap, then runs
+  in-process Dung semantics.
+- A normally returned empty grounded extension or empty stable-extension list is
+  a complete semantic outcome, not failure. An exception from projection or
+  semantics is execution failure, not an empty extension.
+- World resolution already lets such exceptions escape instead of selecting a
+  winner. Add a regression in `tests/test_resolution.py` proving a semantics
+  exception propagates and cannot become an ordinary conflicted/empty result.
+- Rewrite `_capture_aspic()` to consume both successful return shapes from
+  `compute_structured_justified_arguments()`: normalize a grounded
+  `frozenset[str]` to one extension and normalize a multi-extension list to an
+  extension tuple; map every extension to claim ids; populate the existing
+  `extensions`, `inference_mode`, and `semantics` fields; and derive justified
+  claims with the existing `_claims_for_inference_mode()` when at least one
+  extension exists. A legitimate zero-extension list yields an empty justified
+  set without calling that nonempty-input function. Do not return `None` merely
+  because complete/preferred/stable semantics returned multiple or zero
+  extensions.
+- In `capture_argumentation_state()`, retain the existing diagnostic exception
+  capture but set `backend=policy.reasoning_backend.value`, `status="error"`,
+  and `error=WorldlineCaptureError.ARGUMENTATION`. Do not persist the free-form
+  exception string as `reason`; the typed capture marker deliberately keeps
+  equivalent transient failures hash-stable.
+- Replace `materialize_worldline()`'s grounding-only status equality with one
+  fail-closed condition: if the returned argumentation state has either a
+  non-`None` `status` or non-`None` `error`, raise `WorldlineValidationError`
+  before assigning `definition.results` or calling `save()`. The message is
+  `reason`, else `status`, else `error.value`. This subsumes rather than
+  parallels the B1 `grounding_budget_exceeded` check.
+- Extend `tests/test_worldline_argumentation_multi_extension.py` for ASPIC
+  grounded, multiple, and legitimate zero-extension results; extend
+  `tests/test_worldline_error_visibility.py` for typed ASPIC capture failure;
+  and extend `tests/test_app_worldlines.py` to prove both grounding exhaustion
+  and captured ASPIC execution failure produce no commit and no saved results.
+
+Deletion-first classifications and dispositions:
+
+- `build_arguments_for() -> frozenset[Argument]`: valid capability with wrong
+  representation; replace the owner return type and rewrite every caller.
+- Default `max_depth=10`: wrong silent policy on an exact semantic API; remove
+  the implicit cap while preserving an explicit, honestly reported limit.
+- `ClaimQueryResult` without completeness: already-owned capability that must
+  use its package owner directly; embed `ArgumentBuildResult`, not a local copy.
+- `ASPICQueryResult.status: str`: valid capability with wrong representation;
+  type it at the package owner.
+- Analyzer metadata `package_status`: valid backend-specific control evidence
+  in the wrong representation; move it to
+  `AnalyzerResult.aspic_query_status` and delete the metadata key.
+- Proposed shared analyzer/materialized adapter: rejected generic mechanism;
+  the two paths solve different computations and no new helper is authorized.
+- `_capture_aspic()` dropping list results: valid capability with a wrong caller
+  disposition; consume the existing successful result shapes directly.
+- Worldline's narrow materialization check: valid failure marker with an
+  incomplete consumer; replace it with the existing state fields' fail-closed
+  invariant, without a new status wrapper.
+
+#### B2 Slice 1 — package-owned bounded construction evidence
+
+1. Create the verified clean package worktree and its tracked execution record.
+2. Change the owner return type/default/validation first, then classify and
+   rewrite every broken package caller; never restore frozenset-like behavior on
+   the result object.
+3. Run `uv run pytest tests/structured/aspic/test_backward_chaining.py -q`,
+   `uv run pyright src/argumentation/structured/aspic/aspic.py`,
+   `uv run ruff check src/argumentation/structured/aspic/aspic.py tests/structured/aspic/test_backward_chaining.py`, and
+   `uv run ruff format --check src/argumentation/structured/aspic/aspic.py tests/structured/aspic/test_backward_chaining.py` from the clean package worktree.
+4. Update and include the package execution record, then commit exactly as
+   `feat(aspic): expose bounded construction status` before Slice 2.
+
+#### B2 Slice 2 — package-owned solver status vocabulary
+
+1. Replace loose solver status strings with `ASPICQueryStatus` and update every
+   producer and assertion; do not touch ABA's separate result vocabulary.
+2. Run `uv run pytest tests/structured/aspic/test_aspic_encodings.py tests/structured/aspic/test_aspic_asp_differential.py -q`,
+   `uv run pyright src/argumentation/structured/aspic/aspic_encoding.py`,
+   `uv run ruff check src/argumentation/structured/aspic/aspic_encoding.py tests/structured/aspic/test_aspic_encodings.py tests/structured/aspic/test_aspic_asp_differential.py`, and
+   `uv run ruff format --check src/argumentation/structured/aspic/aspic_encoding.py tests/structured/aspic/test_aspic_encodings.py tests/structured/aspic/test_aspic_asp_differential.py`.
+3. Update and include the package execution record, then commit exactly as
+   `refactor(aspic): type query execution status`.
+
+#### B2 package formatting prerequisite — noisy gate correction
+
+The required format check proved that the previously unformatted
+`src/argumentation/solving/solver.py` would create a whole-file mechanical diff
+around the one-line Pyright repair. Do not mix those shapes.
+
+1. Before formatting, restore the uncommitted annotation to `shared = dict(...)`
+   so no Pyright repair is hidden in the mechanical diff. Keep deletion of the
+   pre-existing unused `support_extensions as sat_aba_support_extensions` import
+   because the required Ruff gate proves it is dead.
+2. Run `uv run ruff format src/argumentation/solving/solver.py`,
+   `uv run pytest tests/solving/test_af_satcore_flat_routing.py -q`,
+   `uv run ruff check src/argumentation/solving/solver.py`, and
+   `uv run ruff format --check src/argumentation/solving/solver.py`.
+   `uv run pyright src` must still report only the already-recorded engine-value
+   error at the unannotated `shared` mapping.
+3. Record the formatting prerequisite in the package execution record and
+   commit exactly as `style(solving): format solver module`.
+
+#### B2 package gate repair — pre-existing Pyright failure
+
+1. In `src/argumentation/solving/solver.py`, change `shared = dict(...)` to
+   `shared: dict[str, object] = dict(...)`. This types the existing heterogeneous
+   keyword mapping honestly; it does not change runtime behavior or routing.
+2. Run `uv run pytest tests/solving/test_af_satcore_flat_routing.py -q`,
+   `uv run pyright src`,
+   `uv run ruff check src/argumentation/solving/solver.py`, and
+   `uv run ruff format --check src/argumentation/solving/solver.py`.
+3. Record the baseline failure and repair in the package execution record, then
+   commit exactly as `fix(solving): type SAT finder kwargs`.
+
+#### B2 package scaffold deletion — obsolete Probe 7 red contract
+
+The package full test gate proves that the committed
+`tests/structured/aba/test_aba_cadical2_eager_arc_contract.py` still imports a
+diagnostic owner that does not exist. The package's recorded Probe 7 experiment
+proves this is an intentionally red preregistration, not a production bug: the
+pinned CaDiCaL 2.2.1 backend cannot satisfy the frozen restart-statistic and
+signed-value requirements, so the diagnostic was correctly never implemented.
+Classify this edge as `dead/test/scaffold surface` and delete the obsolete test;
+do not implement, alias, skip, or replace the nonexistent diagnostic owner.
+
+1. Delete only
+   `tests/structured/aba/test_aba_cadical2_eager_arc_contract.py`.
+2. Run `uv run pytest --collect-only -q` and verify that no test or script path
+   still references `probe_iccma2023_cadical221_eager_arc`.
+3. Record the classification, deletion, and exact collection result in the package
+   execution record, then commit exactly as
+   `test(aba): delete obsolete Probe 7 contract`.
+
+#### B2 package caller repair — stale enumeration instrumentation
+
+The first complete package test run after deleting the red contract proves that
+six ABA routing tests still monkeypatch the deleted, unused solver-module alias
+`sat_aba_support_extensions`. Classify those test edges as `already-owned
+capability that must use its true owner directly`: the enumeration capability is
+owned by `argumentation.structured.aba.aba_sat.support_extensions`.
+
+Before the semantic rewrite, the required format check proves that
+`tests/structured/aba/test_aba.py` has 13 pre-existing mechanical formatting
+hunks. Do not mix those with the two-line owner correction.
+
+1. Restore the two uncommitted monkeypatch targets to
+   `argumentation.solving.solver.sat_aba_support_extensions`, then run
+   `uv run ruff format tests/structured/aba/test_aba.py`.
+2. Run `uv run pytest tests/structured/aba/test_aba.py -q`,
+   `uv run ruff check tests/structured/aba/test_aba.py`, and
+   `uv run ruff format --check tests/structured/aba/test_aba.py`.
+   The test command must report exactly the six already-classified stale
+   monkeypatch failures and 24 passes; formatting must introduce no additional
+   failure. Ruff check and format check must pass.
+   Record this mechanical prerequisite and commit exactly as
+   `style(aba): format solver tests`.
+3. Reapply only the two stale monkeypatch target rewrites in
+   `tests/structured/aba/test_aba.py` to patch
+   `argumentation.structured.aba.aba_sat.support_extensions`; do not restore an
+   import or alias in `solver.py`.
+4. Run `uv run pytest tests/structured/aba/test_aba.py -q`,
+   `uv run ruff check tests/structured/aba/test_aba.py`, and
+   `uv run ruff format --check tests/structured/aba/test_aba.py`.
+5. Record the classification and exact gate results in the package execution
+   record, then commit exactly as
+   `test(aba): patch enumeration owner directly`.
+
+#### B2 package full-gate environment verification
+
+The complete package test also proves that the clean worktree lacks two kinds
+of ignored test-boundary artifacts already present in the primary package
+checkout: the 13 paper page images named by
+`test_decomposed_prefsat_page_image_contract` and the vendored CaDiCaL 2.2.1
+binary named by `_find_cadical221_binary`. These are environment inputs, not
+production or tracked package changes.
+
+1. Copy only the five ignored paper `pngs` directories referenced by the test
+   and `tools/solvers/cadical-2.2.1/cadical.exe` from the verified primary
+   checkout `C:\Users\Q\code\argumentation` to matching ignored paths in the
+   clean worktree. Do not alter the primary checkout.
+2. Verify all 13 exact page-image paths and the binary exist in the clean
+   worktree. Prepend only
+   `C:\Users\Q\scoop\apps\mingw-winlibs\current\bin` to the test process's
+   `PATH`; do not persistently modify the environment. First run
+   `uv run pytest tests/structured/aba/test_aba_stable_engine_routing.py -q`
+   under that process-local environment, then run `uv run pytest -q` under the
+   same environment. Run `uv run pyright src`, `uv run ruff check .`, and
+   `uv run ruff format --check .` normally.
+3. Record the exact test and Pyright results and the remaining package-wide Ruff
+   and format failures before any further mutation.
+
+#### B2 package-wide formatting prerequisite
+
+The exact final format gate proves that 198 package files predate the current
+Ruff format policy. This is a repository-wide mechanical prerequisite; do not
+mix it with the 19 package-wide Ruff findings or any B2 semantic change.
+
+1. Run `uv run ruff format .` with no other tracked package diff present.
+2. Under the process-local MinGW runtime environment established above, run
+   `uv run pytest -q`; then run `uv run pyright src`,
+   `uv run ruff format --check .`, and `uv run ruff check .`. The first three
+   gates must pass. Record the exact remaining Ruff findings without repairing
+   them in this slice.
+3. Record the mechanical prerequisite and exact gate results in the package
+   execution record, then commit exactly as `style: format package`.
+
+#### B2 package-wide Ruff repair
+
+After the formatting prerequisite is committed, rerun `uv run ruff check .`,
+classify every remaining finding against its actual owner, and add exact atomic
+repair slices to this plan before editing. Do not use an unreviewed broad
+`--fix`, and do not restore any deleted alias or helper.
+
+##### B2 Ruff repair 1 — production owners
+
+1. In `src/argumentation/dynamics/af_revision.py`, replace the lint-invalid
+   lambda assigned to `ranking` with a named local callable that captures only
+   that method's `extension_set`. Classify it as a valid capability with the
+   wrong representation; it is not a reusable helper or generic surface.
+2. Move the existing `argumentation.core.dung` import in
+   `src/argumentation/probabilistic/probabilistic.py` into the module import
+   block. Classify it as an already-owned capability that must use its true
+   owner directly; do not add an adapter or local alias.
+3. Delete the unused `defaultdict` and `Iterable` imports from
+   `src/argumentation/structured/aba/aba_decomposition.py`. Classify both as
+   dead surfaces with no owner after cleanup.
+4. Run
+   `uv run pytest tests/dynamics/test_af_revision.py tests/probabilistic/test_probabilistic.py tests/structured/aba/test_aba_decomposed_prefsat_contract.py -q`,
+   `uv run pyright src`, and focused Ruff check/format checks on those three
+   production files. Record the slice and commit exactly as
+   `fix: repair production Ruff violations`.
+
+##### B2 Ruff repair 2 — test owners
+
+1. Move `cayrol_derived_defeats` into the existing top-level bipolar import
+   block in `tests/core/test_bipolar_semantics.py`.
+2. Delete every Ruff-proven unused import from
+   `tests/core/test_dung_extensions_workstream.py`,
+   `tests/interop/test_iccma_runner_timeout_contract.py`,
+   `tests/solving/test_solver_differential.py`,
+   `tests/structured/aba/test_aba_hypothesis_generators.py`,
+   `tests/structured/aba/test_aba_real_prefsat_contract.py`,
+   `tests/structured/aba/test_aba_sparse_narrow_route_contract.py`, and
+   `tests/structured/aspic/test_aspic.py`; classify them as dead test surfaces.
+3. Remove only the two inert `f` prefixes identified by Ruff in
+   `tests/structured/aspic/test_aspic.py`.
+4. Run `uv run pytest` on exactly those eight test modules, then focused Ruff
+   check/format checks on the same paths. Record the slice and commit exactly as
+   `test: repair Ruff violations`.
+
+##### B2 Ruff repair 3 — executable bootstrap boundaries
+
+1. Keep the imports after the required repository-root `sys.path` setup in
+   `scripts/run_frontier_v1.py` and `tools/run_aba_10x10_fixture.py`, and add
+   only a line-scoped `# noqa: E402` to each import. Classify each as an
+   IO-boundary-only carrier; moving it above setup would break direct execution.
+2. Run focused Ruff check/format checks on those two files. Record the slice and
+   commit exactly as `chore: mark bootstrap imports`.
+
+After every Ruff repair slice is committed, run `uv run pytest -q` under the
+same process-local MinGW environment, `uv run pyright src`,
+`uv run ruff check .`, and `uv run ruff format --check .`. Amend only the final
+Ruff-repair commit to include the final package execution record, preserve that
+commit's subject, rerun all four package gates, and record the exact resulting
+package HEAD. That final Ruff-repair commit is the sole Propstore repin target
+and contains every preceding B2 package commit in its history.
+
+#### B2 package publication to `main`
+
+The repository has no `master` branch; the user explicitly confirmed merging
+the completed B2 branch into the actual default branch `main` and pushing it.
+The user then stashed the primary package checkout and explicitly directed use
+of that checkout plus removal of the temporary clean clone.
+
+1. Resolve and recursively delete only the temporary clone
+   `C:\Users\Q\code\argumentation-b2-main`, then verify that exact path no
+   longer exists.
+2. Verify `C:\Users\Q\code\argumentation` has no tracked changes, is checked
+   out on `main`, and is at remote tip
+   `099db662aaa5adb38282724f8a6a38f037eb5646`. Preserve every user-owned
+   untracked path and prove none overlaps the B2 branch's changed-path set
+   before merging.
+3. Merge local branch `b2-aspic-completeness` into `main` in the primary
+   checkout with `--no-ff` and exact subject
+   `Merge branch 'b2-aspic-completeness'`.
+4. Verify the merge commit's tree hash exactly equals
+   `eb816eed559888563e44ba14c1aeed02e6182e76^{tree}`. This proves the merged
+   source is byte-identical to the commit on which the final full test,
+   Pyright, Ruff, and format gates passed.
+5. Push `main` to `origin`, verify `git ls-remote origin refs/heads/main`
+   reports the merge commit, and use that pushed merge commit—not the
+   pre-merge branch tip—as Propstore's dependency pin.
+
+Publication result: merge commit
+`978b10edb8eaf106f64cd760cfeedce1c3cbb237` is the verified `origin/main` tip;
+its tree hash `f23ce11bee5f4a2fa08b0818c92c2ffcbd4ccbfb` exactly equals the fully gated
+B2 branch tree. Slice 3 must pin this merge commit.
+
+#### B2 Slice 3 — Propstore typed query/analyzer propagation and repin
+
+1. Create the Propstore execution record. Update `pyproject.toml` to the exact
+   package HEAD produced by Slice 2 and run `uv lock`; `uv.lock` must resolve the
+   same revision.
+2. Cut `query_claim()` over to `ArgumentBuildResult` and add the direct
+   `ClaimQueryResult.construction` field.
+3. Add `AnalyzerResult.aspic_query_status`; remove metadata `package_status` in
+   the same slice so old and new control paths never coexist.
+4. Run
+   `powershell -File scripts/run_logged_pytest.ps1 tests/test_aspic_bridge.py tests/test_core_analyzers_phase6.py tests/test_core_semantic_kernel.py -q`,
+   `uv run pyright propstore`, `uv run lint-imports`,
+   `uv run ruff check propstore/aspic_bridge/query.py propstore/core/results.py propstore/core/analyzers.py tests/test_aspic_bridge.py tests/test_core_analyzers_phase6.py tests/test_core_semantic_kernel.py`, and
+   `uv run ruff format --check propstore/aspic_bridge/query.py propstore/core/results.py propstore/core/analyzers.py tests/test_aspic_bridge.py tests/test_core_analyzers_phase6.py tests/test_core_semantic_kernel.py`.
+   Update and include the Propstore execution record, then commit exactly as
+   `feat(aspic): propagate computation status` before Slice 4.
+
+#### B2 Slice 4 — production result consumption and fail-closed materialization
+
+1. Normalize every successful materialized ASPIC semantics shape in
+   `_capture_aspic()` and populate the existing typed worldline fields.
+2. Preserve diagnostic exception capture with typed backend/error evidence;
+   replace the materialization check so no incomplete or failed argumentation
+   state can be committed.
+3. Add the resolution, worldline-shape, diagnostic-error, and no-commit
+   regressions named above.
+4. Run
+   `powershell -File scripts/run_logged_pytest.ps1 tests/test_resolution.py tests/test_worldline_argumentation_multi_extension.py tests/test_worldline_error_visibility.py tests/test_app_worldlines.py -q`,
+   then every B2 search gate, `uv run pyright propstore`, `uv run lint-imports`,
+   `uv run ruff check .`, and `uv run ruff format --check .`.
+5. Update and include the Propstore execution record, then commit exactly as
+   `fix(worldline): refuse incomplete argumentation results`.
+
+B2 search gates:
+
+- In the package worktree,
+  `rg -n 'max_depth: int = 10|status: str' src/argumentation/structured/aspic/aspic.py src/argumentation/structured/aspic/aspic_encoding.py`
+  returns zero hits.
+- In the package worktree,
+  `rg -n 'status="(success|unavailable_backend|backend_error|protocol_error)"' src/argumentation/structured/aspic tests/structured/aspic`
+  returns zero hits; solver results use `ASPICQueryStatus` members.
+- In Propstore,
+  `rg -n '"package_status"|\("package_status"' propstore tests` returns zero hits.
+- In Propstore,
+  `rg -n 'max_depth: int = 10' propstore tests` returns zero hits.
+- `rg -n 'def analyze_structured_projection|class .*ASPIC.*Adapter|class .*Aspic.*Adapter' propstore`
+  returns zero hits; B2 adds no shared adapter.
+
+B2 final gate:
+
+`powershell -File scripts/run_logged_pytest.ps1 tests/test_aspic_bridge.py tests/test_core_analyzers_phase6.py tests/test_core_semantic_kernel.py tests/test_resolution.py tests/test_worldline_argumentation_multi_extension.py tests/test_worldline_error_visibility.py tests/test_app_worldlines.py -q`
+
+Then run `uv run pyright propstore`, `uv run lint-imports`,
+`uv run ruff check .`, `uv run ruff format --check .`, and the full logged suite
+with `powershell -File scripts/run_logged_pytest.ps1 -q`. After every substantial
+passing test run, reread this plan and continue to the next unchecked B2 item.
+
 ### B3. PrAF owner package and Propstore propagation
 
 - [ ] Change the argumentation package owner to accept caller-supplied

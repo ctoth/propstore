@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from argumentation.structured.aspic.aspic_encoding import ASPICQueryStatus
 
 from propstore.core.labels import (
     EnvironmentKey,
@@ -81,9 +82,11 @@ def test_analyzer_result_carries_label_and_metadata() -> None:
         extensions=(ExtensionResult(name="grounded", accepted_claim_ids=("a",)),),
         projection=ClaimProjection(target_claim_ids=("a",), survivor_claim_ids=("a",)),
         support_label=Label.empty(),
+        aspic_query_status=ASPICQueryStatus.SUCCESS,
         metadata=(("k", "v"),),
     )
     assert result.extensions[0].accepted_claim_ids == ("a",)
     assert result.projection is not None
     assert result.projection.survivor_claim_ids == ("a",)
+    assert result.aspic_query_status is ASPICQueryStatus.SUCCESS
     assert result.metadata == (("k", "v"),)

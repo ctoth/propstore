@@ -10,9 +10,26 @@ layer (Phase 7) and are intentionally not constructed here.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
+import pytest
+from argumentation.structured.aspic.aspic import (
+    ArgumentationSystem,
+    ContrarinessFn,
+    GroundAtom,
+    KnowledgeBase,
+    Literal,
+    PreferenceConfig,
+)
+from argumentation.structured.aspic.aspic_encoding import (
+    ASPICQueryStatus,
+    solve_aspic_with_backend,
+)
+
 from propstore.conflict_detector import ConflictClass, ConflictRecord
 from propstore.core.analyzers import (
     SharedAnalyzerInput,
+    analyze_aspic_backend,
     analyze_claim_graph,
     analyze_praf,
     project_acceptance_result,
@@ -64,6 +81,57 @@ def _shared_supersede() -> SharedAnalyzerInput:
         [],
         {"a", "b"},
     )
+
+
+def _aspic_inputs() -> tuple[ArgumentationSystem, KnowledgeBase, PreferenceConfig]:
+    premise = Literal(GroundAtom("premise"))
+    return (
+        ArgumentationSystem(
+            language=frozenset({premise}),
+            contrariness=ContrarinessFn(frozenset()),
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset(),
+        ),
+        KnowledgeBase(axioms=frozenset(), premises=frozenset({premise})),
+        PreferenceConfig(
+            rule_order=frozenset(),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        ),
+    )
+
+
+@pytest.mark.parametrize("status", tuple(ASPICQueryStatus))
+def test_analyze_aspic_backend_preserves_package_status(
+    monkeypatch: pytest.MonkeyPatch,
+    status: ASPICQueryStatus,
+) -> None:
+    system, kb, pref = _aspic_inputs()
+    package_result = solve_aspic_with_backend(
+        system,
+        kb,
+        pref,
+        backend="materialized_reference",
+    )
+    if status is not ASPICQueryStatus.SUCCESS:
+        package_result = replace(
+            package_result,
+            status=status,
+            accepted_argument_ids=frozenset(),
+            accepted_conclusions=frozenset(),
+            metadata={**package_result.metadata, "reason": status.value},
+        )
+    monkeypatch.setattr(
+        "argumentation.structured.aspic.aspic_encoding.solve_aspic_with_backend",
+        lambda *_args, **_kwargs: package_result,
+    )
+
+    result = analyze_aspic_backend(system, kb, pref)
+
+    assert result.aspic_query_status is status
+    assert len(result.extensions) == (1 if status is ASPICQueryStatus.SUCCESS else 0)
+    assert all(key != "_".join(("package", "status")) for key, _ in result.metadata)
 
 
 def test_supersede_builds_directed_defeat_and_grounded_winner() -> None:

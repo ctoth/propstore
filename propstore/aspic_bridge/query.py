@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from argumentation.structured.aspic.aspic import (
     Argument,
+    ArgumentBuildResult,
     Attack,
     GroundAtom,
     Literal,
@@ -45,6 +46,7 @@ class ClaimQueryResult:
 
     claim_id: str | GroundAtom | LiteralKey
     goal: Literal
+    construction: ArgumentBuildResult
     arguments_for: frozenset[Argument]
     arguments_against: frozenset[Argument]
     attacks: frozenset[Attack]
@@ -83,7 +85,7 @@ def query_claim(
     bundle: GroundedRulesBundle,
     comparison: str = "elitist",
     link: str = "last",
-    max_depth: int = 10,
+    max_depth: int | None = None,
 ) -> ClaimQueryResult:
     """Build only the arguments relevant to one goal and its attackers."""
 
@@ -101,11 +103,13 @@ def query_claim(
         raise KeyError(claim_id)
     goal = compiled.literals[goal_key]
 
-    arguments = build_arguments_for(
+    construction = build_arguments_for(
         compiled.system, compiled.kb, goal, include_attackers=True, max_depth=max_depth
     )
     arguments = frozenset(
-        sub_argument for argument in arguments for sub_argument in sub(argument)
+        sub_argument
+        for argument in construction.arguments
+        for sub_argument in sub(argument)
     )
     attacks = compute_attacks(arguments, compiled.system)
     directed_pairs = preference_sensitive_stance_pairs(stances, compiled.literals)
@@ -145,6 +149,7 @@ def query_claim(
     return ClaimQueryResult(
         claim_id=claim_id,
         goal=goal,
+        construction=construction,
         arguments_for=arguments_for,
         arguments_against=arguments_against,
         attacks=attacks,
