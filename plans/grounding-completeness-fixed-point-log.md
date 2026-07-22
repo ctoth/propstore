@@ -301,3 +301,24 @@ Gate results:
 Commit:
 
 - This commit: `fix(argumentation): fail closed on incomplete grounding`
+
+## B1 final verification
+
+- Pass: final combined focused gate after all four semantic commits.
+  - 227 passed in 15.11s.
+  - Log: `logs/test-runs/pytest-20260722-124416.log`.
+- Pass: repository formatter applied to the 10 B1-touched files and left 633
+  files unchanged.
+- Pass: final combined focused gate after formatting.
+  - 227 passed in 14.18s.
+  - Log: `logs/test-runs/pytest-20260722-124608.log`.
+- Pass: full logged suite after formatting.
+  - 1820 passed, 1 skipped in 86.33s.
+  - Log: `logs/test-runs/pytest-20260722-124640.log`.
+- Pass: `uv run pyright propstore` with 0 errors.
+- Pass: `uv run lint-imports` with 3 contracts kept and 0 broken.
+- Pass: `uv run ruff format --check .` with all 643 files formatted.
+- Blocked outside B1 scope: `uv run ruff check .` reports 72 findings in
+  unrelated pre-existing review scripts, utility scripts, older revision tests,
+  and a workstream note. None of the reported paths is a B1-touched file; those
+  unrelated files were not mutated under B1 authority.

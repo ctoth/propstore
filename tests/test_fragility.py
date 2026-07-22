@@ -656,8 +656,7 @@ class TestRankFragility:
         with pytest.raises(
             TypeError,
             match=(
-                "grounding or bridge fragility requires a grounded "
-                "bundle-capable store"
+                "grounding or bridge fragility requires a grounded bundle-capable store"
             ),
         ):
             rank_fragility(

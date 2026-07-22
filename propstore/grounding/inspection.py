@@ -5,6 +5,7 @@ from __future__ import annotations
 import gunray
 from gunray.types import Atom
 
+
 def parse_query_atom(text: str) -> Atom:
     """Parse a query atom string through gunray's own parser."""
 

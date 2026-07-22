@@ -119,10 +119,7 @@ def grounding_query(obj: CliContext, atom: str) -> None:
         fail(str(exc))
     emit(atom)
     if bundle.status is GroundingStatus.BUDGET_EXCEEDED:
-        emit(
-            f"  status: incomplete ({bundle.status.value}): "
-            f"{bundle.budget_reason}"
-        )
+        emit(f"  status: incomplete ({bundle.status.value}): {bundle.budget_reason}")
         return
     matched = tuple(
         section

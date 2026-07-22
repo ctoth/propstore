@@ -215,8 +215,7 @@ def rank_fragility(
         store = bound.store
         if not isinstance(store, GroundingBundleStore):
             raise TypeError(
-                "grounding or bridge fragility requires a grounded "
-                "bundle-capable store"
+                "grounding or bridge fragility requires a grounded bundle-capable store"
             )
         bundle = store.grounding_bundle()
         grounding_status = bundle.status
@@ -228,8 +227,8 @@ def rank_fragility(
                 interventions.extend(collect_grounded_rule_interventions(bundle))
 
             if include_bridge:
-                active_claims, justifications, stance_rows = (
-                    build_bound_bridge_inputs(bound)
+                active_claims, justifications, stance_rows = build_bound_bridge_inputs(
+                    bound
                 )
                 interventions.extend(
                     collect_bridge_undercut_interventions(

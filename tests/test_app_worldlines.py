@@ -222,8 +222,7 @@ def test_incomplete_aspic_worldline_is_diagnostic_but_not_materialized(
         materialize_worldline(repo, WorldlineRunRequest(name="wl"))
     assert repo.require_git().head_sha() == head_before
     assert (
-        show_worldline(repo, WorldlineShowRequest(name="wl")).definition.results
-        is None
+        show_worldline(repo, WorldlineShowRequest(name="wl")).definition.results is None
     )
 
 
