@@ -232,19 +232,36 @@ def _capture_aspic(
         semantics=_semantics_value(normalized_semantics),
         backend=ReasoningBackend.ASPIC,
     )
-    if not isinstance(justified_arguments, frozenset):
-        return None
-
-    justified_claim_ids = {
-        to_claim_id(claim_id)
-        for arg_id in justified_arguments
-        if (claim_id := projection.argument_to_claim_id.get(arg_id)) is not None
-    }
+    argument_extensions = (
+        (justified_arguments,)
+        if isinstance(justified_arguments, frozenset)
+        else tuple(justified_arguments)
+    )
+    extension_claim_sets = tuple(
+        frozenset(
+            to_claim_id(claim_id)
+            for arg_id in extension
+            if (claim_id := projection.argument_to_claim_id.get(arg_id)) is not None
+        )
+        for extension in argument_extensions
+    )
+    inference_mode = _worldline_inference_mode(normalized_semantics)
+    justified_claim_ids: frozenset[ClaimId] = (
+        _claims_for_inference_mode(extension_claim_sets, inference_mode)
+        if extension_claim_sets
+        else frozenset()
+    )
     defeated = active_ids - justified_claim_ids
     return WorldlineArgumentationState(
         backend="aspic",
         justified=tuple(sorted(str(claim_id) for claim_id in justified_claim_ids)),
         defeated=tuple(sorted(str(claim_id) for claim_id in defeated)),
+        extensions=tuple(
+            tuple(sorted(str(claim_id) for claim_id in extension))
+            for extension in extension_claim_sets
+        ),
+        inference_mode=inference_mode,
+        semantics=_semantics_value(normalized_semantics),
     )
 
 

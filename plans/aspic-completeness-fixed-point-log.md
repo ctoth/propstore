@@ -58,3 +58,61 @@ Commit:
 Next slice:
 - Normalize production worldline ASPIC result shapes and make materialization
   fail closed on typed capture failure.
+
+## Propstore iteration 2 - production worldline consumption
+
+Surfaces:
+- `_capture_aspic()` discarding non-grounded successful result shapes
+  - Disposition: rewrite the caller to consume both existing owner result
+    shapes directly.
+  - Classification: valid capability with a wrong caller disposition.
+  - Action: normalize grounded, multiple-extension, and zero-extension results,
+    map every extension to claim ids, and populate the existing typed worldline
+    fields.
+- Argumentation capture failure without its selected backend
+  - Disposition: populate the already-owned backend field alongside the
+    existing typed status/error evidence.
+  - Classification: valid capability with incomplete typed evidence.
+- Grounding-only materialization failure check
+  - Disposition: replace the incomplete consumer with a fail-closed condition
+    over the existing status/error fields.
+  - Classification: valid failure marker with an incomplete consumer.
+- Resolution semantics exception
+  - Disposition: keep the existing propagating production path and add only the
+    missing regression.
+  - Classification: already-owned capability that uses its true owner directly.
+
+Gate results:
+- Final logged focused pytest: 55 passed in 8.32 seconds; log
+  `logs/test-runs/pytest-20260722-171802.log`.
+- `uv run pyright propstore`: zero errors, warnings, or informations after the
+  zero-extension claim set was explicitly typed as `frozenset[ClaimId]`.
+- `uv run lint-imports`: 384 files and 2643 dependencies analyzed; all three
+  contracts kept.
+- Package-wide Ruff check passed and all 640 files passed Ruff format check.
+- Every B2 package and Propstore search gate returned zero hits.
+
+Commit:
+- This iteration is committed as
+  `fix(worldline): refuse incomplete argumentation results`.
+
+Next slice:
+- Run the combined B2 final gate, repeat all static gates, then run the full
+  logged Propstore suite and close the fixed-point record on the final commit.
+
+## Final fixed point
+
+- Combined B2 logged gate: 93 passed in 9.88 seconds; log
+  `logs/test-runs/pytest-20260722-172029.log`.
+- Final `uv run pyright propstore`: zero errors, warnings, or informations.
+- Final `uv run lint-imports`: 384 files and 2643 dependencies analyzed; all
+  three contracts kept.
+- Final package-wide Ruff check passed and all 640 files passed Ruff format
+  check.
+- Full logged Propstore suite: 1830 passed and 1 skipped in 87.87 seconds; log
+  `logs/test-runs/pytest-20260722-172134.log`.
+- The formal-argumentation package remains published at merge commit
+  `978b10edb8eaf106f64cd760cfeedce1c3cbb237`, and Propstore's dependency and
+  lockfile remain pinned to that exact revision.
+- Every B2 execution item and final gate is complete; the active plan's B2
+  checklist is closed.

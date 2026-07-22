@@ -462,6 +462,35 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(
     assert calls[0]["link"] == "weakest"
 
 
+def test_aspic_resolution_propagates_semantics_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    projection = SimpleNamespace(
+        claim_to_argument_ids={"claim_a": ("arg:a",), "claim_b": ("arg:b",)},
+        argument_to_claim_id={"arg:a": "claim_a", "arg:b": "claim_b"},
+    )
+    monkeypatch.setattr(
+        "propstore.aspic_bridge.build_aspic_projection",
+        lambda *args, **kwargs: projection,
+    )
+
+    def fail_semantics(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("ASPIC semantics failed")
+
+    monkeypatch.setattr(
+        "propstore.structured_projection.compute_structured_justified_arguments",
+        fail_semantics,
+    )
+
+    with pytest.raises(RuntimeError, match="ASPIC semantics failed"):
+        _resolve_structured_argumentation(
+            [_claim("claim_a"), _claim("claim_b", value=2.0)],
+            [_claim("claim_a"), _claim("claim_b", value=2.0)],
+            SimpleNamespace(),
+            _ArgumentationWorld(),
+        )
+
+
 def test_aspic_resolution_refuses_incomplete_grounding_before_projection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

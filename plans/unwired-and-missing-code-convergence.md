@@ -584,10 +584,10 @@ passing test run, reread this plan and continue to the next unchecked B1 item.
 
 - The grounding-to-ASPIC completeness handoff is owned and completed only by B1
   Slice 4; B2 must not add a second grounding status or repeat that cutover.
-- [ ] Add an explicit completeness result for goal-directed `max_depth` exhaustion.
-- [ ] Promote optional solver `package_status` from generic metadata into the
+- [x] Add an explicit completeness result for goal-directed `max_depth` exhaustion.
+- [x] Promote optional solver `package_status` from generic metadata into the
   existing typed analyzer result surface.
-- [ ] Verify world and worldline never convert failed/partial ASPIC computation
+- [x] Verify world and worldline never convert failed/partial ASPIC computation
   into an empty successful extension.
 
 #### B2 exact execution contract — settled 2026-07-22

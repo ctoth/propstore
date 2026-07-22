@@ -137,6 +137,7 @@ def run_worldline(
         except Exception:
             logger.warning("argumentation capture failed", exc_info=True)
             argumentation_state = WorldlineArgumentationState(
+                backend=policy.reasoning_backend.value,
                 status="error",
                 error=WorldlineCaptureError.ARGUMENTATION,
             )

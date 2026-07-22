@@ -226,6 +226,40 @@ def test_incomplete_aspic_worldline_is_diagnostic_but_not_materialized(
     )
 
 
+def test_aspic_capture_failure_is_not_materialized(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = _repo(tmp_path)
+    create_worldline(
+        repo,
+        WorldlineCreateRequest(
+            name="wl",
+            targets=("Speed",),
+            policy=WorldlinePolicyOptions(
+                strategy="argumentation",
+                reasoning_backend="aspic",
+            ),
+        ),
+    )
+
+    def fail_capture(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("ASPIC capture failed")
+
+    monkeypatch.setattr(
+        "propstore.worldline.runner.capture_argumentation_state",
+        fail_capture,
+    )
+
+    head_before = repo.require_git().head_sha()
+    with pytest.raises(WorldlineValidationError, match="error"):
+        materialize_worldline(repo, WorldlineRunRequest(name="wl"))
+    assert repo.require_git().head_sha() == head_before
+    assert (
+        show_worldline(repo, WorldlineShowRequest(name="wl")).definition.results is None
+    )
+
+
 def test_freshly_materialized_worldline_is_not_stale(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     materialize_worldline(repo, WorldlineRunRequest(name="wl", targets=("Speed",)))

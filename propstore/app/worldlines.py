@@ -280,13 +280,18 @@ def materialize_worldline(
 
     with open_app_world_model(repo) as world:
         result = run_worldline(definition, world)
-    if (
-        result.argumentation is not None
-        and result.argumentation.status == "grounding_budget_exceeded"
+    argumentation = result.argumentation
+    if argumentation is not None and (
+        argumentation.status is not None or argumentation.error is not None
     ):
-        raise WorldlineValidationError(
-            result.argumentation.reason or result.argumentation.status
-        )
+        if argumentation.reason is not None:
+            message = argumentation.reason
+        elif argumentation.status is not None:
+            message = argumentation.status
+        else:
+            assert argumentation.error is not None
+            message = argumentation.error.value
+        raise WorldlineValidationError(message)
     definition.results = result
 
     repo.families.worldlines.save(

@@ -29,7 +29,7 @@ from propstore.world.types import (
 from propstore.worldline.definition import WorldlineDefinition, WorldlineInputs
 from propstore.worldline.resolution import ResolutionContext
 from propstore.worldline.runner import _capture_sensitivity, run_worldline
-from propstore.worldline.result_types import WorldlineTargetValue
+from propstore.worldline.result_types import WorldlineCaptureError, WorldlineTargetValue
 
 
 # ── helpers ──────────────────────────────────────────────────────────
@@ -254,13 +254,13 @@ def test_sensitivity_projection_rejects_boolean_and_text_overrides() -> None:
 class TestArgumentationErrorVisibility:
     """F1.5 — the worldline runner surfaces argumentation failures explicitly."""
 
-    def test_argumentation_failure_produces_error_indicator(self):
+    def test_aspic_failure_produces_typed_error_indicator(self):
         """When argumentation capture raises, the result must carry an
         error indicator — not silently return argumentation=None."""
         definition = _make_definition(
             targets=["output_qty"],
             strategy=ResolutionStrategy.ARGUMENTATION,
-            reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
+            reasoning_backend=ReasoningBackend.ASPIC,
         )
 
         world = _FakeWorld()
@@ -295,6 +295,7 @@ class TestArgumentationErrorVisibility:
             "argumentation is None — the exception was silently swallowed "
             "(F1.5: argumentation failure was swallowed)"
         )
-        assert result.argumentation.error is not None, (
-            "argumentation state exists but contains no error indicator"
-        )
+        assert result.argumentation.backend == "aspic"
+        assert result.argumentation.status == "error"
+        assert result.argumentation.error is WorldlineCaptureError.ARGUMENTATION
+        assert result.argumentation.reason is None
