@@ -344,6 +344,51 @@ def test_claim_pipeline_invalid_claim_is_blocked_not_aborted() -> None:
     assert bundle.blocked_claims[0].claim.claim_id == "c2"
 
 
+def test_claim_pipeline_blocks_value_outside_closed_category() -> None:
+    form = FormDefinition(name="category", kind=KindType.CATEGORY)
+    concept = Concept(
+        concept_id="ps:concept:severity",
+        canonical_name="severity",
+        category_values=("low", "high"),
+        category_extensible=False,
+        lexical_entry=LexicalEntry(
+            identifier="entry:severity",
+            canonical_form=LexicalForm(written_rep="Severity", language="en"),
+            senses=(
+                LexicalSense(reference=OntologyReference(uri="ps:concept:severity")),
+            ),
+            physical_dimension_form="category",
+        ),
+    )
+    concept_result = run_concept_pipeline(
+        [LoadedConcept(concept=concept)],
+        context=ConceptPipelineContext(form_registry={"category": form}),
+    )
+    assert isinstance(concept_result.output, ConceptCheckedRegistry)
+    context = build_compilation_context(
+        concept_result.output,
+        form_registry={"category": form},
+    )
+    claim = Claim(
+        claim_id="unknown-severity",
+        claim_type=ClaimType.PARAMETER,
+        output_concept="ps:concept:severity",
+        value="critical",
+    )
+
+    result = run_claim_pipeline(
+        ClaimFiles.from_sequence([LoadedClaim(claim=claim)], context)
+    )
+    bundle = result.output
+    assert isinstance(bundle, ClaimCheckedBundle)
+    assert bundle.blocked_claims
+    assert any(
+        diagnostic.code == "claim.contract"
+        and "closed category vocabulary" in diagnostic.message
+        for diagnostic in bundle.blocked_claims[0].diagnostics
+    )
+
+
 def test_claim_pipeline_dangling_context_is_blocked() -> None:
     # A claim whose context is not among the known contexts is quarantined
     # (blocked) at the pass level. (Through the canonical store the FK is also

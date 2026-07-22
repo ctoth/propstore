@@ -329,6 +329,122 @@ def test_claim_value_within_form_bounds_is_accepted(tmp_path: Path) -> None:
     assert claim.value == 37.0
 
 
+def test_parameter_claim_uses_closed_category_vocabulary(tmp_path: Path) -> None:
+    repo = _new_source(tmp_path)
+    repo.families.form.save(
+        "severity",
+        FormDefinition(
+            name="severity",
+            kind=KindType.CATEGORY,
+            min_value=0.0,
+            max_value=1.0,
+        ),
+        message="seed closed category form",
+    )
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="severity",
+        definition="A severity label.",
+        form="severity",
+        form_parameters=SourceConceptFormParametersDocument(
+            values=("low", "high"),
+            extensible=False,
+        ),
+    )
+
+    accepted = commit_source_claim_proposal(
+        repo,
+        _SOURCE,
+        claim_id="known-severity",
+        claim_type=ClaimType.PARAMETER,
+        context="ctx",
+        concept="severity",
+        value="low",
+    )
+    assert accepted.value == "low"
+
+    with pytest.raises(ValueError, match="closed category vocabulary"):
+        commit_source_claim_proposal(
+            repo,
+            _SOURCE,
+            claim_id="unknown-severity",
+            claim_type=ClaimType.PARAMETER,
+            context="ctx",
+            concept="severity",
+            value="critical",
+        )
+
+
+def test_parameter_claim_accepts_extensible_category_value(tmp_path: Path) -> None:
+    repo = _new_source(tmp_path)
+    repo.families.form.save(
+        "label",
+        FormDefinition(name="label", kind=KindType.CATEGORY),
+        message="seed extensible category form",
+    )
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="label",
+        definition="An extensible label.",
+        form="label",
+        form_parameters=SourceConceptFormParametersDocument(
+            values=("known",),
+            extensible=True,
+        ),
+    )
+
+    claim = commit_source_claim_proposal(
+        repo,
+        _SOURCE,
+        claim_id="new-label",
+        claim_type=ClaimType.PARAMETER,
+        context="ctx",
+        concept="label",
+        value="new",
+    )
+    assert claim.value == "new"
+
+
+def test_parameter_claim_requires_boolean_value(tmp_path: Path) -> None:
+    repo = _new_source(tmp_path)
+    repo.families.form.save(
+        "enabled",
+        FormDefinition(name="enabled", kind=KindType.BOOLEAN),
+        message="seed boolean form",
+    )
+    commit_source_concept_proposal(
+        repo,
+        _SOURCE,
+        local_name="enabled",
+        definition="Whether the feature is enabled.",
+        form="enabled",
+    )
+
+    accepted = commit_source_claim_proposal(
+        repo,
+        _SOURCE,
+        claim_id="enabled-bool",
+        claim_type=ClaimType.PARAMETER,
+        context="ctx",
+        concept="enabled",
+        value=True,
+    )
+    assert accepted.value is True
+
+    with pytest.raises(ValueError, match="value must be boolean"):
+        commit_source_claim_proposal(
+            repo,
+            _SOURCE,
+            claim_id="enabled-text",
+            claim_type=ClaimType.PARAMETER,
+            context="ctx",
+            concept="enabled",
+            value="true",
+        )
+
+
 def test_source_claim_cel_uses_closed_category_metadata(tmp_path: Path) -> None:
     repo = _new_source(tmp_path)
     repo.families.form.save(

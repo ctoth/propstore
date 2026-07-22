@@ -7,6 +7,8 @@ delegates sympy generation to human-to-sympy while never aborting.
 
 from __future__ import annotations
 
+from condition_ir import ConceptInfo, KindType
+
 from propstore.claim_contracts import (
     ClaimConceptLinkRole,
     ClaimSemanticCheck,
@@ -16,6 +18,7 @@ from propstore.claim_contracts import (
     validate_claim,
 )
 from propstore.families.claims import Claim, ClaimType
+from propstore.families.forms import FormDefinition
 
 
 def test_parameter_contract_shape() -> None:
@@ -92,3 +95,123 @@ def test_validate_is_non_committal_on_bad_expression() -> None:
 
 def test_sympy_check_is_a_semantic_check() -> None:
     assert issubclass(SympyGenerationCheck, ClaimSemanticCheck)
+
+
+def test_validate_quantity_value_checks_type_and_bounds() -> None:
+    form = FormDefinition(
+        name="temperature",
+        kind=KindType.QUANTITY,
+        min_value=0.0,
+        max_value=100.0,
+    )
+    report = validate_claim(
+        Claim(
+            claim_id="hot",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="temperature",
+            value=200.0,
+        ),
+        form=form,
+    )
+    assert any(d.field == "value" and "above" in d.message for d in report.diagnostics)
+
+    wrong_type = validate_claim(
+        Claim(
+            claim_id="not-temperature",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="temperature",
+            value="hot",
+        ),
+        form=form,
+    )
+    assert any(
+        d.field == "value" and "must be numeric" in d.message
+        for d in wrong_type.diagnostics
+    )
+
+
+def test_validate_category_uses_closed_vocabulary_without_numeric_checks() -> None:
+    form = FormDefinition(
+        name="severity",
+        kind=KindType.CATEGORY,
+        min_value=0.0,
+        max_value=1.0,
+    )
+    info = ConceptInfo(
+        id="severity",
+        canonical_name="severity",
+        kind=KindType.CATEGORY,
+        category_values=["low", "high"],
+        category_extensible=False,
+    )
+    accepted = validate_claim(
+        Claim(
+            claim_id="known",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="severity",
+            value="low",
+        ),
+        form=form,
+        concept_info=info,
+    )
+    assert not accepted.diagnostics
+
+    rejected = validate_claim(
+        Claim(
+            claim_id="unknown",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="severity",
+            value="critical",
+        ),
+        form=form,
+        concept_info=info,
+    )
+    assert any("closed category vocabulary" in d.message for d in rejected.diagnostics)
+
+
+def test_validate_extensible_category_accepts_new_text() -> None:
+    report = validate_claim(
+        Claim(
+            claim_id="new-category",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="severity",
+            value="critical",
+        ),
+        form=FormDefinition(name="severity", kind=KindType.CATEGORY),
+        concept_info=ConceptInfo(
+            id="severity",
+            canonical_name="severity",
+            kind=KindType.CATEGORY,
+            category_values=["low", "high"],
+            category_extensible=True,
+        ),
+    )
+    assert not report.diagnostics
+
+
+def test_validate_boolean_requires_bool_and_rejects_bounds() -> None:
+    report = validate_claim(
+        Claim(
+            claim_id="text-bool",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="enabled",
+            value="true",
+            lower_bound=0.0,
+        ),
+        form=FormDefinition(name="enabled", kind=KindType.BOOLEAN),
+    )
+    assert {d.field for d in report.diagnostics} == {"value", "lower_bound"}
+
+
+def test_validate_structural_adds_no_scalar_policy() -> None:
+    report = validate_claim(
+        Claim(
+            claim_id="structural",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="structure",
+            value="opaque",
+            lower_bound=0.0,
+        ),
+        form=FormDefinition(name="structure", kind=KindType.STRUCTURAL),
+    )
+    assert not report.diagnostics

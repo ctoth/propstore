@@ -22,9 +22,12 @@ from collections.abc import Sized
 from dataclasses import dataclass
 from enum import Enum
 
+from condition_ir import ConceptInfo, KindType
 from human_to_sympy import generate_sympy_rhs_with_error
 
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
+from propstore.families.forms import FormDefinition
 
 
 class ClaimConceptLinkRole(str, Enum):
@@ -229,6 +232,110 @@ class ClaimValidationReport:
     deferred_checks: tuple[str, ...] = ()
 
 
+def validate_claim_value_fields(
+    *,
+    value: ScalarValue | None,
+    lower_bound: float | None,
+    upper_bound: float | None,
+    form: FormDefinition,
+    concept_info: ConceptInfo | None,
+) -> tuple[ClaimValidationDiagnostic, ...]:
+    """Validate Claim value fields against their form and concept semantics."""
+
+    diagnostics: list[ClaimValidationDiagnostic] = []
+    if form.kind in {KindType.QUANTITY, KindType.TIMEPOINT}:
+        numeric_fields: tuple[tuple[str, int | float], ...] = tuple(
+            (field, numeric)
+            for field, numeric in (
+                ("value", value),
+                ("lower_bound", lower_bound),
+                ("upper_bound", upper_bound),
+            )
+            if isinstance(numeric, int | float) and not isinstance(numeric, bool)
+        )
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, int | float)
+        ):
+            diagnostics.append(
+                ClaimValidationDiagnostic(
+                    field="value",
+                    message=f"value must be numeric for form {form.name!r}",
+                )
+            )
+        for field, numeric in numeric_fields:
+            if form.min_value is not None and numeric < form.min_value:
+                diagnostics.append(
+                    ClaimValidationDiagnostic(
+                        field=field,
+                        message=(
+                            f"{field}={numeric} is below form {form.name!r} "
+                            f"min={form.min_value}"
+                        ),
+                    )
+                )
+            if form.max_value is not None and numeric > form.max_value:
+                diagnostics.append(
+                    ClaimValidationDiagnostic(
+                        field=field,
+                        message=(
+                            f"{field}={numeric} is above form {form.name!r} "
+                            f"max={form.max_value}"
+                        ),
+                    )
+                )
+        return tuple(diagnostics)
+
+    if form.kind is KindType.STRUCTURAL:
+        return ()
+
+    for field, bound in (
+        ("lower_bound", lower_bound),
+        ("upper_bound", upper_bound),
+    ):
+        if bound is not None:
+            diagnostics.append(
+                ClaimValidationDiagnostic(
+                    field=field,
+                    message=f"{field} is not valid for {form.kind.value} form {form.name!r}",
+                )
+            )
+
+    if form.kind is KindType.CATEGORY and value is not None:
+        if not isinstance(value, str):
+            diagnostics.append(
+                ClaimValidationDiagnostic(
+                    field="value",
+                    message=f"value must be text for category form {form.name!r}",
+                )
+            )
+        elif (
+            concept_info is not None
+            and not concept_info.category_extensible
+            and value not in concept_info.category_values
+        ):
+            diagnostics.append(
+                ClaimValidationDiagnostic(
+                    field="value",
+                    message=(
+                        f"value {value!r} is outside the closed category vocabulary "
+                        f"for concept {concept_info.canonical_name!r}"
+                    ),
+                )
+            )
+    elif (
+        form.kind is KindType.BOOLEAN
+        and value is not None
+        and not isinstance(value, bool)
+    ):
+        diagnostics.append(
+            ClaimValidationDiagnostic(
+                field="value",
+                message=f"value must be boolean for form {form.name!r}",
+            )
+        )
+    return tuple(diagnostics)
+
+
 def _is_present(value: object) -> bool:
     if value is None:
         return False
@@ -237,7 +344,12 @@ def _is_present(value: object) -> bool:
     return True
 
 
-def validate_claim(claim: Claim) -> ClaimValidationReport:
+def validate_claim(
+    claim: Claim,
+    *,
+    form: FormDefinition | None = None,
+    concept_info: ConceptInfo | None = None,
+) -> ClaimValidationReport:
     """Validate a claim against its type contract; return a report (never raises).
 
     Checks required/non-empty fields, then runs the semantic checks this phase
@@ -258,6 +370,16 @@ def validate_claim(claim: Claim) -> ClaimValidationReport:
         )
 
     diagnostics: list[ClaimValidationDiagnostic] = []
+    if form is not None:
+        diagnostics.extend(
+            validate_claim_value_fields(
+                value=claim.value,
+                lower_bound=claim.lower_bound,
+                upper_bound=claim.upper_bound,
+                form=form,
+                concept_info=concept_info,
+            )
+        )
     for name in contract.required_fields:
         if not _is_present(getattr(claim, name, None)):
             diagnostics.append(

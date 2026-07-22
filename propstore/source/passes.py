@@ -49,9 +49,7 @@ from propstore.importing.contract import (
 from propstore.repository import Repository
 from propstore.source.claims import (
     normalize_source_claims_payload,
-    validate_source_claim_cel_expressions,
-    validate_source_claim_concepts,
-    validate_source_claim_value_bounds,
+    validate_source_claims,
 )
 from propstore.source.common import (
     load_source_document,
@@ -222,9 +220,7 @@ def _write_claims(
         return 0
     raw, claim_warnings = coerce_claim_rows(manifest.claims, paper=slug)
     warnings.extend(claim_warnings)
-    validate_source_claim_concepts(repo, source_name, raw)
-    validate_source_claim_cel_expressions(repo, source_name, raw)
-    validate_source_claim_value_bounds(repo, source_name, raw)
+    validate_source_claims(repo, source_name, raw)
     source_doc = load_source_document(repo, source_name)
     normalized, _ = normalize_source_claims_payload(
         raw,

@@ -10,9 +10,9 @@ a *valid* claim, they reject malformed input:
   branch may not mint into the canonical ``ps`` / ``propstore`` namespaces;
 * the **unknown-concept guard**: every source-local concept reference must name a
   concept proposed on this branch (or already a canonical ``ps:concept:`` / tag);
-* the **CEL + value-bound guards** (via ``condition_ir`` and the form registry):
-  a claim's CEL conditions must type-check against the known concept kinds, and a
-  value-bearing claim must lie within its concept's form bounds.
+* the **CEL + form-value guards** (via ``condition_ir`` and Claim contracts):
+  a claim's CEL conditions must type-check against the known concept kinds, and
+  its value fields must satisfy the owning concept's form semantics.
 
 Non-commitment (CLAUDE.md): a well-formed claim flows straight into the source
 branch with provenance; there is no truth-gate and no render-time filtering here.
@@ -28,6 +28,7 @@ from condition_ir import ConceptInfo, KindType, check_cel_expression
 from quire.documents import decode_document_path
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
+from propstore.claim_contracts import validate_claim_value_fields
 from propstore.core.scalars import ScalarValue
 from propstore.families.claims import ClaimType
 from propstore.families.concepts import Concept
@@ -136,7 +137,7 @@ def _concept_form_name(concept: Concept) -> str | None:
 
 def validate_source_claim_cel_expressions(
     repo: Repository, source_name: str, data: SourceClaimsDocument
-) -> None:
+) -> dict[str, ConceptInfo]:
     """Reject a batch whose CEL conditions fail to type-check.
 
     The registry is the union of master's canonical concepts and the source
@@ -199,7 +200,7 @@ def validate_source_claim_cel_expressions(
                     registry[name] = info
 
     if not registry:
-        return
+        return registry
     for claim in data.claims:
         if not claim.conditions:
             continue
@@ -212,6 +213,7 @@ def validate_source_claim_cel_expressions(
                     f"claim {label!r} has an invalid CEL condition "
                     f"{condition!r}: {detail}"
                 )
+    return registry
 
 
 def _form_bearing_concept_for_claim(claim: SourceClaimDocument) -> str | None:
@@ -229,17 +231,6 @@ def _form_bearing_concept_for_claim(claim: SourceClaimDocument) -> str | None:
             else None
         )
     return None
-
-
-def _value_fields_for_claim(claim: SourceClaimDocument) -> list[tuple[str, float]]:
-    fields: list[tuple[str, float]] = []
-    if isinstance(claim.value, int | float) and not isinstance(claim.value, bool):
-        fields.append(("value", float(claim.value)))
-    if claim.lower_bound is not None:
-        fields.append(("lower_bound", claim.lower_bound))
-    if claim.upper_bound is not None:
-        fields.append(("upper_bound", claim.upper_bound))
-    return fields
 
 
 def _forms_by_name(repo: Repository) -> dict[str, FormDefinition]:
@@ -275,53 +266,6 @@ def _source_concept_form_names(repo: Repository, source_name: str) -> dict[str, 
             if isinstance(handle, str) and handle:
                 mapping[handle] = entry.form
     return mapping
-
-
-def validate_source_claim_value_bounds(
-    repo: Repository, source_name: str, data: SourceClaimsDocument
-) -> None:
-    """Reject a batch whose numeric fields fall outside the form's bounds.
-
-    Master concept forms take precedence; a source-branch proposal's declared
-    form is the fallback. A form without ``min_value`` / ``max_value`` imposes
-    no bound.
-    """
-
-    forms = _forms_by_name(repo)
-    master_concept_forms = _master_concept_form_names(repo)
-    source_concept_forms = _source_concept_form_names(repo, source_name)
-
-    for claim in data.claims:
-        concept_handle = _form_bearing_concept_for_claim(claim)
-        if concept_handle is None:
-            continue
-        value_fields = _value_fields_for_claim(claim)
-        if not value_fields:
-            continue
-        form_name = master_concept_forms.get(
-            concept_handle
-        ) or source_concept_forms.get(concept_handle)
-        if form_name is None:
-            continue
-        form_def = forms.get(form_name)
-        if form_def is None or (
-            form_def.min_value is None and form_def.max_value is None
-        ):
-            continue
-        label = claim.source_local_id or claim.id or "<unnamed>"
-        for field_name, numeric in value_fields:
-            if form_def.min_value is not None and numeric < form_def.min_value:
-                raise ValueError(
-                    f"claim {label!r} {field_name}={numeric} is below form "
-                    f"{form_def.name!r} min={form_def.min_value} "
-                    f"(concept {concept_handle!r})"
-                )
-            if form_def.max_value is not None and numeric > form_def.max_value:
-                raise ValueError(
-                    f"claim {label!r} {field_name}={numeric} is above form "
-                    f"{form_def.name!r} max={form_def.max_value} "
-                    f"(concept {concept_handle!r})"
-                )
 
 
 def normalize_source_claims_payload(
@@ -385,12 +329,39 @@ def normalize_source_claims_payload(
     )
 
 
-def _validate_source_claims(
+def validate_source_claims(
     repo: Repository, source_name: str, data: SourceClaimsDocument
 ) -> None:
+    """Validate source claims against references, CEL, and Claim form semantics."""
+
     validate_source_claim_concepts(repo, source_name, data)
-    validate_source_claim_cel_expressions(repo, source_name, data)
-    validate_source_claim_value_bounds(repo, source_name, data)
+    concept_infos = validate_source_claim_cel_expressions(repo, source_name, data)
+    forms = _forms_by_name(repo)
+    master_concept_forms = _master_concept_form_names(repo)
+    source_concept_forms = _source_concept_form_names(repo, source_name)
+    for claim in data.claims:
+        concept_handle = _form_bearing_concept_for_claim(claim)
+        if concept_handle is None:
+            continue
+        form_name = master_concept_forms.get(
+            concept_handle
+        ) or source_concept_forms.get(concept_handle)
+        if form_name is None:
+            continue
+        form = forms.get(form_name)
+        if form is None:
+            continue
+        problems = validate_claim_value_fields(
+            value=claim.value,
+            lower_bound=claim.lower_bound,
+            upper_bound=claim.upper_bound,
+            form=form,
+            concept_info=concept_infos.get(concept_handle),
+        )
+        if problems:
+            label = claim.source_local_id or claim.id or "<unnamed>"
+            detail = "; ".join(problem.message for problem in problems)
+            raise ValueError(f"claim {label!r} {detail} (concept {concept_handle!r})")
 
 
 def commit_source_claims_batch(
@@ -429,7 +400,7 @@ def commit_source_claims_batch(
                 timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             ),
         )
-    _validate_source_claims(repo, source_name, raw)
+    validate_source_claims(repo, source_name, raw)
     normalized, _ = normalize_source_claims_payload(
         raw,
         source_uri=source_doc.id or source_tag_uri(repo, source_name),
@@ -521,7 +492,7 @@ def commit_source_claim_proposal(
             source=existing.source or ClaimSourceDocument(paper=paper),
             claims=tuple(kept),
         )
-        _validate_source_claims(repo, source_name, data)
+        validate_source_claims(repo, source_name, data)
         normalized, _ = normalize_source_claims_payload(
             data,
             source_uri=source_doc.id or source_tag_uri(repo, source_name),
