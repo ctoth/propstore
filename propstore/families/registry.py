@@ -34,6 +34,7 @@ from propstore.families.contexts import Context, LiftingMaterialization, Lifting
 from propstore.families.coreference import CoreferenceMergeArgumentDoc
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
+from propstore.families.grounding import GroundingBuildConfiguration
 from propstore.families.justifications import Justification
 from propstore.families.merge_manifests import MergeManifest
 from propstore.families.micropublications import Micropublication
@@ -72,7 +73,7 @@ from propstore.families.rules import RuleProposalRef as RuleProposalRef
 # ``propstore.families.registry`` as the one import site for the worldline ref.
 from propstore.worldline.definition import WorldlineRef as WorldlineRef
 
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.21.3")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = contract_version("2026.07.22")
 """Wire-contract version of the assembled registry (stamped into bootstrap)."""
 
 # The charter-bearing document classes, in authoring order. The registry's
@@ -111,6 +112,7 @@ _CHARTER_MODELS = (
     ConflictProjection,
     BuildDiagnostic,
     CalibrationCount,
+    GroundingBuildConfiguration,
     # Merge record family (written by the two-parent storage merge commit).
     MergeManifest,
     # Worldline family (mutable current-branch authored/materialized state).
@@ -172,6 +174,7 @@ class PropstoreFamily(StrEnum):
     CONFLICT = "conflict"
     BUILD_DIAGNOSTIC = "build_diagnostic"
     CALIBRATION_COUNTS = "calibration_counts"
+    GROUNDING_BUILD_CONFIGURATION = "grounding_build_configuration"
     MERGE_MANIFEST = "merge_manifest"
     WORLDLINES = "worldlines"
 

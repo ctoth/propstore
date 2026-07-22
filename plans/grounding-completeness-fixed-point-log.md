@@ -83,8 +83,81 @@ Gate results:
 
 Commit:
 
-- This commit: `refactor(grounding): type budget completeness evidence`
+- `cdc0085f refactor(grounding): type budget completeness evidence`
 
 Next slice:
 
 - B1 Slice 2 after every Slice 1 gate passes and this iteration is committed.
+
+## Iteration 2 - `B1 Slice 2`
+
+Slice read:
+
+- `propstore/grounding/sidecar.py`
+- `propstore/derived_build.py`
+- `propstore/derived_schema.py`
+- `propstore/families/registry.py`
+- `propstore/grounding/loading.py`
+- `tests/test_sidecar_grounded_facts.py`
+- `tests/test_world_sidecar_grounded.py`
+- focused schema, registry, pass, and manifest tests named by the active plan
+
+Surfaces:
+
+- `propstore.grounding.sidecar` and raw `grounded_fact` storage
+  - Disposition: delete
+  - Owner after cleanup: no persisted grounding result; runtime
+    `GroundedRulesBundle` derives from canonical charter inputs.
+  - Action: deleted the whole production file, its boundary-contract test, all
+    imports/calls, and the one-line `_load_grounding_repo()` wrapper.
+  - Evidence: no production reader existed and the rows could not reconstruct
+    Gunray inspection.
+- selected grounding build configuration
+  - Disposition: move to the correct owner
+  - Owner after cleanup: derived-only `GroundingBuildConfiguration` charter.
+  - Action: added one singleton config row, commit-pinned resolution, cache-key
+    input, registry/version changes, and regenerated manifest.
+  - Evidence: sidecar-only readers require the selected limit, but status and
+    result objects remain runtime bundle state.
+- old raw-table build tests
+  - Disposition: rewrite
+  - Owner after cleanup: charter/schema and typed sidecar-loader contracts.
+  - Action: replaced SQL grounded-row assertions with config-row, historical
+    commit, cache identity, and full typed bundle equivalence tests.
+  - Evidence: these tests represented a still-valid production capability but
+    through the wrong storage representation.
+- typed sidecar grounding reconstruction
+  - Disposition: move to the correct owner
+  - Owner after cleanup: `load_grounded_bundle_from_sidecar()` in
+    `propstore.grounding.loading`.
+  - Action: reconstruct canonical documents directly from charter models,
+    require one config row, and build the full arguments/inspection bundle.
+  - Evidence: both compiler reports and `WorldQuery` need the same
+    grounding-specific typed boundary; no generic adapter or new protocol is
+    needed.
+
+Gate results:
+
+- Pass: `uv run pks contract-manifest --write`
+  - Rewrote the checked manifest from the charter registry.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 tests/test_derived_build.py tests/test_world_sidecar_grounded.py tests/test_semantic_family_registry.py tests/test_semantic_passes.py tests/test_contract_manifest.py -q`
+  - 42 passed in 7.47s.
+  - Log: `logs/test-runs/pytest-20260722-122509.log`.
+- Pass: `rg -n "create_grounded_fact_table|populate_grounded_facts|read_grounded_facts|grounded_fact" propstore tests`
+  - Zero hits.
+- Pass: `rg -n "def _load_grounding_repo" propstore`
+  - Zero hits.
+- Pass: `rg -n "def load_grounded_bundle_from_sidecar" propstore`
+  - Exactly one hit at the grounding owner.
+- Pass: `uv run lint-imports`
+  - 3 contracts kept, 0 broken.
+- Pass: `uv run pyright propstore`
+  - 0 errors, 0 warnings, 0 informations.
+
+Commit:
+
+- This commit: `refactor(grounding): derive bundles from canonical sidecar`
+
+Next slice:
+
+- B1 Slice 3 after every Slice 2 gate passes and this iteration is committed.

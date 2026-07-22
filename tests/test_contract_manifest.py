@@ -64,6 +64,7 @@ def test_contract_manifest_covers_charter_and_pipeline_contracts() -> None:
     assert "family:claim" in keys
     assert "family:concept" in keys
     assert "family:micropublication" in keys
+    assert "family:grounding_build_configuration" in keys
     # Hand-composed claim-type + pipeline entries.
     assert "claim_type_contract:parameter" in keys
     assert "claim_type_contract:algorithm" in keys

@@ -105,6 +105,7 @@ def test_hash_inputs_carry_the_expected_keys() -> None:
     assert "family_contract_versions" in inputs
     assert "dependency_pins" in inputs
     assert "build_time_config" in inputs
+    assert inputs["grounding_config"] == {"max_arguments": None}
 
 
 def test_hash_changes_with_source_revision() -> None:
@@ -112,6 +113,17 @@ def test_hash_changes_with_source_revision() -> None:
     a = world_sidecar_hash("rev-a", schema_hash=schema.catalog_hash)
     b = world_sidecar_hash("rev-b", schema_hash=schema.catalog_hash)
     assert a != b
+
+
+def test_hash_changes_with_grounding_budget() -> None:
+    schema = build_world_sidecar_schema()
+    bounded = world_sidecar_hash(
+        "rev", schema_hash=schema.catalog_hash, grounding_max_arguments=1
+    )
+    differently_bounded = world_sidecar_hash(
+        "rev", schema_hash=schema.catalog_hash, grounding_max_arguments=2
+    )
+    assert bounded != differently_bounded
 
 
 def test_build_projects_charter_families_into_sidecar(tmp_path: Path) -> None:
@@ -122,7 +134,31 @@ def test_build_projects_charter_families_into_sidecar(tmp_path: Path) -> None:
         assert conn.execute("SELECT concept_id FROM concept").fetchall() == [("c1",)]
         assert conn.execute("SELECT claim_id FROM claim").fetchall() == [("cl1",)]
         assert conn.execute("SELECT context_id FROM context").fetchall() == [("ctx1",)]
-        # The raw grounded-fact table exists even with no rules authored.
-        assert conn.execute("SELECT count(*) FROM grounded_fact").fetchone() == (0,)
+        assert conn.execute(
+            "SELECT configuration_id, max_arguments FROM grounding_build_configuration"
+        ).fetchall() == [("grounding", None)]
+    finally:
+        conn.close()
+
+
+def test_historical_build_projects_config_from_requested_commit(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    git = repo.require_git()
+    historical_commit = git.commit_files(
+        {"propstore.yaml": b"grounding_max_arguments: 3\n"},
+        "Set historical grounding budget",
+    )
+    git.commit_files(
+        {"propstore.yaml": b"grounding_max_arguments: 7\n"},
+        "Set current grounding budget",
+    )
+
+    handle, _ = materialize_world_sidecar(repo, commit=historical_commit)
+
+    conn = sqlite3.connect(handle.path)
+    try:
+        assert conn.execute(
+            "SELECT configuration_id, max_arguments FROM grounding_build_configuration"
+        ).fetchall() == [("grounding", 3)]
     finally:
         conn.close()

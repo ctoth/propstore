@@ -47,6 +47,12 @@ def test_registry_contains_every_authored_family() -> None:
     assert {"concept", "claim", "context", "form", "stance", "defeasible_rule"} <= names
 
 
+def test_registry_contains_derived_grounding_configuration() -> None:
+    family = PROPSTORE_FAMILY_REGISTRY.by_name("grounding_build_configuration")
+    assert family.identity_field == "configuration_id"
+    assert family.foreign_keys == ()
+
+
 def test_foreign_key_graph_is_derived_from_charter_fields() -> None:
     # For every family, the registry's foreign keys are exactly the lift of its
     # charter fields' annotations — proving the graph is derived, not authored

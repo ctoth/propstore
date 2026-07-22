@@ -194,3 +194,7 @@ def test_propstore_family_matches_registry() -> None:
     assert {member.value for member in PropstoreFamily} == set(
         registered_family_names()
     )
+    assert (
+        PropstoreFamily.GROUNDING_BUILD_CONFIGURATION.value
+        == "grounding_build_configuration"
+    )

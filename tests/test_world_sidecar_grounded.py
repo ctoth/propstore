@@ -1,55 +1,35 @@
-"""Grounded facts are projected into the world sidecar by the build (9-0-rest-B).
-
-The raw ``grounded_fact`` table round-trip is pinned in
-``test_sidecar_grounded_facts``; this pins the *build wiring*: a repo with authored
-predicates, rules, and a matching claim grounds into ``grounded_fact`` rows in the
-materialized world sidecar (the GUNRAY-unblock dependency).
-"""
+"""Canonical grounding reconstruction from the charter-derived world sidecar."""
 
 from __future__ import annotations
 
-import json
-import sqlite3
 from pathlib import Path
 
+from quire.sqlalchemy_store import readonly_session
 
 from propstore.compiler.workflows import build_repository
+from propstore.derived_schema import build_world_sidecar_schema
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
 from propstore.families.predicates import Predicate
 from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
+from propstore.grounding.bundle import GroundedRulesBundle, GroundingStatus
+from propstore.grounding.loading import (
+    build_grounded_bundle,
+    load_grounded_bundle_from_sidecar,
+    load_grounding_repo,
+)
 from propstore.repository import Repository
 
 
-def _section_atoms(path: str, section: str) -> set[tuple[str, tuple[str, ...]]]:
-    conn = sqlite3.connect(path)
-    try:
-        rows = conn.execute(
-            "SELECT predicate, arguments FROM grounded_fact WHERE section = ?",
-            (section,),
-        ).fetchall()
-    finally:
-        conn.close()
-    return {(str(p), tuple(json.loads(a))) for p, a in rows}
+def _load_sidecar_bundle(path: str) -> GroundedRulesBundle:
+    schema = build_world_sidecar_schema()
+    with readonly_session(Path(path), schema) as session:
+        return load_grounded_bundle_from_sidecar(session)
 
 
-def test_empty_repo_grounds_no_facts(tmp_path: Path) -> None:
-    repo = Repository.init(tmp_path / "kn")
-    repo.families.concept.save(
-        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
-    )
-    report = build_repository(repo)
-    assert report.derived_store is not None
-    conn = sqlite3.connect(report.derived_store.path)
-    try:
-        assert conn.execute("SELECT count(*) FROM grounded_fact").fetchone() == (0,)
-    finally:
-        conn.close()
-
-
-def test_authored_rules_ground_facts_into_sidecar(tmp_path: Path) -> None:
-    repo = Repository.init(tmp_path / "kn")
+def _seed_grounding_repo(path: Path) -> Repository:
+    repo = Repository.init(path)
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
@@ -98,9 +78,47 @@ def test_authored_rules_ground_facts_into_sidecar(tmp_path: Path) -> None:
         ),
         message="m",
     )
+    repo.require_git().commit_files(
+        {"propstore.yaml": b"grounding_max_arguments: 100\n"},
+        "Set grounding budget",
+    )
+    return repo
+
+
+def test_empty_grounding_sidecar_reconstructs_complete_bundle(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "kn")
+    repo.families.concept.save(
+        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
+    )
 
     report = build_repository(repo)
+
     assert report.derived_store is not None
-    yes = _section_atoms(report.derived_store.path, "yes")
-    assert ("has_value", ("cl1",)) in yes
-    assert ("important", ("cl1",)) in yes
+    bundle = _load_sidecar_bundle(report.derived_store.path)
+    assert bundle.status is GroundingStatus.COMPLETE
+    assert bundle.max_arguments is None
+    assert bundle.source_facts == ()
+    assert bundle.arguments == ()
+
+
+def test_sidecar_only_session_reconstructs_full_repository_bundle(
+    tmp_path: Path,
+) -> None:
+    repo = _seed_grounding_repo(tmp_path / "kn")
+    report = build_repository(repo)
+
+    assert report.derived_store is not None
+    sidecar_bundle = _load_sidecar_bundle(report.derived_store.path)
+    repository_bundle = build_grounded_bundle(
+        load_grounding_repo(repo, commit=report.derived_store.source_commit),
+        return_arguments=True,
+        max_arguments=100,
+    )
+
+    assert sidecar_bundle == repository_bundle
+    assert sidecar_bundle.status is GroundingStatus.COMPLETE
+    assert sidecar_bundle.max_arguments == 100
+    assert ("cl1",) in sidecar_bundle.sections["yes"]["has_value"]
+    assert ("cl1",) in sidecar_bundle.sections["yes"]["important"]
+    assert sidecar_bundle.grounding_inspection is not None
+    assert sidecar_bundle.arguments

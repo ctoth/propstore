@@ -13,8 +13,7 @@ every authored family is written straight from its charter
 (``enforce_foreign_keys=False``), so a dangling reference inserts as a quarantined
 row rather than aborting the build (Z1, gaps.md / PLAN.md §12.1). The only
 non-charter compute it writes is the conflict / diagnostic plan
-(:mod:`propstore.derived_build_plan`) and the raw ``grounded_fact`` table
-(:mod:`propstore.grounding.sidecar`).
+(:mod:`propstore.derived_build_plan`).
 """
 
 from __future__ import annotations
@@ -47,16 +46,8 @@ from propstore.derived_schema import (
     WORLD_SIDECAR_SCHEMA_VERSION,
     build_world_sidecar_schema,
 )
+from propstore.families.grounding import GroundingBuildConfiguration
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, registered_charters
-from propstore.grounding.loading import (
-    GroundingRepo,
-    build_grounded_bundle,
-    load_grounding_repo,
-)
-from propstore.grounding.sidecar import (
-    create_grounded_fact_table,
-    populate_grounded_facts,
-)
 from propstore.semantic_passes.registry import PipelineRegistry
 
 if TYPE_CHECKING:
@@ -78,7 +69,13 @@ _SIDECAR_CACHE_DEPENDENCIES = (
 # Families projected from their charters directly. The build computes these rather
 # than reading authored documents, so they are skipped by the generic projection.
 _COMPUTED_FAMILIES = frozenset(
-    {"claim", "lifting_materialization", "conflict", "build_diagnostic"}
+    {
+        "claim",
+        "lifting_materialization",
+        "conflict",
+        "build_diagnostic",
+        "grounding_build_configuration",
+    }
 )
 
 
@@ -148,6 +145,7 @@ def world_sidecar_hash_inputs(
     *,
     source_branch_tips: tuple[tuple[str, str], ...] = (),
     schema_hash: str,
+    grounding_max_arguments: int | None = None,
 ) -> dict[str, object]:
     """The full set of inputs the world-sidecar content hash is computed over.
 
@@ -164,6 +162,7 @@ def world_sidecar_hash_inputs(
         "schema_hash": schema_hash,
         "passes": list(_semantic_pass_versions()),
         "family_contract_versions": _family_contract_versions(),
+        "grounding_config": {"max_arguments": grounding_max_arguments},
         "build_time_config": {
             "PROPSTORE_SIDECAR_CACHE_BUST": os.environ.get(
                 "PROPSTORE_SIDECAR_CACHE_BUST", ""
@@ -180,6 +179,7 @@ def world_sidecar_hash(
     *,
     source_branch_tips: tuple[tuple[str, str], ...] = (),
     schema_hash: str,
+    grounding_max_arguments: int | None = None,
 ) -> str:
     """The content hash (cache key) for a world sidecar at ``source_revision``."""
 
@@ -187,6 +187,7 @@ def world_sidecar_hash(
         source_revision,
         source_branch_tips=source_branch_tips,
         schema_hash=schema_hash,
+        grounding_max_arguments=grounding_max_arguments,
     )
     return derived_store_content_hash(
         projection_version=str(WORLD_SIDECAR_SCHEMA_VERSION),
@@ -199,6 +200,7 @@ def world_sidecar_hash(
             "source_branch_tips": inputs["source_branch_tips"],
             "passes": inputs["passes"],
             "family_contract_versions": inputs["family_contract_versions"],
+            "grounding_config": inputs["grounding_config"],
             "build_time_config": inputs["build_time_config"],
         },
     )
@@ -225,11 +227,15 @@ def materialize_world_sidecar(
         resolved_commit = str(
             commit if commit is not None else repo.require_git().head_sha()
         )
+        grounding_max_arguments = repo.config_at(
+            resolved_commit
+        ).grounding_max_arguments
         schema = build_world_sidecar_schema()
         content_hash = world_sidecar_hash(
             resolved_commit,
             source_branch_tips=_source_branch_tips(repo),
             schema_hash=schema.catalog_hash,
+            grounding_max_arguments=grounding_max_arguments,
         )
 
         def _build(target: Path) -> None:
@@ -238,6 +244,7 @@ def materialize_world_sidecar(
                 repo,
                 schema=schema,
                 commit=resolved_commit,
+                grounding_max_arguments=grounding_max_arguments,
                 checked=checked,
                 plan=plan,
             )
@@ -318,10 +325,6 @@ def _project_authored_families(
         _project_documents(session, schema, name, documents)
 
 
-def _load_grounding_repo(repo: Repository, commit: str | None) -> GroundingRepo:
-    return load_grounding_repo(repo, commit=commit)
-
-
 def _blocked_source_diagnostics(repo: Repository) -> tuple[object, ...]:
     """The blocked-promotion mirror rows for every source branch (Phase 9-3).
 
@@ -364,15 +367,16 @@ def _build_sidecar_file(
     *,
     schema: SqlAlchemySchema,
     commit: str | None,
+    grounding_max_arguments: int | None,
     checked: RepositoryCheckedBundle | None = None,
     plan: SidecarBuildPlan | None = None,
 ) -> None:
     """Build one world-sidecar sqlite file at ``path`` from ``repo``.
 
     Runs the shared compiler (when ``checked`` was not threaded in), then writes
-    every authored family from its charter plus the conflict / diagnostic plan,
-    then the raw grounded-fact table. All population happens under advisory foreign
-    keys so a dangling reference quarantines rather than aborting (Z1).
+    every authored family from its charter plus the conflict / diagnostic plan.
+    All population happens under advisory foreign keys so a dangling reference
+    quarantines rather than aborting (Z1).
     """
 
     if checked is None:
@@ -389,6 +393,17 @@ def _build_sidecar_file(
         create_sqlalchemy_store(path, schema)
         with writable_session(path, schema, enforce_foreign_keys=False) as session:
             _project_authored_families(session, schema, repo, commit)
+            _project_documents(
+                session,
+                schema,
+                "grounding_build_configuration",
+                (
+                    GroundingBuildConfiguration(
+                        configuration_id="grounding",
+                        max_arguments=grounding_max_arguments,
+                    ),
+                ),
+            )
             if checked is not None:
                 _project_documents(session, schema, "claim", checked.claims)
             if plan is not None:
@@ -407,10 +422,6 @@ def _build_sidecar_file(
                 conn,
                 schema_version=WORLD_SIDECAR_SCHEMA_VERSION,
                 key=_WORLD_META_KEY,
-            )
-            create_grounded_fact_table(conn)
-            populate_grounded_facts(
-                conn, build_grounded_bundle(_load_grounding_repo(repo, commit))
             )
             conn.commit()
         finally:

@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.21.3
+  contract_version: 2026.07.22
   body:
     families:
     - contract_version: 2026.07.21
@@ -230,6 +230,9 @@ contracts:
     - contract_version: 2026.06.29
       key: calibration_counts
       name: calibration_counts
+    - contract_version: 2026.07.22
+      key: grounding_build_configuration
+      name: grounding_build_configuration
     - contract_version: 2026.06.29
       key: merge_manifest
       name: merge_manifest
@@ -485,6 +488,26 @@ contracts:
     foreign_keys: []
     identity_field: name
     key: form
+- kind: family
+  name: grounding_build_configuration
+  contract_version: 2026.07.22
+  body:
+    accessor: grounding_build_configuration
+    artifact_family: grounding_build_configuration
+    artifact_family_contract:
+      doc_type: propstore.families.grounding.GroundingBuildConfigurationModel
+      placement:
+        branch:
+          policy: owner
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: grounding_build_configuration
+        ref_field: self
+    artifact_family_contract_version: 2026.07.22
+    foreign_keys: []
+    identity_field: configuration_id
+    key: grounding_build_configuration
 - kind: family
   name: happens_before_edge
   contract_version: 2026.07.21
@@ -1133,4 +1156,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.21.3
+  contract_version: 2026.07.22

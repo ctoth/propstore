@@ -12,8 +12,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from sqlalchemy import select
+
+from quire.sqlalchemy_store import DerivedSession
+
 from propstore.families.claims import Claim
 from propstore.families.concepts import Concept
+from propstore.families.grounding import GroundingBuildConfiguration
 from propstore.families.predicates import Predicate
 from propstore.families.rules import DefeasibleRule, RuleSuperiority
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -113,4 +118,69 @@ def build_grounded_bundle(
         superiority=repo.rule_superiority,
         return_arguments=return_arguments,
         max_arguments=max_arguments,
+    )
+
+
+def load_grounded_bundle_from_sidecar(
+    session: DerivedSession,
+) -> GroundedRulesBundle:
+    """Reconstruct the canonical grounded bundle from one typed sidecar session."""
+
+    predicate_model = session.schema.model("predicate")
+    predicates = tuple(
+        Predicate.__charter__.document_from_model(row, Predicate)
+        for row in session.scalars(select(predicate_model))
+    )
+
+    rule_model = session.schema.model("defeasible_rule")
+    rules = tuple(
+        DefeasibleRule.__charter__.document_from_model(row, DefeasibleRule)
+        for row in session.scalars(select(rule_model))
+    )
+
+    superiority_model = session.schema.model("rule_superiority")
+    rule_superiority = tuple(
+        RuleSuperiority.__charter__.document_from_model(row, RuleSuperiority)
+        for row in session.scalars(select(superiority_model))
+    )
+
+    claim_model = session.schema.model("claim")
+    claims = tuple(
+        Claim.__charter__.document_from_model(row, Claim)
+        for row in session.scalars(select(claim_model))
+    )
+
+    concept_model = session.schema.model("concept")
+    concept_documents = tuple(
+        Concept.__charter__.document_from_model(row, Concept)
+        for row in session.scalars(select(concept_model))
+    )
+    concepts = tuple(
+        ConceptRelations(
+            concept_id=concept.concept_id,
+            canonical_name=concept.canonical_name,
+        )
+        for concept in concept_documents
+    )
+
+    config_model = session.schema.model("grounding_build_configuration")
+    config_rows = tuple(session.scalars(select(config_model)))
+    if len(config_rows) != 1:
+        raise ValueError(
+            "world sidecar must contain exactly one grounding_build_configuration row"
+        )
+    config = GroundingBuildConfiguration.__charter__.document_from_model(
+        config_rows[0], GroundingBuildConfiguration
+    )
+
+    return build_grounded_bundle(
+        GroundingRepo(
+            predicates=predicates,
+            rules=rules,
+            rule_superiority=rule_superiority,
+            concepts=concepts,
+            claims=claims,
+        ),
+        return_arguments=True,
+        max_arguments=config.max_arguments,
     )

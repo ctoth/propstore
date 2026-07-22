@@ -34,7 +34,7 @@ from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 
 from propstore.families.registry import registered_charters
 
-WORLD_SIDECAR_SCHEMA_VERSION = 1
+WORLD_SIDECAR_SCHEMA_VERSION = 2
 """Bumped when the charter-derived schema shape changes incompatibly.
 
 This feeds the derived-store cache key (``derived_build``) so a schema-shape
