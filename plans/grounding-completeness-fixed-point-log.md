@@ -321,9 +321,26 @@ Commit:
 - Pass: `uv run ruff check -- <every current B1-changed Python path>`.
   - All B1-touched Python files pass Ruff.
 - Reconciled: the seven B1 implementation checkboxes in the controlling plan
-  now reflect the landed and verified implementation; the distinct
-  repository-wide Ruff gate remains explicitly incomplete.
-- Blocked outside B1 scope: `uv run ruff check .` reports 72 findings in
-  unrelated pre-existing review scripts, utility scripts, older revision tests,
-  and a workstream note. None of the reported paths is a B1-touched file; those
-  unrelated files were not mutated under B1 authority.
+  reflect the landed and verified implementation.
+- The user authorized resolving the distinct repository-wide Ruff debt first.
+  That accountable cleanup is committed as
+  `7cd565a4 chore: resolve repository-wide Ruff findings`.
+- Pass after the Ruff cleanup: exact B1 final focused gate.
+  - 227 passed in 20.33s.
+  - Log: `logs/test-runs/pytest-20260722-131104.log`.
+- Pass after the Ruff cleanup: `uv run pyright propstore` with 0 errors.
+- Pass after the Ruff cleanup: `uv run lint-imports` with 3 contracts kept and
+  0 broken.
+- Pass after the Ruff cleanup: `uv run ruff check .`.
+- Pass after the Ruff cleanup: `uv run ruff format --check .` with all 640
+  remaining Python files formatted.
+- Pass after the Ruff cleanup: full logged suite.
+  - 1820 passed, 1 skipped in 94.97s.
+  - Log: `logs/test-runs/pytest-20260722-131215.log`.
+- Pass: every exact B1 search gate after the final full-suite run. The seven
+  forbidden-surface searches return zero hits; exactly one production
+  `WorldQuery.grounding_bundle()` and one grounding-owned
+  `load_grounded_bundle_from_sidecar()` remain.
+- Fixed point: all B1 implementation, search, focused, typing, import, Ruff,
+  formatting, and full-suite gates pass. No B1 item remains blocked or
+  unchecked.

@@ -241,11 +241,14 @@ B1 completion audit — 2026-07-22:
 - All seven implementation requirements and all four ordered semantic commits
   are complete. The combined focused suite passes 227 tests, the full suite
   passes 1820 with one skip, all B1 searches pass, Pyright is clean, all import
-  contracts are kept, and every B1-changed Python file passes Ruff.
-- The repository-wide `uv run ruff check .` completion gate remains unchecked:
-  it reports 72 findings exclusively in files unchanged by B1. Those files are
-  outside this workstream and require an explicit scope decision; they have not
-  been mutated as a substitute for B1 progress.
+  contracts are kept, and repository-wide Ruff and formatting checks pass.
+- The user-authorized repository-wide Ruff cleanup is committed as `7cd565a4`.
+  After that cleanup, the exact B1 final focused gate passes 227 tests, the full
+  logged suite passes 1820 with one skip, `uv run pyright propstore` reports no
+  errors, all three import contracts are kept, all nine B1 search gates match
+  their required outcomes, `uv run ruff check .` passes, and
+  `uv run ruff format --check .` reports all 640 remaining Python files
+  formatted. No B1 completion gate remains unchecked.
 
 Confirmed storage correction:
 
