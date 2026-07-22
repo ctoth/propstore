@@ -318,6 +318,11 @@ Commit:
 - Pass: `uv run pyright propstore` with 0 errors.
 - Pass: `uv run lint-imports` with 3 contracts kept and 0 broken.
 - Pass: `uv run ruff format --check .` with all 643 files formatted.
+- Pass: `uv run ruff check -- <every current B1-changed Python path>`.
+  - All B1-touched Python files pass Ruff.
+- Reconciled: the seven B1 implementation checkboxes in the controlling plan
+  now reflect the landed and verified implementation; the distinct
+  repository-wide Ruff gate remains explicitly incomplete.
 - Blocked outside B1 scope: `uv run ruff check .` reports 72 findings in
   unrelated pre-existing review scripts, utility scripts, older revision tests,
   and a workstream note. None of the reported paths is a B1-touched file; those

@@ -212,29 +212,40 @@ starting the next.
 
 ### B1. Grounding
 
-- [ ] Make `GroundedRulesBundle` the sole grounding-result owner. Its typed,
+- [x] Make `GroundedRulesBundle` the sole grounding-result owner. Its typed,
   backend-specific result carries status, the selected `max_arguments`, partial
   arguments and inspection, Gunray's candidate count, and the budget reason.
-- [ ] Make `grounding_max_arguments` positive optional repository configuration
+- [x] Make `grounding_max_arguments` positive optional repository configuration
   in `propstore.yaml`; read it from the requested commit for historical builds,
   include it in the world-sidecar content hash, and project that exact value as
   a typed derived-only grounding-configuration charter for sidecar-only readers.
-- [ ] Delete the production-unread raw `grounded_fact` table and the
+- [x] Delete the production-unread raw `grounded_fact` table and the
   `propstore.grounding.sidecar` create/populate/read API. Do not replace them
   with another result table, status table, Gunray codec/DTO, alias, wrapper, or
   fallback reader.
-- [ ] Derive and memoize the full bundle in production
+- [x] Derive and memoize the full bundle in production
   `WorldQuery.grounding_bundle()` from the canonical checked predicate, rule,
   superiority, claim, concept, and grounding-configuration sidecar documents.
   Repo-backed and derived-store-only readers must use the same path.
-- [ ] Preserve the canonical bundle through build reports and grounding CLI
+- [x] Preserve the canonical bundle through build reports and grounding CLI
   inspection. CLI query output must not call an atom absent when grounding is
   incomplete.
-- [ ] Prevent a budget-exceeded bundle from entering ASPIC projection,
+- [x] Prevent a budget-exceeded bundle from entering ASPIC projection,
   resolution, or committed worldline materialization as a complete theory.
-- [ ] Delete fragility's missing-capability substitution of
+- [x] Delete fragility's missing-capability substitution of
   `GroundedRulesBundle.empty()` and report grounding incompleteness explicitly
   on that diagnostic surface.
+
+B1 completion audit — 2026-07-22:
+
+- All seven implementation requirements and all four ordered semantic commits
+  are complete. The combined focused suite passes 227 tests, the full suite
+  passes 1820 with one skip, all B1 searches pass, Pyright is clean, all import
+  contracts are kept, and every B1-changed Python file passes Ruff.
+- The repository-wide `uv run ruff check .` completion gate remains unchecked:
+  it reports 72 findings exclusively in files unchanged by B1. Those files are
+  outside this workstream and require an explicit scope decision; they have not
+  been mutated as a substitute for B1 progress.
 
 Confirmed storage correction:
 
