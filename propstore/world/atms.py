@@ -303,7 +303,7 @@ class ATMSMicropublicationNode:
 class ATMSDerivedNode:
     node_id: str
     concept_id: str
-    value: float | str
+    value: ScalarValue
     parameterization_index: int
     formula: str | None = None
     rejection_reason: str | None = None
@@ -422,7 +422,7 @@ def _node_concept_id(node: ATMSNode) -> str | None:
     return None
 
 
-def _node_value(node: ATMSNode) -> float | str | None:
+def _node_value(node: ATMSNode) -> ScalarValue | None:
     if _is_claim_node(node):
         return node.value
     if _is_derived_node(node):
@@ -598,7 +598,7 @@ class ATMSEngine:
                 supported.add(micropub_id)
         return supported
 
-    def derived_label(self, concept_id: str, value: float | str | None) -> Label | None:
+    def derived_label(self, concept_id: str, value: ScalarValue | None) -> Label | None:
         if value is None:
             return None
         labels: list[Label] = []
@@ -1861,18 +1861,18 @@ class ATMSEngine:
         return f"{informant}->{consequent_id}[{joined}]"
 
     @staticmethod
-    def _derived_node_id(concept_id: str, value: float | str) -> str:
+    def _derived_node_id(concept_id: str, value: ScalarValue) -> str:
         return f"derived:{concept_id}:{ATMSEngine._value_key(value)}"
 
     @staticmethod
-    def _value_key(value: float | str | None) -> str:
+    def _value_key(value: ScalarValue | None) -> str:
         normalized = ATMSEngine._normalize_value(value)
         return json.dumps(
             normalized, sort_keys=True, separators=(",", ":"), default=str
         )
 
     @staticmethod
-    def _normalize_value(value: float | str | None) -> float | str | None:
+    def _normalize_value(value: ScalarValue | None) -> ScalarValue | None:
         if isinstance(value, int | float) and not isinstance(value, bool):
             return float(value)
         return value
