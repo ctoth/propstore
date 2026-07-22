@@ -145,13 +145,13 @@ ATMS test or any consumer-specific workaround.
 ### A1. Prove and encode the scalar contract
 
 - [x] Resolve Q1.
-- [ ] Add source-to-world round-trip tests for string category, boolean, integer,
+- [x] Add source-to-world round-trip tests for string category, boolean, integer,
   float, and absent value.
-- [ ] Change `SourceClaimDocument.value` and canonical `Claim.value` together.
-- [ ] Make the Quire charter-derived SQL representation preserve scalar type.
-- [ ] Update source decode/CLI/import contracts and promotion without introducing
+- [x] Change `SourceClaimDocument.value` and canonical `Claim.value` together.
+- [x] Make the Quire charter-derived SQL representation preserve scalar type.
+- [x] Update source decode/CLI/import contracts and promotion without introducing
   a second claim representation.
-- [ ] Regenerate supported external schemas or explicitly retire them, per Q1.
+- [x] Regenerate supported external schemas or explicitly retire them, per Q1.
 
 Required vertical gate:
 
@@ -161,21 +161,21 @@ must preserve both scalar value and runtime type for all selected scalar classes
 
 ### A2. Form-aware authoring validation
 
-- [ ] Numeric forms retain current bounds, unit, uncertainty, and confidence rules.
-- [ ] Closed category forms reject values outside their authored vocabulary.
-- [ ] Extensible category forms accept new category values.
-- [ ] Boolean forms accept booleans and reject textual lookalikes such as
+- [x] Numeric forms retain current bounds, unit, uncertainty, and confidence rules.
+- [x] Closed category forms reject values outside their authored vocabulary.
+- [x] Extensible category forms accept new category values.
+- [x] Boolean forms accept booleans and reject textual lookalikes such as
   `"true"`.
-- [ ] Category/boolean values never enter numeric bounds or dimensional checks.
+- [x] Category/boolean values never enter numeric bounds or dimensional checks.
 
 ### A3. Direct runtime consumers
 
-- [ ] Preserve scalar identity in direct resolution and presentation; remove bool
+- [x] Preserve scalar identity in direct resolution and presentation; remove bool
   stringification and unintended int-to-float conversion from direct-value paths.
-- [ ] Keep equation/parameterization, sensitivity, dimensional comparison,
+- [x] Keep equation/parameterization, sensitivity, dimensional comparison,
   parameterization conflicts, and assignment-selection explicitly numeric.
-- [ ] Preserve typed grounding constants and worldline results.
-- [ ] Drive a real authored categorical provider through the bound world and
+- [x] Preserve typed grounding constants and worldline results.
+- [x] Drive a real authored categorical provider through the bound world and
   unskip the existing ATMS incompatibility test, reusing the already-implemented
   visible rejection node.
 
@@ -186,6 +186,22 @@ Workstream A gate:
 - Numeric derivation behavior is unchanged for numeric inputs and explicitly
   rejects nonnumeric inputs.
 - `uv run pyright propstore` passes.
+
+Completion evidence — 2026-07-21:
+
+- Quire commit `9f9d9ff` provides the generic charter-derived MessagePack storage
+  codec; Propstore pins that exact revision in `pyproject.toml` and `uv.lock`.
+- The required source-to-world vertical path preserves string, bool, int, float,
+  and absence with exact runtime types. The final focused logged gate passed 141
+  tests: `logs/test-runs/canonical-scalar-final-focused-20260721-190836.log`.
+- The final committed-HEAD full logged suite passed 1812 tests with one skip:
+  `logs/test-runs/canonical-scalar-final-head-20260721-191841.log`. The skip is
+  `test_praf_argument_enumeration_budget_surfaces_partial_result`, which belongs
+  to the still-unchecked Workstream B PrAF completeness seam, not Workstream A.
+- Package Pyright reports 0 errors; all three import-linter contracts are kept;
+  Ruff reports all 644 Python files formatted. Deleted-surface, duplicate-alias,
+  retired-schema/dependency, and categorical-ATMS placeholder searches are at
+  zero matches.
 
 ## Workstream B — Reasoning completeness propagation
 
