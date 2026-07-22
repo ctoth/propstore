@@ -33,7 +33,6 @@ class RevisionAtomRef:
     assertion_id: str | None = None
     assumption_id: str | None = None
     atom_id: str | None = None
-    value: float | str | None = None
 
     def to_belief_atom_input(self) -> str | AssumptionAtom:
         """Resolve this ref to a typed revision input — no dict hop.

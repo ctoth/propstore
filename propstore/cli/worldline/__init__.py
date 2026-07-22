@@ -110,6 +110,10 @@ def parse_worldline_revision_atom(raw: str | None) -> RevisionAtomRef | None:
         raise click.ClickException(f"Invalid --revision-atom JSON: {exc}") from exc
     if not _is_json_object(loaded):
         raise click.ClickException("--revision-atom must decode to a JSON object")
+    if "value" in loaded:
+        raise click.ClickException(
+            "--revision-atom value is not supported; reference an existing atom by id"
+        )
 
     kind = str(loaded.get("kind") or "assertion")
     assertion_id = loaded.get("assertion_id")
@@ -118,14 +122,12 @@ def parse_worldline_revision_atom(raw: str | None) -> RevisionAtomRef | None:
         assertion_id = loaded.get("id")
     if assumption_id is None and kind == "assumption":
         assumption_id = loaded.get("id")
-    value = loaded.get("value")
     atom_id = loaded.get("atom_id")
     return RevisionAtomRef(
         kind=kind,
         assertion_id=None if assertion_id is None else str(assertion_id),
         assumption_id=None if assumption_id is None else str(assumption_id),
         atom_id=None if atom_id is None else str(atom_id),
-        value=value if isinstance(value, (int, float, str)) else None,
     )
 
 

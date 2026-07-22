@@ -20,7 +20,6 @@ def _revision_query(
     *,
     operation: str,
     atom_id: str,
-    value: float | str | None = None,
     conflicts: dict[str, list[str]] | None = None,
     operator: str | None = None,
 ):
@@ -34,7 +33,7 @@ def _revision_query(
 
     return WorldlineRevisionQuery(
         operation=operation,
-        atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id, value=value),
+        atom=RevisionAtomRef(kind="assertion", assertion_id=atom_id),
         conflicts=RevisionConflictSelection(
             targets_by_atom_id={
                 key: tuple(targets) for key, targets in (conflicts or {}).items()
@@ -62,7 +61,6 @@ def test_worldline_definition_preserves_revision_query_block() -> None:
             atom=RevisionAtomRef(
                 kind="assertion",
                 assertion_id=synthetic.atom_id,
-                value=9.0,
             ),
             conflicts=RevisionConflictSelection(
                 targets_by_atom_id={synthetic.atom_id: (legacy.atom_id,)}
@@ -77,7 +75,6 @@ def test_worldline_definition_preserves_revision_query_block() -> None:
     assert query.atom is not None
     assert query.atom.kind == "assertion"
     assert query.atom.assertion_id == synthetic.atom_id
-    assert query.atom.value == 9.0
     assert query.conflicts.targets_for(synthetic.atom_id) == (legacy.atom_id,)
 
 
@@ -243,7 +240,6 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
             revision=_revision_query(
                 operation="revise",
                 atom_id=synthetic.atom_id,
-                value=9.0,
                 conflicts={synthetic.atom_id: [ids["legacy"]]},
             ),
         ),
@@ -313,7 +309,6 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
             revision=_revision_query(
                 operation="iterated_revise",
                 atom_id=new.atom_id,
-                value=9.0,
                 conflicts={new.atom_id: [ids["legacy"]]},
                 operator="restrained",
             ),
@@ -376,7 +371,6 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
             revision=_revision_query(
                 operation="iterated_revise",
                 atom_id=make_assertion_atom("new", value=9.0).atom_id,
-                value=9.0,
                 operator="restrained",
             ),
         ),

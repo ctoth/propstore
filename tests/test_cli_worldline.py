@@ -132,6 +132,28 @@ def test_create_duplicate_fails(tmp_path: Path) -> None:
     assert "already exists" in dup.output
 
 
+def test_revision_atom_rejects_unused_value_field(tmp_path: Path) -> None:
+    repo = build_demo_repo(tmp_path)
+    atom = json.dumps(
+        {"kind": "assertion", "id": "ps:assertion:existing", "value": 9.0}
+    )
+    result = _invoke(
+        repo,
+        [
+            "create",
+            "wl",
+            "--target",
+            "Speed",
+            "--revision-operation",
+            "revise",
+            "--revision-atom",
+            atom,
+        ],
+    )
+    assert result.exit_code != 0
+    assert "value is not supported" in result.output
+
+
 def test_show_missing_fails(tmp_path: Path) -> None:
     repo = build_demo_repo(tmp_path)
     result = _invoke(repo, ["show", "nope"])
