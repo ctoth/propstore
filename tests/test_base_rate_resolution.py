@@ -92,6 +92,20 @@ def test_replication_rate_claims_materialize_as_base_rate_assertions(
     )
 
 
+def test_base_rate_source_claim_rejects_boolean_value() -> None:
+    with pytest.raises(ValueError, match="requires numeric value"):
+        BaseRateAssertionRecord.from_parameter_claim(
+            source_key="paper",
+            claim_payload={
+                "type": "parameter",
+                "id": "base-rate",
+                "concept": "replication_rate",
+                "value": True,
+                "unit": "1",
+            },
+        )
+
+
 def test_base_rate_profile_resolves_for_assertion_id() -> None:
     profile = BaseRateProfile(
         profile_assertion_id=_aid("psychology_replication_rate"),

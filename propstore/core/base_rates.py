@@ -126,7 +126,7 @@ class BaseRateAssertionRecord:
             raise ValueError("base-rate source claim requires string id")
         if not isinstance(concept, str):
             raise ValueError("base-rate source claim requires string concept")
-        if not isinstance(value, int | float):
+        if isinstance(value, bool) or not isinstance(value, int | float):
             raise ValueError("base-rate source claim requires numeric value")
         if not isinstance(unit, str):
             raise ValueError("base-rate source claim requires string unit")
