@@ -293,8 +293,6 @@ def test_observatory_run_rejects_yaml_syntax_in_json_fixture(tmp_path: Path) -> 
 def test_observatory_registered_lazily() -> None:
     text = Path("propstore/cli/__init__.py").read_text(encoding="utf-8")
     assert (
-        '"observatory": (\n'
-        '        "propstore.cli.observatory",\n'
-        '        "observatory",'
+        '"observatory": (\n        "propstore.cli.observatory",\n        "observatory",'
     ) in text
     assert "from propstore.cli.observatory" not in text
