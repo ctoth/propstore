@@ -134,13 +134,13 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.21.2
+  contract_version: 2026.07.21.3
   body:
     families:
     - contract_version: 2026.07.21
       key: concept
       name: concept
-    - contract_version: 2026.07.12
+    - contract_version: 2026.07.21
       key: claim
       name: claim
     - contract_version: 2026.06.29
@@ -278,7 +278,7 @@ contracts:
     key: calibration_counts
 - kind: family
   name: claim
-  contract_version: 2026.07.12
+  contract_version: 2026.07.21
   body:
     accessor: claim
     artifact_family: claim
@@ -292,7 +292,7 @@ contracts:
         kind: flat-yaml
         namespace: claim
         ref_field: self
-    artifact_family_contract_version: 2026.07.12
+    artifact_family_contract_version: 2026.07.21
     foreign_keys:
     - many: false
       required: false
@@ -1133,4 +1133,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.21.2
+  contract_version: 2026.07.21.3
