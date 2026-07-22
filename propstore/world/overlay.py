@@ -76,21 +76,6 @@ def _conflict_key(record: ConflictRecord) -> tuple[str, str, str]:
     return left, right, str(record.concept_id)
 
 
-def _numeric_value(value: float | str | None) -> float | None:
-    """The numeric value a ``Claim`` charter can carry.
-
-    The ``Claim`` charter's ``value`` column is numeric; a categorical synthetic
-    value has no charter column to ride on, so it does not flow through the
-    overlay's value path (a pre-existing charter limitation, not an overlay one).
-    """
-
-    if isinstance(value, bool) or value is None:
-        return None
-    if isinstance(value, (int, float)):
-        return float(value)
-    return None
-
-
 class _GraphOverlayStore:
     """An in-memory :class:`WorldStore` over a base store plus a claim overlay.
 
@@ -433,7 +418,7 @@ def _synthetic_claim(
             if is_measurement
             else (existing.target_concept if existing is not None else None)
         ),
-        value=_numeric_value(synthetic.value),
+        value=synthetic.value,
         conditions=conditions,
         conditions_ir=conditions_ir,
         sample_size=(

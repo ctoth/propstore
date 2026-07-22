@@ -3,12 +3,14 @@
 OverlayWorld adds/removes synthetic claims on top of a BoundWorld and lets the
 ordinary parameterization + conflict machinery decide the overlaid world. These
 exercise add / replace / remove / diff / conflict recomputation over the
-in-memory charter feed. Overlay carries numeric claim values (the ``Claim``
-charter's value column is numeric).
+in-memory charter feed, including exact canonical scalar value identity.
 """
 
 from __future__ import annotations
 
+import pytest
+
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import ClaimType
 from propstore.world.overlay import OverlayWorld
 from propstore.world.types import SyntheticClaim, ValueStatus
@@ -30,6 +32,20 @@ def test_overlay_adds_synthetic_claim_for_new_concept() -> None:
     result = overlay.value_of("B")
     assert result.status is ValueStatus.DETERMINED
     assert result.claims[0].value == 7.0
+
+
+@pytest.mark.parametrize("value", ["fast", True, 2, 2.5])
+def test_overlay_preserves_synthetic_scalar_value(value: ScalarValue) -> None:
+    base = build_bound(claims=())
+    overlay = OverlayWorld(
+        base,
+        add=[SyntheticClaim(id="syn", concept_id="A", value=value)],
+    )
+
+    result = overlay.value_of("A")
+    assert result.status is ValueStatus.DETERMINED
+    assert result.claims[0].value == value
+    assert type(result.claims[0].value) is type(value)
 
 
 def test_overlay_replaces_existing_claim_value() -> None:
