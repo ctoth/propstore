@@ -161,3 +161,74 @@ Commit:
 Next slice:
 
 - B1 Slice 3 after every Slice 2 gate passes and this iteration is committed.
+
+## Iteration 3 - `B1 Slice 3`
+
+Slice read:
+
+- `propstore/world/model.py`
+- `propstore/compiler/workflows.py`
+- `propstore/cli/compiler_cmds.py`
+- `propstore/cli/grounding_cmds.py`
+- `propstore/grounding/inspection.py`
+- focused world, sidecar, grounding CLI, and compiler-rendering tests named by
+  the active plan
+
+Surfaces:
+
+- missing concrete `WorldQuery.grounding_bundle()` implementation
+  - Classification: already-owned capability that must use its true owner
+    directly.
+  - Disposition: implement the existing `GroundingBundleStore` protocol method
+    and memoize the result loaded from the held typed sidecar session.
+  - Evidence: both repository-backed and handle-only construction already
+    converge on the same `DerivedSession`; no new protocol or adapter is needed.
+- build report without the canonical grounding result
+  - Classification: valid capability with the wrong representation boundary.
+  - Disposition: carry `GroundedRulesBundle` directly and load it from the
+    materialized sidecar through the same grounding-owned typed loader.
+  - Evidence: a status DTO would duplicate the bundle's completeness evidence.
+- CLI-local `load_grounding_repo()` plus `build_grounded_bundle()` path
+  - Classification: valid capability in the wrong caller path.
+  - Disposition: rewrite every grounding command to inspect
+    `open_app_world_model(repo).grounding_bundle()` and delete the old imports
+    and calls.
+  - Evidence: CLI presentation must inspect the production sidecar result, not
+    independently re-ground authored repository files.
+- `GroundingSurfaceState` / `grounding_surface_state()` and old state tests
+  - Classification: dead/test/scaffold surface after the production cutover.
+  - Disposition: delete the type, function, imports, and assertions; invalid
+    programs fail through the grounding owner and existing CLI failure mapper.
+  - Evidence: complete versus budget-exceeded is already typed on the canonical
+    bundle, while missing predicates with rules raises the owner `ValueError`.
+
+Gate results:
+
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 tests/test_world_query.py tests/test_world_sidecar_grounded.py tests/test_cli_phase10_advanced.py tests/test_cli_compiler_rendering.py -q`
+  - 65 passed in 10.53s.
+  - Log: `logs/test-runs/pytest-20260722-123311.log`.
+- Pass: `rg -n 'build_grounded_bundle\(' propstore/cli`
+  - Zero hits.
+- Pass: `rg -n "GroundingSurfaceState|grounding_surface_state" propstore tests`
+  - Zero hits.
+- Pass: `rg -n "def grounding_bundle" propstore/world/model.py`
+  - Exactly one production implementation.
+- Pass: `rg -n "def load_grounded_bundle_from_sidecar" propstore`
+  - Exactly one grounding-owned typed loader implementation.
+- Pending by plan until Slice 4:
+  `rg -n "else GroundedRulesBundle.empty" propstore` finds only the classified
+  fragility fallback at `propstore/fragility.py`; Slice 3 did not cross that
+  consumer boundary.
+- Pass: all other B1 deleted-result, deleted-wrapper, and loose-status searches
+  returned zero hits.
+- Pass: `uv run pyright propstore`
+  - 0 errors, 0 warnings, 0 informations.
+
+Commit:
+
+- This commit: `feat(grounding): wire production bundle inspection`
+
+Next slice:
+
+- B1 Slice 4 only after every Slice 3 gate passes and this iteration is
+  committed.

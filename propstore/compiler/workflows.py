@@ -24,6 +24,7 @@ from dataclasses import dataclass
 
 from condition_ir import ConceptInfo
 from quire.documents import DocumentSchemaError
+from quire.sqlalchemy_store import readonly_session
 
 from propstore.cel_validation import structural_concepts_in_expression
 from propstore.compiler.context import (
@@ -38,6 +39,7 @@ from propstore.derived_build_plan import (
     RepositoryCheckedBundle,
     compile_sidecar_build_plan,
 )
+from propstore.derived_schema import build_world_sidecar_schema
 from propstore.families.claims import Claim
 from propstore.families.claims_passes import (
     ClaimFiles,
@@ -71,6 +73,8 @@ from propstore.families.forms_passes import (
 )
 from propstore.families.registry import PropstoreFamily
 from propstore.families.relations import Stance
+from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.loading import load_grounded_bundle_from_sidecar
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic, StageId
 
@@ -140,6 +144,7 @@ class RepositoryBuildReport:
     phi_groups: tuple[BuildPhiGroup, ...] = ()
     embedding_snapshot: BuildEmbeddingSnapshotReport | None = None
     derived_store: BuildDerivedStoreHandle | None = None
+    grounding_bundle: GroundedRulesBundle | None = None
     messages: tuple[PassDiagnostic, ...] = ()
     no_concepts: bool = False
     sidecar_missing: bool = False
@@ -564,6 +569,8 @@ def build_repository(
     handle, built = materialize_world_sidecar(
         repo, force=force, checked=checked, plan=plan, commit=commit
     )
+    with readonly_session(handle.path, build_world_sidecar_schema()) as session:
+        grounding_bundle = load_grounded_bundle_from_sidecar(session)
 
     messages = (*checked.messages, *authoring_lints)
     warning_count = sum(1 for message in messages if message.is_warning)
@@ -591,6 +598,7 @@ def build_repository(
             cache_key=handle.cache_key,
             path=str(handle.path),
         ),
+        grounding_bundle=grounding_bundle,
         messages=messages,
         sidecar_missing=False,
     )

@@ -79,6 +79,8 @@ from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
+from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.grounding.loading import load_grounded_bundle_from_sidecar
 from propstore.world.bound import BoundWorld
 from propstore.world.causal import from_compiled_graph
 from propstore.world.queries import (
@@ -485,6 +487,7 @@ class WorldQuery(WorldStore):
         self._lifting: LiftingSystem | None = None
         self._lifting_loaded = False
         self._parameterizations: tuple[ParameterizationEdge, ...] | None = None
+        self._grounding_bundle: GroundedRulesBundle | None = None
 
     def __enter__(self) -> WorldQuery:
         return self
@@ -681,6 +684,13 @@ class WorldQuery(WorldStore):
         # rewrite; the world graph's relation edges come from stances. Honest
         # empty rather than a fabricated edge set.
         return []
+
+    def grounding_bundle(self) -> GroundedRulesBundle:
+        """Return the canonical grounded bundle derived from this sidecar."""
+
+        if self._grounding_bundle is None:
+            self._grounding_bundle = load_grounded_bundle_from_sidecar(self._session)
+        return self._grounding_bundle
 
     def _all_parameterizations(self) -> tuple[ParameterizationEdge, ...]:
         if self._parameterizations is None:

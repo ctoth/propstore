@@ -26,7 +26,10 @@ from propstore.families.claims import Claim, ClaimStatus, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
 from propstore.families.micropublications import Micropublication
+from propstore.families.predicates import Predicate
 from propstore.families.relations import Stance
+from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
+from propstore.grounding.bundle import GroundingStatus
 from propstore.repository import Repository
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
@@ -153,6 +156,82 @@ def test_missing_sidecar_is_honest(repo: Repository, tmp_path: Path) -> None:
 def test_requires_repo_or_store() -> None:
     with pytest.raises(TypeError):
         WorldQuery()
+
+
+def test_grounding_bundle_complete_and_memoized_in_both_reader_modes(
+    repo: Repository,
+) -> None:
+    from propstore.derived_build import materialize_world_sidecar
+
+    with WorldQuery(repo) as repo_world:
+        repo_bundle = repo_world.grounding_bundle()
+        assert repo_world.grounding_bundle() is repo_bundle
+
+    handle, _ = materialize_world_sidecar(repo)
+    with WorldQuery(derived_store=handle) as sidecar_world:
+        sidecar_bundle = sidecar_world.grounding_bundle()
+        assert sidecar_world.grounding_bundle() is sidecar_bundle
+
+    assert repo_bundle.status is GroundingStatus.COMPLETE
+    assert repo_bundle.max_arguments is None
+    assert sidecar_bundle == repo_bundle
+
+
+def test_grounding_bundle_budget_exceeded_in_both_reader_modes(
+    repo: Repository,
+) -> None:
+    from propstore.derived_build import materialize_world_sidecar
+
+    repo.families.predicate.save(
+        "has_value",
+        Predicate(
+            predicate_id="has_value",
+            arity=1,
+            arg_types=("Claim",),
+            derived_from="claim.attribute:value",
+        ),
+        message="m",
+    )
+    repo.families.predicate.save(
+        "important",
+        Predicate(predicate_id="important", arity=1, arg_types=("Claim",)),
+        message="m",
+    )
+    repo.families.defeasible_rule.save(
+        "r1",
+        DefeasibleRule(
+            rule_id="r1",
+            kind="defeasible",
+            head=Atom(predicate="important", terms=(Term(kind="var", name="X"),)),
+            body=(
+                BodyLiteral(
+                    kind="positive",
+                    atom=Atom(
+                        predicate="has_value",
+                        terms=(Term(kind="var", name="X"),),
+                    ),
+                ),
+            ),
+        ),
+        message="m",
+    )
+    repo.require_git().commit_files(
+        {"propstore.yaml": b"grounding_max_arguments: 1\n"},
+        "Set tiny grounding budget",
+    )
+
+    with WorldQuery(repo) as repo_world:
+        repo_bundle = repo_world.grounding_bundle()
+    handle, _ = materialize_world_sidecar(repo)
+    with WorldQuery(derived_store=handle) as sidecar_world:
+        sidecar_bundle = sidecar_world.grounding_bundle()
+
+    for bundle in (repo_bundle, sidecar_bundle):
+        assert bundle.status is GroundingStatus.BUDGET_EXCEEDED
+        assert bundle.max_arguments == 1
+        assert bundle.budget_reason is not None
+        assert bundle.partial_candidate_count is not None
+    assert sidecar_bundle == repo_bundle
 
 
 # ── concepts ─────────────────────────────────────────────────────────────────

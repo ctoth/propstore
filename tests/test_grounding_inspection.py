@@ -5,40 +5,19 @@ from __future__ import annotations
 import gunray
 import pytest
 
-from propstore.families.predicates import Predicate
 from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
 from propstore.grounding.grounder import ground
 from propstore.grounding.inspection import (
     format_argument,
     format_ground_atom,
     format_ground_rule,
-    grounding_surface_state,
     parse_query_atom,
 )
-from propstore.grounding.loading import GroundingRepo
 from propstore.grounding.predicates import PredicateRegistry
 
 
 def _registry() -> PredicateRegistry:
     return PredicateRegistry.from_documents(())
-
-
-def test_surface_state_none() -> None:
-    assert grounding_surface_state(GroundingRepo()) == "none"
-
-
-def test_surface_state_invalid() -> None:
-    rule = DefeasibleRule(
-        rule_id="r1",
-        kind="defeasible",
-        head=Atom(predicate="h", terms=(Term(kind="var", name="X"),)),
-    )
-    assert grounding_surface_state(GroundingRepo(rules=(rule,))) == "invalid"
-
-
-def test_surface_state_ready() -> None:
-    predicate = Predicate(predicate_id="bird", arity=1, arg_types=("Concept",))
-    assert grounding_surface_state(GroundingRepo(predicates=(predicate,))) == "ready"
 
 
 def test_parse_query_atom_round_trips() -> None:

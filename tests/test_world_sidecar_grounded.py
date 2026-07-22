@@ -95,6 +95,7 @@ def test_empty_grounding_sidecar_reconstructs_complete_bundle(tmp_path: Path) ->
 
     assert report.derived_store is not None
     bundle = _load_sidecar_bundle(report.derived_store.path)
+    assert report.grounding_bundle == bundle
     assert bundle.status is GroundingStatus.COMPLETE
     assert bundle.max_arguments is None
     assert bundle.source_facts == ()
@@ -109,6 +110,7 @@ def test_sidecar_only_session_reconstructs_full_repository_bundle(
 
     assert report.derived_store is not None
     sidecar_bundle = _load_sidecar_bundle(report.derived_store.path)
+    assert report.grounding_bundle == sidecar_bundle
     repository_bundle = build_grounded_bundle(
         load_grounding_repo(repo, commit=report.derived_store.source_commit),
         return_arguments=True,

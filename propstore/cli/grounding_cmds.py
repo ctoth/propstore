@@ -1,10 +1,8 @@
-"""Click adapters for inspecting the grounded rule theory.
+"""Click adapters for inspecting the production grounded rule theory.
 
-Thin wrappers over :mod:`propstore.grounding.loading` and
-:mod:`propstore.grounding.inspection`: gather the authored grounding substrate,
-ground it into the non-committal :class:`~propstore.grounding.bundle.GroundedRulesBundle`,
-and render the surface state, facts, marking sections, and arguments. No grounding
-logic lives here (CLAUDE.md "CLI adapter discipline").
+Each command opens the production world and renders its canonical
+:class:`~propstore.grounding.bundle.GroundedRulesBundle`. No repository loading,
+grounding logic, or independent surface classifier lives here.
 
 The ``explain`` subcommand from the legacy surface is intentionally absent: the
 rewrite grounding owner exposes no dialectical-tree / prose explanation builder,
@@ -19,17 +17,20 @@ import click
 import gunray
 from gunray.types import Atom, AtomTerm, Constant
 
-from propstore.cli.helpers import CliContext, require_repo
+from propstore.app.world import WorldSidecarMissingError, open_app_world_model
+from propstore.cli.helpers import CliContext, fail, require_repo
 from propstore.cli.output import emit, emit_section
-from propstore.grounding.bundle import SECTION_NAMES, SectionRows
+from propstore.grounding.bundle import (
+    SECTION_NAMES,
+    GroundingStatus,
+    SectionRows,
+)
 from propstore.grounding.inspection import (
     format_argument,
     format_ground_atom,
     format_ground_rule,
-    grounding_surface_state,
     parse_query_atom,
 )
-from propstore.grounding.loading import build_grounded_bundle, load_grounding_repo
 
 
 @click.group()
@@ -40,17 +41,20 @@ def grounding() -> None:
 @grounding.command("status")
 @click.pass_obj
 def grounding_status(obj: CliContext) -> None:
-    """Report the grounding surface state and per-section fact counts."""
+    """Report grounding completeness and per-section fact counts."""
     repo = require_repo(obj)
-    grounding_repo = load_grounding_repo(repo)
-    state = grounding_surface_state(grounding_repo)
-    emit(f"Predicates: {len(grounding_repo.predicates)}")
-    emit(f"Rules: {len(grounding_repo.rules)}")
-    emit(f"Grounding surface: {state}")
-    if state == "invalid":
-        emit("Rules are declared but no predicates exist; grounding cannot proceed.")
-        return
-    bundle = build_grounded_bundle(grounding_repo)
+    try:
+        with open_app_world_model(repo) as world:
+            bundle = world.grounding_bundle()
+    except (WorldSidecarMissingError, ValueError) as exc:
+        fail(str(exc))
+    maximum = "unbounded" if bundle.max_arguments is None else str(bundle.max_arguments)
+    emit(f"Grounding status: {bundle.status.value}")
+    emit(f"Maximum arguments: {maximum}")
+    if bundle.status is GroundingStatus.BUDGET_EXCEEDED:
+        emit(f"Reason: {bundle.budget_reason}")
+        emit(f"Partial candidates: {bundle.partial_candidate_count}")
+        emit(f"Partial arguments: {len(bundle.arguments)}")
     emit(f"Facts: {len(bundle.source_facts)}")
     for section in SECTION_NAMES:
         count = sum(len(rows) for rows in bundle.sections[section].values())
@@ -62,11 +66,17 @@ def grounding_status(obj: CliContext) -> None:
 def grounding_show(obj: CliContext) -> None:
     """Show grounded facts, grounded rule instances, and marking sections."""
     repo = require_repo(obj)
-    grounding_repo = load_grounding_repo(repo)
-    if grounding_surface_state(grounding_repo) == "invalid":
-        emit("Grounding surface: invalid (rules declared but no predicates exist).")
-        return
-    bundle = build_grounded_bundle(grounding_repo)
+    try:
+        with open_app_world_model(repo) as world:
+            bundle = world.grounding_bundle()
+    except (WorldSidecarMissingError, ValueError) as exc:
+        fail(str(exc))
+
+    emit(f"Grounding status: {bundle.status.value}")
+    if bundle.status is GroundingStatus.BUDGET_EXCEEDED:
+        emit(f"Reason: {bundle.budget_reason}")
+        emit(f"Partial candidates: {bundle.partial_candidate_count}")
+        emit(f"Partial arguments: {len(bundle.arguments)}")
 
     facts = tuple(format_ground_atom(fact) for fact in bundle.source_facts)
     emit_section(f"Facts ({len(facts)}):", facts if facts else ("<empty>",))
@@ -101,17 +111,24 @@ def grounding_show(obj: CliContext) -> None:
 def grounding_query(obj: CliContext, atom: str) -> None:
     """Report which marking sections a query atom appears in."""
     repo = require_repo(obj)
-    parsed = parse_query_atom(atom)
-    grounding_repo = load_grounding_repo(repo)
-    matched: tuple[str, ...] = ()
-    if grounding_surface_state(grounding_repo) == "ready":
-        bundle = build_grounded_bundle(grounding_repo)
-        matched = tuple(
-            section
-            for section in SECTION_NAMES
-            if _atom_in_section(parsed, bundle.sections[section])
-        )
+    try:
+        parsed = parse_query_atom(atom)
+        with open_app_world_model(repo) as world:
+            bundle = world.grounding_bundle()
+    except (WorldSidecarMissingError, ValueError) as exc:
+        fail(str(exc))
     emit(atom)
+    if bundle.status is GroundingStatus.BUDGET_EXCEEDED:
+        emit(
+            f"  status: incomplete ({bundle.status.value}): "
+            f"{bundle.budget_reason}"
+        )
+        return
+    matched = tuple(
+        section
+        for section in SECTION_NAMES
+        if _atom_in_section(parsed, bundle.sections[section])
+    )
     emit(f"  status: {', '.join(matched)}" if matched else "  status: absent")
 
 
@@ -120,11 +137,15 @@ def grounding_query(obj: CliContext, atom: str) -> None:
 def grounding_arguments(obj: CliContext) -> None:
     """Show the arguments enumerated over the grounded theory."""
     repo = require_repo(obj)
-    grounding_repo = load_grounding_repo(repo)
-    if grounding_surface_state(grounding_repo) == "invalid":
-        emit("Grounding surface: invalid (rules declared but no predicates exist).")
-        return
-    bundle = build_grounded_bundle(grounding_repo, return_arguments=True)
+    try:
+        with open_app_world_model(repo) as world:
+            bundle = world.grounding_bundle()
+    except (WorldSidecarMissingError, ValueError) as exc:
+        fail(str(exc))
+    emit(f"Grounding status: {bundle.status.value}")
+    if bundle.status is GroundingStatus.BUDGET_EXCEEDED:
+        emit(f"Reason: {bundle.budget_reason}")
+        emit(f"Partial candidates: {bundle.partial_candidate_count}")
     arguments = tuple(format_argument(argument) for argument in bundle.arguments)
     emit_section(
         f"Arguments ({len(arguments)}):",

@@ -1,34 +1,9 @@
-"""A small read/inspection surface over the grounding substrate and results.
-
-This is the behavioral subset the inspection view needs: classifying whether a
-grounding surface is absent / invalid / ready, parsing a query atom through
-gunray, and formatting ground atoms, ground rule instances, and arguments for
-display. It owns no CLI rendering — the CLI adapter calls these and prints.
-"""
+"""Formatting and query parsing for grounded result inspection."""
 
 from __future__ import annotations
 
-from typing import Literal
-
 import gunray
 from gunray.types import Atom
-
-from propstore.grounding.loading import GroundingRepo
-
-GroundingSurfaceState = Literal["none", "invalid", "ready"]
-
-
-def grounding_surface_state(repo: GroundingRepo) -> GroundingSurfaceState:
-    """Classify a grounding surface.
-
-    ``none`` — no predicates and no rules; ``invalid`` — rules present but no
-    predicates declared; ``ready`` — predicates declared.
-    """
-
-    if not repo.predicates:
-        return "invalid" if repo.rules else "none"
-    return "ready"
-
 
 def parse_query_atom(text: str) -> Atom:
     """Parse a query atom string through gunray's own parser."""

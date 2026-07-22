@@ -23,6 +23,7 @@ from propstore.cli.helpers import (
 from propstore.cli.output import emit, emit_error, emit_success
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.compiler.workflows import build_repository, validate_repository
+from propstore.grounding.bundle import GroundingStatus
 from propstore.semantic_passes.types import PassDiagnostic
 
 import click
@@ -151,6 +152,16 @@ def build(
             f"{handle.projection_id} {handle.source_commit} "
             f"{handle.cache_key} {handle.path}"
         )
+    if report.grounding_bundle is not None:
+        bundle = report.grounding_bundle
+        maximum = (
+            "unbounded" if bundle.max_arguments is None else str(bundle.max_arguments)
+        )
+        emit(f"Grounding: {bundle.status.value} (max_arguments: {maximum})")
+        if bundle.status is GroundingStatus.BUDGET_EXCEEDED:
+            emit(f"  reason: {bundle.budget_reason}")
+            emit(f"  partial candidates: {bundle.partial_candidate_count}")
+            emit(f"  partial arguments: {len(bundle.arguments)}")
 
 
 @click.command("export-aliases")

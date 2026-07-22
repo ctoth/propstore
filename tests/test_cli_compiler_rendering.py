@@ -4,6 +4,11 @@ from click.testing import CliRunner
 
 from propstore.cli import compiler_cmds
 from propstore.compiler.workflows import BuildPhiGroup, RepositoryBuildReport
+from propstore.grounding.bundle import (
+    GroundedRulesBundle,
+    GroundingStatus,
+    build_empty_sections,
+)
 
 
 def test_build_renders_phi_group_glosses_once_per_kind(
@@ -92,3 +97,50 @@ def test_build_strict_authoring_flag_reaches_owner(monkeypatch) -> None:
 
     assert result.exit_code == 0, result.output
     assert seen["strict_authoring"] is True
+
+
+def test_build_renders_complete_and_budget_exceeded_grounding(monkeypatch) -> None:
+    complete = RepositoryBuildReport(
+        concept_count=1,
+        claim_count=1,
+        grounding_bundle=GroundedRulesBundle.empty(),
+    )
+    monkeypatch.setattr(
+        compiler_cmds,
+        "build_repository",
+        lambda _repo, *, force, strict_authoring: complete,
+    )
+    complete_result = CliRunner().invoke(
+        compiler_cmds.build,
+        obj={"repo": object()},
+    )
+    assert complete_result.exit_code == 0, complete_result.output
+    assert "Grounding: complete (max_arguments: unbounded)" in complete_result.output
+
+    exceeded = RepositoryBuildReport(
+        concept_count=1,
+        claim_count=1,
+        grounding_bundle=GroundedRulesBundle(
+            source_rules=(),
+            source_facts=(),
+            sections=build_empty_sections(),
+            status=GroundingStatus.BUDGET_EXCEEDED,
+            budget_reason="argument limit exceeded",
+            max_arguments=1,
+            partial_candidate_count=3,
+        ),
+    )
+    monkeypatch.setattr(
+        compiler_cmds,
+        "build_repository",
+        lambda _repo, *, force, strict_authoring: exceeded,
+    )
+    exceeded_result = CliRunner().invoke(
+        compiler_cmds.build,
+        obj={"repo": object()},
+    )
+    assert exceeded_result.exit_code == 0, exceeded_result.output
+    assert "Grounding: budget_exceeded (max_arguments: 1)" in exceeded_result.output
+    assert "reason: argument limit exceeded" in exceeded_result.output
+    assert "partial candidates: 3" in exceeded_result.output
+    assert "partial arguments: 0" in exceeded_result.output

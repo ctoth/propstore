@@ -162,26 +162,31 @@ def _invoke_grounding(repo: Repository, *args: str):
     return CliRunner().invoke(cli, ["-C", str(repo.root), "grounding", *args])
 
 
-def test_grounding_status_ready(tmp_path: Path) -> None:
+def test_grounding_status_complete(tmp_path: Path) -> None:
     repo = _seed_grounding_repo(tmp_path / "kn")
     result = _invoke_grounding(repo, "status")
     assert result.exit_code == 0, result.output
-    assert "Grounding surface: ready" in result.output
+    assert "Grounding status: complete" in result.output
+    assert "Maximum arguments: unbounded" in result.output
     assert "Facts:" in result.output
 
 
-def test_grounding_status_none_for_bare_repo(tmp_path: Path) -> None:
+def test_grounding_status_complete_for_bare_repo(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "kn" / "knowledge")
     repo.families.concept.save(
         "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
     )
     result = _invoke_grounding(repo, "status")
     assert result.exit_code == 0, result.output
-    assert "Grounding surface: none" in result.output
+    assert "Grounding status: complete" in result.output
+    assert "Facts: 0" in result.output
 
 
 def test_grounding_status_invalid_for_rules_without_predicates(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "kn" / "knowledge")
+    repo.families.concept.save(
+        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
+    )
     repo.families.defeasible_rule.save(
         "r1",
         DefeasibleRule(
@@ -192,8 +197,8 @@ def test_grounding_status_invalid_for_rules_without_predicates(tmp_path: Path) -
         message="m",
     )
     result = _invoke_grounding(repo, "status")
-    assert result.exit_code == 0, result.output
-    assert "Grounding surface: invalid" in result.output
+    assert result.exit_code != 0
+    assert "knowledge root has rules/ but no predicates/" in result.output
 
 
 def test_grounding_show_lists_facts_and_sections(tmp_path: Path) -> None:
@@ -225,6 +230,28 @@ def test_grounding_arguments_lists_arguments(tmp_path: Path) -> None:
     result = _invoke_grounding(repo, "arguments")
     assert result.exit_code == 0, result.output
     assert "Arguments (" in result.output
+
+
+def test_grounding_budget_exceeded_is_labeled_by_every_inspection_command(
+    tmp_path: Path,
+) -> None:
+    repo = _seed_grounding_repo(tmp_path / "kn")
+    repo.require_git().commit_files(
+        {"propstore.yaml": b"grounding_max_arguments: 1\n"},
+        "Set tiny grounding budget",
+    )
+
+    for command in ("status", "show", "arguments"):
+        result = _invoke_grounding(repo, command)
+        assert result.exit_code == 0, result.output
+        assert "Grounding status: budget_exceeded" in result.output
+        assert "Reason:" in result.output
+        assert "Partial candidates:" in result.output
+
+    query = _invoke_grounding(repo, "query", 'important("missing")')
+    assert query.exit_code == 0, query.output
+    assert "status: incomplete (budget_exceeded):" in query.output
+    assert "status: absent" not in query.output
 
 
 # --- observatory -------------------------------------------------------------
