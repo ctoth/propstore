@@ -55,6 +55,11 @@ class TestClaimStrengthConcrete:
         assert strength.provenance is not None
         assert strength.provenance.status is ProvenanceStatus.VACUOUS
 
+    def test_boolean_metadata_is_not_numeric_evidence(self) -> None:
+        assert preference._positive_float(True) is None
+        assert preference._unit_float(True, lower_inclusive=False) is None
+        assert preference._unit_float(True, lower_inclusive=True) is None
+
 
 class TestClaimStrengthFixedLength:
     def test_claim_strength_fixed_length_all_fields(self) -> None:

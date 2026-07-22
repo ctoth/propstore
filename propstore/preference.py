@@ -65,11 +65,13 @@ def _vacuous_provenance() -> Provenance:
 
 
 def _positive_float(value: object) -> float | None:
-    return float(value) if isinstance(value, int | float) and value > 0 else None
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value) if value > 0 else None
 
 
 def _unit_float(value: object, *, lower_inclusive: bool) -> float | None:
-    if not isinstance(value, int | float):
+    if isinstance(value, bool) or not isinstance(value, int | float):
         return None
     lo_ok = value >= 0.0 if lower_inclusive else value > 0.0
     return float(value) if lo_ok and value <= 1.0 else None
