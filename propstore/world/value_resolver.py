@@ -27,7 +27,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Protocol
 
 import ast_equiv
 from ast_equiv import AlgorithmParseError, ComparisonResult
@@ -68,7 +68,7 @@ class _AstCompare(Protocol):
         bindings_a: dict[str, str],
         body_b: str,
         bindings_b: dict[str, str],
-        known_values: dict[str, Any] | None = None,
+        known_values: dict[str, float] | None = None,
     ) -> ComparisonResult: ...
 
 
@@ -114,12 +114,12 @@ def _no_symbol_candidates(_concept_id: ConceptId | str) -> Sequence[str]:
 def collect_known_values(
     variable_concepts: Sequence[ConceptId | str],
     value_of: Callable[[ConceptId | str], ValueResult],
-) -> dict[ConceptId, Any]:
+) -> dict[ConceptId, float]:
     """Resolve numeric values for a list of concept IDs.
 
     Shared implementation used by BoundWorld and OverlayWorld.
     """
-    known: dict[ConceptId, Any] = {}
+    known: dict[ConceptId, float] = {}
     for cid in variable_concepts:
         normalized_cid = to_concept_id(cid)
         vr = value_of(normalized_cid)
@@ -141,7 +141,7 @@ class ActiveClaimResolver:
         value_of: Callable[[ConceptId | str], ValueResult],
         extract_variable_concepts: Callable[[ActiveClaim], list[str]],
         collect_known_values: Callable[
-            [Sequence[ConceptId | str]], dict[ConceptId, Any]
+            [Sequence[ConceptId | str]], dict[ConceptId, float]
         ],
         extract_bindings: Callable[[ActiveClaim], dict[str, str]],
         concept_symbol_candidates: Callable[[ConceptId | str], Sequence[str]]
@@ -606,7 +606,7 @@ class ActiveClaimResolver:
     def _all_algorithms_equivalent(
         self,
         algo_claims: Sequence[ActiveClaim],
-        known_values: Mapping[ConceptId, Any],
+        known_values: Mapping[ConceptId, float],
     ) -> _AlgorithmComparison:
         for i in range(len(algo_claims)):
             for j in range(i + 1, len(algo_claims)):

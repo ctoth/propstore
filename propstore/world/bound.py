@@ -398,7 +398,7 @@ class BoundWorld(BeliefSpace):
     def collect_known_values(
         self,
         variable_concepts: Sequence[ConceptId | str],
-    ) -> dict[ConceptId, Any]:
+    ) -> dict[ConceptId, float]:
         return collect_known_values(variable_concepts, self.value_of)
 
     def _claim_variables(self, claim: ActiveClaim) -> tuple[ClaimVariable, ...]:
