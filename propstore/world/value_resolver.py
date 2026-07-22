@@ -35,6 +35,7 @@ from ast_equiv import AlgorithmParseError, ComparisonResult
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.graph_types import ParameterizationEdge
 from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import ClaimType
 from propstore.propagation import (
     ParameterizationEvaluation,
@@ -103,20 +104,6 @@ def _comparison_from_equivalence(equivalent: object) -> _AlgorithmComparison:
     return _BENIGN_INCONCLUSIVE
 
 
-def _normalize_numeric(value: object) -> float | str | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    if isinstance(value, str):
-        return value
-    return None
-
-
-def _active_claim_value(claim: ActiveClaim) -> float | str | None:
-    return _normalize_numeric(claim.value)
-
-
 _SAFE_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -137,12 +124,9 @@ def collect_known_values(
         normalized_cid = to_concept_id(cid)
         vr = value_of(normalized_cid)
         if vr.status is ValueStatus.DETERMINED and vr.claims:
-            val = _active_claim_value(vr.claims[0])
-            if val is not None:
-                try:
-                    known[normalized_cid] = float(val)
-                except (TypeError, ValueError):
-                    pass
+            value = vr.claims[0].value
+            if not isinstance(value, bool) and isinstance(value, int | float):
+                known[normalized_cid] = float(value)
     return known
 
 
@@ -177,7 +161,7 @@ class ActiveClaimResolver:
         self,
         concept_id: ConceptId | str,
         *,
-        override_values: Mapping[str, float | str | None] | None = None,
+        override_values: Mapping[str, ScalarValue | None] | None = None,
         _derivation_stack: set[ConceptId] | None = None,
     ) -> DerivedResult:
         typed_concept_id = to_concept_id(concept_id)
@@ -264,11 +248,11 @@ class ActiveClaimResolver:
         ]
 
         if value_claims and algo_claims:
-            direct_values = {
-                _normalize_numeric(claim.value)
-                for claim in value_claims
-                if _normalize_numeric(claim.value) is not None
-            }
+            direct_values: dict[tuple[type[object], ScalarValue], ScalarValue] = {}
+            for claim in value_claims:
+                value = claim.value
+                if value is not None:
+                    direct_values[(type(value), value)] = value
             if not direct_values:
                 return ValueResult(
                     concept_id=typed_concept_id,
@@ -282,7 +266,7 @@ class ActiveClaimResolver:
                     claims=active_claims,
                 )
 
-            direct_value = next(iter(direct_values))
+            direct_value = next(iter(direct_values.values()))
             unevaluable_parse_failed = False
             unevaluable_benign = False
             for claim in algo_claims:
@@ -366,11 +350,11 @@ class ActiveClaimResolver:
                 ),
             )
 
-        values = {
-            _normalize_numeric(claim.value)
-            for claim in active_claims
-            if _normalize_numeric(claim.value) is not None
-        }
+        values: set[tuple[type[object], ScalarValue]] = set()
+        for claim in active_claims:
+            value = claim.value
+            if value is not None:
+                values.add((type(value), value))
         if not values:
             return ValueResult(
                 concept_id=typed_concept_id,
@@ -394,7 +378,7 @@ class ActiveClaimResolver:
         concept_id: ConceptId,
         param: ParameterizationEdge,
         *,
-        override_values: Mapping[str, float | str | None] | None,
+        override_values: Mapping[str, ScalarValue | None] | None,
         derivation_stack: set[ConceptId],
     ) -> DerivedResult:
         if not param.sympy:
@@ -413,12 +397,8 @@ class ActiveClaimResolver:
 
             value_result = self._value_of(input_id)
             if value_result.status is ValueStatus.DETERMINED:
-                value = (
-                    _active_claim_value(value_result.claims[0])
-                    if value_result.claims
-                    else None
-                )
-                if value is None or isinstance(value, str):
+                value = value_result.claims[0].value if value_result.claims else None
+                if isinstance(value, bool) or not isinstance(value, int | float):
                     return DerivedResult(
                         concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED
                     )
@@ -565,7 +545,7 @@ class ActiveClaimResolver:
 
     @staticmethod
     def _coerce_override_value(
-        override_values: Mapping[str, float | str | None] | None,
+        override_values: Mapping[str, ScalarValue | None] | None,
         input_id: ConceptId,
     ) -> float | None:
         override_key = str(input_id)
@@ -574,12 +554,13 @@ class ActiveClaimResolver:
         override_value = override_values[override_key]
         if override_value is None:
             return None
-        try:
-            return float(override_value)
-        except (TypeError, ValueError) as exc:
+        if isinstance(override_value, bool) or not isinstance(
+            override_value, int | float
+        ):
             raise ValueError(
                 f"Invalid override value for {override_key!r}: {override_value!r}"
-            ) from exc
+            )
+        return float(override_value)
 
     @staticmethod
     def _normalize_value(value: float | str | None) -> float | str | None:
@@ -590,7 +571,7 @@ class ActiveClaimResolver:
     def _algorithm_matches_direct_value(
         self,
         claim: ActiveClaim,
-        direct_value: float | str | None,
+        direct_value: ScalarValue | None,
     ) -> _AlgorithmComparison:
         body = claim.body
         if not body:
@@ -678,7 +659,7 @@ class ActiveClaimResolver:
         return _AlgorithmComparison(equivalent=True)
 
 
-def _constant_algorithm_body(value: float | str | None) -> str | None:
+def _constant_algorithm_body(value: ScalarValue | None) -> str | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     return f"def compute():\n    return {float(value)!r}\n"
