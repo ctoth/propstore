@@ -20,6 +20,7 @@ from propstore.core.id_types import (
     to_context_id,
 )
 from propstore.core.labels import Label
+from propstore.core.scalars import ScalarValue
 from propstore.reporting import json_ready
 from propstore.support_revision.decision_trace import DecisionTrace, RankingProvenance
 from propstore.support_revision.integrity_constraints import IntegrityConstraintSpec
@@ -85,7 +86,7 @@ def is_assumption_atom(atom: BeliefAtom) -> TypeGuard[AssumptionAtom]:
 class RevisionScope(
     msgspec.Struct, frozen=True, forbid_unknown_fields=True, omit_defaults=True
 ):
-    bindings: dict[str, str | int | float | bool]
+    bindings: dict[str, ScalarValue]
     context_id: ContextId | None = None
     branch: str | None = None
     commit: str | None = None

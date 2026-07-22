@@ -120,9 +120,7 @@ class WorldlineRevisionOptions:
 @dataclass(frozen=True)
 class WorldlineCreateRequest:
     name: str
-    bindings: Mapping[str, str | int | float | bool] = field(
-        default_factory=dict[str, str | int | float | bool]
-    )
+    bindings: Mapping[str, ScalarValue] = field(default_factory=dict[str, ScalarValue])
     overrides: Mapping[str, ScalarValue] = field(default_factory=dict[str, ScalarValue])
     targets: tuple[str, ...] = ()
     context_id: str | None = None
@@ -133,9 +131,7 @@ class WorldlineCreateRequest:
 @dataclass(frozen=True)
 class WorldlineRunRequest:
     name: str
-    bindings: Mapping[str, str | int | float | bool] = field(
-        default_factory=dict[str, str | int | float | bool]
-    )
+    bindings: Mapping[str, ScalarValue] = field(default_factory=dict[str, ScalarValue])
     overrides: Mapping[str, ScalarValue] = field(default_factory=dict[str, ScalarValue])
     targets: tuple[str, ...] = ()
     context_id: str | None = None

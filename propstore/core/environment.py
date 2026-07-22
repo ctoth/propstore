@@ -29,6 +29,7 @@ from propstore.core.id_types import (
     AssumptionId,
     ContextId,
 )
+from propstore.core.scalars import ScalarValue
 
 if TYPE_CHECKING:
     from condition_ir import ConditionSolver
@@ -70,8 +71,8 @@ class AssumptionRef(DocumentStruct):
 class Environment(DocumentStruct):
     """The assumption/binding/context frame a world query renders under."""
 
-    bindings: dict[str, str | int | float | bool] = msgspec.field(
-        default_factory=dict[str, str | int | float | bool]
+    bindings: dict[str, ScalarValue] = msgspec.field(
+        default_factory=dict[str, ScalarValue]
     )
     context_id: ContextId | None = None
     effective_assumptions: tuple[CelExpr, ...] = ()

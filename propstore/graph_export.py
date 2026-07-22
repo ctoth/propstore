@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 
 from propstore.core.environment import Environment
 from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim
 
 if TYPE_CHECKING:
@@ -145,9 +146,7 @@ class KnowledgeGraph:
 
 @dataclass(frozen=True)
 class GraphExportRequest:
-    bindings: Mapping[str, str | int | float | bool] = field(
-        default_factory=dict[str, str | int | float | bool]
-    )
+    bindings: Mapping[str, ScalarValue] = field(default_factory=dict[str, ScalarValue])
     group_id: int | None = None
 
 

@@ -31,7 +31,7 @@ import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import Protocol, TypeAlias
+from typing import Protocol
 
 from argumentation.core.dung import ArgumentationFramework
 from argumentation.structured.aspic.aspic import CSAF, Argument, Literal, conc
@@ -61,8 +61,7 @@ from provenance_semiring import (
     live,
     why_provenance,
 )
-
-CelScalar: TypeAlias = str | int | float | bool
+from propstore.core.scalars import ScalarValue
 
 
 class DecidabilityStatus(StrEnum):
@@ -114,7 +113,7 @@ class ExceptionPatternSolver(Protocol):
     def is_condition_satisfied_result(
         self,
         condition: CheckedCondition,
-        bindings: Mapping[str, CelScalar],
+        bindings: Mapping[str, ScalarValue],
     ) -> SolverResult: ...
 
 
@@ -123,7 +122,7 @@ class CelBinding:
     """One name -> scalar binding supplied with a contextual claim use."""
 
     name: str
-    value: CelScalar
+    value: ScalarValue
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "name", str(self.name))
@@ -150,7 +149,7 @@ class ContextualClaimUse:
     def defeated_use_id(self) -> str:
         return f"ist({self.context}, {self.claim})"
 
-    def binding_map(self) -> Mapping[str, CelScalar]:
+    def binding_map(self) -> Mapping[str, ScalarValue]:
         return {binding.name: binding.value for binding in self.bindings}
 
 
@@ -604,7 +603,6 @@ def _compose_support_quality(
 
 __all__ = [
     "CelBinding",
-    "CelScalar",
     "ClaimApplicability",
     "ContextualClaimResult",
     "ContextualClaimUse",

@@ -23,7 +23,7 @@ from condition_ir import (
 )
 
 from propstore.context_lifting import LiftingSystem
-from propstore.defeasibility import CelScalar
+from propstore.core.scalars import ScalarValue
 from propstore.families.contexts import (
     Context,
     ContextRepository,
@@ -41,7 +41,7 @@ class _TimeoutSolver:
         return self.inner.registry
 
     def is_condition_satisfied_result(
-        self, condition: CheckedCondition, bindings: Mapping[str, CelScalar]
+        self, condition: CheckedCondition, bindings: Mapping[str, ScalarValue]
     ) -> SolverResult:
         return SolverUnknown(SolverUnknownReason.TIMEOUT, "timeout")
 

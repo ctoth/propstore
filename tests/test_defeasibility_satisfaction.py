@@ -28,9 +28,9 @@ from provenance_semiring import (
     SupportQuality,
 )
 
+from propstore.core.scalars import ScalarValue
 from propstore.defeasibility import (
     CelBinding,
-    CelScalar,
     ClaimApplicability,
     ContextualClaimUse,
     DecidabilityStatus,
@@ -65,7 +65,7 @@ class _TimeoutSolver:
         return self.inner.registry
 
     def is_condition_satisfied_result(
-        self, condition: CheckedCondition, bindings: Mapping[str, CelScalar]
+        self, condition: CheckedCondition, bindings: Mapping[str, ScalarValue]
     ) -> SolverResult:
         return SolverUnknown(SolverUnknownReason.TIMEOUT, "timeout")
 

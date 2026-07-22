@@ -44,6 +44,7 @@ from quire.sqlalchemy_store import (
 )
 
 from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
+from propstore.core.scalars import ScalarValue
 from sqlalchemy import select
 
 RuleKind = Literal["strict", "defeasible", "proper_defeater", "blocking_defeater"]
@@ -61,7 +62,7 @@ class Term(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
 
     kind: TermKind
     name: str | None = None
-    value: str | int | float | bool | None = None
+    value: ScalarValue | None = None
 
 
 class Atom(msgspec.Struct, frozen=True, forbid_unknown_fields=True):

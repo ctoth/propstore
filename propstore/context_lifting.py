@@ -51,13 +51,13 @@ from provenance_semiring import (
 )
 
 from propstore.defeasibility import (
-    CelScalar,
     DecidabilityStatus,
     ExceptionDefeat,
     ExceptionPatternSolver,
     JustifiableException,
     build_exception_defeat,
 )
+from propstore.core.scalars import ScalarValue
 from propstore.families.contexts import (
     Context,
     LiftingDecisionStatus,
@@ -211,7 +211,7 @@ class LiftingSystem:
         assertions: tuple[IstProposition, ...],
         *,
         solver: ExceptionPatternSolver | None = None,
-        bindings: Mapping[str, CelScalar] | None = None,
+        bindings: Mapping[str, ScalarValue] | None = None,
     ) -> tuple[LiftedAssertion, ...]:
         """Lift each assertion through every applicable rule (LIFTED only)."""
 
@@ -243,7 +243,7 @@ class LiftingSystem:
         assertion: IstProposition,
         *,
         solver: ExceptionPatternSolver | None = None,
-        bindings: Mapping[str, CelScalar] | None = None,
+        bindings: Mapping[str, ScalarValue] | None = None,
     ) -> tuple[LiftingDecision, ...]:
         """Every lifting decision for an assertion (one per applicable rule)."""
 
@@ -266,7 +266,7 @@ class LiftingSystem:
         proposition_id: str,
         *,
         solver: ExceptionPatternSolver | None = None,
-        bindings: Mapping[str, CelScalar] | None = None,
+        bindings: Mapping[str, ScalarValue] | None = None,
     ) -> tuple[LiftingDecision, ...]:
         """Lifting decisions from ``source`` to ``target`` for a proposition."""
 
@@ -286,7 +286,7 @@ class LiftingSystem:
         exception: LiftingException | None,
         *,
         solver: ExceptionPatternSolver | None,
-        bindings: Mapping[str, CelScalar],
+        bindings: Mapping[str, ScalarValue],
     ) -> LiftingDecision:
         support = _support_for_source("lifting_rule", rule.rule_id)
         rule_status, diagnostic, witness = _evaluate_rule_conditions(
@@ -381,7 +381,7 @@ def _evaluate_rule_conditions(
     rule: LiftingRule,
     *,
     solver: ExceptionPatternSolver | None,
-    bindings: Mapping[str, CelScalar],
+    bindings: Mapping[str, ScalarValue],
 ) -> tuple[LiftingDecisionStatus, str | None, NogoodWitness | None]:
     if not rule.conditions:
         return LiftingDecisionStatus.LIFTED, None, None

@@ -559,8 +559,8 @@ class ChainResult:
     # The bindings the chain was evaluated under, in the one canonical binding
     # scalar type (``Environment.bindings``). ChainStep uses that same scalar
     # owner, so neither surface rewrites bools or integers.
-    bindings_used: dict[str, str | int | float | bool] = field(
-        default_factory=dict[str, str | int | float | bool]
+    bindings_used: dict[str, ScalarValue] = field(
+        default_factory=dict[str, ScalarValue]
     )
     unresolved_dependencies: list[ConceptId] = field(default_factory=list[ConceptId])
 
