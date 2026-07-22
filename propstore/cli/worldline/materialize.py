@@ -87,22 +87,6 @@ def _revision_options(
     )
 
 
-def _coerce_override_values(overrides: tuple[str, ...]) -> dict[str, float | str]:
-    override_dict: dict[str, float | str] = {}
-    for key, value in parse_kv_args(overrides).items():
-        if isinstance(value, bool):
-            override_dict[key] = str(value)
-            continue
-        if isinstance(value, int | float):
-            override_dict[key] = float(value)
-            continue
-        try:
-            override_dict[key] = float(value)
-        except ValueError:
-            override_dict[key] = value
-    return override_dict
-
-
 @worldline.command("create")
 @click.argument("name")
 @click.option("--bind", "bindings", multiple=True, help="Condition binding (key=value)")
@@ -157,7 +141,7 @@ def worldline_create(
             WorldlineCreateRequest(
                 name=name,
                 bindings=parse_kv_args(bindings),
-                overrides=_coerce_override_values(overrides),
+                overrides=parse_kv_args(overrides),
                 targets=tuple(targets),
                 context_id=context,
                 policy=_policy_options(
@@ -246,7 +230,7 @@ def worldline_run(
             WorldlineRunRequest(
                 name=name,
                 bindings=parse_kv_args(bindings),
-                overrides=_coerce_override_values(overrides),
+                overrides=parse_kv_args(overrides),
                 targets=tuple(targets),
                 context_id=context,
                 policy=_policy_options(

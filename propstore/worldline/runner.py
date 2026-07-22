@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from propstore.core.id_types import ConceptId, ContextId, to_concept_id
+from propstore.core.scalars import ScalarValue
 from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition
@@ -67,7 +68,7 @@ def run_worldline(
     strategy = policy.strategy
     bound = world.bind(environment, policy=policy)
 
-    override_concept_ids: dict[ConceptId, float | str] = {}
+    override_concept_ids: dict[ConceptId, ScalarValue] = {}
     for name, value in overrides.items():
         concept_id = _resolve_concept_name(world, name)
         if concept_id is not None:
@@ -212,7 +213,7 @@ def _capture_sensitivity(
     bound: Any,
     target_map: dict[str, ConceptId],
     values: dict[str, WorldlineTargetValue],
-    override_concept_ids: dict[ConceptId, float | str],
+    override_concept_ids: dict[ConceptId, ScalarValue],
 ) -> WorldlineSensitivityReport | None:
     outcomes: dict[str, WorldlineSensitivityOutcome] = {}
     float_overrides = {

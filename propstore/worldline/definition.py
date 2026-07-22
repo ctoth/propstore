@@ -45,6 +45,7 @@ from quire.refs import single_field_ref_type
 
 from propstore.core.environment import Environment
 from propstore.core.render_policy import RenderPolicy
+from propstore.core.scalars import ScalarValue
 from propstore.support_revision.history import TransitionJournal
 from propstore.worldline.query import WorldlineResult, WorldlineRevisionQuery
 
@@ -53,8 +54,8 @@ class WorldlineInputs(DocumentStruct):
     """Strict nested input document for a worldline query."""
 
     environment: Environment = msgspec.field(default_factory=Environment)
-    overrides: dict[str, float | str] = msgspec.field(
-        default_factory=dict[str, float | str]
+    overrides: dict[str, ScalarValue] = msgspec.field(
+        default_factory=dict[str, ScalarValue]
     )
 
 

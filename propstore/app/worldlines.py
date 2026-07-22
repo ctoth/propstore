@@ -39,6 +39,7 @@ from propstore.world.types import (
     validate_backend_semantics,
 )
 from propstore.core.id_types import to_context_id
+from propstore.core.scalars import ScalarValue
 from propstore.worldline.definition import (
     WorldlineDefinition,
     WorldlineInputs,
@@ -122,7 +123,7 @@ class WorldlineCreateRequest:
     bindings: Mapping[str, str | int | float | bool] = field(
         default_factory=dict[str, str | int | float | bool]
     )
-    overrides: Mapping[str, float | str] = field(default_factory=dict[str, float | str])
+    overrides: Mapping[str, ScalarValue] = field(default_factory=dict[str, ScalarValue])
     targets: tuple[str, ...] = ()
     context_id: str | None = None
     policy: WorldlinePolicyOptions = field(default_factory=WorldlinePolicyOptions)
@@ -135,7 +136,7 @@ class WorldlineRunRequest:
     bindings: Mapping[str, str | int | float | bool] = field(
         default_factory=dict[str, str | int | float | bool]
     )
-    overrides: Mapping[str, float | str] = field(default_factory=dict[str, float | str])
+    overrides: Mapping[str, ScalarValue] = field(default_factory=dict[str, ScalarValue])
     targets: tuple[str, ...] = ()
     context_id: str | None = None
     policy: WorldlinePolicyOptions = field(default_factory=WorldlinePolicyOptions)
@@ -227,9 +228,9 @@ class WorldlineInputDifference:
 @dataclass(frozen=True)
 class WorldlineValueDifference:
     target: str
-    left_value: float | str | None
+    left_value: ScalarValue | None
     left_status: str
-    right_value: float | str | None
+    right_value: ScalarValue | None
     right_status: str
 
 

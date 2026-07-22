@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import WorldStore
+from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.scalars import ScalarValue
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasEnvironment, WorldlineBoundView
 from propstore.worldline.result_types import (
@@ -20,7 +21,7 @@ from propstore.worldline.trace import ResolutionTrace
 class ResolutionContext:
     query_world: WorldlineBoundView
     world: WorldStore
-    override_values: dict[ConceptId, float | str]
+    override_values: dict[ConceptId, ScalarValue]
     resolved_values: dict[ConceptId, ResolvedResult]
     policy: RenderPolicy
 
@@ -398,7 +399,7 @@ def _resolve_chain_target(
         )
 
     result = chain_result.result
-    chain_value: float | str | None
+    chain_value: ScalarValue | None
     formula: str | None = None
     input_values: dict[ConceptId, float] = {}
     if isinstance(result, DerivedResult):

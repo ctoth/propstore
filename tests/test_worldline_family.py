@@ -34,7 +34,15 @@ def _definition(name: str) -> WorldlineDefinition:
     return WorldlineDefinition(
         name=name,
         id=name,
-        inputs=WorldlineInputs(environment=Environment()),
+        inputs=WorldlineInputs(
+            environment=Environment(),
+            overrides={
+                "category": "fast",
+                "enabled": True,
+                "count": 2,
+                "ratio": 2.5,
+            },
+        ),
         policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY),
         targets=["Speed"],
     )
@@ -75,6 +83,16 @@ def test_worldline_round_trips_through_repository(tmp_path: Path) -> None:
     # The charter stores the policy typed; Quire decodes it back to the
     # canonical RenderPolicy — no reconstruction step at the read boundary.
     assert loaded.policy.strategy is ResolutionStrategy.RECENCY
+    assert loaded.inputs.overrides == {
+        "category": "fast",
+        "enabled": True,
+        "count": 2,
+        "ratio": 2.5,
+    }
+    assert type(loaded.inputs.overrides["category"]) is str
+    assert type(loaded.inputs.overrides["enabled"]) is bool
+    assert type(loaded.inputs.overrides["count"]) is int
+    assert type(loaded.inputs.overrides["ratio"]) is float
 
 
 def test_worldline_places_on_the_current_branch(tmp_path: Path) -> None:

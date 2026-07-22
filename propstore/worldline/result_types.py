@@ -27,6 +27,7 @@ from propstore.core.atms_reports import (
     ATMSWhyOutReport,
     SerializedEnvironment,
 )
+from propstore.core.scalars import ScalarValue
 
 
 class WorldlineRevisionTargetValidationError(ValueError):
@@ -79,7 +80,7 @@ class WorldlineInputSource:
     """Where one input to a derived value came from."""
 
     source: str
-    value: float | str | None = None
+    value: ScalarValue | None = None
     claim_id: str | None = None
     formula: str | None = None
     reason: str | None = None
@@ -97,7 +98,7 @@ class WorldlineTargetValue:
     """The resolved value of one worldline target."""
 
     status: str
-    value: float | str | None = None
+    value: ScalarValue | None = None
     source: str | None = None
     reason: str | None = None
     claim_id: str | None = None
@@ -125,7 +126,7 @@ class WorldlineStep:
 
     concept: str
     source: str
-    value: float | str | None = None
+    value: ScalarValue | None = None
     claim_id: str | None = None
     strategy: str | None = None
     reason: str | None = None

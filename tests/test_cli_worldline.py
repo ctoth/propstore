@@ -21,6 +21,7 @@ from propstore.core.environment import Environment
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
+from propstore.families.registry import WorldlineRef
 from propstore.repository import Repository
 from propstore.world import WorldQuery
 from tests.app_render_helpers import build_demo_repo
@@ -92,6 +93,35 @@ def test_create_then_show(tmp_path: Path) -> None:
     assert "Worldline: wl" in shown.output
     assert "Speed" in shown.output
     assert "not yet materialized" in shown.output
+
+
+def test_create_preserves_scalar_override_types(tmp_path: Path) -> None:
+    repo = build_demo_repo(tmp_path)
+    created = _invoke(
+        repo,
+        [
+            "create",
+            "scalar-overrides",
+            "--target",
+            "Speed",
+            "--with",
+            "category=fast",
+            "--with",
+            "enabled=true",
+            "--with",
+            "count=2",
+            "--with",
+            "ratio=2.5",
+        ],
+    )
+    assert created.exit_code == 0, created.output
+
+    definition = repo.families.worldlines.load(WorldlineRef("scalar-overrides"))
+    assert definition is not None
+    assert type(definition.inputs.overrides["category"]) is str
+    assert type(definition.inputs.overrides["enabled"]) is bool
+    assert type(definition.inputs.overrides["count"]) is int
+    assert type(definition.inputs.overrides["ratio"]) is float
 
 
 def test_create_duplicate_fails(tmp_path: Path) -> None:

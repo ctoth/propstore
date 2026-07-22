@@ -80,11 +80,19 @@ def test_wellformed_result_decodes_to_the_canonical_types() -> None:
         {
             "computed": "2026-07-13T00:00:00Z",
             "content_hash": "abc",
-            "values": {"target": {"status": "determined", "value": 1.0}},
+            "values": {
+                "category": {"status": "determined", "value": "fast"},
+                "enabled": {"status": "determined", "value": True},
+                "count": {"status": "determined", "value": 2},
+                "ratio": {"status": "determined", "value": 2.5},
+            },
         },
         WorldlineResult,
         source="worldline",
     )
     assert isinstance(result, WorldlineResult)
-    assert result.values["target"].status == "determined"
-    assert result.values["target"].value == 1.0
+    assert all(value.status == "determined" for value in result.values.values())
+    assert type(result.values["category"].value) is str
+    assert type(result.values["enabled"].value) is bool
+    assert type(result.values["count"].value) is int
+    assert type(result.values["ratio"].value) is float
