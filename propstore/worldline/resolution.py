@@ -24,17 +24,18 @@ class ResolutionContext:
     resolved_values: dict[ConceptId, ResolvedResult]
     policy: RenderPolicy
 
-    def numeric_overrides(self) -> dict[str, float | str | None]:
-        numeric_values: dict[str, float | str | None] = {
+    def numeric_overrides(self) -> dict[str, float]:
+        numeric_values = {
             str(key): float(value)
             for key, value in self.override_values.items()
-            if isinstance(value, (int, float))
+            if not isinstance(value, bool) and isinstance(value, (int, float))
         }
         numeric_values.update(
             {
                 str(key): float(result.value)
                 for key, result in self.resolved_values.items()
-                if isinstance(result.value, (int, float))
+                if not isinstance(result.value, bool)
+                and isinstance(result.value, (int, float))
             }
         )
         return numeric_values

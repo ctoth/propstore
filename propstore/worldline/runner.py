@@ -218,7 +218,7 @@ def _capture_sensitivity(
     float_overrides = {
         str(concept_id): float(value)
         for concept_id, value in override_concept_ids.items()
-        if isinstance(value, (int, float))
+        if not isinstance(value, bool) and isinstance(value, (int, float))
     }
     for target_name, concept_id in target_map.items():
         value = values.get(target_name)

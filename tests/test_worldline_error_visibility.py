@@ -17,10 +17,18 @@ from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from propstore.core.id_types import to_concept_id
 from propstore.world.types import Environment
-from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
+from propstore.world.types import (
+    ReasoningBackend,
+    RenderPolicy,
+    ResolvedResult,
+    ResolutionStrategy,
+    ValueStatus,
+)
 from propstore.worldline.definition import WorldlineDefinition, WorldlineInputs
-from propstore.worldline.runner import run_worldline
+from propstore.worldline.resolution import ResolutionContext
+from propstore.worldline.runner import _capture_sensitivity, run_worldline
 from propstore.worldline.result_types import WorldlineTargetValue
 
 
@@ -169,6 +177,75 @@ class TestSensitivityErrorVisibility:
         assert any(
             outcome.error is not None for outcome in result.sensitivity.targets.values()
         ), "sensitivity report exists but contains no error indicator"
+
+
+def test_numeric_override_projection_rejects_boolean_and_text_values() -> None:
+    context = ResolutionContext(
+        query_world=MagicMock(),
+        world=MagicMock(),
+        override_values={
+            to_concept_id("override-bool"): True,
+            to_concept_id("override-int"): 2,
+            to_concept_id("override-float"): 3.5,
+            to_concept_id("override-text"): "categorical",
+        },
+        resolved_values={
+            to_concept_id("resolved-bool"): ResolvedResult(
+                concept_id="resolved-bool",
+                status=ValueStatus.RESOLVED,
+                value=False,
+            ),
+            to_concept_id("resolved-int"): ResolvedResult(
+                concept_id="resolved-int",
+                status=ValueStatus.RESOLVED,
+                value=4,
+            ),
+            to_concept_id("resolved-float"): ResolvedResult(
+                concept_id="resolved-float",
+                status=ValueStatus.RESOLVED,
+                value=5.5,
+            ),
+            to_concept_id("resolved-text"): ResolvedResult(
+                concept_id="resolved-text",
+                status=ValueStatus.RESOLVED,
+                value="categorical",
+            ),
+        },
+        policy=RenderPolicy(),
+    )
+
+    assert context.numeric_overrides() == {
+        "override-int": 2.0,
+        "override-float": 3.5,
+        "resolved-int": 4.0,
+        "resolved-float": 5.5,
+    }
+
+
+def test_sensitivity_projection_rejects_boolean_and_text_overrides() -> None:
+    target_id = to_concept_id("target")
+    overrides = {
+        to_concept_id("override-bool"): True,
+        to_concept_id("override-int"): 2,
+        to_concept_id("override-float"): 3.5,
+        to_concept_id("override-text"): "categorical",
+    }
+
+    with patch(
+        "propstore.sensitivity.analyze_sensitivity", return_value=None
+    ) as analyze:
+        _capture_sensitivity(
+            MagicMock(),
+            MagicMock(),
+            {"target": target_id},
+            {"target": WorldlineTargetValue(status="derived", value=1.0)},
+            overrides,
+        )
+
+    assert analyze.call_args.kwargs["override_values"] == {
+        "override-int": 2.0,
+        "override-float": 3.5,
+    }
 
 
 # ── Test 2: argumentation capture error is surfaced ──────────────────
