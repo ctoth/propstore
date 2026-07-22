@@ -9,6 +9,7 @@ kernel.
 
 from __future__ import annotations
 
+import pytest
 from causal_models import CausalValueStatus, InterventionWorld
 from propstore.core.graph_types import CompiledWorldGraph, ParameterizationEdge
 from propstore.world import from_compiled_graph
@@ -43,3 +44,10 @@ def test_from_compiled_graph_feeds_intervention_world() -> None:
     derived = world.derived_value("z")
     assert derived.status is CausalValueStatus.DERIVED
     assert derived.value == 13.0
+
+
+def test_from_compiled_graph_rejects_boolean_equation_input() -> None:
+    scm = from_compiled_graph(_sum_graph(), exogenous_assignment={"x": True, "y": 3})
+
+    with pytest.raises(ValueError, match="input is not numeric: True"):
+        scm.evaluate()

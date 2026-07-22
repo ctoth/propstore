@@ -99,6 +99,6 @@ def _as_float(value: Value) -> float:
     values cannot parameterize an equation and fail loudly rather than silently.
     """
 
-    if isinstance(value, (int, float)):
+    if not isinstance(value, bool) and isinstance(value, (int, float)):
         return float(value)
     raise ValueError(f"Structural-equation input is not numeric: {value!r}")
