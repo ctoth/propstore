@@ -12,11 +12,7 @@ from propstore.support_revision.integrity_constraints import (
     TopConstraint,
 )
 from propstore.support_revision.operator_inputs import (
-    ContractInput,
-    ExpandInput,
     ICMergeInput,
-    IteratedReviseInput,
-    ReviseInput,
 )
 from propstore.core.environment import AssumptionRef
 from propstore.reporting import json_ready

@@ -2,20 +2,10 @@ from __future__ import annotations
 
 from msgspec.structs import replace
 
-from quire.documents import to_document_builtins
 
 from propstore.provenance import ProvenanceStatus
 from propstore.support_revision.decision_trace import RankingProvenance
-from propstore.support_revision.integrity_constraints import (
-    AtomConstraint,
-    LiteralsConstraint,
-    TopConstraint,
-)
 from propstore.support_revision.operator_inputs import (
-    ContractInput,
-    ExpandInput,
-    ICMergeInput,
-    IteratedReviseInput,
     ReviseInput,
 )
 from propstore.support_revision.dispatch import dispatch

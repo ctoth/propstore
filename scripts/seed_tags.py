@@ -26,7 +26,6 @@ def main():
 
     # Build canonical tag registry
     tags: dict[str, dict] = {}
-    alias_targets = set(ALIAS_MERGES.values())
 
     for tag in existing_tags:
         if tag in ALIAS_MERGES:

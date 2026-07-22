@@ -153,14 +153,21 @@ def check_legacy_workstream(workstream: Path, text: str) -> int:
         return 1
 
     phase_titles = [
-        match.group("title").strip() for match in LEGACY_PHASE_RE.finditer(text)
+        (title, title.strip().lower().replace("`", ""))
+        for match in LEGACY_PHASE_RE.finditer(text)
+        if (title := match.group("title").strip())
     ]
     phase_by_normalized = {
-        normalize(title): index for index, title in enumerate(phase_titles)
+        normalized: index for index, (_title, normalized) in enumerate(phase_titles)
     }
+    normalized_dependencies = [
+        (title, title.strip().lower().replace("`", "")) for title in dependencies
+    ]
 
     missing = [
-        title for title in dependencies if normalize(title) not in phase_by_normalized
+        title
+        for title, normalized in normalized_dependencies
+        if normalized not in phase_by_normalized
     ]
     if missing:
         for title in missing:
@@ -168,10 +175,10 @@ def check_legacy_workstream(workstream: Path, text: str) -> int:
         return 1
 
     failures: list[str] = []
-    for index, dependent in enumerate(dependencies):
-        dependent_index = phase_by_normalized[normalize(dependent)]
-        for prerequisite in dependencies[:index]:
-            prerequisite_index = phase_by_normalized[normalize(prerequisite)]
+    for index, (dependent, normalized) in enumerate(normalized_dependencies):
+        dependent_index = phase_by_normalized[normalized]
+        for prerequisite, prerequisite_normalized in normalized_dependencies[:index]:
+            prerequisite_index = phase_by_normalized[prerequisite_normalized]
             if prerequisite_index >= dependent_index:
                 failures.append(f"{dependent!r} must appear after {prerequisite!r}")
 

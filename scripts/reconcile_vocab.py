@@ -388,8 +388,8 @@ for claims_file in sorted(papers_dir.glob("*/claims.yaml")):
             concept_papers_after[claim["target_concept"]].add(paper_name)
             concept_count_after[claim["target_concept"]] += 1
 
-print(f"\n=== RESULTS ===")
-print(f"Concepts before: 754")
+print("\n=== RESULTS ===")
+print("Concepts before: 754")
 print(f"Concepts after: {len(concept_papers_after)}")
 print(f"Merges applied: {len(MERGES)}")
 print(f"Files modified: {len(modified_files)}")
@@ -397,7 +397,7 @@ for f in modified_files:
     print(f"  {f}")
 
 # Output merge details for report
-print(f"\n=== MERGE DETAILS ===")
+print("\n=== MERGE DETAILS ===")
 for canonical, alias, reason in MERGES:
     print(f"  {alias} -> {canonical}: {reason}")
 

@@ -144,7 +144,7 @@ groups = defaultdict(list)
 for c in concepts:
     groups[find(c)].append(c)
 non_trivial = {k: v for k, v in groups.items() if len(v) > 1}
-print(f"\n=== SUMMARY ===")
+print("\n=== SUMMARY ===")
 print(f"Total concepts: {len(concepts)}")
 print(f"Auto-merged groups (plural only, no co-occurrence): {len(non_trivial)}")
 for canonical, members in sorted(non_trivial.items()):

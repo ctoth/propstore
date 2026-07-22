@@ -57,7 +57,7 @@ from propstore.families.rules.declaration import (
     GroundedFact,
     GroundedFactEmptyPredicate,
 )
-from propstore.families.sources.declaration import Source, source_charter
+from propstore.families.sources.declaration import source_charter
 
 PROPSTORE_WORLD_SCHEMA_VERSION = 6
 PROPSTORE_WORLD_META_KEY = "sidecar"

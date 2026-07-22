@@ -8,15 +8,10 @@ from belief_set import Atom, TOP, disjunction
 
 from propstore.support_revision.integrity_constraints import (
     AtomConstraint,
-    LiteralsConstraint,
     TopConstraint,
 )
 from propstore.support_revision.operator_inputs import (
-    ContractInput,
-    ExpandInput,
     ICMergeInput,
-    IteratedReviseInput,
-    ReviseInput,
 )
 from propstore.support_revision.belief_set_adapter import (
     decide_ic_merge,

@@ -5,16 +5,10 @@ from msgspec.structs import replace
 from msgspec.structs import replace as replace_struct
 
 from propstore.support_revision.integrity_constraints import (
-    AtomConstraint,
     LiteralsConstraint,
-    TopConstraint,
 )
 from propstore.support_revision.operator_inputs import (
-    ContractInput,
-    ExpandInput,
     ICMergeInput,
-    IteratedReviseInput,
-    ReviseInput,
 )
 from propstore.core.environment import AssumptionRef
 from propstore.support_revision.dispatch import dispatch

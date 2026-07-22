@@ -8,19 +8,9 @@ from msgspec.structs import replace
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from msgspec.structs import replace as replace_struct
-from quire.documents import to_document_builtins
 
-from propstore.support_revision.integrity_constraints import (
-    AtomConstraint,
-    LiteralsConstraint,
-    TopConstraint,
-)
 from propstore.support_revision.operator_inputs import (
-    ContractInput,
-    ExpandInput,
-    ICMergeInput,
     IteratedReviseInput,
-    ReviseInput,
 )
 from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims import ClaimType
