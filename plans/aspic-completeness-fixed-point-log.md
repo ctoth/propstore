@@ -116,3 +116,65 @@ Next slice:
   lockfile remain pinned to that exact revision.
 - Every B2 execution item and final gate is complete; the active plan's B2
   checklist is closed.
+
+## Issue 10 follow-up - remove the false PrAF dependency edge
+
+Target architecture:
+- Structured grounding completeness remains owned by the Gunray/ASPIC build,
+  resolution, worldline, and fragility paths.
+- PrAF analysis remains an abstract claim/stance graph computation over
+  `SharedAnalyzerInput`; generic enumeration routing belongs to the
+  `argumentation` package.
+
+Forbidden surface:
+- An unconditional placeholder test that makes PrAF analysis appear to depend
+  on `GroundedRulesBundle`, `GroundingStatus`, or Propstore-owned argument
+  enumeration limits.
+
+Slice read:
+- `tests/test_praf_argument_enumeration_budget.py`
+- `tests/test_app_worldlines.py`
+- `tests/test_fragility.py`
+- `propstore/core/analyzers.py`
+- `propstore/worldline/argumentation.py`
+
+Surfaces:
+- The skipped PrAF enumeration-budget test
+  - Classification: dead/test/scaffold surface plus a wrong caller assumption.
+  - Disposition: delete the caller path.
+  - Owner after cleanup: no Propstore owner; generic PrAF computation routing
+    remains dependency-owned.
+  - Evidence: the test contained only an unconditional skip and an
+    `AssertionError`; the real structured-grounding failure contract is already
+    exercised through the ASPIC app-worldline and fragility paths.
+
+Search gates:
+- No `test_praf_argument_enumeration_budget.py` file remains.
+- No PrAF production path consumes `GroundedRulesBundle`, `GroundingStatus`,
+  or `max_arguments`.
+
+Runtime gates:
+- Logged focused app-worldline and fragility regressions.
+- `uv run pyright propstore`.
+- Package Ruff check and format check.
+- Full logged test suite.
+
+Gate results:
+- Red acceptance gate: one unconditional skip in
+  `logs/test-runs/issue-10-red-20260805-225912.log`.
+- Focused owner-path regressions: 2 passed in 9.99 seconds in
+  `logs/test-runs/issue-10-green-focused-20260805-230053.log`.
+- PrAF owner search: zero hits for `GroundedRulesBundle`, `GroundingStatus`,
+  and `max_arguments`.
+- `uv run pyright propstore`: zero errors, warnings, or informations.
+- `uv run ruff check .`: all checks passed.
+- `uv run ruff format --check .`: all 639 files already formatted.
+- `uv run lint-imports`: all three contracts kept.
+- Full logged suite: 1817 passed and 3 skips in 60.26 seconds
+  in `logs/test-runs/issue-10-full-20260805-230141.log`.
+
+Commit:
+- Planned as `test: remove false PrAF grounding placeholder`.
+
+Next slice:
+- None; issue 10 reaches fixed point when the search and runtime gates pass.
