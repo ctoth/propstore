@@ -83,12 +83,6 @@ class RuleProposalResult:
     rejections: tuple[RuleRejection, ...]
 
 
-def canonical_rule_ref(_source_paper: str, rule_id: str) -> str:
-    """Return the canonical rule identity a proposal would promote to."""
-
-    return rule_id
-
-
 def _paper_notes(source_paper: str) -> str:
     from pathlib import Path
 
@@ -306,7 +300,6 @@ __all__ = [
     "PROMPT_TEMPLATE",
     "RuleProposalResult",
     "RuleRejection",
-    "canonical_rule_ref",
     "parse_atom",
     "propose_rules_for_paper",
     "rule_proposal_branch",

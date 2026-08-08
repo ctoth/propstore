@@ -63,12 +63,6 @@ class PredicateProposalResult:
     relpath: str
 
 
-def canonical_predicate_ref(predicate_id: str) -> str:
-    """Return the canonical predicate identity a declaration would promote to."""
-
-    return predicate_id
-
-
 def _paper_notes(source_paper: str) -> str:
     path = Path("papers") / source_paper / "notes.md"
     if path.exists():
@@ -153,7 +147,6 @@ __all__ = [
     "PROMPT_SHA",
     "PROMPT_TEMPLATE",
     "PredicateProposalResult",
-    "canonical_predicate_ref",
     "predicate_proposal_branch",
     "propose_predicates_for_paper",
 ]
