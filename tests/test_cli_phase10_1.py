@@ -299,38 +299,6 @@ def test_proposal_promote_unknown_stance_fails(tmp_path: Path) -> None:
     assert "ps:stance:typo" in result.output
 
 
-# --- proposal predicates promote ----------------------------------------------
-
-
-def test_proposal_predicates_promote(tmp_path: Path) -> None:
-    repo = _repo(tmp_path)
-    _invoke(
-        repo,
-        [
-            "predicate",
-            "declare",
-            "--paper",
-            PAPER,
-            "--name",
-            "sample_size",
-            "--arity",
-            "2",
-            "--arg-type",
-            "paper_id",
-            "--arg-type",
-            "int",
-            "--description",
-            "Sample size.",
-            "--date",
-            "2026-06-30",
-        ],
-    )
-    result = _invoke(repo, ["proposal", "predicates", "promote", "--paper", PAPER])
-    assert result.exit_code == 0, result.output
-    assert "Promoted: sample_size" in result.output
-    assert repo.families.predicate.require("sample_size").authoring_group == PAPER
-
-
 # --- micropub read (ported from reference test_micropubs CLI list/show) --------
 
 

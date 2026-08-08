@@ -1,21 +1,13 @@
 """``pks proposal`` — promote recorded proposals into the canonical corpus.
 
 Thin Click adapters (CLAUDE.md "CLI adapter discipline") over the explicit
-accept-then-promote owners:
-
-* stance proposals — :mod:`propstore.proposals`
-  (:func:`~propstore.proposals.plan_stance_proposal_promotion`,
-  :func:`~propstore.proposals.promote_stance_proposals`);
-* predicate proposals — :mod:`propstore.proposals_predicates`
-  (:func:`~propstore.proposals_predicates.plan_predicate_proposal_promotion`,
-  :func:`~propstore.proposals_predicates.promote_predicate_proposals`).
+accept-then-promote owners. Stance proposal promotion uses
+:mod:`propstore.proposals`; rule-proposal commands use
+:mod:`propstore.heuristic.rule_extraction` and :mod:`propstore.proposals_rules`.
 
 This module builds the plan, shows it, and (on confirmation) promotes it; the
-owners own every storage/promotion semantic. The rule-proposal subcommands
-(``propose-rules`` / ``promote-rules``) are thin adapters over
-:mod:`propstore.heuristic.rule_extraction` and :mod:`propstore.proposals_rules`;
-``propose-rules`` accepts a ``--mock-llm-fixture`` so it is exercisable without an
-LLM endpoint.
+owners own every storage/promotion semantic. ``propose-rules`` accepts a
+``--mock-llm-fixture`` so it is exercisable without an LLM endpoint.
 """
 
 from __future__ import annotations
@@ -31,11 +23,6 @@ from propstore.proposals import (
     plan_stance_proposal_promotion,
     promote_stance_proposals,
 )
-from propstore.proposals_predicates import (
-    PredicateProposalConflict,
-    plan_predicate_proposal_promotion,
-    promote_predicate_proposals,
-)
 from propstore.proposals_rules import (
     RuleWorkflowError,
     plan_rule_proposal_promotion,
@@ -45,7 +32,7 @@ from propstore.proposals_rules import (
 
 @click.group()
 def proposal() -> None:
-    """Promote recorded stance and predicate proposals into storage."""
+    """Promote recorded proposal artifacts into storage."""
 
 
 @proposal.command("promote")
@@ -83,37 +70,6 @@ def promote(obj: CliContext, stance_id: str | None, yes: bool) -> None:
     for item in result.promoted_items:
         emit_success(f"  Promoted: {item.stance_id}")
     emit_success(f"Promoted {result.moved} of {len(plan.items)} stance proposal(s).")
-
-
-@proposal.group("predicates")
-def predicates() -> None:
-    """Promote recorded predicate proposals."""
-
-
-@predicates.command("promote")
-@click.option("--paper", required=True, help="Source paper whose proposal to promote.")
-@click.pass_obj
-def promote_predicates_cmd(obj: CliContext, paper: str) -> None:
-    """Promote a recorded predicate proposal into canonical predicates."""
-
-    repo = require_repo(obj)
-    try:
-        plan = plan_predicate_proposal_promotion(repo, source_paper=paper)
-    except UnknownProposalPath as exc:
-        fail(exc)
-    if not plan.has_branch:
-        emit(f"No {plan.branch} branch found. Nothing to promote.")
-        return
-    if not plan.items:
-        emit(f"No predicate proposals to promote for {paper}.")
-        return
-    try:
-        result = promote_predicate_proposals(repo, plan)
-    except PredicateProposalConflict as exc:
-        fail(exc)
-    for item in result.promoted_items:
-        emit_success(f"  Promoted: {item.predicate_id}")
-    emit_success(f"Promoted {result.moved} predicate proposal(s).")
 
 
 @proposal.command("propose-rules")
