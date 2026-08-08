@@ -4,7 +4,7 @@ An :class:`ActiveClaim` is a frozen field-subset VIEW over the canonical
 :class:`~propstore.families.claims.Claim` charter — built by attribute access
 in :meth:`ActiveClaim.from_claim`, never by re-typing a payload mapping. It
 adds the participation facts a claim only has *inside* one argumentation pass
-(``premise_kind``, ``branch``, ``source_assertion_ids``) and the per-claim
+(``branch``, ``source_assertion_ids``) and the per-claim
 epistemic slots (``date``, the Jøsang opinion components, ``source_paper``)
 whose production substrates are tracked in ``docs/gaps.md``; absence is honest
 ignorance, never a fabricated value.
@@ -37,7 +37,6 @@ class ActiveClaim(
 
     claim_id: str
     context_id: str | None = None
-    premise_kind: str = "ordinary"
     concept_id: str | None = None
     canonical_name: str | None = None
     statement: str | None = None
@@ -68,7 +67,6 @@ class ActiveClaim(
         concept_id: str | None = None,
         branch: str | None = None,
         source_assertion_ids: tuple[str, ...] = (),
-        premise_kind: str = "ordinary",
         source_paper: str | None = None,
     ) -> ActiveClaim:
         """Project the canonical :class:`Claim` charter into the active view.
@@ -81,7 +79,6 @@ class ActiveClaim(
         return cls(
             claim_id=str(claim.claim_id) if claim_id is None else claim_id,
             context_id=claim.context_id,
-            premise_kind=premise_kind,
             concept_id=_value_concept_id(claim) if concept_id is None else concept_id,
             canonical_name=claim.name,
             statement=claim.statement,

@@ -8,7 +8,7 @@ ASPIC+ vocabulary, used directly (CLAUDE.md substrate boundary):
   (a ``reported_claim`` contributes a premise, not a rule);
 * T3 ``stances_to_contrariness`` — rebut/supersede/undermine/undercut stances
   become the contrariness function;
-* T4 ``claims_to_kb`` — reported claims populate ``K_n`` (necessary) / ``K_p``;
+* T4 ``claims_to_kb`` — reported claims populate ordinary premises in ``K_p``;
 * T5 ``build_preference_config`` — the metadata strength heuristic orders
   premises; an authored partial order orders defeasible rules.
 
@@ -322,7 +322,11 @@ def claims_to_kb(
     justifications: list[CanonicalJustification],
     literals: dict[LiteralKey, Literal],
 ) -> KnowledgeBase:
-    """Build ``K_n`` (necessary) and ``K_p`` (ordinary) from reported claims."""
+    """Build ordinary ``K_p`` premises from authorable reported claims.
+
+    Reported claims have no canonical axiom-authority input.  ``K_n`` remains
+    empty here and is populated separately by the grounded-fact projection.
+    """
 
     reported_claim_ids = {
         justification.conclusion_claim_id
@@ -330,7 +334,6 @@ def claims_to_kb(
         if justification.rule_kind == "reported_claim"
     }
     claim_by_id = {str(claim.claim_id): claim for claim in active_claims}
-    axioms: set[Literal] = set()
     premises: set[Literal] = set()
 
     for claim_id in reported_claim_ids:
@@ -340,13 +343,9 @@ def claims_to_kb(
         literal_key = _claim_literal_key(claim)
         if literal_key not in literals:
             continue
-        literal = literals[literal_key]
-        if claim.premise_kind == "necessary":
-            axioms.add(literal)
-        else:
-            premises.add(literal)
+        premises.add(literals[literal_key])
 
-    return KnowledgeBase(axioms=frozenset(axioms), premises=frozenset(premises))
+    return KnowledgeBase(axioms=frozenset(), premises=frozenset(premises))
 
 
 def _dominates(a: MetadataStrengthVector, b: MetadataStrengthVector) -> bool:
