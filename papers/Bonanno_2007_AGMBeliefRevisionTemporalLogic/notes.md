@@ -199,7 +199,7 @@ This paper is critical for evaluating whether the AGM theory of belief revision 
 - [[Bonanno_2010_BeliefChangeBranchingTime]] — the direct successor to this paper; extends the framework to prove AGM-consistency equivalence with PLS and total pre-order rationalizability
 - [[Darwiche_1997_LogicIteratedBeliefRevision]] — this paper's iterated revision (Section 4, Proposition 12) relates to DP postulates; Bonanno 2010 shows how the ternary revision function subsumes Darwiche-Pearl
 - [[Dixon_1993_ATMSandAGM]] — Dixon's ATMS-AGM bridge uses the same AGM postulates K*1-K*8 that this paper characterizes axiomatically
-- [[Gardenfors_1988_RevisionsKnowledgeSystemsEpistemic]] — epistemic entrenchment ordering relates to the plausibility structure implicit in this paper's QBR-based frames
+- [Revisions of Knowledge Systems Using Epistemic Entrenchment](../Gardenfors_1988_RevisionsKnowledgeSystemsEntrenchment/notes.md) - epistemic entrenchment ordering relates to the plausibility structure implicit in this paper's QBR-based frames
 
 ### New Leads (Not Yet in Collection)
 - Kraus and Lehmann (1988) — "Knowledge, belief and time", Theoretical Computer Science 58: 155-174 — alternative temporal approach using knowledge operator, compared in Section 5
