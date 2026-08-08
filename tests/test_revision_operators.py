@@ -138,7 +138,7 @@ def test_contract_uses_computed_entrenchment_order_for_equal_size_cuts() -> None
         },
     )
 
-    entrenchment = compute_entrenchment(None, base)
+    entrenchment = compute_entrenchment(base)
     incision_set = _support_realization_cuts(
         base,
         (target.atom_id,),

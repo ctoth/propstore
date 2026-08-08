@@ -8,6 +8,7 @@ from msgspec.structs import replace
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from msgspec.structs import replace as replace_struct
+from quire.documents.schema import DocumentSchemaError
 
 from propstore.support_revision.operator_inputs import (
     IteratedReviseInput,
@@ -36,6 +37,21 @@ def test_epistemic_snapshot_roundtrips_with_stable_hash() -> None:
     assert restored == snapshot
     assert restored.to_canonical_json() == snapshot.to_canonical_json()
     assert restored.content_hash == snapshot.content_hash
+
+
+def test_epistemic_snapshot_rejects_removed_entrenchment_override_field() -> None:
+    from propstore.support_revision.history import EpistemicSnapshot
+
+    base, entrenchment, _, _ = _history_sensitive_base()
+    payload = EpistemicSnapshot.from_state(
+        make_epistemic_state(base, entrenchment)
+    ).to_dict()
+    reasons = payload["state"]["entrenchment_reasons"]
+    reason = next(iter(reasons.values()))
+    reason["override_priority"] = 0
+
+    with pytest.raises(DocumentSchemaError, match="override_priority"):
+        EpistemicSnapshot.from_mapping(payload)
 
 
 def test_transition_journal_records_state_policy_operator_and_replay_hashes() -> None:
@@ -162,7 +178,6 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
             claim_type=ClaimType.PARAMETER,
             value="legacy",
             concept_id="concept_legacy",
-            source_paper="paper:updated",
         )
         changed_atoms.append(replace_struct(atom, source_claims=(source_claim,)))
     changed_base = replace_struct(

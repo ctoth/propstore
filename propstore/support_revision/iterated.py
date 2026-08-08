@@ -110,7 +110,7 @@ def iterated_revise(
         )
 
     normalized = normalize_revision_input(state.base, atom)
-    current_entrenchment = compute_entrenchment(None, state.base)
+    current_entrenchment = compute_entrenchment(state.base)
     conflict_items: list[tuple[str, tuple[str, ...] | list[str]]] = (
         [] if conflicts is None else list(conflicts.items())
     )
@@ -148,7 +148,7 @@ def iterated_revise(
             realization_failure=str(exc),
         )
         raise RevisionRealizationFailure(event) from exc
-    next_entrenchment = compute_entrenchment(None, result.revised_base)
+    next_entrenchment = compute_entrenchment(result.revised_base)
     next_state = advance_epistemic_state(
         state,
         result,

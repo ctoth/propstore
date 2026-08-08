@@ -29,7 +29,7 @@ def test_restrained_example_reports_formal_policy_and_recomputed_ranking() -> No
     assert ids["right_dependent"] not in next_state.accepted_atom_ids
     assert (
         next_state.ranked_atom_ids
-        == compute_entrenchment(None, result.revised_base).ranked_atom_ids
+        == compute_entrenchment(result.revised_base).ranked_atom_ids
     )
 
 
@@ -53,5 +53,5 @@ def test_lexicographic_example_reports_formal_policy_and_recomputed_ranking() ->
     assert ids["left_dependent"] in next_state.accepted_atom_ids
     assert (
         next_state.ranked_atom_ids
-        == compute_entrenchment(None, result.revised_base).ranked_atom_ids
+        == compute_entrenchment(result.revised_base).ranked_atom_ids
     )

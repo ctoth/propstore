@@ -132,18 +132,16 @@ def world_revision_entrenchment(
             else reason.support_count
         )
         essential = () if reason is None else reason.essential_support
-        override = None if reason is None else reason.override_priority
         rows.append(
             (
                 rank,
                 atom_id,
                 support_count,
                 format_assumption_ids([str(value) for value in essential]),
-                override,
             )
         )
     emit_table(
-        ("Rank", "Atom", "Support", "Essential support", "Override"),
+        ("Rank", "Atom", "Support", "Essential support"),
         rows,
         indent="  ",
     )
