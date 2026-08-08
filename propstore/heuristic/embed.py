@@ -83,11 +83,6 @@ def serialize_float32(vector: Sequence[float]) -> bytes:
     return struct.pack(f"{len(vector)}f", *vector)
 
 
-def deserialize_float32(blob: bytes) -> list[float]:
-    count = len(blob) // 4
-    return list(struct.unpack(f"{count}f", blob))
-
-
 def _embedding_vector(response: Any, index: int) -> list[float]:
     """Launder one embedding row out of the untyped litellm response."""
 
@@ -301,7 +296,6 @@ def find_similar_disagree_generic(
 
 
 __all__ = [
-    "deserialize_float32",
     "embed_entities",
     "find_similar_agree_generic",
     "find_similar_disagree_generic",
