@@ -1,6 +1,6 @@
 """Repository history CLI commands: ``pks log`` / ``diff`` / ``show`` / ``checkout``.
 
-Thin Click adapters over the owner cores in :mod:`propstore.history`
+Thin Click adapters over the owner cores in :mod:`propstore.history.reports`
 (``build_log_report``, ``build_diff_report``, ``build_commit_show_report``,
 ``checkout_commit``): each parses flags, calls the owner, renders the typed
 report, and maps the owner's typed errors to exit codes (CLAUDE.md "CLI adapter
@@ -13,7 +13,7 @@ import click
 
 from propstore.cli.helpers import CliContext, fail, require_repo
 from propstore.cli.output import emit, emit_yaml
-from propstore.history import (
+from propstore.history.reports import (
     BranchNotFoundError,
     CommitHasNoConceptsError,
     CommitNotFoundError,
