@@ -776,8 +776,10 @@ Deferred:
   rewrite's thin charters key by `concept_id` / `claim_id` alone, so the behavior
   was ported over `Repository.init` source repos in `test_repository_import.py`.
 - `import-repository` CLI (`test_import_repo_cli_*`) -> **10** (CLI/presentation).
-- `EquivalenceWitnessStore` composition is the non-commitment equivalence surface
-  (`test_import_machinery` covers it); any sidecar projection of witnesses -> **9**.
+- The in-memory equivalence-witness composition scaffold was deleted under #43
+  after current-caller audit found only self-contained tests. Real candidate
+  identity evidence belongs in the typed alignment proposal/decision or `SameAs`
+  owners.
 
 ## Phase 8-6 — verify_claim_tree (canonical claim-tree integrity; DONE)
 
