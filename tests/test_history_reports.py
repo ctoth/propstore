@@ -1,7 +1,7 @@
 """Owner-layer repository history cores: log / diff / show / checkout.
 
-These exercise :mod:`propstore.history` directly (no Click); the ``pks log`` /
-``diff`` / ``show`` / ``checkout`` Click adapters are Phase 10.
+These exercise :mod:`propstore.history.reports` directly (no Click); the
+``pks log`` / ``diff`` / ``show`` / ``checkout`` Click adapters are Phase 10.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from propstore.history import (
+from propstore.history.reports import (
     BranchNotFoundError,
     CommitNotFoundError,
     build_commit_show_report,

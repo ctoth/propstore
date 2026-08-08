@@ -1,7 +1,7 @@
 """CLI tests for ``pks log`` / ``diff`` / ``show`` / ``checkout``.
 
 Ported from the feature-peak ``test_log_cli`` onto the rewrite owner API
-(:mod:`propstore.history`): the adapters render the typed reports and the YAML
+(:mod:`propstore.history.reports`): the adapters render the typed reports and the YAML
 form is the recursively-lowered report.
 """
 
