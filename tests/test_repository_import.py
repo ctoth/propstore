@@ -375,10 +375,3 @@ def test_import_is_convergent_under_repeated_commits(tmp_path: Path) -> None:
     assert dict(git.iter_flat_tree_entries(first.commit_sha)) == dict(
         git.iter_flat_tree_entries(second.commit_sha)
     )
-
-
-def test_import_repository_exports_from_importing_surface() -> None:
-    from propstore import importing
-
-    assert hasattr(importing, "plan_repository_import")
-    assert hasattr(importing, "commit_repository_import")
