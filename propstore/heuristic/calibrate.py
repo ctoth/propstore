@@ -1,9 +1,8 @@
 """Calibration — bridge raw model outputs to the subjective-logic opinion algebra.
 
-Corpus CDF calibration, categorical-to-opinion mapping, and calibrated-probability
-mapping. Every probability produced here becomes a ``doxa.Opinion`` — the one
-canonical opinion type (CLAUDE.md substrate-boundary rule) — and absence of
-calibration data becomes a vacuous opinion (Jøsang 2001, p.8) or an explicit
+Corpus CDF calibration and categorical-to-opinion mapping produce the one
+canonical ``doxa.Opinion`` type (CLAUDE.md substrate-boundary rule), and absence
+of calibration data becomes a vacuous opinion (Jøsang 2001, p.8) or an explicit
 :class:`~propstore.core.base_rates.BaseRateUnresolved`, never a fabricated number.
 
 The generic calibration-quality metrics and temperature scaling (Guo et al. 2017)
@@ -257,28 +256,3 @@ def categorical_to_opinion(
     r = float(correct)
     s = float(total - correct)
     return Opinion.from_evidence(r, s, base_rate)
-
-
-# ---------------------------------------------------------------------------
-# 4. Probability-to-Opinion
-# ---------------------------------------------------------------------------
-
-
-def calibrated_probability_to_opinion(
-    probability: float,
-    effective_sample_size: float,
-    base_rate: float,
-) -> Opinion:
-    """Convert a calibrated probability to a ``doxa.Opinion`` via Beta evidence.
-
-    Per Sensoy et al. 2018 (p.3-4) and Jøsang 2001 (p.20-21, Def 12), ``r = p*n``,
-    ``s = (1-p)*n`` with ``n`` the effective sample size. ``n = 0`` yields a
-    vacuous opinion (Jøsang 2001, p.8); large ``n`` yields a narrow opinion near
-    the probability.
-    """
-
-    if probability < 0.0 or probability > 1.0:
-        raise ValueError(f"probability={probability} not in [0, 1]")
-    if effective_sample_size < 0.0:
-        raise ValueError(f"effective_sample_size={effective_sample_size} must be >= 0")
-    return Opinion.from_probability(probability, effective_sample_size, base_rate)
