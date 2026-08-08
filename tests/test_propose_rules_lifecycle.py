@@ -79,12 +79,7 @@ def test_propose_rules_writes_only_admitted_rule_proposals(
     assert result.rule_ids == ("rule-001",)
     assert [rejection.rule_id for rejection in result.rejections] == ["rule-unknown"]
     assert result.rejections[0].status == "vacuous"
-    assert (
-        repo.families.defeasible_rule.load(
-            rule_extraction.canonical_rule_ref(PAPER, "rule-001")
-        )
-        is None
-    )
+    assert list(repo.families.defeasible_rule.iter_refs()) == []
 
     proposal = repo.families.proposal_rules.require(
         RuleProposalRef(PAPER, "rule-001"), commit=result.commit_sha

@@ -67,12 +67,7 @@ def test_propose_predicates_commits_only_to_proposal_branch(
 
     assert result.commit_sha is not None
     # Nothing canonical was written.
-    assert (
-        repo.families.predicate.load(
-            predicate_extraction.canonical_predicate_ref(PAPER)
-        )
-        is None
-    )
+    assert list(repo.families.predicate.iter_refs()) == []
     document = repo.families.proposal_predicates.require(
         PredicateProposalRef(PAPER), commit=result.commit_sha
     )
