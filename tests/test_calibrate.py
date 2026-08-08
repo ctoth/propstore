@@ -1,9 +1,9 @@
 """Tests for propstore.heuristic.calibrate — calibration to the opinion algebra.
 
 Covers the pure numeric surface (temperature scaling, corpus CDF calibration,
-categorical mapping, calibrated-probability mapping, ECE). The sidecar-backed
-calibration-counts projection and the schema CHECK constraints depend on the
-world/build sidecar infrastructure and land in a later phase.
+categorical mapping, ECE). The sidecar-backed calibration-counts projection and
+the schema CHECK constraints depend on the world/build sidecar infrastructure
+and land in a later phase.
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ from propstore.heuristic.calibrate import (
     CategoryPrior,
     CorpusCalibrator,
     TemperatureScaler,
-    calibrated_probability_to_opinion,
     categorical_to_opinion,
     expected_calibration_error,
 )
@@ -195,25 +194,6 @@ def test_roundtrip_categorical_to_expectation() -> None:
     assert isinstance(op, Opinion)
     expected_emp = (85 + 0.5 * 2) / 102
     assert abs(op.expectation() - expected_emp) < 1e-6
-
-
-# --- Calibrated probability to opinion ---
-
-
-def test_calibrated_prob_n0_returns_vacuous() -> None:
-    op = calibrated_probability_to_opinion(0.8, 0.0, 0.5)
-    assert abs(op.u - 1.0) < 1e-9
-
-
-def test_calibrated_probability_requires_explicit_base_rate() -> None:
-    with pytest.raises(TypeError):
-        calibrated_probability_to_opinion(0.8, 10.0)
-
-
-def test_calibrated_prob_large_n_returns_narrow() -> None:
-    op = calibrated_probability_to_opinion(0.8, 1000.0, 0.5)
-    assert op.u < 0.01
-    assert abs(op.expectation() - 0.8) < 0.01
 
 
 # --- ECE ---
