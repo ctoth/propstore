@@ -84,7 +84,6 @@ def coerce_cli_scalar(value: str) -> ScalarValue:
 
 # -- Exit codes -------------------------------------------------------
 
-EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_VALIDATION = 2
 
