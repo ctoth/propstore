@@ -93,13 +93,11 @@ class SidecarBuildPlan:
     """The checked compute written into the world sidecar beyond raw projection.
 
     ``conflicts`` and ``diagnostics`` are the charter documents the build inserts
-    via ``session.add_family``; ``quarantine_diagnostics`` is retained for the
-    build report (it is already folded into ``diagnostics``).
+    via ``session.add_family``.
     """
 
     conflicts: tuple[ConflictProjection, ...]
     diagnostics: tuple[BuildDiagnostic, ...]
-    quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
 
     @property
     def conflict_count(self) -> int:
@@ -346,5 +344,4 @@ def compile_sidecar_build_plan(
     return SidecarBuildPlan(
         conflicts=conflicts,
         diagnostics=tuple(diagnostics),
-        quarantine_diagnostics=quarantine,
     )
