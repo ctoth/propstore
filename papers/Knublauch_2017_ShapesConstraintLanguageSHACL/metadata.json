@@ -1,0 +1,15 @@
+{
+  "cite_key": "knublauch2017shacl",
+  "title": "Shapes Constraint Language (SHACL)",
+  "authors": [
+    "Holger Knublauch",
+    "Dimitris Kontokostas"
+  ],
+  "year": "2017",
+  "doi": null,
+  "url": "https://www.w3.org/TR/shacl/",
+  "pdf_url": "https://www.w3.org/TR/shacl/",
+  "venue": "W3C Recommendation",
+  "venue_type": "standard",
+  "pages": "1-76"
+}
