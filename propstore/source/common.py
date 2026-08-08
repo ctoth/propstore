@@ -227,22 +227,6 @@ def load_source_metadata(repo: Repository, name: str) -> dict[str, object] | Non
     return msgspec.json.decode(payload, type=dict[str, object])
 
 
-def load_source_notes(repo: Repository, name: str) -> str | None:
-    """Read a source branch's ``notes.md`` text, or ``None``."""
-
-    git = repo.git
-    if git is None:
-        return None
-    branch_sha = git.branch_sha(source_branch_name(name))
-    if branch_sha is None:
-        return None
-    try:
-        payload = git.read_file(_NOTES_FILENAME, commit=branch_sha)
-    except FileNotFoundError:
-        return None
-    return payload.decode("utf-8")
-
-
 def load_source_document(repo: Repository, name: str) -> SourceDocument:
     """Load a source branch's manifest; raise if the branch does not exist."""
 
@@ -306,7 +290,6 @@ __all__ = [
     "load_source_justifications_document",
     "load_source_metadata",
     "load_source_micropubs_document",
-    "load_source_notes",
     "load_source_stances_document",
     "normalize_source_slug",
     "source_branch_name",
