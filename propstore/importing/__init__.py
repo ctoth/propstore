@@ -4,8 +4,7 @@ An import is non-committal: every external row becomes a defeasible source-branc
 claim with honest provenance, never a privileged canonical fact
 ([[feedback_imports_are_opinions]]). :mod:`contract` defines the typed manifest
 an importer must provide; :mod:`repository_import` lands it on a source branch via
-the ordinary source-authoring path; :mod:`equivalence` records "these two might be
-the same" as an explicit witness instead of merging identities.
+the ordinary source-authoring path.
 """
 
 from __future__ import annotations
@@ -17,10 +16,6 @@ from propstore.importing.contract import (
     ImportResult,
     ImportStanceRow,
 )
-from propstore.importing.equivalence import (
-    EquivalenceWitness,
-    EquivalenceWitnessStore,
-)
 from propstore.importing.repository_import import (
     RepositoryImportPlan,
     RepositoryImportResult,
@@ -30,8 +25,6 @@ from propstore.importing.repository_import import (
 )
 
 __all__ = [
-    "EquivalenceWitness",
-    "EquivalenceWitnessStore",
     "ImportClaimRow",
     "ImportConceptRow",
     "ImportManifest",
