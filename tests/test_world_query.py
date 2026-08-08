@@ -33,20 +33,6 @@ from propstore.grounding.bundle import GroundingStatus
 from propstore.repository import Repository
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
-from propstore.world.model import (
-    _active_graph,
-    _bind,
-    _chain_query,
-    _compiled_graph,
-    _intervene,
-    _observe,
-    active_graph,
-    bind,
-    chain_query,
-    compiled_graph,
-    intervene,
-    observe,
-)
 
 
 def _repo(tmp_path: Path) -> Repository:
@@ -395,17 +381,6 @@ def test_intervene_and_observe(world: WorldQuery) -> None:
     # Both build over the compiled graph; smoke that the delegation wires up.
     assert world.intervene({}) is not None
     assert world.observe({}) is not None
-
-
-def test_render_glue_methods_delegate_to_free_functions() -> None:
-    # ZEN: the reader reuses the C3 free functions (the private aliases ARE the
-    # module-level free functions), it does not re-implement the glue.
-    assert _bind is bind
-    assert _active_graph is active_graph
-    assert _chain_query is chain_query
-    assert _compiled_graph is compiled_graph
-    assert _intervene is intervene
-    assert _observe is observe
 
 
 # ── render diagnostics (quarantine surface) ──────────────────────────────────

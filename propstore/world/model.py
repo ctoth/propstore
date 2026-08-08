@@ -370,18 +370,6 @@ def _claim_scalar(claim: ActiveClaim) -> ScalarValue | None:
     return claim.value
 
 
-# The C3 query glue, bound here as private aliases so the repo-backed reader's
-# same-named methods (``bind`` / ``active_graph`` / ...) DELEGATE to the free
-# functions above rather than re-implementing them (CLAUDE.md substrate boundary:
-# composition is a call, not a second spelling).
-_bind = bind
-_active_graph = active_graph
-_compiled_graph = compiled_graph
-_intervene = intervene
-_observe = observe
-_chain_query = chain_query
-
-
 def serialize_claim_atms_label(
     world: WorldQuery, claim_id: str
 ) -> tuple[tuple[str, ...], ...] | None:
@@ -838,7 +826,7 @@ class WorldQuery(WorldStore):
     # ── render-time query glue (delegates to the C3 free functions) ───────────
 
     def compiled_graph(self) -> CompiledWorldGraph:
-        return _compiled_graph(self)
+        return compiled_graph(self)
 
     def active_graph(
         self,
@@ -846,7 +834,7 @@ class WorldQuery(WorldStore):
         *,
         lifting_system: LiftingSystem | None = None,
     ) -> ActiveWorldGraph:
-        return _active_graph(
+        return active_graph(
             self,
             environment,
             lifting_system=lifting_system or self._lifting_system(),
@@ -859,7 +847,7 @@ class WorldQuery(WorldStore):
         policy: RenderPolicy | None = None,
         **conditions: ScalarValue,
     ) -> BoundWorld:
-        return _bind(
+        return bind(
             self,
             environment,
             policy=policy,
@@ -873,7 +861,7 @@ class WorldQuery(WorldStore):
         *,
         exogenous_assignment: Mapping[str, Value] | None = None,
     ) -> InterventionWorld:
-        return _intervene(self, assignment, exogenous_assignment=exogenous_assignment)
+        return intervene(self, assignment, exogenous_assignment=exogenous_assignment)
 
     def observe(
         self,
@@ -881,7 +869,7 @@ class WorldQuery(WorldStore):
         *,
         exogenous_assignment: Mapping[str, Value] | None = None,
     ) -> ObservationWorld:
-        return _observe(self, assignment, exogenous_assignment=exogenous_assignment)
+        return observe(self, assignment, exogenous_assignment=exogenous_assignment)
 
     def chain_query(
         self,
@@ -889,7 +877,7 @@ class WorldQuery(WorldStore):
         strategy: ResolutionStrategy | None = None,
         **bindings: ScalarValue,
     ) -> ChainResult:
-        return _chain_query(
+        return chain_query(
             self,
             target_concept_id,
             strategy,
