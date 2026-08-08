@@ -32,6 +32,7 @@ from propstore.aspic_bridge import (
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key
+from propstore.families.claims import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 
 
@@ -202,16 +203,23 @@ def test_undercut_without_rule_id_is_ambiguous_with_multiple_rules() -> None:
 # --- T4 claims_to_kb ---------------------------------------------------------
 
 
-def test_necessary_claims_are_axioms_ordinary_are_premises() -> None:
-    literals = claims_to_literals([_claim("n", premise_kind="necessary"), _claim("o")])
+def test_authorable_reported_claims_are_ordinary_premises() -> None:
+    active_claims = tuple(
+        ActiveClaim.from_claim(claim)
+        for claim in (Claim(claim_id="first"), Claim(claim_id="second"))
+    )
+    literals = claims_to_literals(active_claims)
+
     kb = claims_to_kb(
-        [_claim("n", premise_kind="necessary"), _claim("o")],
-        [_reported("n"), _reported("o")],
+        active_claims,
+        [_reported("first"), _reported("second")],
         literals,
     )
-    assert literals[claim_key("n")] in kb.axioms
-    assert literals[claim_key("o")] in kb.premises
-    assert not (kb.axioms & kb.premises)
+
+    assert kb.axioms == frozenset()
+    assert kb.premises == frozenset(
+        {literals[claim_key("first")], literals[claim_key("second")]}
+    )
 
 
 # --- T5 build_preference_config ----------------------------------------------
