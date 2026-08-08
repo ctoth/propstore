@@ -5,7 +5,7 @@ An :class:`ActiveClaim` is a frozen field-subset VIEW over the canonical
 in :meth:`ActiveClaim.from_claim`, never by re-typing a payload mapping. It
 adds the participation facts a claim only has *inside* one argumentation pass
 (``branch``, ``source_assertion_ids``) and the per-claim
-epistemic slots (``date``, the Jøsang opinion components, ``source_paper``)
+epistemic slots (``date`` and the Jøsang opinion components)
 whose production substrates are tracked in ``docs/gaps.md``; absence is honest
 ignorance, never a fabricated value.
 """
@@ -56,7 +56,6 @@ class ActiveClaim(
     opinion_disbelief: float | None = None
     opinion_uncertainty: float | None = None
     opinion_base_rate: float | None = None
-    source_paper: str | None = None
 
     @classmethod
     def from_claim(
@@ -67,7 +66,6 @@ class ActiveClaim(
         concept_id: str | None = None,
         branch: str | None = None,
         source_assertion_ids: tuple[str, ...] = (),
-        source_paper: str | None = None,
     ) -> ActiveClaim:
         """Project the canonical :class:`Claim` charter into the active view.
 
@@ -93,7 +91,6 @@ class ActiveClaim(
             confidence=claim.confidence,
             branch=branch,
             source_assertion_ids=source_assertion_ids,
-            source_paper=source_paper,
         )
 
     def opinion(self) -> Opinion | None:

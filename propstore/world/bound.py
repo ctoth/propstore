@@ -1055,16 +1055,12 @@ class BoundWorld(BeliefSpace):
 
         return project_belief_base(self)
 
-    def revision_entrenchment(
-        self,
-        *,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
-    ) -> EntrenchmentReport:
+    def revision_entrenchment(self) -> EntrenchmentReport:
         """Compute the current revision-facing entrenchment ordering."""
 
         from propstore.support_revision.entrenchment import compute_entrenchment
 
-        return compute_entrenchment(self, self.revision_base(), overrides=overrides)
+        return compute_entrenchment(self.revision_base())
 
     def expand(self, atom: BeliefAtom | str) -> RevisionResult:
         """Expand the scoped revision belief base without mutating source storage."""
@@ -1088,7 +1084,6 @@ class BoundWorld(BeliefSpace):
         targets: BeliefAtom | str | Sequence[BeliefAtom | str],
         *,
         max_candidates: int,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ) -> RevisionResult:
         """Contract the scoped revision belief base using the current entrenchment."""
 
@@ -1103,7 +1098,7 @@ class BoundWorld(BeliefSpace):
             base,
             decision,
             rejected_reason="contracted",
-            support_entrenchment=self.revision_entrenchment(overrides=overrides),
+            support_entrenchment=self.revision_entrenchment(),
             max_candidates=max_candidates,
         )
 
@@ -1112,7 +1107,6 @@ class BoundWorld(BeliefSpace):
         atom: BeliefAtom | str,
         *,
         max_candidates: int,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
     ) -> RevisionResult:
         """Revise the scoped belief base by delegating to the revision package."""
@@ -1131,15 +1125,13 @@ class BoundWorld(BeliefSpace):
             extra_atoms=(normalized,),
             accepted_reason="revised_in",
             rejected_reason="revised_out",
-            support_entrenchment=self.revision_entrenchment(overrides=overrides),
+            support_entrenchment=self.revision_entrenchment(),
             max_candidates=max_candidates,
         )
 
     def revision_explain(
         self,
         result: RevisionResult,
-        *,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ) -> RevisionExplanation:
         """Render the default explanation payload for a revision result."""
 
@@ -1147,21 +1139,17 @@ class BoundWorld(BeliefSpace):
 
         return build_revision_explanation(
             result,
-            entrenchment=self.revision_entrenchment(overrides=overrides),
+            entrenchment=self.revision_entrenchment(),
         )
 
-    def epistemic_state(
-        self,
-        *,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
-    ) -> EpistemicState:
+    def epistemic_state(self) -> EpistemicState:
         """Build the explicit iterated revision state for this scoped world."""
 
         from propstore.support_revision.iterated import make_epistemic_state
 
         return make_epistemic_state(
             self.revision_base(),
-            self.revision_entrenchment(overrides=overrides),
+            self.revision_entrenchment(),
         )
 
     def revision_state_snapshot(self, state: EpistemicState) -> EpistemicSnapshot:
@@ -1176,7 +1164,6 @@ class BoundWorld(BeliefSpace):
         atom: BeliefAtom | str,
         *,
         max_candidates: int,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
         conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
         operator: str = DEFAULT_ITERATED_OPERATOR,
         state: EpistemicState | None = None,
@@ -1187,7 +1174,7 @@ class BoundWorld(BeliefSpace):
             iterated_revise as iterated_revise_state,
         )
 
-        current_state = state or self.epistemic_state(overrides=overrides)
+        current_state = state or self.epistemic_state()
         return iterated_revise_state(
             current_state,
             atom,

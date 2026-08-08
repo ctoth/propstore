@@ -152,9 +152,9 @@ def _merge_active_claim(claim: MergeClaim, branch: str) -> ActiveClaim:
     """The branch-scoped active view of one merge claim.
 
     Identity is the branch-scoped ``artifact_id`` (not the document's own
-    ``claim_id``); ``branch``/``source_paper`` ride along so assignment-selection
-    source grouping and entrenchment source overrides see the merge claim's real
-    provenance facts.
+    ``claim_id``); ``branch`` carries the merge claim's branch-scoped
+    participation fact. Source provenance remains on the merge claim and
+    manifest owners.
     """
 
     return ActiveClaim.from_claim(
@@ -162,7 +162,6 @@ def _merge_active_claim(claim: MergeClaim, branch: str) -> ActiveClaim:
         claim_id=claim.artifact_id,
         branch=claim.branch_origin or branch,
         source_assertion_ids=(claim.assertion_id,),
-        source_paper=claim.paper,
     )
 
 

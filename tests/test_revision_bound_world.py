@@ -40,44 +40,6 @@ def _atom_id_for_claim(bound: BoundWorld, claim_id: str) -> str:
     raise AssertionError(f"missing projected claim {claim_id}")
 
 
-def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_support() -> (
-    None
-):
-    from propstore.support_revision.entrenchment import compute_entrenchment
-    from propstore.support_revision.projection import project_belief_base
-
-    bound = build_bound(
-        claims=[
-            ClaimSpec("claim_unconditional", "concept_base", value=1.0),
-            ClaimSpec(
-                "claim_override_target",
-                "concept_focus",
-                value=2.0,
-                conditions=("x == 1",),
-            ),
-        ],
-        bindings={"x": 1},
-    )
-    base = project_belief_base(bound)
-    override_atom_id = next(
-        atom.atom_id
-        for atom in base.atoms
-        if any(
-            str(claim.claim_id) == "claim_override_target"
-            for claim in atom.source_claims
-        )
-    )
-
-    report = compute_entrenchment(
-        bound,
-        base,
-        overrides={override_atom_id: {"priority": "critical"}},
-    )
-
-    assert report.ranked_atom_ids[0] == override_atom_id
-    assert report.reasons[override_atom_id].override_priority == "critical"
-
-
 def test_bound_world_expand_delegates_to_revision_package() -> None:
     bound = _operator_bound()
     atom = make_assertion_atom("synthetic", value=9.0)

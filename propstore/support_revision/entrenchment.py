@@ -2,22 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
 
 from propstore.support_revision.belief_set_adapter import (
     EpistemicEntrenchment,
     Formula,
     project_formal_bundle,
 )
-from propstore.support_revision.explanation_types import (
-    EntrenchmentReason,
-    coerce_override_priority,
-)
+from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.state import (
-    BeliefAtom,
     BeliefBase,
-    is_assertion_atom,
-    is_assumption_atom,
 )
 
 
@@ -41,22 +34,11 @@ class EntrenchmentReport:
         )
 
 
-def compute_entrenchment(
-    bound: object,
-    base: BeliefBase,
-    *,
-    overrides: Mapping[str, Mapping[str, Any]] | None = None,
-) -> EntrenchmentReport:
+def compute_entrenchment(base: BeliefBase) -> EntrenchmentReport:
     """Compute formal ordering plus support-level explanation reasons.
 
-    ``bound`` is accepted to keep the world-bound call signature stable; the
-    ordering itself is derived from ``base`` and the formal entrenchment
-    projection, so the bound world is not read here.
+    The ordering is derived from ``base`` and its formal entrenchment projection.
     """
-    override_items: list[tuple[str, Mapping[str, Any]]] = (
-        [] if overrides is None else list(overrides.items())
-    )
-    override_map = {str(k): dict(v) for k, v in override_items}
     bundle = project_formal_bundle(base)
     formal = bundle.entrenchment
     if formal is None:
@@ -66,17 +48,9 @@ def compute_entrenchment(
     atom_ids = tuple(sorted(atom.atom_id for atom in base.atoms))
 
     for atom in base.atoms:
-        _, override_key, override = _match_override(atom, base, override_map)
-
         support_count = len(atom.label.environments) if atom.label is not None else 0
 
         reasons[atom.atom_id] = EntrenchmentReason(
-            override_priority=(
-                None
-                if override is None
-                else coerce_override_priority(override.get("priority"))
-            ),
-            override_key=override_key,
             support_count=support_count,
             essential_support=tuple(base.essential_support.get(atom.atom_id, ())),
         )
@@ -117,57 +91,10 @@ def _entrenchment_sort_key(
     formulas: Mapping[str, Formula],
     atom_ids: tuple[str, ...],
     reasons: Mapping[str, EntrenchmentReason],
-) -> tuple[int, tuple[int, int | str], int, int, str]:
+) -> tuple[int, int, str]:
     reason = reasons[atom_id]
     return (
-        0 if reason.override_priority is not None else 1,
-        _override_priority_sort_key(reason.override_priority),
         -(reason.support_count or 0),
         -_formal_rank_position(formal, formulas, atom_id, atom_ids),
         atom_id,
     )
-
-
-def _override_priority_sort_key(priority: int | str | None) -> tuple[int, int | str]:
-    if priority is None:
-        return (2, "")
-    if isinstance(priority, int):
-        return (0, priority)
-    return (1, priority)
-
-
-def _match_override(
-    atom: BeliefAtom,
-    base: BeliefBase,
-    override_map: Mapping[str, Mapping[str, Any]],
-) -> tuple[int, str | None, Mapping[str, Any] | None]:
-    candidates: list[tuple[int, str]] = [(0, atom.atom_id)]
-
-    for source_id in _override_source_ids(atom):
-        candidates.append((1, f"source:{source_id}"))
-
-    context_id = base.scope.context_id
-    if context_id:
-        candidates.append((1, f"context:{context_id}"))
-
-    candidates.append(
-        (2, "kind:assumption" if is_assumption_atom(atom) else "kind:assertion")
-    )
-
-    for rank, key in candidates:
-        override = override_map.get(key)
-        if override is not None:
-            return rank, key, override
-    return 3, None, None
-
-
-def _override_source_ids(atom: BeliefAtom) -> tuple[str, ...]:
-    if not is_assertion_atom(atom):
-        return ()
-
-    values: list[str] = []
-    for claim in atom.source_claims:
-        source_paper = claim.source_paper
-        if source_paper:
-            values.append(source_paper)
-    return tuple(dict.fromkeys(values))

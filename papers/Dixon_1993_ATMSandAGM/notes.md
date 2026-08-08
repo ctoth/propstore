@@ -340,7 +340,7 @@ This paper is directly foundational for the propstore's world model architecture
 ## Related Work Worth Reading
 
 - [Gardenfors, 1988] *Knowledge in Flux* -- the definitive AGM reference *(p.534)*
-- [Gardenfors and Makinson, 1988] *Revisions of Knowledge Systems Using Epistemic Entrenchment* -- defines the entrenchment relation used here *(p.534)*
+- [Gardenfors and Makinson, 1988] *Revisions of Knowledge Systems Using Epistemic Entrenchment* -- defines the entrenchment relation used here *(p.534)* → NOW IN COLLECTION: [Revisions of Knowledge Systems Using Epistemic Entrenchment](../Gardenfors_1988_RevisionsKnowledgeSystemsEntrenchment/notes.md)
 - [Reinfrank et al., 1989] *On the Relation Between Truth Maintenance and Autoepistemic Logic* -- another bridge between TMS and logic *(p.534)*
 - [Williams, 1993] *On the Logic of Theory Base Change* -- finite theory base approach to AGM, implementation described in [Dixon, 1993] *(p.535)*
 - [Dixon and Foo, 1992a] *Encoding the ATMS in AGM Logic (Revised)* -- technical report predecessor *(p.538)*
@@ -353,7 +353,10 @@ This paper is directly foundational for the propstore's world model architecture
 
 ### New Leads (Not Yet in Collection)
 - Gardenfors, P. (1988) -- "Knowledge in Flux" -- the definitive AGM reference book *(p.534)*
-- Gardenfors, P. and Makinson, D. (1988) -- "Revisions of Knowledge Systems Using Epistemic Entrenchment" -- defines the EE1-EE5 axioms central to the translation algorithm *(p.534)*
+
+### Now in Collection (previously listed as leads)
+
+- [Revisions of Knowledge Systems Using Epistemic Entrenchment](../Gardenfors_1988_RevisionsKnowledgeSystemsEntrenchment/notes.md) - defines EE1-EE5 and proves the contraction-entrenchment representation correspondence that Dixon operationalizes through ATMS labels and context switching.
 
 ### Supersedes or Recontextualizes
 - (none)
@@ -367,4 +370,4 @@ This paper is directly foundational for the propstore's world model architecture
 - [[Martins_1988_BeliefRevision]] -- **Moderate.** MBR's interactive culprit selection during contradiction recovery is an informal version of what Dixon formalizes via epistemic entrenchment. Dixon's algorithm could automate MBR's culprit selection.
 - [[Reiter_1980_DefaultReasoning]] -- **Moderate.** Reiter's default logic provides the formal substrate for assumptions that the ATMS manages; Dixon's bridge to AGM provides a principled framework for revising default-derived beliefs when contradictions arise.
 - [[deKleer_1986_ProblemSolvingATMS]] -- **Moderate.** Dixon's entrenchment relation could inform the consumer architecture's scheduling decisions --- simplest-label-first scheduling implicitly encodes a form of entrenchment.
-- [[Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic]] -- **Strong.** Defines the epistemic entrenchment postulates (EE1-EE5) and representation theorem that Dixon operationalizes via ATMS labels. The bridging conditions (C≤) and (C-) provide the formal link between entrenchment orderings and contraction functions that Dixon implements through ATMS context switching.
+- [Revisions of Knowledge Systems Using Epistemic Entrenchment](../Gardenfors_1988_RevisionsKnowledgeSystemsEntrenchment/notes.md) - **Strong.** Defines the epistemic entrenchment postulates (EE1-EE5) and representation theorem that Dixon operationalizes via ATMS labels. The bridging conditions provide the formal link between entrenchment orderings and contraction functions that Dixon implements through ATMS context switching.

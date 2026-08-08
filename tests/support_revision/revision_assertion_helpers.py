@@ -17,16 +17,13 @@ def make_assertion_atom(
     *,
     value: object | None = None,
     concept_id: str | None = None,
-    source_paper: str | None = None,
     label: Label | None = None,
 ) -> AssertionAtom:
     """Build a structural :class:`AssertionAtom` for the revision test suite.
 
     The atom's identity is the situated assertion (relation + role bindings +
     context + condition); ``name`` and ``value`` vary the structural content so
-    distinct names yield distinct ``ps:assertion:`` ids. ``source_paper`` rides
-    on the backing claim's attributes, where the entrenchment override matcher
-    reads it.
+    distinct names yield distinct ``ps:assertion:`` ids.
     """
     role_value = name if value is None else value
     assertion = SituatedAssertion(
@@ -40,7 +37,7 @@ def make_assertion_atom(
         condition=ConditionRef.unconditional(),
         provenance_ref=ProvenanceGraphRef("urn:propstore:test:provenance"),
     )
-    claim = ActiveClaim(claim_id=f"claim_{name}", source_paper=source_paper)
+    claim = ActiveClaim(claim_id=f"claim_{name}")
     return AssertionAtom(
         atom_id=str(assertion.assertion_id),
         assertion=assertion,
