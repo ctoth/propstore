@@ -39,12 +39,6 @@ def load_resource_text(relative_path: str) -> str:
     return _resource(relative_path).read_text(encoding="utf-8")
 
 
-def resource_exists(relative_path: str) -> bool:
-    """Return whether ``propstore/_resources/<relative_path>`` is a file."""
-
-    return _resource(relative_path).is_file()
-
-
 def iter_resource_files(relative_path: str) -> list[str]:
     """Return the sorted file names directly under ``_resources/<relative_path>``.
 
