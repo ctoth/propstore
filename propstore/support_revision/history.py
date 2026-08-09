@@ -34,6 +34,10 @@ def _is_mapping(value: object) -> TypeGuard[Mapping[str, Any]]:
     return isinstance(value, Mapping)
 
 
+def _as_mapping(value: object) -> Mapping[str, Any]:
+    return value if _is_mapping(value) else {}
+
+
 def _required_mapping(value: object, field_name: str) -> Mapping[str, Any]:
     if not _is_mapping(value):
         raise ValueError(f"epistemic history requires mapping '{field_name}'")
@@ -444,3 +448,273 @@ def _entry_event_policy_error(entry: TransitionJournalEntry) -> str | None:
     if dict(event.policy_snapshot) != expected:
         return "policy snapshot mismatch between revision event and journal entry"
     return None
+
+
+@dataclass(frozen=True)
+class SemanticFieldDelta:
+    surface: str
+    key: str
+    old_value: Any
+    new_value: Any
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "surface", str(self.surface))
+        object.__setattr__(self, "key", str(self.key))
+        object.__setattr__(self, "old_value", json_ready(self.old_value))
+        object.__setattr__(self, "new_value", json_ready(self.new_value))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "surface": self.surface,
+            "key": self.key,
+            "old_value": self.old_value,
+            "new_value": self.new_value,
+        }
+
+
+@dataclass(frozen=True)
+class EpistemicSemanticDiff:
+    source_hash: str
+    target_hash: str
+    deltas: tuple[SemanticFieldDelta, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "source_hash", str(self.source_hash))
+        object.__setattr__(self, "target_hash", str(self.target_hash))
+        object.__setattr__(self, "deltas", tuple(self.deltas))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "source_hash": self.source_hash,
+            "target_hash": self.target_hash,
+            "deltas": [delta.to_dict() for delta in self.deltas],
+        }
+
+
+def diff_epistemic_snapshots(
+    source: EpistemicSnapshot,
+    target: EpistemicSnapshot,
+) -> EpistemicSemanticDiff:
+    source_state = _required_mapping(
+        to_document_builtins(source.state),
+        "source epistemic state",
+    )
+    target_state = _required_mapping(
+        to_document_builtins(target.state),
+        "target epistemic state",
+    )
+    deltas: list[SemanticFieldDelta] = []
+    deltas.extend(
+        _mapping_deltas(
+            "assertion_acceptance",
+            _accepted_assertions(source_state),
+            _accepted_assertions(target_state),
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "warrant",
+            source_state.get("entrenchment_reasons") or {},
+            target_state.get("entrenchment_reasons") or {},
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "ranking",
+            source_state.get("ranking") or {},
+            target_state.get("ranking") or {},
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "provenance",
+            _assertion_provenance(source_state),
+            _assertion_provenance(target_state),
+        )
+    )
+    deltas.extend(
+        _mapping_deltas(
+            "dependency", _dependencies(source_state), _dependencies(target_state)
+        )
+    )
+    return EpistemicSemanticDiff(
+        source_hash=source.content_hash,
+        target_hash=target.content_hash,
+        deltas=tuple(deltas),
+    )
+
+
+def apply_epistemic_diff(
+    source: EpistemicSnapshot,
+    diff: EpistemicSemanticDiff,
+) -> EpistemicSnapshot:
+    if diff.source_hash != source.content_hash:
+        raise ValueError("semantic diff source_hash does not match source snapshot")
+    state_payload = dict(
+        _required_mapping(
+            to_document_builtins(source.state),
+            "source epistemic state",
+        )
+    )
+    for delta in diff.deltas:
+        _assert_current_value(state_payload, delta)
+        if delta.surface == "assertion_acceptance":
+            _apply_acceptance_delta(state_payload, delta)
+        elif delta.surface == "warrant":
+            _set_mapping_value(
+                state_payload, "entrenchment_reasons", delta.key, delta.new_value
+            )
+        elif delta.surface == "ranking":
+            _set_mapping_value(state_payload, "ranking", delta.key, delta.new_value)
+            _refresh_ranked_atom_ids(state_payload)
+        elif delta.surface == "provenance":
+            _set_atom_provenance(state_payload, delta.key, delta.new_value)
+        elif delta.surface == "dependency":
+            _apply_dependency_delta(state_payload, delta)
+        else:
+            raise ValueError(f"unsupported semantic diff surface: {delta.surface}")
+    snapshot = EpistemicSnapshot.from_mapping(
+        {
+            "schema_version": EPistemicSnapshotVersion,
+            "state": state_payload,
+        }
+    )
+    if snapshot.content_hash != diff.target_hash:
+        raise ValueError("semantic diff did not reproduce target snapshot")
+    return snapshot
+
+
+def _mapping_deltas(
+    surface: str,
+    source: Mapping[str, Any],
+    target: Mapping[str, Any],
+) -> tuple[SemanticFieldDelta, ...]:
+    deltas: list[SemanticFieldDelta] = []
+    for key in sorted(set(source) | set(target)):
+        old_value = json_ready(source.get(key))
+        new_value = json_ready(target.get(key))
+        if old_value != new_value:
+            deltas.append(SemanticFieldDelta(surface, key, old_value, new_value))
+    return tuple(deltas)
+
+
+def _accepted_assertions(state_payload: Mapping[str, Any]) -> dict[str, bool]:
+    return {
+        str(atom_id): True
+        for atom_id in (state_payload.get("accepted_atom_ids") or ())
+        if str(atom_id).startswith("ps:assertion:")
+    }
+
+
+def _assertion_provenance(state_payload: Mapping[str, Any]) -> dict[str, Any]:
+    provenance: dict[str, Any] = {}
+    for atom in _as_mapping(state_payload.get("base")).get("atoms") or ():
+        if not _is_mapping(atom):
+            continue
+        if atom.get("type") != "assertion":
+            continue
+        provenance[str(atom.get("atom_id"))] = json_ready(
+            atom.get("source_claims") or ()
+        )
+    return provenance
+
+
+def _dependencies(state_payload: Mapping[str, Any]) -> dict[str, Any]:
+    base = _as_mapping(state_payload.get("base"))
+    dependencies: dict[str, Any] = {}
+    for field_name in ("support_sets", "essential_support"):
+        field_data = _as_mapping(base.get(field_name))
+        for atom_id, value in field_data.items():
+            dependencies[f"{atom_id}.{field_name}"] = json_ready(value)
+    return dependencies
+
+
+def _assert_current_value(
+    state_payload: Mapping[str, Any], delta: SemanticFieldDelta
+) -> None:
+    current = None
+    if delta.surface == "assertion_acceptance":
+        current = _accepted_assertions(state_payload).get(delta.key)
+    elif delta.surface == "warrant":
+        current = _as_mapping(state_payload.get("entrenchment_reasons")).get(delta.key)
+    elif delta.surface == "ranking":
+        current = _as_mapping(state_payload.get("ranking")).get(delta.key)
+    elif delta.surface == "provenance":
+        current = _assertion_provenance(state_payload).get(delta.key)
+    elif delta.surface == "dependency":
+        current = _dependencies(state_payload).get(delta.key)
+    if json_ready(current) != delta.old_value:
+        raise ValueError(
+            f"semantic diff old value mismatch for {delta.surface}.{delta.key}"
+        )
+
+
+def _apply_acceptance_delta(
+    state_payload: dict[str, Any], delta: SemanticFieldDelta
+) -> None:
+    accepted = [
+        str(atom_id) for atom_id in (state_payload.get("accepted_atom_ids") or ())
+    ]
+    if delta.new_value is True and delta.key not in accepted:
+        accepted.append(delta.key)
+    if delta.new_value is not True:
+        accepted = [atom_id for atom_id in accepted if atom_id != delta.key]
+    state_payload["accepted_atom_ids"] = accepted
+
+
+def _set_mapping_value(
+    state_payload: dict[str, Any],
+    field_name: str,
+    key: str,
+    value: Any,
+) -> None:
+    field_data = dict(_as_mapping(state_payload.get(field_name)))
+    if value is None:
+        field_data.pop(key, None)
+    else:
+        field_data[key] = value
+    state_payload[field_name] = field_data
+
+
+def _refresh_ranked_atom_ids(state_payload: dict[str, Any]) -> None:
+    ranking = _as_mapping(state_payload.get("ranking"))
+    state_payload["ranked_atom_ids"] = [
+        atom_id
+        for atom_id, _ in sorted(
+            ranking.items(), key=lambda item: (int(item[1]), str(item[0]))
+        )
+    ]
+
+
+def _set_atom_provenance(
+    state_payload: dict[str, Any], atom_id: str, value: Any
+) -> None:
+    base = dict(_as_mapping(state_payload.get("base")))
+    atoms: list[Any] = []
+    for atom in base.get("atoms") or ():
+        if not _is_mapping(atom) or str(atom.get("atom_id")) != atom_id:
+            atoms.append(atom)
+            continue
+        updated_atom = dict(atom)
+        updated_atom["source_claims"] = [] if value is None else value
+        atoms.append(updated_atom)
+    base["atoms"] = atoms
+    state_payload["base"] = base
+
+
+def _apply_dependency_delta(
+    state_payload: dict[str, Any], delta: SemanticFieldDelta
+) -> None:
+    if "." not in delta.key:
+        raise ValueError(f"dependency delta key must identify atom field: {delta.key}")
+    atom_id, field_name = delta.key.rsplit(".", 1)
+    if field_name not in {"support_sets", "essential_support"}:
+        raise ValueError(f"unsupported dependency field: {field_name}")
+    base = dict(_as_mapping(state_payload.get("base")))
+    field_data = dict(_as_mapping(base.get(field_name)))
+    if delta.new_value is None:
+        field_data.pop(atom_id, None)
+    else:
+        field_data[atom_id] = delta.new_value
+    base[field_name] = field_data
+    state_payload["base"] = base
