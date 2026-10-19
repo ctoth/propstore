@@ -7,6 +7,10 @@ follow CI to a terminal result, and leave it draft/unmerged. No default push.
 
 ## State
 - PR branch `fix/issue26-algorithm-parse-pr-20261019`, base `da0b48b4`.
+- Draft PR: https://github.com/ctoth/propstore/pull/308.
+- Implementation head `2eeca9fc2d006e5fa947b6ddfe505aaa6f974e2c` passed
+  Python 3.13 CI: 1823 passed, 4 skipped (91.28s).
+- Run: https://github.com/ctoth/propstore/actions/runs/39340063305.
 - Main dirty research work and all other workers' branches remain untouched.
 - Read global/root instructions, current #26/#19 and #19's decision comment,
   existing claim/compiler tests and pinned ast-equiv parser implementation.
@@ -35,8 +39,10 @@ Before PR creation, made the PR branch from GitHub master and carried only this
 issue commit. The initial branch is preserved; no default branch was changed.
 
 ## Next step
-Inspect and commit the three-file diff, publish the draft PR, and follow
-exact-head CI. No merge or ready transition is authorized.
+Leave #308 draft and #26 open for its remaining checks. No implementation work
+remains in this parser slice. After publishing this handoff-only update, confirm
+the final-head CI result in the task response. No merge or ready transition is
+authorized.
 
 ## Verification
 - Initial uv invocation could not access its default cache. Redirected only
