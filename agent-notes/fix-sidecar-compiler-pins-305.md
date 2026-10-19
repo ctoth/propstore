@@ -14,6 +14,8 @@ Deliver a focused fix, regression coverage and a draft PR for #305; follow CI to
 - Full PR CI completed successfully: https://github.com/ctoth/propstore/actions/runs/39340227393 — 1848 passed, 4 skipped in 106.01s. Draft/open state and exact tested head verified afterward.
 - Follow-up CI at note head `7fe5d963` also passed: https://github.com/ctoth/propstore/actions/runs/39340643967 — 1848 passed, 4 skipped.
 - Parent authorized integrating default after PR #308 merged. Merge commit `d370eb72eb5f764648e604fc2b0a6a3ab0d22a1b` has parents `7fe5d9637e37268e3fff39348c2518338e1276f1` and `62d4e3ad48717d793383dcf4fba2e8ce16b4a10c`; no conflicts. Parser-admission source/tests equal default, and cache-identity source/tests equal the prior PR head.
+- Integrated-head CI at `80169e3d` passed: https://github.com/ctoth/propstore/actions/runs/39341784126 — 1854 passed, 4 skipped.
+- Default then advanced through PR #307. Merge commit `db30b3a227cdbbad40b1504f88aaa1d97be06ba0` has parents `80169e3d56a406e80fc3bc5e39d8c5be1d9b956a` and `dac0a7262dfddc455d0367d6ad45c644a100a80f`; no conflicts. Both incoming parser/ATMS fixes equal default, and cache source/tests remain unchanged. PR #310 was verified open/unmerged and is not included.
 
 ## Decisions and why
 - Smallest change: correct/complete the explicit compiler/solver/serialization dependency selection, reject a missing selected pin, retain Quire caching unchanged. Approximately 35 production lines plus focused tests in the existing derived-build test file.
