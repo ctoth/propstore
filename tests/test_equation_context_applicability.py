@@ -13,6 +13,7 @@ from condition_ir import (
     checked_condition_set_to_json,
 )
 
+from propstore.conflict_detector.models import ConflictClass
 from propstore.core.environment import Environment
 from propstore.core.graph_types import CompiledWorldGraph
 from propstore.core.id_types import to_claim_id
@@ -208,3 +209,42 @@ def test_equation_conditions_are_required_for_applicability_and_support(
         )
         assert rejected.derived_value("y").status is ValueStatus.NO_RELATIONSHIP
         assert rejected.atms_engine().derived_label("y", 6) is None
+
+
+def test_context_separation_and_equation_support_coexist(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    repo.families.concept.save(
+        "contextual",
+        Concept(concept_id="contextual", canonical_name="contextual"),
+        message="contextual parameter",
+    )
+    for context_id, value in (("a", 1), ("b", 2)):
+        claim_id = f"context_{context_id}"
+        repo.families.claim.save(
+            claim_id,
+            Claim(
+                claim_id=claim_id,
+                claim_type=ClaimType.PARAMETER,
+                context_id=context_id,
+                output_concept="contextual",
+                value=value,
+            ),
+            message="context-separated value",
+        )
+    with WorldQuery(repo) as world:
+        assert any(
+            conflict.warning_class is ConflictClass.CONTEXT_PHI_NODE
+            for conflict in world.conflicts()
+        )
+        bound = world.bind(policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS))
+        engine = bound.atms_engine()
+        assert {"context_a", "context_b"} <= engine.supported_claim_ids()
+        assert not engine.nogoods.environments
+        result = bound.derived_value("y")
+        assert result.status is ValueStatus.DERIVED and result.value == 6
+        assert result.equation_claim_id == "equation_a"
+        assert result.label is not None
+        assert result.label == engine.claim_label("equation_a")
+        assert all(
+            "a" in environment_context_ids(env) for env in result.label.environments
+        )

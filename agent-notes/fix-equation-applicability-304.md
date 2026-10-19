@@ -57,7 +57,7 @@ uses its existing equation node. No competing context/condition owner was added.
 The ordinary result retains that origin to compose its equation support label.
 Existing standalone graph edges and all storage/query inventories remain usable.
 
-## Current-default integration
+## Parser-restoration integration
 Merged default 62d4e3ad48717d793383dcf4fba2e8ce16b4a10c (PR308 parser
 restoration) without conflicts or production edits. claim_contracts.py and the
 restored test_algorithm_parse_admission.py exactly match that default commit.
@@ -65,6 +65,19 @@ The focused integration run passed 18 tests in 17.15 seconds:
 logs/test-runs/issue-304-integrate-308-20261019-172630.log. The merge commit
 will receive fresh full PR CI. Neither #310 nor #307 depends on the other;
 each independently integrates the same default restoration.
+
+## Combined ATMS/equation integration
+The parent merged PR307 as dac0a7262dfddc455d0367d6ad45c644a100a80f.
+Merged that default into this branch without conflicts or production edits.
+Parser restoration and the ATMS classification regression exactly match default.
+Added one bounded repository-backed regression in the existing equation test file:
+context-separated parameter claims coexist without nogoods while the derived
+value retains its equation's contextual support in the same ATMS engine.
+
+The three combined regression files passed 27 tests in 23.13 seconds:
+logs/test-runs/core-pairing-307-310-20261019-173215.log. Push this merge commit
+for fresh full CI; the parent chooses subsequent merge order. Do not fetch/merge
+later default changes automatically, including the unrelated PR309 cache work.
 
 ## Next step
 Keep PR #310 in draft; do not merge or mark ready. This documentation update
