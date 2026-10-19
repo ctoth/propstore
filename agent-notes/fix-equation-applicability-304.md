@@ -57,6 +57,15 @@ uses its existing equation node. No competing context/condition owner was added.
 The ordinary result retains that origin to compose its equation support label.
 Existing standalone graph edges and all storage/query inventories remain usable.
 
+## Current-default integration
+Merged default 62d4e3ad48717d793383dcf4fba2e8ce16b4a10c (PR308 parser
+restoration) without conflicts or production edits. claim_contracts.py and the
+restored test_algorithm_parse_admission.py exactly match that default commit.
+The focused integration run passed 18 tests in 17.15 seconds:
+logs/test-runs/issue-304-integrate-308-20261019-172630.log. The merge commit
+will receive fresh full PR CI. Neither #310 nor #307 depends on the other;
+each independently integrates the same default restoration.
+
 ## Next step
 Keep PR #310 in draft; do not merge or mark ready. This documentation update
 records the completed implementation and terminal CI result. No implementation
