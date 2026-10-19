@@ -318,7 +318,11 @@ class BoundWorld(BeliefSpace):
     def is_parameterization_compatible(
         self, parameterization: ParameterizationEdge
     ) -> bool:
-        """Whether a parameterization's conditions are compatible with the bindings."""
+        """Whether the equation is active, or a standalone edge is compatible."""
+
+        if parameterization.equation_claim_id is not None:
+            equation = self._claim_index().get(str(parameterization.equation_claim_id))
+            return equation is not None and self.is_active(equation)
 
         condition_set = parameterization.checked_conditions
         if condition_set is None or not condition_set.conditions:
@@ -661,6 +665,14 @@ class BoundWorld(BeliefSpace):
         if result.status is not ValueStatus.DERIVED:
             return result
         input_labels: list[Label] = []
+        if result.equation_claim_id is not None:
+            equation = self._claim_index().get(str(result.equation_claim_id))
+            if equation is None:
+                return result
+            equation_label = self._claim_support_label(ActiveClaim.from_claim(equation))
+            if equation_label is None:
+                return result
+            input_labels.append(equation_label)
         for input_id in result.input_values:
             input_label = self._label_for_input(
                 str(input_id),

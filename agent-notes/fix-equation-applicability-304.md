@@ -1,0 +1,61 @@
+# Equation applicability (#304)
+
+## Goal
+Retain canonical equation identity through runtime parameterizations, use its
+activation decision, and require equation support in ATMS. One draft PR, no merge.
+
+## State
+Isolated branch fix/equation-applicability-304 based on da0b48b4. No user checkout
+changes. No overlapping open PR was found before implementation.
+
+## Decisions and why
+Smallest fix: add an equation claim reference to ParameterizationEdge, populate
+it in derive_parameterizations, consume BoundWorld.is_active, and make the ATMS
+equation node an antecedent. Approximately 46 added production lines, plus tests.
+The existing context/condition/activation owner remains canonical; no copied
+scope, new activation policy or storage filter. Bare graph-native parameterization
+edges still work as before; the repository-derived edge always names its claim.
+
+The cleanup-refactor ownership checks apply to this boundary repair. The broken
+dependency edge is a valid runtime capability with a representation missing the
+canonical claim reference. Disposition: rewrite to the typed owner interface.
+Keep graph topology, canonical claim, activation, solver and all runtime consumers.
+No production file deletion or feature removal is required. Source storage and
+the complete parameterization inventory remain intact. Stable graph sorting must
+include origin and tolerate bare edges alongside claim-derived edges.
+
+DerivedResult retains the selected equation ID so ordinary support includes the
+equation, too. Complete evidence for rival derivations remains the separate #156.
+
+## Surprises
+The initial fixture triggered existing #154 (claim-value selection depends on
+claim ordering); input sorts before equations in this bounded regression. Initial
+CEL fixtures omitted typed concept forms, and raw authored conditions do not
+create the checked IR activation consumes. The regression now declares real
+quantity forms/lemon entries and supplies explicitly checked equation conditions.
+No changes were made to those separate owners.
+
+#142's existing conditional-lifting input issue remains outside this fix. The
+gated lift uses a valid literal true condition, but without the solver input the
+canonical lifting owner reports UNKNOWN; the equation must stay inactive.
+
+The focused logged regression run passed 12 tests in 18.32 seconds:
+logs/test-runs/issue-304-20261019-171634.log. Both backends exercise canonical
+repository -> sidecar -> WorldQuery.bind. Coverage includes same-context use,
+unrelated contexts, unconditional lift, undecided conditional lift, preserved
+rival origins/scopes, missing referenced equation, mixed edge sorting, sensitivity,
+and equation-condition applicability/support. Only this actively authored file
+was run locally with uv --no-sync and the existing environment.
+
+## Slice completion
+The sole production ParameterizationEdge constructor (world/queries.py) now
+retains the canonical claim ID. Compatibility uses BoundWorld.is_active and ATMS
+uses its existing equation node. No competing context/condition owner was added.
+The ordinary result retains that origin to compose its equation support label.
+Existing standalone graph edges and all storage/query inventories remain usable.
+
+## Next step
+Commit/push the isolated branch, publish a draft PR closing #304, and monitor its
+CI to terminal result. Do not merge or mark ready. No further implementation
+changes are planned unless CI exposes introduced regressions. Related #142,
+#154 and #156 remain separate work; this fix does not claim to close them.
