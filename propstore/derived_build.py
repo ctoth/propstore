@@ -19,6 +19,7 @@ non-charter compute it writes is the conflict / diagnostic plan
 from __future__ import annotations
 
 import os
+import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -96,16 +97,29 @@ _COMPUTED_FAMILIES = frozenset(
 )
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+def _sidecar_lockfile() -> Path:
+    package = Path(__file__).resolve().parent
+    bundled = package / "_compiler_dependencies.lock"
+    if bundled.is_file():
+        return bundled
+
+    # Editable/source installs use their own changing lockfile. An installed
+    # wheel must never borrow a lockfile from its surrounding environment.
+    project = package.parent / "pyproject.toml"
+    if project.is_file():
+        metadata = tomllib.loads(project.read_text(encoding="utf-8"))
+        if metadata.get("project", {}).get("name") == "propstore":
+            return package.parent / "uv.lock"
+    raise ValueError("world-sidecar compiler dependency lockfile is absent")
 
 
 def _sidecar_dependency_pins() -> dict[str, str]:
-    pins = read_dependency_pins(_repo_root() / "uv.lock", _SIDECAR_CACHE_DEPENDENCIES)
+    lockfile = _sidecar_lockfile()
+    pins = read_dependency_pins(lockfile, _SIDECAR_CACHE_DEPENDENCIES)
     missing = set(_SIDECAR_CACHE_DEPENDENCIES).difference(pins)
     if missing:
         raise ValueError(
-            "world-sidecar dependencies missing from uv.lock: "
+            f"world-sidecar dependencies missing from {lockfile.name}: "
             + ", ".join(sorted(missing))
         )
     return pins

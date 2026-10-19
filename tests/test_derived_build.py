@@ -13,8 +13,13 @@ These pin the 9-0-rest-B build spine:
 
 from __future__ import annotations
 
+import json
+import os
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -113,7 +118,7 @@ def test_hash_inputs_carry_the_expected_keys() -> None:
 def compiler_lockfile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     lockfile = tmp_path / "uv.lock"
     lockfile.write_bytes((Path(__file__).resolve().parents[1] / "uv.lock").read_bytes())
-    monkeypatch.setattr("propstore.derived_build._repo_root", lambda: tmp_path)
+    monkeypatch.setattr("propstore.derived_build._sidecar_lockfile", lambda: lockfile)
     return lockfile
 
 
@@ -182,6 +187,91 @@ def test_missing_compiler_dependency_is_an_error(compiler_lockfile: Path) -> Non
     _change_dependency(compiler_lockfile, "condition-ir", remove=True)
     with pytest.raises(ValueError, match="world-sidecar.*condition-ir"):
         world_sidecar_hash("rev", schema_hash="schema")
+
+
+@pytest.mark.parametrize("project_name", (None, "unrelated-project"))
+def test_installed_package_rejects_unrelated_adjacent_lockfile(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, project_name: str | None
+) -> None:
+    monkeypatch.setattr(
+        "propstore.derived_build.__file__", str(tmp_path / "propstore/derived_build.py")
+    )
+    (tmp_path / "uv.lock").write_bytes(
+        (Path(__file__).resolve().parents[1] / "uv.lock").read_bytes()
+    )
+    if project_name:
+        (tmp_path / "pyproject.toml").write_text(
+            f'[project]\nname = "{project_name}"\n', encoding="utf-8"
+        )
+    with pytest.raises(ValueError, match="compiler dependency lockfile is absent"):
+        world_sidecar_hash("rev", schema_hash="schema")
+
+
+def test_source_checkout_uses_its_current_compiler_lockfile(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "propstore.derived_build.__file__", str(tmp_path / "propstore/derived_build.py")
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "propstore"\n', encoding="utf-8"
+    )
+    lockfile = tmp_path / "uv.lock"
+    lockfile.write_bytes((Path(__file__).resolve().parents[1] / "uv.lock").read_bytes())
+    before = world_sidecar_hash("rev", schema_hash="schema")
+    _change_dependency(lockfile, "condition-ir", git_revision=True)
+    assert world_sidecar_hash("rev", schema_hash="schema") != before
+    _change_dependency(lockfile, "condition-ir", remove=True)
+    with pytest.raises(ValueError, match="world-sidecar.*condition-ir"):
+        world_sidecar_hash("rev", schema_hash="schema")
+
+
+def test_built_wheel_materializes_with_its_bundled_compiler_identity(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    expected = world_sidecar_hash_inputs("rev", schema_hash="schema")["dependency_pins"]
+    subprocess.run(
+        [
+            "uv", "build", "--wheel", "--python", sys.executable,
+            "--out-dir", str(tmp_path / "dist"), str(project_root),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (wheel,) = (tmp_path / "dist").glob("*.whl")
+    installed = tmp_path / "installed"
+    with ZipFile(wheel) as archive:
+        assert archive.read("propstore/_compiler_dependencies.lock") == (
+            project_root / "uv.lock"
+        ).read_bytes()
+        archive.extractall(installed)
+    # This is deliberately not Propstore's lockfile. The wheel must ignore it.
+    (installed / "uv.lock").write_text("not valid TOML", encoding="utf-8")
+    probe = '''
+import json
+import sys
+from pathlib import Path
+import propstore.derived_build as build
+from propstore.repository import Repository
+assert Path(build.__file__).resolve().is_relative_to(Path.cwd())
+assert build._sidecar_lockfile().parent == Path(build.__file__).parent
+assert build.world_sidecar_hash_inputs("rev", schema_hash="schema")["dependency_pins"] == json.loads(sys.argv[1])
+repo = Repository.init(Path(sys.argv[2]))
+handle, built = build.materialize_world_sidecar(repo)
+assert built and Path(handle.path).is_file()
+again, built = build.materialize_world_sidecar(repo)
+assert not built and again.path == handle.path
+'''
+    subprocess.run(
+        [sys.executable, "-c", probe, json.dumps(expected), str(tmp_path / "knowledge")],
+        cwd=installed,
+        env={**os.environ, "PYTHONPATH": str(installed)},
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 @pytest.mark.parametrize("dependency", ("condition-ir", "eq-equiv", "z3-solver"))
