@@ -7,6 +7,9 @@ activation decision, and require equation support in ATMS. One draft PR, no merg
 ## State
 Isolated branch fix/equation-applicability-304 based on da0b48b4. No user checkout
 changes. No overlapping open PR was found before implementation.
+Published draft PR: https://github.com/ctoth/propstore/pull/310.
+Implementation commit 87633611623d3c2d511cb54a4b640dc05b8e7be0 passed full CI:
+https://github.com/ctoth/propstore/actions/runs/39340784072.
 
 ## Decisions and why
 Smallest fix: add an equation claim reference to ParameterizationEdge, populate
@@ -55,7 +58,7 @@ The ordinary result retains that origin to compose its equation support label.
 Existing standalone graph edges and all storage/query inventories remain usable.
 
 ## Next step
-Commit/push the isolated branch, publish a draft PR closing #304, and monitor its
-CI to terminal result. Do not merge or mark ready. No further implementation
-changes are planned unless CI exposes introduced regressions. Related #142,
-#154 and #156 remain separate work; this fix does not claim to close them.
+Keep PR #310 in draft; do not merge or mark ready. This documentation update
+records the completed implementation and terminal CI result. No implementation
+work remains for #304. Related #142, #154 and #156 remain separate work; this
+fix does not claim to close them.
