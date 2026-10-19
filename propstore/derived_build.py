@@ -18,12 +18,15 @@ non-charter compute it writes is the conflict / diagnostic plan
 
 from __future__ import annotations
 
+import json
 import os
 import tomllib
+from importlib.metadata import distribution
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from quire.artifacts import UnscannablePlacementError
+from quire.canonical import canonical_json_sha256
 from quire.derived_runtime import (
     connect_sqlite_store,
     write_derived_store_schema_metadata,
@@ -122,6 +125,25 @@ def _sidecar_dependency_pins() -> dict[str, str]:
             f"world-sidecar dependencies missing from {lockfile.name}: "
             + ", ".join(sorted(missing))
         )
+    if lockfile.name == "_compiler_dependencies.lock":
+        # importlib.metadata owns installed distribution identity. Preserve its
+        # direct-URL record (including Git commit IDs) without translating it
+        # into Quire's lockfile source representation. Quire owns hashing/cache.
+        for name in pins:
+            installed = distribution(name)
+            direct_url = installed.read_text("direct_url.json")
+            origin = json.loads(direct_url) if direct_url is not None else {}
+            if (
+                not installed.version
+                or origin.get("dir_info", {}).get("editable")
+                or ("vcs_info" in origin and not origin["vcs_info"].get("commit_id"))
+            ):
+                raise ValueError(
+                    f"world-sidecar installed compiler identity incomplete: {name}"
+                )
+            pins[name] = canonical_json_sha256(
+                {"version": installed.version, "direct_url": direct_url}
+            )
     return pins
 
 

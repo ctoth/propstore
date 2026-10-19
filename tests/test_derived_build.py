@@ -13,7 +13,6 @@ These pin the 9-0-rest-B build spine:
 
 from __future__ import annotations
 
-import json
 import os
 import sqlite3
 import subprocess
@@ -226,11 +225,10 @@ def test_source_checkout_uses_its_current_compiler_lockfile(
         world_sidecar_hash("rev", schema_hash="schema")
 
 
-def test_built_wheel_materializes_with_its_bundled_compiler_identity(
+def test_built_wheel_tracks_installed_compilers_with_a_fixed_bundled_lock(
     tmp_path: Path,
 ) -> None:
     project_root = Path(__file__).resolve().parents[1]
-    expected = world_sidecar_hash_inputs("rev", schema_hash="schema")["dependency_pins"]
     subprocess.run(
         [
             "uv", "build", "--wheel", "--python", sys.executable,
@@ -249,23 +247,69 @@ def test_built_wheel_materializes_with_its_bundled_compiler_identity(
         archive.extractall(installed)
     # This is deliberately not Propstore's lockfile. The wheel must ignore it.
     (installed / "uv.lock").write_text("not valid TOML", encoding="utf-8")
-    probe = '''
+    probe = r'''
 import json
 import sys
 from pathlib import Path
+from importlib.metadata import distribution
 import propstore.derived_build as build
 from propstore.repository import Repository
 assert Path(build.__file__).resolve().is_relative_to(Path.cwd())
 assert build._sidecar_lockfile().parent == Path(build.__file__).parent
-assert build.world_sidecar_hash_inputs("rev", schema_hash="schema")["dependency_pins"] == json.loads(sys.argv[1])
-repo = Repository.init(Path(sys.argv[2]))
+pins = build.world_sidecar_hash_inputs("rev", schema_hash="schema")["dependency_pins"]
+assert set(pins) == set(build._SIDECAR_CACHE_DEPENDENCIES)
+repo = Repository.init(Path(sys.argv[1]))
 handle, built = build.materialize_world_sidecar(repo)
 assert built and Path(handle.path).is_file()
 again, built = build.materialize_world_sidecar(repo)
 assert not built and again.path == handle.path
+snapshot = build._sidecar_lockfile().read_bytes()
+revision = repo.require_git().head_sha()
+metadata_root = Path(sys.argv[2])
+metadata_root.mkdir()
+sys.path.insert(0, str(metadata_root))
+for name in ("sympy", "z3-solver", "quire"):
+    installed = distribution(name)
+    metadata = metadata_root / (name.replace("-", "_") + "-test.dist-info")
+    metadata.mkdir()
+    original_version = installed.version
+    original_url = installed.read_text("direct_url.json")
+    version = "999.0.0" if name != "quire" else original_version
+    (metadata / "METADATA").write_text(
+        f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n", encoding="utf-8"
+    )
+    if original_url is not None:
+        origin = json.loads(original_url)
+        if name == "quire":
+            origin["vcs_info"]["commit_id"] = "0" * 40
+        (metadata / "direct_url.json").write_text(json.dumps(origin), encoding="utf-8")
+    changed, built = build.materialize_world_sidecar(repo)
+    assert built and changed.path != handle.path, name
+    assert Path(handle.path).is_file()
+    handle = changed
+    unchanged, built = build.materialize_world_sidecar(repo)
+    assert not built and unchanged.path == changed.path
+    assert build._sidecar_lockfile().read_bytes() == snapshot
+    assert repo.require_git().head_sha() == revision
+    if name == "quire":
+        assert distribution(name).version == original_version
+        for invalid_origin in (
+            {"url": "file:///editable", "dir_info": {"editable": True}},
+            {"url": "https://example.invalid/repo", "vcs_info": {"vcs": "git"}},
+        ):
+            (metadata / "direct_url.json").write_text(
+                json.dumps(invalid_origin), encoding="utf-8"
+            )
+            try:
+                build.materialize_world_sidecar(repo)
+            except ValueError as error:
+                assert "installed compiler identity incomplete: quire" in str(error)
+            else:
+                raise AssertionError("incomplete compiler identity reused a sidecar")
 '''
     subprocess.run(
-        [sys.executable, "-c", probe, json.dumps(expected), str(tmp_path / "knowledge")],
+        [sys.executable, "-c", probe, str(tmp_path / "knowledge"),
+         str(tmp_path / "compiler-metadata")],
         cwd=installed,
         env={**os.environ, "PYTHONPATH": str(installed)},
         check=True,
