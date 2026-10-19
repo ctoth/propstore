@@ -19,6 +19,15 @@ Apply that same semantic distinction where ATMS constructs nogoods; retain all
 records and existing derived-value contradiction handling. Smallest change is
 about seven production lines plus focused tests. No feature removal.
 
+## Current-default integration
+Merged default 62d4e3ad48717d793383dcf4fba2e8ce16b4a10c (PR308 parser
+restoration) without conflicts or production edits. claim_contracts.py and the
+restored test_algorithm_parse_admission.py exactly match that default commit.
+The focused integration run passed 14 tests in 5.74 seconds:
+logs/test-runs/issue-302-integrate-308-20261019-172629.log. The merge commit
+will receive fresh full PR CI. Neither #307 nor #310 depends on the other;
+each independently integrates the same default restoration.
+
 ## Surprises
 The first authored integration test used bind({}) instead of bind(), then
 requested zero future queryables (which correctly yields zero future entries).
