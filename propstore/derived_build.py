@@ -56,14 +56,31 @@ if TYPE_CHECKING:
 _WORLD_PROJECTION_ID = "propstore.world"
 _WORLD_META_KEY = "sidecar"
 
-# The substrate package pins whose versions a built sidecar's contents depend on.
-# (Translated from the reference's ``_SIDECAR_CACHE_DEPENDENCIES``.)
+# Distribution names from uv.lock whose behavior contributes to checked claims,
+# conflict/diagnostic computation or charter serialization. Include the parser,
+# solver and unit-algebra dependencies used by those compilers, not CLI/web tools.
 _SIDECAR_CACHE_DEPENDENCIES = (
-    "argumentation",
     "ast-equiv",
     "bridgman",
+    "cel-parser",
+    "condition-ir",
+    "eq-equiv",
+    "flexcache",
+    "flexparser",
+    "formal-argumentation",
     "gunray",
+    "human-to-sympy",
+    "lark",
+    "mpmath",
+    "msgspec",
+    "pint",
+    "pyyaml",
     "quire",
+    "rfc8785",
+    "sqlalchemy",
+    "sqlalchemy-fts5",
+    "sympy",
+    "z3-solver",
 )
 
 # Families projected from their charters directly. The build computes these rather
@@ -81,6 +98,17 @@ _COMPUTED_FAMILIES = frozenset(
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def _sidecar_dependency_pins() -> dict[str, str]:
+    pins = read_dependency_pins(_repo_root() / "uv.lock", _SIDECAR_CACHE_DEPENDENCIES)
+    missing = set(_SIDECAR_CACHE_DEPENDENCIES).difference(pins)
+    if missing:
+        raise ValueError(
+            "world-sidecar dependencies missing from uv.lock: "
+            + ", ".join(sorted(missing))
+        )
+    return pins
 
 
 def _family_contract_versions() -> dict[str, str]:
@@ -168,9 +196,7 @@ def world_sidecar_hash_inputs(
                 "PROPSTORE_SIDECAR_CACHE_BUST", ""
             ),
         },
-        "dependency_pins": read_dependency_pins(
-            _repo_root() / "uv.lock", _SIDECAR_CACHE_DEPENDENCIES
-        ),
+        "dependency_pins": _sidecar_dependency_pins(),
     }
 
 
@@ -192,9 +218,7 @@ def world_sidecar_hash(
     return derived_store_content_hash(
         projection_version=str(WORLD_SIDECAR_SCHEMA_VERSION),
         schema_hash=schema_hash,
-        dependencies=read_dependency_pins(
-            _repo_root() / "uv.lock", _SIDECAR_CACHE_DEPENDENCIES
-        ),
+        dependencies=_sidecar_dependency_pins(),
         extra_inputs={
             "source_revision": inputs["source_revision"],
             "source_branch_tips": inputs["source_branch_tips"],

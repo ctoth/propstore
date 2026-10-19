@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 
 from propstore.derived_build import (
+    _SIDECAR_CACHE_DEPENDENCIES,
     materialize_world_sidecar,
     world_sidecar_hash,
     world_sidecar_hash_inputs,
@@ -106,6 +107,104 @@ def test_hash_inputs_carry_the_expected_keys() -> None:
     assert "dependency_pins" in inputs
     assert "build_time_config" in inputs
     assert inputs["grounding_config"] == {"max_arguments": None}
+
+
+@pytest.fixture
+def compiler_lockfile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    lockfile = tmp_path / "uv.lock"
+    lockfile.write_bytes((Path(__file__).resolve().parents[1] / "uv.lock").read_bytes())
+    monkeypatch.setattr("propstore.derived_build._repo_root", lambda: tmp_path)
+    return lockfile
+
+
+def _change_dependency(
+    lockfile: Path, name: str, *, remove: bool = False, git_revision: bool = False
+) -> None:
+    sections = lockfile.read_text(encoding="utf-8").split("[[package]]")
+    for index, section in enumerate(sections):
+        if not section.startswith(f'\nname = "{name}"\n'):
+            continue
+        if remove:
+            del sections[index]
+        elif git_revision:
+            prefix, source = section.split('git = "', 1)
+            url, suffix = source.split('"', 1)
+            repository, _ = url.split("?rev=", 1)
+            revision = "0" * 40
+            sections[index] = (
+                f'{prefix}git = "{repository}?rev={revision}#{revision}"{suffix}'
+            )
+        else:
+            prefix, version = section.split('version = "', 1)
+            _, suffix = version.split('"', 1)
+            sections[index] = f'{prefix}version = "999.0.0"{suffix}'
+        lockfile.write_text("[[package]]".join(sections), encoding="utf-8")
+        return
+    raise AssertionError(f"{name} is absent from the real lockfile")
+
+
+def test_dependency_selection_resolves_every_declared_distribution() -> None:
+    inputs = world_sidecar_hash_inputs("rev", schema_hash="schema")
+    assert set(inputs["dependency_pins"]) == set(_SIDECAR_CACHE_DEPENDENCIES)
+    assert {"condition-ir", "eq-equiv", "cel-parser", "formal-argumentation"} <= set(
+        inputs["dependency_pins"]
+    )
+
+
+@pytest.mark.parametrize("dependency", _SIDECAR_CACHE_DEPENDENCIES)
+def test_compiler_dependency_pin_invalidates_hash(
+    compiler_lockfile: Path, dependency: str
+) -> None:
+    before = world_sidecar_hash("same-knowledge-commit", schema_hash="same-schema")
+    _change_dependency(compiler_lockfile, dependency)
+    after = world_sidecar_hash("same-knowledge-commit", schema_hash="same-schema")
+    assert before != after
+
+
+@pytest.mark.parametrize(
+    "dependency", ("condition-ir", "eq-equiv", "formal-argumentation", "quire")
+)
+def test_compiler_git_revision_invalidates_hash(
+    compiler_lockfile: Path, dependency: str
+) -> None:
+    before = world_sidecar_hash("rev", schema_hash="schema")
+    _change_dependency(compiler_lockfile, dependency, git_revision=True)
+    assert world_sidecar_hash("rev", schema_hash="schema") != before
+
+
+def test_unrelated_dependency_does_not_invalidate_hash(compiler_lockfile: Path) -> None:
+    before = world_sidecar_hash("rev", schema_hash="schema")
+    _change_dependency(compiler_lockfile, "click")
+    assert world_sidecar_hash("rev", schema_hash="schema") == before
+
+
+def test_missing_compiler_dependency_is_an_error(compiler_lockfile: Path) -> None:
+    _change_dependency(compiler_lockfile, "condition-ir", remove=True)
+    with pytest.raises(ValueError, match="world-sidecar.*condition-ir"):
+        world_sidecar_hash("rev", schema_hash="schema")
+
+
+@pytest.mark.parametrize("dependency", ("condition-ir", "eq-equiv", "z3-solver"))
+def test_compiler_dependency_change_rebuilds_existing_sidecar(
+    tmp_path: Path, compiler_lockfile: Path, dependency: str
+) -> None:
+    repo = _repo(tmp_path)
+    revision = repo.require_git().head_sha()
+    first, built = materialize_world_sidecar(repo)
+    assert built
+    unchanged, built = materialize_world_sidecar(repo)
+    assert not built
+    assert unchanged.path == first.path
+
+    _change_dependency(
+        compiler_lockfile, dependency, git_revision=dependency != "z3-solver"
+    )
+    changed, built = materialize_world_sidecar(repo)
+    assert built
+    assert changed.path != first.path
+    assert repo.require_git().head_sha() == revision
+    assert Path(first.path).is_file()
+    assert Path(changed.path).is_file()
 
 
 def test_hash_changes_with_source_revision() -> None:
