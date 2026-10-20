@@ -23,7 +23,7 @@ import os
 import tomllib
 from importlib.metadata import distribution
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from quire.artifacts import UnscannablePlacementError
 from quire.canonical import canonical_json_sha256
@@ -132,7 +132,9 @@ def _sidecar_dependency_pins() -> dict[str, str]:
         for name in pins:
             installed = distribution(name)
             direct_url = installed.read_text("direct_url.json")
-            origin = json.loads(direct_url) if direct_url is not None else {}
+            origin: dict[str, Any] = (
+                json.loads(direct_url) if direct_url is not None else {}
+            )
             if (
                 not installed.version
                 or origin.get("dir_info", {}).get("editable")

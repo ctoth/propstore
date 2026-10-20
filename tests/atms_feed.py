@@ -40,6 +40,7 @@ from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
+from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.world.bound import BoundWorld
@@ -138,12 +139,16 @@ class InMemoryWorldStore:
     parameterizations: tuple[ParameterizationEdge, ...] = ()
     conflict_records: tuple[ConflictRecord, ...] = ()
     stances: tuple[Stance, ...] = ()
+    justifications: tuple[Justification, ...] = ()
     micropublications: tuple[Micropublication, ...] = ()
     forms: tuple[FormDefinition, ...] = ()
     solver: ConditionSolver = field(default_factory=lambda: ConditionSolver({}))
 
     def all_concepts(self) -> Sequence[Concept]:
         return self.concepts
+
+    def all_justifications(self) -> Sequence[Justification]:
+        return self.justifications
 
     def all_forms(self) -> Sequence[FormDefinition]:
         return self.forms

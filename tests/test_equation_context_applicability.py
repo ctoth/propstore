@@ -5,6 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from argumentation.core.dung import grounded_extension
 from condition_ir import (
     ConceptInfo,
     KindType,
@@ -14,18 +15,25 @@ from condition_ir import (
 )
 
 from propstore.conflict_detector.models import ConflictClass
+from propstore.aspic_bridge.projection import build_aspic_projection
 from propstore.core.environment import Environment
 from propstore.core.graph_types import CompiledWorldGraph
 from propstore.core.id_types import to_claim_id
 from propstore.core.labels import environment_context_ids
-from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.core.lemon import (
+    LexicalEntry,
+    LexicalForm,
+    LexicalSense,
+    OntologyReference,
+)
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context, LiftingRule
 from propstore.families.forms import FormDefinition
+from propstore.families.justifications import Justification
 from propstore.repository import Repository
 from propstore.sensitivity import analyze_sensitivity
-from propstore.world import RenderPolicy, WorldQuery
+from propstore.world import OverlayWorld, RenderPolicy, WorldQuery
 from propstore.world.types import ReasoningBackend, ValueStatus
 
 
@@ -66,7 +74,10 @@ def _repo(
     repo.families.claim.save(
         "a_input",
         Claim(
-            claim_id="a_input", claim_type=ClaimType.PARAMETER, output_concept="x", value=3
+            claim_id="a_input",
+            claim_type=ClaimType.PARAMETER,
+            output_concept="x",
+            value=3,
         ),
         message="input",
     )
@@ -113,7 +124,9 @@ def _repo(
     return repo
 
 
-@pytest.mark.parametrize("backend", [ReasoningBackend.CLAIM_GRAPH, ReasoningBackend.ATMS])
+@pytest.mark.parametrize(
+    "backend", [ReasoningBackend.CLAIM_GRAPH, ReasoningBackend.ATMS]
+)
 @pytest.mark.parametrize(
     ("context_id", "lift", "expected"),
     [
@@ -164,7 +177,10 @@ def test_derivation_and_sensitivity_follow_equation_activation(
 def test_rival_equations_keep_individual_origins_and_scopes(tmp_path: Path) -> None:
     with WorldQuery(_repo(tmp_path, rival=True)) as world:
         edges = world.all_parameterizations()
-        assert {edge.equation_claim_id for edge in edges} == {"equation_a", "equation_b"}
+        assert {edge.equation_claim_id for edge in edges} == {
+            "equation_a",
+            "equation_b",
+        }
         for context_id, expected in (("a", 6), ("b", 9)):
             bound = world.bind(Environment(context_id=context_id))
             result = bound.derived_value("y")
@@ -187,7 +203,9 @@ def test_referenced_equation_must_exist_and_mixed_edges_sort(tmp_path: Path) -> 
         assert edge != bare
 
 
-@pytest.mark.parametrize("backend", [ReasoningBackend.CLAIM_GRAPH, ReasoningBackend.ATMS])
+@pytest.mark.parametrize(
+    "backend", [ReasoningBackend.CLAIM_GRAPH, ReasoningBackend.ATMS]
+)
 def test_equation_conditions_are_required_for_applicability_and_support(
     tmp_path: Path, backend: ReasoningBackend
 ) -> None:
@@ -209,6 +227,59 @@ def test_equation_conditions_are_required_for_applicability_and_support(
         )
         assert rejected.derived_value("y").status is ValueStatus.NO_RELATIONSHIP
         assert rejected.atms_engine().derived_label("y", 6) is None
+
+
+@pytest.mark.parametrize(
+    "backend", [ReasoningBackend.CLAIM_GRAPH, ReasoningBackend.ATMS]
+)
+def test_equation_and_canonical_justification_share_withdrawn_support(
+    tmp_path: Path, backend: ReasoningBackend
+) -> None:
+    repo = _repo(tmp_path)
+    repo.families.claim.save(
+        "application",
+        Claim(
+            claim_id="application",
+            claim_type=ClaimType.OBSERVATION,
+            context_id="a",
+            concepts=("y",),
+            statement="The equation and input support this application.",
+        ),
+        message="application",
+    )
+    licence = Justification(
+        justification_id="application-support",
+        conclusion="application",
+        premises=("equation_a", "a_input"),
+        rule_kind="methodological_inference",
+        rule_strength="defeasible",
+    )
+    repo.families.justification.save(
+        licence.justification_id, licence, message="application support"
+    )
+    with WorldQuery(repo) as world:
+        graph = world.compiled_graph()
+        assert graph.justifications == (licence,)
+        assert graph.parameterizations[0].equation_claim_id == "equation_a"
+        bound = world.bind(
+            Environment(context_id="a"),
+            policy=RenderPolicy(reasoning_backend=backend),
+        )
+        withdrawn = OverlayWorld(bound, remove=("equation_a",))
+        for view, supported in ((bound, True), (withdrawn, False)):
+            assert view.store.all_justifications() == [licence]
+            projection = build_aspic_projection(
+                view.store, view.active_claims(), bundle=world.grounding_bundle()
+            )
+            accepted = grounded_extension(projection.framework)
+            arguments = set(projection.claim_to_argument_ids.get("application", ()))
+            assert bool(arguments & accepted) is supported
+            result = view.derived_value("y")
+            assert result.status is (
+                ValueStatus.DERIVED if supported else ValueStatus.NO_RELATIONSHIP
+            )
+        assert bound.derived_value("y").value == 6
+        assert world.get_claim("equation_a") is not None
 
 
 def test_context_separation_and_equation_support_coexist(tmp_path: Path) -> None:
