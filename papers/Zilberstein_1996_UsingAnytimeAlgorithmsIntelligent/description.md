@@ -1,0 +1,4 @@
+---
+tags: [anytime-algorithms, metareasoning, resource-bounded-reasoning, real-time-systems]
+---
+Zilberstein surveys metalevel control of systems built from anytime algorithms, defining quality metrics, desired properties, performance profiles (expected, conditional and dynamic), and the interruptible versus contract distinction. He summarizes offline compilation of composite systems (strongly NP-complete in general; linear-time and optimal local compilation under tree-structure, bounded-degree and input-monotonicity or linearity assumptions) and three run-time monitoring strategies, fixed contract, marginal value of computation, and Markov monitoring policies, each with stated optimality conditions. For propstore it supplies vocabulary and conditions for honestly reporting partial, resource-bounded reasoning results instead of presenting them as complete.

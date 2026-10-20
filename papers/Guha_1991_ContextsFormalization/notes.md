@@ -330,3 +330,10 @@ Propstore may also want to directly implement:
 - **Actor Slots**: performer, victim, buyer, seller, observer, referee, driver, vehicle, object, objectBought, performedBy
 - **Relation predicates**: instanceOf, allInstanceOf, parts, slotValueHasInsOf, ownedBy, usedBy, drivenBy, hasFeatures, during, occursAt, corefer, presentIn, derivedContexts, selectionObject, selectionFor, selectionObjectType, timeFormalismUsedBy, domainAssumptions, precisionRequired, defaultTime, defaultImplicitTime, holds, holdsDuring, contextTask, informationRequirement, genlSlots, baseMt, approxModel, deviceModel, aspectType, aspectIncluded, narrator, contextTopic, utteranceContext, allPreviousUC, priorContext, nearer, discContext, hasDiscourseContextOf, importsFrom, dbObject, contextTopic
 - **ab-...**: abnormality predicates (ab-dcp, ab-dct, ab-A21, ab-financialLiquidity, ab-it, ab-pc, ab-price, ab-dcf)
+
+## Collection Cross-References
+
+### Cited By (in Collection)
+(Not exhaustive: this paper has not itself been reconciled; entries are added as citing papers are reconciled.)
+- [Propositional Logic of Context](../Buvac_1993_PropositionalLogicContext/notes.md) - formalizes this thesis's reading of `ist` as validity and its treatment of meaningless sentences; its (MF) meaninglessness-as-falsity variant is presented as close to Guha's semantics
+- [Metamathematics of Contexts](../Buvac_1995_MetamathematicsContexts/notes.md) - ref [12]; cited as the source of the validity reading of `ist` and of the meaningless-as-false semantics, for which it proves correspondence results

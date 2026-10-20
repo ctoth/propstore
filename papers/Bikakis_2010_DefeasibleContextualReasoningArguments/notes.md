@@ -223,6 +223,9 @@ This paper is the canonical 2010 statement of distributed defeasible reasoning w
 - [Local Models Semantics, or Contextual Reasoning = Locality + Compatibility](../Ghidini_2001_LocalModelsSemanticsContextual/notes.md) — cited as ref [13]; the Local Models Semantics this paper extends with defeasible local theories and defeasible mapping rules. Bikakis & Antoniou's MCS shape (per-context vocabulary + cross-context mappings) directly inherits LMS's locality+compatibility split.
 - [Defeasible logic versus Logic Programming without Negation as Failure](../Antoniou_2000_DefeasibleLogicVersusLogic/notes.md) — cited as ref [26]; the canonical single-context defeasible-logic paper whose proof system this paper lifts to the multi-context setting and re-uses the `±Δ / ±∂` derivation tags from.
 
+### Now in Collection (previously listed as leads)
+- [Propositional Logic of Context](../Buvac_1993_PropositionalLogicContext/notes.md) - ref [10]. The propositional `ist(κ, φ)` logic with per-context vocabularies, non-flat context sequences, `ist` as validity over partial truth assignments, and a sound and complete Hilbert system. Contexts there are monotonic and there is no inter-context conflict resolution, the gap this paper's defeasible multi-context argumentation addresses.
+
 ### New Leads (Not Yet in Collection)
 - **Brewka, Roelofsen & Serafini (2007) — "Contextual Default Reasoning," IJCAI.** Ref [16]. The MCS proposal this paper most directly criticizes (mixed bridge bodies + only single-context preferences). High priority for closing the MCS lineage in propstore.
 - **Governatori, Maher, Antoniou & Billington (2004) — "Argumentation Semantics for Defeasible Logic," JLC 14(5):675-702.** Ref [24]. Single-context argumentation semantics for DL that the multi-context argumentation here generalizes.
@@ -230,7 +233,6 @@ This paper is the canonical 2010 statement of distributed defeasible reasoning w
 - **Dung (1995) — "On the Acceptability of Arguments and Its Fundamental Role in Nonmonotonic Reasoning, Logic Programming and N-Person Games," AIJ 77.** Ref [25]. The abstract argumentation framework underlying this paper's attack/defeat machinery; foundational and worth ingesting.
 - **Adjiman, Chatalic, Goasdoué, Rousset & Simon (2006) — "Distributed Reasoning in a Peer-to-Peer Setting: Application to the Semantic Web," JAIR 25:269-314.** Ref [28]. Comparator distributed reasoner.
 - **Bikakis, Patkos, Antoniou, Plexousakis (2008) — "A Survey of Semantics-Based Approaches for Context Reasoning in Ambient Intelligence."** Ref [4]. AmI context-reasoning survey.
-- **Buvac & Mason (1993) — "Propositional Logic of Context," AAAI.** Ref [10]. Companion to McCarthy's `ist` formalisation.
 - **Calvanese et al. (2005) — "Inconsistency Tolerance in P2P Data Integration: An Epistemic Logic Approach," DBPL.** Ref [20]. P2P data-integration comparator.
 - **Chatalic, Nguyen & Rousset (2006) — "Reasoning with Inconsistencies in Propositional Peer-to-Peer Inference Systems," ECAI.** Ref [21]. P2P reasoning with inconsistency.
 - **Dastani, Governatori, Rotolo, Song & van der Torre (2007) — "Contextual Deliberation of Cognitive Agents in Defeasible Logic," AAMAS.** Ref [19]. Agent-side defeasible-context companion.

@@ -1,0 +1,22 @@
+{
+  "cite_key": "buvac1995metamathematics",
+  "title": "Metamathematics of Contexts",
+  "authors": [
+    "Saša Buvač",
+    "Vanja Buvač",
+    "Ian A. Mason"
+  ],
+  "year": "1995",
+  "arxiv_id": null,
+  "doi": "10.3233/FI-1995-232345",
+  "abstract": "In this paper we investigate the simple logical properties of contexts. We describe both the syntax and semantics of a general propositional language of context, and we give a Hilbert style proof system for this language. A propositional logic of context extends classical propositional logic in two ways. Firstly, a new modality, ist(κ,φ), is introduced. It is used to express that the sentence,φ, holds in the context, κ. Secondly, each context has its own vocabulary, i.e. a set of propositional atoms which are defined or meaningful in that context. The main results of this paper are the soundness and completeness of this Hilbert style proof system. We also provide soundness and completeness results (i.e., correspondence theory) for various extensions of the general system. Finally, we prove that our logic is decidable, and give a brief comparison of our semantics to Kripke semantics.",
+  "url": "https://www.semanticscholar.org/paper/ee1ba98ce720c4c52ec0c9874ea93e840175d20a",
+  "pdf_url": "http://www-formal.stanford.edu/buvac/metamathematics-of-context.ps",
+  "bibtex": "@Article{Buvac1995METAMATHEMATICSOC,\n author = {Sasa Buvac and Vanja Buvac and I. Mason},\n booktitle = {Fundamenta Informaticae},\n journal = {Fundamenta Informaticae},\n pages = {263 - 301},\n title = {METAMATHEMATICS OF CONTEXTS},\n volume = {23},\n year = {1995}\n}\n",
+  "venue": "Fundamenta Informaticae",
+  "venue_type": "journal",
+  "volume": "23",
+  "pages": "263 - 301",
+  "document_type": "article",
+  "retrieval_note": "paper.pdf is the authors' accepted manuscript (PostScript from www-formal.stanford.edu/buvac/, converted with Ghostscript; 39 pages; footer 'To appear in Fundamenta Informaticae, 23(3), 1995 ... Latexed on November 7, 1994'), not the publisher's typeset version. The DOI resolves to journals.sagepub.com (HTTP 403); sci-hub.st showed a bot check; the figshare record 22828685 lists no files."
+}

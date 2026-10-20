@@ -171,7 +171,7 @@ This is foundational for propstore's argumentation / probabilistic-subjective la
 - Smets 1991 — *The Transferable Belief Model and other interpretations of Dempster-Shafer's model* — already in collection. Sets up TBM interpretation of belief functions.
 - Smets 1993 — *Belief functions: the disjunctive rule of combination and the generalized Bayesian theorem* — already in collection. The disjunctive companion to this paper.
 - Smets and Kennes 1994 — *The Transferable Belief Model* — already in collection. The full journal exposition.
-- Klawonn and Smets 1992 — *The dynamic of belief in the transferable belief model and specialization-generalization matrices* — UAI 1992. Cited p.295 for the algebraic conditioning derivation.
+- Klawonn and Smets 1992 — *The dynamic of belief in the transferable belief model and specialization-generalization matrices* — UAI 1992. Cited p.295 for the algebraic conditioning derivation. → NOW IN COLLECTION: [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md)
 - Yager 1987 — alternative normalization; criticized in this paper.
 - Dubois and Prade 1986 — disjunctive rule; criticized in this paper.
 - Zadeh 1986 — critique of Dempster's rule (the "two doctors" example); cited p.296.
@@ -187,7 +187,6 @@ This is foundational for propstore's argumentation / probabilistic-subjective la
 - [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — the IRIDIA-90-14 technical report cited here (Smets and Kennes 1990) reappears as the 1994 AI journal paper; it is the full exposition of the two-level architecture.
 
 ### New Leads (Not Yet in Collection)
-- Klawonn, F. and Smets, Ph. (1992) — "The dynamic of belief in the transferable belief model and specialization-generalization matrices" — same UAI-92 volume, supplies the algebraic specialization-generalization machinery behind the conditioning result.
 - Walley, P. (1991) — *Statistical reasoning with imprecise probabilities* — alternative epistemic-uncertainty framework (lower/upper previsions). Walley 1996 multinomial paper is in collection but is not a substitute for the 1991 monograph.
 - Gardenfors, P. (1988) — *Knowledge in flux. Modelling the dynamics of epistemic states* — the AGM belief revision framework canonical text; relevant to propstore's belief-set / iteration layer.
 - Levi, I. (1980) — *The enterprise of knowledge* — credal-states philosophy; underpins Smets's defence of the credal/pignistic split.
@@ -200,6 +199,9 @@ This is foundational for propstore's argumentation / probabilistic-subjective la
 - Laskey, K. and Lehner, P.E. (1989) — assumptions, beliefs, probabilities; ATMS-flavoured belief functions.
 - Nguyen, T.H. and Smets, Ph. (1991) — dynamics of cautious belief and conditional objects.
 - Carnap, R. (1950, 1962) — logical foundations of probability; cited for the philosophical background on epistemic frames.
+
+### Now in Collection (previously listed as leads)
+- [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md) - Same UAI-92 volume. Klawonn and Smets model every TBM belief expansion as a specialization matrix moving mass from each set to its subsets, and derive unnormalized Dempster conditioning as the least committed specialization making a set impossible, with conjunctive combination following from commutativity. This is an algebraic derivation of the same unnormalized rules this paper justifies axiomatically; the two papers confirm each other.
 
 ### Supersedes or Recontextualizes
 - Smets 1992 explicitly recontextualizes the normalized Dempster's rule of [Shafer 1976](../Shafer_1976_MathematicalTheoryEvidence/notes.md): it argues the normalization step is not a definitional necessity but a closed-world commitment that should be deferred to decision time.
@@ -218,3 +220,4 @@ This is foundational for propstore's argumentation / probabilistic-subjective la
 ### Cited By (in Collection)
 - [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — cites Smets 1992 as the source of the unnormalized-Dempster justification and the homomorphism-under-refinement argument.
 - [Quantifying Beliefs Through Belief Functions](../Smets_1993_QuantifyingBeliefsBeliefFunctions/notes.md) — cites Smets 1992 for the open-world reading of m(empty) > 0.
+- [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md) - same UAI-92 volume; cites this paper for working without normalization (m(empty) may be positive), and notes its own conclusions also hold when normalization is introduced.

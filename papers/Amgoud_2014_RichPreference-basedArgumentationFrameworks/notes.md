@@ -244,6 +244,7 @@ Key implications:
 ## Collection Cross-References
 
 ### Already in Collection
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - ref [20] in the reference list; these notes do not record where it is used in the text
 - [[Dung_1995_AcceptabilityArguments]] — foundational AF framework (Definition 1) on which this paper builds
 - [[Amgoud_2002_ReasoningModelProductionAcceptable]] — the original PAF framework by the same first author, shown here to be flawed when attacks are asymmetric
 - [[Amgoud_2011_NewApproachPreference-basedArgumentation]] — companion paper by same authors proposing preference handling at the semantics level (pref-stable) rather than at the attack level; this paper takes the attack-level approach but fixes the consistency bug
