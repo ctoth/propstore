@@ -109,6 +109,26 @@ def test_planned_publication_rejects_target_move_without_retry(tmp_path: Path, t
             assert git.branch_sha(name) == sha
 
 
+@pytest.mark.parametrize("side", ["master", "right"])
+def test_target_strictly_ancestral_to_only_one_parent_is_admitted(tmp_path: Path, side: str) -> None:
+    repo, _base, _left, _right = _branches(tmp_path)
+    git = repo.require_git()
+    target = git.branch_sha(side)
+    git.create_branch("target", source_commit=target)
+    other = "right" if side == "master" else "master"
+    assert target not in git.ancestor_distances(git.branch_sha(other))
+    descendant = author_obs_claim(repo, "descendant", "later on one side", branch=side)
+    assert descendant != target
+    left, right = git.branch_sha("master"), git.branch_sha("right")
+    preview = inspect_merge(repo, MergeInspectRequest("master", "right", target_branch="target"))
+    assert preview.plan.target_sha == target
+    assert preview.plan.target_admission == "contained"
+    report = commit_merge(repo, MergeCommitRequest("master", "right", target_branch="target"))
+    assert report.plan == preview.plan
+    assert tuple(git.iter_commit_parent_shas(report.commit_sha)) == (left, right)
+    assert repo.families.claim.load("descendant", commit=report.commit_sha) is not None
+
+
 @pytest.mark.parametrize("command", ["inspect", "commit"])
 def test_cli_refuses_divergent_target_without_mutating_it(tmp_path: Path, command: str) -> None:
     repo, base, left, right = _branches(tmp_path)

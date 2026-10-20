@@ -49,6 +49,7 @@ from propstore.merge.merge_classifier import (
 from propstore.merge.merge_claims import MergeClaim
 
 if TYPE_CHECKING:
+    from quire.artifacts import ArtifactHandle
     from quire.git_store import GitStore
 
     from propstore.repository import Repository
@@ -215,7 +216,7 @@ def _transport_family_occurrences(
         if family.name == "claim" or family.identity_field is None:
             continue
         bound = repo.families.by_name(family.name)
-        occurrences = []
+        occurrences: list[tuple[ArtifactHandle[object, object, CharterDoc], CharterDoc]] = []
         for branch, instance in instances.items():
             handles = tuple(
                 handle for handle in bound.iter_handles(commit=instance.source_commit)
@@ -354,7 +355,12 @@ class MergeCommitPlan:
         return {**self.branch_commits, self.target_branch: self.target_sha}
 
     def commit(self, repo: Repository, *, message: str = "") -> str:
-        """Publish this exact plan, retaining Quire's expected-head CAS."""
+        """Publish this exact plan, retaining Quire's expected-head CAS.
+
+        Ordinary conflicts raise NonClaimMergeConflict; family/FK admission may
+        also refuse the combined instance. A changed input or target raises
+        Quire's HeadMismatchError. None of these failures advances the target.
+        """
         git = repo.require_git()
         branch_a, branch_b = self.branch_a, self.branch_b
         target_branch = self.target_branch
@@ -465,7 +471,12 @@ def create_merge_commit(
     message: str = "",
     target_branch: str | None = None,
 ) -> str:
-    """Plan and publish a two-parent merge, refusing lost target history."""
+    """Plan and publish a two-parent merge, refusing lost target history.
+
+    DivergentMergeTargetError and Quire's AmbiguousMergeBaseError refuse unsafe
+    planning before storage. Publication retains ordinary-conflict, family/FK,
+    and exact-head CAS admission; failures never advance the target branch.
+    """
     return plan_merge_commit(
         repo, branch_a, branch_b, target_branch=target_branch
     ).commit(repo, message=message)

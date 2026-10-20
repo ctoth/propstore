@@ -15,7 +15,12 @@ request/report and --target-branch. No overlapping merge PR (330 grades/331
 dimensions are other workers).
 First focused run: 20 passed, issue173-admission-20261020-163152.log. Final focused
 run including CLI stale-target races: 22 passed in 16.48s,
-issue173-cli-races-20261020-163331.log. Pending draft publication/CI/review.
+issue173-cli-races-20261020-163331.log.
+Draft PR332 head2ceb3a820d3e79a1d208d1221767c3a9c2e53c7b; CI39509173313
+success: 2093 passed, 4 skipped, 4 warnings in 96.65s.
+Actual Claude Opus5.5 review exit0, gate complete; no admission/CAS correctness
+defect. Follow-ups: strict ancestor of only one parent (added both directions),
+preview's existing ambiguous-base refusal documented/tested, API/CLI docs updated.
 
 ## Decisions and why
 Active workflow: protocols:cleanup-refactor. The broken branch-name request to
@@ -33,9 +38,11 @@ References: https://git-scm.com/docs/git-merge and
 https://git-scm.com/docs/git-merge-base .
 
 ## Surprises
-Current CI runs aggregate logged pytest, but has no Pyright step. Issue acceptance
-also requests package Pyright; run it as acceptance after publication, not as a
-new pre-push gate. Shared environment must remain unchanged.
+Current CI runs aggregate logged pytest but no Pyright step. Post-publication
+package Pyright found identical 14 errors on base3a7726a and head2ceb3a82 from
+the untyped occurrences list in family transport. Added the canonical Quire
+ArtifactHandle/CharterDoc collection annotation; no behavior change, cast,
+suppression or environment modification. Pending acceptance recheck.
 
 ## Next step
 Run actively edited focused files, publish draft/CI, and obtain actual independent
