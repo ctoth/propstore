@@ -39,6 +39,7 @@ from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
+from propstore.families.justifications import Justification
 from propstore.families.relations import Stance
 from propstore.world.bound import BoundWorld, recomputed_conflicts
 from propstore.world.types import (
@@ -128,6 +129,14 @@ class _GraphOverlayStore:
 
     def all_claim_stances(self) -> Sequence[Stance]:
         return self._stances
+
+    def all_justifications(self) -> Sequence[Justification]:
+        # Keep licences with withdrawn premises: they still identify derived
+        # conclusions, but cannot construct an argument without those premises.
+        return [
+            item for item in self._base.all_justifications()
+            if item.conclusion in self._claims_by_id
+        ]
 
     def conflicts(self) -> Sequence[ConflictRecord]:
         return self._conflicts

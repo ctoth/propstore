@@ -33,7 +33,7 @@ from argumentation.structured.aspic.aspic import (
 from argumentation.structured.aspic.datalog_grounding import GroundRuleOrigin
 
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.core.literal_keys import (
     REPOSITORY_ROOT_CONTEXT_ID,
     IstLiteralKey,
@@ -109,7 +109,7 @@ def claims_to_literals(
 
 
 def justifications_to_rules(
-    justifications: list[CanonicalJustification],
+    justifications: Sequence[Justification],
     literals: dict[LiteralKey, Literal],
 ) -> tuple[frozenset[Rule], frozenset[Rule]]:
     """Translate justifications into ASPIC+ strict and defeasible rules."""
@@ -120,33 +120,32 @@ def justifications_to_rules(
     for justification in justifications:
         if justification.rule_kind == "reported_claim":
             continue
-        if not justification.premise_claim_ids:
+        if not justification.premises:
             raise ValueError(
                 "empty-premise justification "
                 f"{justification.justification_id!r} must be rejected or represented explicitly"
             )
 
-        conclusion_key = _literal_key_for_proposition(
-            justification.conclusion_claim_id, literals
-        )
+        if justification.conclusion is None:
+            raise ValueError(
+                f"justification {justification.justification_id!r} has no conclusion"
+            )
+        conclusion_key = _literal_key_for_proposition(justification.conclusion, literals)
         premise_keys = tuple(
             _literal_key_for_proposition(pid, literals)
-            for pid in justification.premise_claim_ids
+            for pid in justification.premises
         )
         if conclusion_key not in literals:
             continue
         unknown_premises = [
             premise_id
-            for premise_id, premise_key in zip(
-                justification.premise_claim_ids, premise_keys
-            )
+            for premise_id, premise_key in zip(justification.premises, premise_keys)
             if premise_key not in literals
         ]
         if unknown_premises:
-            missing = ", ".join(repr(premise_id) for premise_id in unknown_premises)
-            raise ValueError(
-                f"unknown premise in justification {justification.justification_id!r}: {missing}"
-            )
+            # A durable licence survives an inactive/withdrawn premise. It
+            # cannot construct an argument in this active scope.
+            continue
 
         antecedents = tuple(literals[pid] for pid in premise_keys)
         consequent = literals[conclusion_key]
@@ -319,17 +318,32 @@ def preference_sensitive_stance_pairs(
 
 def claims_to_kb(
     active_claims: Sequence[ActiveClaim],
-    justifications: list[CanonicalJustification],
+    justifications: Sequence[Justification],
     literals: dict[LiteralKey, Literal],
 ) -> KnowledgeBase:
     """Build ``K_n`` (necessary) and ``K_p`` (ordinary) from reported claims."""
 
-    reported_claim_ids = {
-        justification.conclusion_claim_id
+    derived_claim_ids = {
+        justification.conclusion
+        for justification in justifications
+        if justification.rule_kind != "reported_claim"
+    }
+    explicitly_reported = {
+        justification.conclusion
         for justification in justifications
         if justification.rule_kind == "reported_claim"
     }
-    claim_by_id = {str(claim.claim_id): claim for claim in active_claims}
+    claim_by_id: dict[str, ActiveClaim] = {}
+    for claim in active_claims:
+        claim_id = str(claim.claim_id)
+        if claim_id in claim_by_id:
+            raise ValueError(f"claim {claim_id!r} has more than one active context")
+        claim_by_id[claim_id] = claim
+    reported_claim_ids = {
+        claim_id
+        for claim_id in claim_by_id
+        if claim_id not in derived_claim_ids or claim_id in explicitly_reported
+    }
     axioms: set[Literal] = set()
     premises: set[Literal] = set()
 

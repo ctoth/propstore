@@ -25,7 +25,7 @@ from provenance_semiring import (
 
 from propstore.aspic_bridge import build_bridge_csaf
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.defeasibility import (
     ClaimApplicability,
     ContextualClaimUse,
@@ -41,10 +41,10 @@ def _claim(claim_id: str) -> ActiveClaim:
     return ActiveClaim(claim_id=claim_id, concept_id="k", statement=claim_id)
 
 
-def _reported(claim_id: str) -> CanonicalJustification:
-    return CanonicalJustification(
+def _reported(claim_id: str) -> Justification:
+    return Justification(
         justification_id=f"reported:{claim_id}",
-        conclusion_claim_id=claim_id,
+        conclusion=claim_id,
         rule_kind="reported_claim",
     )
 

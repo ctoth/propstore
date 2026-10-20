@@ -39,6 +39,7 @@ from propstore.families.contexts import Context, LiftingRule
 from propstore.families.coreference import CoreferenceMergeArgumentDoc
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
+from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.families.temporal import (
@@ -175,6 +176,15 @@ def count_claims(session: DerivedSession) -> int:
 
 
 # ── stances ──────────────────────────────────────────────────────────────────
+
+
+def select_justifications(session: DerivedSession) -> list[Justification]:
+    """Every authored inference licence, hydrated by its charter."""
+    model = session.schema.model("justification")
+    return [
+        Justification.__charter__.document_from_model(row, Justification)
+        for row in session.scalars(select(model))
+    ]
 
 
 def select_stances(session: DerivedSession) -> list[Stance]:

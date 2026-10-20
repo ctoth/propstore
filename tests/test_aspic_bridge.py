@@ -30,7 +30,7 @@ from propstore.aspic_bridge import (
     stances_to_contrariness,
 )
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.core.literal_keys import claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
 
@@ -39,21 +39,21 @@ def _claim(claim_id: str, **extra) -> ActiveClaim:  # noqa: ANN003 - typed field
     return ActiveClaim(claim_id=claim_id, concept_id="k", statement=claim_id, **extra)
 
 
-def _reported(claim_id: str) -> CanonicalJustification:
-    return CanonicalJustification(
+def _reported(claim_id: str) -> Justification:
+    return Justification(
         justification_id=f"reported:{claim_id}",
-        conclusion_claim_id=claim_id,
+        conclusion=claim_id,
         rule_kind="reported_claim",
     )
 
 
 def _support(
     source: str, target: str, *, strength: str = "defeasible"
-) -> CanonicalJustification:
-    return CanonicalJustification(
+) -> Justification:
+    return Justification(
         justification_id=f"supports:{source}->{target}",
-        conclusion_claim_id=target,
-        premise_claim_ids=(source,),
+        conclusion=target,
+        premises=(source,),
         rule_kind="supports",
         rule_strength=strength,
     )
@@ -118,8 +118,8 @@ def test_strict_rule_has_no_name() -> None:
 
 def test_empty_premise_non_reported_justification_is_rejected() -> None:
     literals = claims_to_literals([_claim("b")])
-    bad = CanonicalJustification(
-        justification_id="supports:->b", conclusion_claim_id="b", rule_kind="supports"
+    bad = Justification(
+        justification_id="supports:->b", conclusion="b", rule_kind="supports"
     )
     with pytest.raises(ValueError, match="empty-premise"):
         justifications_to_rules([bad], literals)
@@ -215,6 +215,12 @@ def test_necessary_claims_are_axioms_ordinary_are_premises() -> None:
 
 
 # --- T5 build_preference_config ----------------------------------------------
+
+
+def test_reported_premise_rejects_ambiguous_bare_claim_identity() -> None:
+    claims = [_claim("same", context_id="left"), _claim("same", context_id="right")]
+    with pytest.raises(ValueError, match="more than one active context"):
+        claims_to_kb(claims, [_reported("same")], claims_to_literals(claims))
 
 
 def test_rule_order_outside_defeasible_rules_is_rejected() -> None:

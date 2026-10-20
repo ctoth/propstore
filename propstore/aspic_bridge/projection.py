@@ -32,7 +32,7 @@ from argumentation.structured.aspic.aspic import (
 from argumentation.core.dung import ArgumentationFramework
 
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.environment import StanceStore
+from propstore.core.environment import WorldStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
 from propstore.core.literal_keys import IstLiteralKey
@@ -330,7 +330,7 @@ def csaf_to_projection(
 
 
 def build_aspic_projection(
-    store: StanceStore,
+    store: WorldStore,
     active_claims: Sequence[ActiveClaim],
     *,
     bundle: GroundedRulesBundle,
@@ -354,7 +354,6 @@ def build_aspic_projection(
     justifications = extract_justifications(
         store,
         active_by_id,
-        stance_rows,
         active_graph=active_graph,
     )
     csaf = build_bridge_csaf(

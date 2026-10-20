@@ -7,8 +7,8 @@ reference moved ``Environment`` here to fix an inverted dependency).
 An :class:`Environment` is the assumption/binding/context frame a world query
 renders under. The store protocols are the read surface the world layer consumes;
 each is typed over the ONE canonical domain object the rewrite already owns —
-``Claim`` / ``Concept`` / ``Stance`` charters, the ``ConflictRecord`` /
-``CanonicalJustification`` value types, the ``RelationEdge`` / ``ParameterizationEdge``
+``Claim`` / ``Concept`` / ``Stance`` / ``Justification`` charters, the
+``ConflictRecord`` values, the ``RelationEdge`` / ``ParameterizationEdge``
 graph carriers, and condition-ir's ``ConditionSolver`` — never a ``*RowInput``
 second spelling. Because ``from __future__ import annotations`` makes every
 annotation lazy, the domain-type imports are ``TYPE_CHECKING``-only, so importing
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         ParameterizationEdge,
         RelationEdge,
     )
-    from propstore.core.justifications import CanonicalJustification
+    from propstore.families.justifications import Justification
     from propstore.core.store_results import (
         ClaimSimilarityHit,
         ConceptSearchHit,
@@ -115,10 +115,8 @@ class ClaimStanceInventoryStore(Protocol):
 
 
 @runtime_checkable
-class AuthoredJustificationStore(Protocol):
-    def justifications_for_claim_scope(
-        self, claim_ids: set[str]
-    ) -> Sequence[CanonicalJustification]: ...
+class JustificationCatalogStore(Protocol):
+    def all_justifications(self) -> Sequence[Justification]: ...
 
 
 @runtime_checkable
@@ -178,6 +176,7 @@ class WorldStore(Protocol):
     def all_parameterizations(self) -> Sequence[ParameterizationEdge]: ...
     def all_relationships(self) -> Sequence[RelationEdge]: ...
     def all_claim_stances(self) -> Sequence[Stance]: ...
+    def all_justifications(self) -> Sequence[Justification]: ...
     def all_micropublications(self) -> Sequence[Micropublication]: ...
     def concept_ids_for_group(self, group_id: int) -> set[str]: ...
     def search(self, query: str) -> list[ConceptSearchHit]: ...

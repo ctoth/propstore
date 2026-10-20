@@ -45,7 +45,6 @@ from typing import TYPE_CHECKING
 from assignment_selection import Assignment, SourceAssignment
 
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.environment import AuthoredJustificationStore
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
 from propstore.grounding.bundle import GroundingStatus
@@ -404,16 +403,10 @@ def _resolve_structured_argumentation(
     if bundle.status is not GroundingStatus.COMPLETE:
         return None, bundle.budget_reason
     if active_graph is None:
-        # WorldStore always exposes ``stances_between``; only the authored-
-        # justification surface is optional.
+        # Both relation and authored-licence inventories are required world reads.
         stance_rows = tuple(world.stances_between(active_ids))
-        has_authored_justification_surface = isinstance(
-            world, AuthoredJustificationStore
-        )
-        authored_justifications = (
-            tuple(world.justifications_for_claim_scope(active_ids))
-            if has_authored_justification_surface
-            else ()
+        authored_justifications = tuple(
+            item for item in world.all_justifications() if item.conclusion in active_ids
         )
         has_grounded_rule_input = bool(
             bundle.source_rules or bundle.source_facts or bundle.arguments

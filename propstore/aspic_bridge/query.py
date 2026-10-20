@@ -35,7 +35,7 @@ from propstore.aspic_bridge.translate import (
     preference_sensitive_stance_pairs,
 )
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.core.literal_keys import IstLiteralKey, LiteralKey, claim_key, ground_key
 from propstore.grounding.bundle import GroundedRulesBundle
 
@@ -79,7 +79,7 @@ def _query_goal_key(
 def query_claim(
     claim_id: str | GroundAtom | LiteralKey,
     active_claims: Sequence[ActiveClaim],
-    justifications: list[CanonicalJustification],
+    justifications: Sequence[Justification],
     stances: Sequence[StanceInput],
     *,
     bundle: GroundedRulesBundle,
