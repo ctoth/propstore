@@ -6,6 +6,7 @@ import msgspec
 import pytest
 import yaml
 from click.testing import CliRunner
+from quire import git_store
 from quire.git_store import AmbiguousMergeBaseError
 from quire.references import ForeignKeyValidationError
 
@@ -220,3 +221,43 @@ def test_criss_cross_opposite_concept_resolutions_refuse_before_writes(tmp_path,
     assert set(git.raw_repo.object_store) == objects_before
     assert repo.families.concept.require("x", commit=left).canonical_name == "A"
     assert repo.families.concept.require("x", commit=right).canonical_name == "B"
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("entrypoint", ["owner", "cli"])
+@pytest.mark.parametrize("timestamps", [(100, 100, 100, 100), (100, 100, 100, 101), (300, 100, 200, 400), (100, 200, 300, 400)])
+def test_repeated_public_merges_use_only_the_best_base(tmp_path, monkeypatch, reverse, entrypoint, timestamps):
+    clock = 2_000_000_000 + timestamps[0]
+    monkeypatch.setattr(git_store.time, "time", lambda: clock)
+    repo = init_repo(tmp_path / "knowledge")
+    git = repo.require_git()
+    for attempt in range(128):
+        clock = 2_000_000_000 + timestamps[0]
+        p2 = author_concept(repo, "x", name=f"P2 {attempt}")
+        clock = 2_000_000_000 + timestamps[1]
+        p1 = author_concept(repo, "x", name=f"P1 {attempt}")
+        clock = 2_000_000_000 + timestamps[2]
+        q = author_concept(repo, "x", name=f"Q {attempt}")
+        if p2 < q < p1:
+            break
+    else:
+        pytest.fail("fixed-time family commits did not produce the regression SHA ordering")
+    git.create_branch("feature", source_commit=p2)
+    clock = 2_000_000_000 + timestamps[3]
+    left = create_merge_commit(repo, "master", "feature", target_branch="left", message="L")
+    right = create_merge_commit(repo, "master", "feature", target_branch="right", message="R")
+    assert list(git.iter_commit_parent_shas(left)) == [q, p2]
+    assert list(git.iter_commit_parent_shas(right)) == [q, p2]
+    assert tuple(git.iter_merge_bases(left, right)) == (q,)
+    sources = ("right", "left") if reverse else ("left", "right")
+    if entrypoint == "owner":
+        merged = create_merge_commit(repo, *sources, target_branch="result")
+    else:
+        result = CliRunner().invoke(cli, ["-C", str(repo.root), "merge", "commit", *sources, "--target-branch", "result"])
+        assert result.exit_code == 0, result.output
+        merged = yaml.safe_load(result.output)["commit_sha"]
+    assert repo.families.concept.require("x", commit=merged).canonical_name == f"Q {attempt}"
+    assert (git.branch_sha("master"), git.branch_sha("feature")) == (q, p2)
+    assert (git.branch_sha("left"), git.branch_sha("right")) == (left, right)
+    assert list(git.iter_commit_parent_shas(merged)) == ([right, left] if reverse else [left, right])
+    assert verify_claim_tree(repo, commit=merged).ok
