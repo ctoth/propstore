@@ -204,7 +204,7 @@ wheels = [
 [[package]]
 name = "bridgman"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/bridgman?rev=5eb6118bb2e346122aae6f7e3e9cd8581ec6c781#5eb6118bb2e346122aae6f7e3e9cd8581ec6c781" }
+source = { git = "https://github.com/ctoth/bridgman?rev=4caa723209444b7bcc2c0359a2fd2bd7188da31e#4caa723209444b7bcc2c0359a2fd2bd7188da31e" }
 
 [[package]]
 name = "calibration"
@@ -1006,7 +1006,7 @@ wheels = [
 [[package]]
 name = "human-to-sympy"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/human-to-sympy?rev=43942105dad1ff6d236d280239d0c7da8aaeea3b#43942105dad1ff6d236d280239d0c7da8aaeea3b" }
+source = { git = "https://github.com/ctoth/human-to-sympy?rev=f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141#f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141" }
 dependencies = [
     { name = "sympy" },
 ]
@@ -1820,7 +1820,7 @@ dev = [
 requires-dist = [
     { name = "assignment-selection", git = "https://github.com/propstore/assignment-selection.git?rev=5816c20b8247898fa96e02e6e42e66b69987dfc7" },
     { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=cb4ff57565ba83ad779fd3191c47706a2a06e8ef" },
-    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=5eb6118bb2e346122aae6f7e3e9cd8581ec6c781" },
+    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=4caa723209444b7bcc2c0359a2fd2bd7188da31e" },
     { name = "calibration", git = "https://github.com/ctoth/calibration?rev=aa8e0625d41108cec245eead06cfbba847cc0458" },
     { name = "causal-models", git = "https://github.com/ctoth/causal-models?rev=21d6b1e341c42ae4db57309bab48f1994a9d734f" },
     { name = "cel-parser", git = "https://github.com/ctoth/cel-parser.git?rev=96fc4808ef78257ea03549e6298629a9583865c8" },
@@ -1834,7 +1834,7 @@ requires-dist = [
     { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=c31e5b8bd3d5005b68134fcaaf7b0fb4608d5ed8" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=df4580e1f4c3671159e057ade6d1411512196808" },
-    { name = "human-to-sympy", git = "https://github.com/ctoth/human-to-sympy?rev=43942105dad1ff6d236d280239d0c7da8aaeea3b" },
+    { name = "human-to-sympy", git = "https://github.com/ctoth/human-to-sympy?rev=f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "litellm", marker = "extra == 'embeddings'", specifier = ">=1.0" },

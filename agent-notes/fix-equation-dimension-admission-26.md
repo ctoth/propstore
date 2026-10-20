@@ -95,3 +95,16 @@ boundary through Bridgman, retaining authored claims and provenance.
 - Consumer package typing: 15 errors, comprising the prior 14 unchanged merge
   file errors and one newly reached unannotated Bridgman verify_expr input.
   Do not hide it with a consumer protocol, adapter, stub, or suppression.
+- Continued under parent direction: integrated actual #332 merge
+  3d15f12926a8f523ef425a6b11c6e75e8bddefd8 without rewriting branch history.
+  Dependency acceptance file now has 37 cases. Old exact pins yielded 12 failed,
+  25 passed (25.88s), log dimension-owner-boundaries-red-20261020-171648.log.
+- Bridgman maintenance draft #14 corrects dimensional exponents, proven
+  polymorphic zero, exact rational exponent trees and verify_expr annotation.
+  Base remains the exact old Python 0.2 pin; no Rust rewrite adopted.
+- Parser #2 rejects authored conditional/short-circuit/Piecewise and
+  list/tuple/attribute selection before SymPy can erase operands. Unsupported
+  syntax is quarantined as expression.invalid, including missing-symbol erasure.
+- Exact new pins: owner 4caa723209444b7bcc2c0359a2fd2bd7188da31e and parser
+  f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141. Both owner CI runs are green;
+  independent review and consumer final acceptance remain in progress.
