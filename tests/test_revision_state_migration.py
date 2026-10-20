@@ -14,7 +14,12 @@ import pytest
 from msgspec.structs import replace
 from quire.documents import convert_document_value, to_document_builtins
 
-from propstore.support_revision.history import EpistemicSnapshot, TransitionJournal
+from propstore.support_revision.history import (
+    EpistemicSnapshot,
+    TransitionJournal,
+    apply_epistemic_diff,
+    diff_epistemic_snapshots,
+)
 from propstore.support_revision.iterated import iterated_revise
 from propstore.support_revision.state import AssumptionAtom, RevisionContinuationUnavailable
 from propstore.worldline.definition import WorldlineDefinition
@@ -116,3 +121,36 @@ def test_legacy_hash_validation_is_not_bypassed() -> None:
     data["final_snapshot"]["state"]["accepted_atom_ids"] = []
     with pytest.raises(ValueError, match="content_hash"):
         EpistemicSnapshot.from_mapping(data["final_snapshot"])
+
+
+@pytest.mark.parametrize("name", ("initial_snapshot", "final_snapshot"))
+def test_legacy_identity_diff_preserves_version_hash_and_missing_evidence(name: str) -> None:
+    source = EpistemicSnapshot.from_mapping(_fixture()[name])
+    diff = diff_epistemic_snapshots(source, source)
+    assert diff.deltas == ()
+    applied = apply_epistemic_diff(source, diff)
+    assert applied.to_dict() == source.to_dict()
+    assert applied.content_hash == source.content_hash
+    assert applied.schema_version == "propstore.epistemic_snapshot.v2"
+    assert applied.state.inventory is None and applied.state.initial_atom_ids is None
+
+
+@pytest.mark.parametrize("name", ("initial_snapshot", "final_snapshot"))
+def test_legacy_nonempty_compatible_diff_preserves_version_and_target_hash(name: str) -> None:
+    source = EpistemicSnapshot.from_mapping(_fixture()[name])
+    # Ranking is an existing semantic-diff surface. Change the atom order in a
+    # typed v2 target without supplying any lost continuation evidence.
+    atom_ids = tuple(reversed(source.state.ranked_atom_ids))
+    target = replace(source, content_hash="", state=replace(
+        source.state,
+        ranked_atom_ids=atom_ids,
+        ranking={atom_id: index for index, atom_id in enumerate(atom_ids)},
+    ))
+    diff = diff_epistemic_snapshots(source, target)
+    assert diff.deltas and all(delta.surface == "ranking" for delta in diff.deltas)
+    assert target.content_hash != source.content_hash
+    applied = apply_epistemic_diff(source, diff)
+    assert applied.to_dict() == target.to_dict()
+    assert applied.content_hash == diff.target_hash
+    assert applied.schema_version == source.schema_version
+    assert applied.state.inventory is None and applied.state.initial_atom_ids is None

@@ -678,7 +678,7 @@ def apply_epistemic_diff(
             raise ValueError(f"unsupported semantic diff surface: {delta.surface}")
     snapshot = EpistemicSnapshot.from_mapping(
         {
-            "schema_version": EPistemicSnapshotVersion,
+            "schema_version": source.schema_version,
             "state": state_payload,
         }
     )
