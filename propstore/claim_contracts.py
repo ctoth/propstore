@@ -410,7 +410,17 @@ def _check_equation_dimensions(
         if dims is not None:
             dim_map[symbol.name] = dims
 
-    if not isinstance(parsed, Equality):
+    if isinstance(parsed, Equality):
+        if claim.output_concept is not None and not any(
+            variable.concept == claim.output_concept
+            and variable.symbol in dim_map
+            for variable in claim.variables
+        ):
+            problem(
+                "claim.dimension.output.binding.unavailable",
+                f"dimensional evidence unavailable: output concept {claim.output_concept!r} has no used symbol binding in the equation",
+            )
+    else:
         output_dims = dimensions(claim.output_concept, "output")
         if output_dims is not None:
             output_name = "__claim_output__"

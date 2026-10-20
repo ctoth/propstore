@@ -48,3 +48,16 @@ boundary through Bridgman, retaining authored claims and provenance.
   Log equation-dimension-focused-20261020-163019.log.
 - Publish focused draft; use real hosted full CI, then independent review.
   No merge authorized until parent integrates review. Issue #26 stays open.
+- Initial draft #331 at 0038f8e7 passed hosted full CI run 39508825076.
+- Self-check against world/queries.py derive_parameterizations exposed another
+  real input: full m=m with output_concept=force and a mass-bound m passed.
+  Red log dimension-output-red-20261020-163454.log. The output must have a used
+  concept/symbol binding for a full equality. Do not compare its form with the
+  RHS alone: human_to_sympy.numeric.evaluate_numeric solves implicit equalities
+  for the output symbol, so F/m=a is valid even though its RHS is acceleration.
+  Preserve one Bridgman check of the authored full relation. The missing output
+  binding is unavailable evidence, not a proved dimensional mismatch.
+- The implicit equation preservation and output-binding correction passed all
+  18 then-current focused cases (16.82s), log
+  dimension-output-binding-green-20261020-163824.log. Added explicit cases for
+  full equalities without output annotations and bare RHS without output evidence.

@@ -43,7 +43,7 @@ def _physics_repo(tmp_path: Path) -> Repository:
     return repo
 
 
-def _equation(claim_id: str, expression: str, output: str = "force") -> Claim:
+def _equation(claim_id: str, expression: str, output: str | None = "force") -> Claim:
     return Claim(
         claim_id=claim_id, claim_type=ClaimType.EQUATION,
         expression=expression, output_concept=output,
@@ -87,8 +87,11 @@ def test_dimensionally_inconsistent_equation_is_quarantined(tmp_path: Path) -> N
     ("expression", "output", "code"),
     [
         ("F = m * a", "force", None),
+        ("F = m * a", None, None),
         ("m * a", "force", None),
+        ("m * a", None, "claim.dimension.concept.missing"),
         ("F = F", "force", None),
+        ("F / m = a", "force", None),
         ("F = m + a", "force", "claim.dimension.algebra.invalid"),
         ("m = m + t - t", "mass", "claim.dimension.algebra.invalid"),
         ("r = sin(t)", "ratio", "claim.dimension.algebra.invalid"),
@@ -97,7 +100,7 @@ def test_dimensionally_inconsistent_equation_is_quarantined(tmp_path: Path) -> N
     ],
 )
 def test_authored_equation_operations_are_checked(
-    tmp_path: Path, expression: str, output: str, code: str | None,
+    tmp_path: Path, expression: str, output: str | None, code: str | None,
 ) -> None:
     repo = _physics_repo(tmp_path)
     claim = _equation("formula", expression, output)
@@ -170,6 +173,21 @@ def test_unchecked_forms_cannot_fabricate_a_dimensional_verdict() -> None:
     assert isinstance(result.output, ConceptCheckedRegistry)
     with pytest.raises(TypeError, match="FormCheckedRegistry"):
         build_compilation_context(result.output, form_registry={})
+
+
+def test_full_equation_must_match_the_concept_it_computes(tmp_path: Path) -> None:
+    repo = _physics_repo(tmp_path)
+    claim = Claim(
+        claim_id="wrong-output", claim_type=ClaimType.EQUATION,
+        expression="m = m", output_concept="force", concepts=("force", "mass"),
+        variables=(ClaimVariable(concept="mass", symbol="m", role="dependent"),),
+    )
+    repo.families.claim.save(claim.claim_id, claim, message="Author parameterization")
+    checked = compile_repository_checked_bundle(repo, commit=None)
+    assert checked is not None
+    assert [problem.code for problem in checked.claim_bundle.claims[0].diagnostics] == [
+        "claim.dimension.output.binding.unavailable"
+    ]
 
 
 def test_context_repository_loader_rejects_invalid_forms(tmp_path: Path) -> None:
