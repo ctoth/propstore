@@ -82,9 +82,24 @@ citation drift + commit.
   mixes Q's batch with ours -> stage only our hunks via a patch applied with
   `git apply --cached`. Branch first (on master): research/missing-papers-2026-10-19.
 
+- Allen read (434-line notes). Source defect verified from page images: PDF
+  pages 30-45 are figures from an unrelated connectionist paper; Allen ends at
+  PDF p.29 (References, printed p.27).
+- Reconcile done on all 10; it edited 25 committed papers' notes.md plus
+  Zimmermann_2006 (Q's untracked batch — left out of commit).
+- Committed `de4de121` on branch research/missing-papers-2026-10-19 (main
+  checkout now on that branch): 10 dirs × 5 text files (PDF/pngs gitignored),
+  25 reconcile notes.md, our 30 index.md lines (staged via hash-object on
+  HEAD + lines 788-817; Q's lines 698-787 and the l.384 hunk stay
+  uncommitted), docs/event-semantics.md, this note. keymap.tsv and
+  _reader_done.tsv untracked, left out. Deleted stray agent output
+  papers/out.txt (a 34 KB papers/ listing written 16:51 this session).
+- Not pushed.
+
 ## Next step
 
-After reconcile agent reports: verify, then commit per plan above.
+Q: push + PR, or merge to master? `.py` docstring drift waits for "make it
+so".
 
 ## Old next step (superseded)
 
