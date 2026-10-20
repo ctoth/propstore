@@ -114,6 +114,8 @@ def test_dimensionally_inconsistent_equation_is_quarantined(tmp_path: Path) -> N
         ("F = (F, m+t)[0]", "force", "claim.dimension.expression.invalid"),
         ("F = [F, unknown][0]", "force", "claim.dimension.expression.invalid"),
         ("m = (m+t).args[0]", "mass", "claim.dimension.expression.invalid"),
+        ("F = (lambda x: 0)(m+t)", "force", "claim.dimension.expression.invalid"),
+        ("F = (lambda x: 0)(unknown)", "force", "claim.dimension.expression.invalid"),
     ],
 )
 def test_authored_equation_operations_are_checked(

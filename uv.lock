@@ -1006,7 +1006,7 @@ wheels = [
 [[package]]
 name = "human-to-sympy"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/human-to-sympy?rev=f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141#f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141" }
+source = { git = "https://github.com/ctoth/human-to-sympy?rev=2fc8674524b473d36761ec36836b711dc7189624#2fc8674524b473d36761ec36836b711dc7189624" }
 dependencies = [
     { name = "sympy" },
 ]
@@ -1834,7 +1834,7 @@ requires-dist = [
     { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=c31e5b8bd3d5005b68134fcaaf7b0fb4608d5ed8" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=df4580e1f4c3671159e057ade6d1411512196808" },
-    { name = "human-to-sympy", git = "https://github.com/ctoth/human-to-sympy?rev=f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141" },
+    { name = "human-to-sympy", git = "https://github.com/ctoth/human-to-sympy?rev=2fc8674524b473d36761ec36836b711dc7189624" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "litellm", marker = "extra == 'embeddings'", specifier = ">=1.0" },

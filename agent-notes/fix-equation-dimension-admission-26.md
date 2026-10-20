@@ -108,3 +108,18 @@ boundary through Bridgman, retaining authored claims and provenance.
 - Exact new pins: owner 4caa723209444b7bcc2c0359a2fd2bd7188da31e and parser
   f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141. Both owner CI runs are green;
   independent review and consumer final acceptance remain in progress.
+- At 34caccec, all 37 focused cases passed; hosted CI39514238771 passed
+  2175 tests/4 skips against the actual #332 merge. Package typing is now clean
+  (zero errors), resolving both the 14 baseline errors and owner boundary error.
+- Additional real authored case F = (lambda x: 0)(m+t) still erased the invalid
+  argument and was admitted; failing regression is retained in log
+  dimension-lambda-erasure-red-20261020-172729.log. Parser now rejects Lambda
+  before evaluation at 2fc8674524b473d36761ec36836b711dc7189624. Add both invalid
+  argument and unknown argument cases. Exact owner 4caa723 remains unchanged;
+  refresh the parser pin and rerun the expanded 39-case consumer acceptance.
+- Final expanded acceptance: 39 passed (26.98s), including both stored Lambda
+  claims and authored/provenance retention. Log
+  dimension-lambda-erasure-green-20261020-173044.log. Parser final hosted
+  CI39515289950 passed 50 tests with typing zero. Owner review gate passed at
+  exact 4caa723; parent retains final merge decision. Publish this final pin,
+  obtain exact-head consumer CI/review, and do not merge or mark ready.

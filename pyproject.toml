@@ -15,7 +15,7 @@ dependencies = [
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@cb4ff57565ba83ad779fd3191c47706a2a06e8ef",
     "eq-equiv @ git+https://github.com/ctoth/eq-equiv@9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6",
-    "human-to-sympy @ git+https://github.com/ctoth/human-to-sympy@f05af3d49b0ed1bfa592bba4bd4f879e9c4e1141",
+    "human-to-sympy @ git+https://github.com/ctoth/human-to-sympy@2fc8674524b473d36761ec36836b711dc7189624",
     "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@978b10edb8eaf106f64cd760cfeedce1c3cbb237",
     "assignment-selection @ git+https://github.com/propstore/assignment-selection.git@5816c20b8247898fa96e02e6e42e66b69987dfc7",
     "doxa @ git+https://github.com/propstore/doxa.git@ef12c894a6760d9dd86ebcd2c45da679c8928059",
