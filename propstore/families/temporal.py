@@ -35,6 +35,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
+import msgspec
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
 from quire.family_store import DocumentFamilyStore
@@ -48,6 +49,24 @@ from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 from propstore.provenance import Provenance, ProvenanceStatus
 
 _TEMPORAL_CONTRACT_VERSION = "2026.07.21"
+
+
+def _transport_anchor_identity(
+    document: DescriptionTemporalAnchorDoc,
+) -> DescriptionTemporalAnchorDoc:
+    from propstore.families.identity.temporal import temporal_anchor_artifact_id
+
+    return msgspec.structs.replace(
+        document, anchor_id=temporal_anchor_artifact_id(document)
+    )
+
+
+def _transport_edge_identity(document: HappensBeforeEdgeDoc) -> HappensBeforeEdgeDoc:
+    from propstore.families.identity.temporal import happens_before_artifact_id
+
+    return msgspec.structs.replace(
+        document, edge_id=happens_before_artifact_id(document)
+    )
 
 
 @charter(
@@ -73,9 +92,10 @@ class TemporalFrameDoc(CharterDoc):
 @charter(
     key="description_temporal_anchor",
     name="description_temporal_anchor",
-    contract_version=_TEMPORAL_CONTRACT_VERSION,
+    contract_version="2026.10.20",
     placement="description_temporal_anchor",
     identity_field="anchor_id",
+    transport_identity=_transport_anchor_identity,
 )
 class DescriptionTemporalAnchorDoc(CharterDoc):
     """The validity interval of a description claim within one declared frame.
@@ -135,9 +155,10 @@ class DescriptionTemporalAnchorDoc(CharterDoc):
 @charter(
     key="happens_before_edge",
     name="happens_before_edge",
-    contract_version=_TEMPORAL_CONTRACT_VERSION,
+    contract_version="2026.10.20",
     placement="happens_before_edge",
     identity_field="edge_id",
+    transport_identity=_transport_edge_identity,
 )
 class HappensBeforeEdgeDoc(CharterDoc):
     """Provenance-bearing evidence that one description strictly precedes another.
