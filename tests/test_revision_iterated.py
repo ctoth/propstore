@@ -6,6 +6,8 @@ import ast
 from msgspec.structs import replace
 from pathlib import Path
 
+import pytest
+
 from msgspec.structs import replace as replace_struct
 
 from propstore.core.environment import AssumptionRef
@@ -106,7 +108,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
     )
     payload = epistemic_state_payload(next_state)
 
-    assert payload["schema_version"] == "propstore.epistemic_snapshot.v2"
+    assert payload["schema_version"] == "propstore.epistemic_snapshot.v3"
     assert payload["state"]["accepted_atom_ids"] == list(result.accepted_atom_ids)
     assert payload["state"]["history"][0]["operator"] == "contract"
     assert payload["state"]["history"][0]["incision_set"] == list(result.incision_set)
@@ -342,3 +344,270 @@ def test_iterated_revise_refuses_merge_point_states() -> None:
             conflicts={new_atom.atom_id: (ids["legacy"],)},
             operator="restrained",
         )
+
+
+@pytest.mark.parametrize("operator", ("lexicographic", "restrained"))
+def test_iterated_revision_can_reaccept_an_earlier_rejected_atom(operator: str) -> None:
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+
+    a, b, c, d = tuple(make_assertion_atom(name) for name in ("a", "b", "c", "d"))
+    base = BeliefBase(scope=RevisionScope(bindings={}), atoms=(a, b))
+    state = make_epistemic_state(base, compute_entrenchment(None, base))
+    _, first = iterated_revise(
+        state, c, conflicts={c.atom_id: (a.atom_id,)},
+        operator=operator, max_candidates=8,
+    )
+    _, second = iterated_revise(
+        first, d, conflicts={d.atom_id: (b.atom_id,)},
+        operator=operator, max_candidates=8,
+    )
+
+    assert set(first.accepted_atom_ids) == {b.atom_id, c.atom_id}
+    assert set(second.accepted_atom_ids) == {a.atom_id, c.atom_id, d.atom_id}
+    assert next(atom for atom in second.base.atoms if atom.atom_id == a.atom_id) == a
+
+
+@pytest.mark.parametrize("operator", ("lexicographic", "restrained"))
+def test_snapshot_continuation_restores_original_support_records(operator: str) -> None:
+    import json
+
+    from propstore.support_revision.history import EpistemicSnapshot
+    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+
+    base, entrenchment, _, ids = _history_sensitive_base()
+    new, incoming = make_assertion_atom("new"), make_assertion_atom("next")
+    state = make_epistemic_state(base, entrenchment)
+    first_result, first = iterated_revise(
+        state, new, conflicts={new.atom_id: (ids["legacy"],)},
+        operator=operator, max_candidates=8,
+    )
+    assert first_result.incision_set == ("assumption:right_path",)
+    assert ids["right_dependent"] not in first.accepted_atom_ids
+    snapshot = EpistemicSnapshot.from_state(first)
+    restored = EpistemicSnapshot.from_mapping(
+        json.loads(snapshot.to_canonical_json())
+    ).state
+    result, second = iterated_revise(
+        restored, incoming,
+        conflicts={incoming.atom_id: (ids["left_dependent"],)},
+        operator=operator, max_candidates=8,
+    )
+
+    assert set(second.accepted_atom_ids) == {
+        "assumption:right_path", ids["right_dependent"], new.atom_id, incoming.atom_id,
+    }
+    assert result.incision_set == ("assumption:left_path",)
+    assert second.base.support_sets[ids["right_dependent"]] == (
+        ("assumption:right_path",),
+    )
+    assert next(
+        atom for atom in second.base.atoms if atom.atom_id == ids["right_dependent"]
+    ) == next(atom for atom in base.atoms if atom.atom_id == ids["right_dependent"])
+
+
+@pytest.mark.parametrize("first_operator", ("lexicographic", "restrained"))
+@pytest.mark.parametrize("second_operator", ("lexicographic", "restrained"))
+@pytest.mark.parametrize("future_conflict", (False, True))
+def test_continuation_preserves_every_world_rank(
+    first_operator: str, second_operator: str, future_conflict: bool,
+) -> None:
+    import json
+
+    from belief_set import (
+        AlphabetBudgetExceeded, Atom, RevisionOutcome, conjunction,
+        lexicographic_revise, negate,
+        restrained_revise,
+    )
+    from propstore.support_revision.belief_set_adapter import (
+        decide_iterated_revise, project_formal_bundle,
+    )
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.history import EpistemicSnapshot
+    from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
+
+    a, b, c, d = tuple(make_assertion_atom(name) for name in ("a", "b", "c", "d"))
+    base = BeliefBase(scope=RevisionScope(bindings={}), atoms=(a, b))
+    state = make_epistemic_state(base, compute_entrenchment(None, base))
+    operators = {"lexicographic": lexicographic_revise, "restrained": restrained_revise}
+    seed = project_formal_bundle(base, extra_atoms=(c,)).epistemic_state
+    assert seed is not None
+    expected_first = operators[first_operator](seed, conjunction(
+        Atom(b.atom_id), Atom(c.atom_id), negate(Atom(a.atom_id)),
+    ))
+    expected_second = operators[second_operator](expected_first.state, conjunction(
+        Atom(c.atom_id), Atom(d.atom_id), negate(Atom(b.atom_id)),
+    ))
+    _, first = iterated_revise(
+        state, c,
+        conflicts={c.atom_id: (a.atom_id, d.atom_id) if future_conflict else (a.atom_id,)},
+        operator=first_operator, max_candidates=8,
+    )
+    restored = EpistemicSnapshot.from_mapping(json.loads(
+        EpistemicSnapshot.from_state(first).to_canonical_json()
+    )).state
+    decision = decide_iterated_revise(
+        restored, d, conflicts=(b.atom_id,), operator=second_operator,
+        max_alphabet_size=4,
+    )
+
+    assert isinstance(decision.outcome, RevisionOutcome)
+    assert decision.outcome.state.alphabet == expected_second.state.alphabet
+    assert decision.outcome.state.ranks == expected_second.state.ranks
+    assert decision.report.ranking_provenance is not None
+    assert decision.report.ranking_provenance.method == "hamming_seed_with_iterated_history"
+
+    with pytest.raises(AlphabetBudgetExceeded):
+        decide_iterated_revise(
+            restored, d, conflicts=(b.atom_id,), operator=second_operator,
+            max_alphabet_size=3,
+        )
+
+    # An ID rejected from the active base still resolves to its original record.
+    result, _ = iterated_revise(
+        restored, a.atom_id, operator=second_operator, max_candidates=8,
+    )
+    assert a.atom_id in result.accepted_atom_ids
+
+
+@pytest.mark.parametrize("operator", ("lexicographic", "restrained"))
+def test_transition_journal_roundtrip_keeps_formal_continuation(operator: str) -> None:
+    from quire.documents import convert_document_value, to_document_builtins
+
+    from propstore.support_revision.dispatch import dispatch
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.history import (
+        JournalOperator, TransitionJournal, TransitionJournalEntry, TransitionOperation,
+    )
+    from propstore.support_revision.iterated import make_epistemic_state
+    from propstore.support_revision.operator_inputs import IteratedReviseInput
+
+    a, b, c, d = tuple(make_assertion_atom(name) for name in ("a", "b", "c", "d"))
+    base = BeliefBase(scope=RevisionScope(bindings={}), atoms=(a, b))
+    state = make_epistemic_state(base, compute_entrenchment(None, base))
+    policy = {
+        "revision_policy_version": "revision.v1",
+        "ranking_policy_version": "ranking.v1",
+        "entrenchment_policy_version": "entrenchment.v1",
+    }
+    entries = []
+    for incoming, target in ((c, a), (d, b)):
+        operator_input = IteratedReviseInput(
+            formula=incoming, targets=(target.atom_id,),
+            revision_operator=operator, max_candidates=8,
+        )
+        next_state = dispatch(
+            JournalOperator.ITERATED_REVISE,
+            state_in=state.to_canonical_dict(), operator_input=operator_input,
+            policy=policy,
+        )
+        entries.append(TransitionJournalEntry.from_states(
+            state_in=state,
+            operation=TransitionOperation(
+                name="iterated_revise", input_atom_id=incoming.atom_id,
+                target_atom_ids=(target.atom_id,),
+            ),
+            policy_id="revision.v1", operator=JournalOperator.ITERATED_REVISE,
+            operator_input=operator_input, version_policy_snapshot=policy,
+            state_out=next_state, explanation={},
+        ))
+        state = next_state
+    journal = convert_document_value(
+        to_document_builtins(TransitionJournal(entries=tuple(entries))),
+        TransitionJournal, source="continuation journal roundtrip",
+    )
+
+    assert set(journal.entries[-1].state_out.state.accepted_atom_ids) == {
+        a.atom_id, c.atom_id, d.atom_id,
+    }
+    assert journal.check_chain_integrity().ok
+    assert journal.replay().ok
+
+
+@pytest.mark.parametrize("contract_first", (False, True))
+def test_explicit_same_id_record_survives_expansion_and_iteration(contract_first: bool) -> None:
+    from propstore.core.labels import EnvironmentKey, Label
+    from propstore.support_revision.dispatch import dispatch
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.history import EpistemicSnapshot, JournalOperator
+    from propstore.support_revision.iterated import make_epistemic_state
+    from propstore.support_revision.operator_inputs import ContractInput, ExpandInput, IteratedReviseInput
+
+    original = make_assertion_atom("same", source_paper="original")
+    updated = make_assertion_atom(
+        "same", source_paper="updated", label=Label((EnvironmentKey(()),))
+    )
+    base = BeliefBase(scope=RevisionScope(bindings={}), atoms=(original,))
+    initial = make_epistemic_state(base, compute_entrenchment(None, base))
+    historical = EpistemicSnapshot.from_state(initial)
+    state = initial
+    policy = {name: "v1" for name in (
+        "revision_policy_version", "ranking_policy_version", "entrenchment_policy_version",
+    )}
+    if contract_first:
+        state = dispatch(
+            JournalOperator.CONTRACT, state_in=state.to_canonical_dict(),
+            operator_input=ContractInput(targets=(original.atom_id,), max_candidates=8), policy=policy,
+        )
+    expanded = dispatch(
+        JournalOperator.EXPAND, state_in=state.to_canonical_dict(),
+        operator_input=ExpandInput(formula=updated, max_candidates=8), policy=policy,
+    )
+    final = dispatch(
+        JournalOperator.ITERATED_REVISE, state_in=expanded.to_canonical_dict(),
+        operator_input=IteratedReviseInput(
+            formula=make_assertion_atom("b"), revision_operator="lexicographic", max_candidates=8,
+        ), policy=policy,
+    )
+    for state in (expanded, final):
+        current = next(atom for atom in state.base.atoms if atom.atom_id == original.atom_id)
+        assert current == updated
+        assert state.inventory is not None
+        assert next(atom for atom in state.inventory.atoms if atom.atom_id == original.atom_id) == updated
+    assert historical.state.base.atoms == (original,)
+    assert initial.base.atoms == (original,)
+
+
+def test_expansion_without_old_support_does_not_restore_obsolete_proof() -> None:
+    from propstore.support_revision.dispatch import dispatch
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.history import JournalOperator
+    from propstore.support_revision.iterated import make_epistemic_state
+    from propstore.support_revision.operator_inputs import ContractInput, ExpandInput, IteratedReviseInput
+
+    p = AssumptionAtom(
+        "assumption:p", AssumptionRef(assumption_id="p", kind="test", source="original", cel="true")
+    )
+    a = make_assertion_atom("supported")
+    base = BeliefBase(
+        scope=RevisionScope(bindings={}), atoms=(p, a),
+        support_sets={a.atom_id: ((p.atom_id,),)}, essential_support={a.atom_id: (p.atom_id,)},
+    )
+    initial = make_epistemic_state(base, compute_entrenchment(None, base))
+    policy = {name: "v1" for name in (
+        "revision_policy_version", "ranking_policy_version", "entrenchment_policy_version",
+    )}
+    contracted = dispatch(
+        JournalOperator.CONTRACT, state_in=initial.to_canonical_dict(),
+        operator_input=ContractInput(targets=(a.atom_id,), max_candidates=8), policy=policy,
+    )
+    assert contracted.accepted_atom_ids == ()
+    expanded = dispatch(
+        JournalOperator.EXPAND, state_in=contracted.to_canonical_dict(),
+        operator_input=ExpandInput(formula=a, max_candidates=8), policy=policy,
+    )
+    assert expanded.inventory is not None
+    assert a.atom_id not in expanded.inventory.support_sets
+    assert a.atom_id not in expanded.inventory.essential_support
+    final = dispatch(
+        JournalOperator.ITERATED_REVISE, state_in=expanded.to_canonical_dict(),
+        operator_input=IteratedReviseInput(
+            formula=make_assertion_atom("b"), revision_operator="lexicographic", max_candidates=8,
+        ), policy=policy,
+    )
+    assert a.atom_id in final.accepted_atom_ids
+    assert final.inventory is not None
+    assert a.atom_id not in final.inventory.support_sets
+    assert a.atom_id not in final.inventory.essential_support
+    assert initial.inventory is not None and initial.inventory.support_sets[a.atom_id] == ((p.atom_id,),)
+    assert contracted.inventory is not None and contracted.inventory.support_sets[a.atom_id] == ((p.atom_id,),)

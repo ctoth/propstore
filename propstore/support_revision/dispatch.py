@@ -148,6 +148,7 @@ def dispatch(
             input_atom_id=atom.atom_id,
             policy_snapshot=policy_snapshot,
             replay_status="replayed",
+            extra_atoms=(atom,),
         )
 
     if isinstance(operator_input, ReviseInput):
@@ -188,6 +189,7 @@ def dispatch(
             target_atom_ids=target_atom_ids,
             policy_snapshot=policy_snapshot,
             replay_status="replayed",
+            extra_atoms=(atom,),
         )
 
     # The union is exhausted: ContractInput is all that is left.

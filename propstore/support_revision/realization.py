@@ -39,7 +39,7 @@ def realize_formal_decision(
 ) -> RevisionResult:
     atoms_by_id = {atom.atom_id: atom for atom in base.atoms}
     for atom in extra_atoms:
-        atoms_by_id.setdefault(atom.atom_id, atom)
+        atoms_by_id[atom.atom_id] = atom
 
     accepted_ids = tuple(
         atom_id

@@ -1,0 +1,2003 @@
+{
+  "final_snapshot": {
+    "content_hash": "f3d78ef361fe1802990b36c7cd1090b972d5739d1291ef5936e1469bae642d36",
+    "schema_version": "propstore.epistemic_snapshot.v2",
+    "state": {
+      "accepted_atom_ids": [
+        "assumption:c",
+        "assumption:d"
+      ],
+      "base": {
+        "atoms": [
+          {
+            "assumption": {
+              "assumption_id": "c",
+              "cel": "true",
+              "kind": "test",
+              "source": "original-source-c"
+            },
+            "atom_id": "assumption:c",
+            "type": "assumption"
+          },
+          {
+            "assumption": {
+              "assumption_id": "d",
+              "cel": "true",
+              "kind": "test",
+              "source": "original-source-d"
+            },
+            "atom_id": "assumption:d",
+            "type": "assumption"
+          }
+        ],
+        "essential_support": {},
+        "scope": {
+          "bindings": {}
+        },
+        "support_sets": {}
+      },
+      "entrenchment_reasons": {
+        "assumption:c": {
+          "support_count": 0
+        },
+        "assumption:d": {
+          "support_count": 0
+        }
+      },
+      "history": [
+        {
+          "accepted_atom_ids": [
+            "assumption:b",
+            "assumption:c"
+          ],
+          "event": {
+            "decision": {
+              "accepted_formula_ids": [
+                "assumption:b",
+                "assumption:c"
+              ],
+              "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+              "input_formula_ids": [
+                "assumption:c",
+                "not:assumption:a"
+              ],
+              "operation": "iterated_revise",
+              "policy": "belief_set.iterated.lexicographic",
+              "ranking_provenance": {
+                "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                "method": "hamming_distance",
+                "status": "defaulted"
+              },
+              "rejected_formula_ids": [
+                "assumption:a"
+              ],
+              "trace": {
+                "kind": "revision",
+                "operator": "lexicographic_revise",
+                "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+              }
+            },
+            "input_atom_id": "assumption:c",
+            "operation": "lexicographic",
+            "policy_snapshot": {
+              "entrenchment_policy_version": "entrenchment.v1",
+              "ranking_policy_version": "ranking.v1",
+              "revision_policy_version": "revision.v1"
+            },
+            "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+            "realization": {
+              "accepted_atom_ids": [
+                "assumption:b",
+                "assumption:c"
+              ],
+              "incision_set": [
+                "assumption:a"
+              ],
+              "reasons": {
+                "assumption:a": {
+                  "incision_set": [
+                    "assumption:a"
+                  ],
+                  "reason": "incised",
+                  "selection_rule": "minimal_support_incision"
+                },
+                "assumption:c": {
+                  "reason": "revised_in"
+                }
+              },
+              "rejected_atom_ids": [
+                "assumption:a"
+              ]
+            },
+            "replay_status": "replayed",
+            "target_atom_ids": [
+              "assumption:a"
+            ]
+          },
+          "explanation": {
+            "assumption:a": {
+              "incision_set": [
+                "assumption:a"
+              ],
+              "reason": "incised",
+              "selection_rule": "minimal_support_incision"
+            },
+            "assumption:c": {
+              "reason": "revised_in"
+            }
+          },
+          "incision_set": [
+            "assumption:a"
+          ],
+          "input_atom_id": "assumption:c",
+          "operator": "lexicographic",
+          "rejected_atom_ids": [
+            "assumption:a"
+          ],
+          "target_atom_ids": [
+            "assumption:a"
+          ]
+        },
+        {
+          "accepted_atom_ids": [
+            "assumption:c",
+            "assumption:d"
+          ],
+          "event": {
+            "decision": {
+              "accepted_formula_ids": [
+                "assumption:c",
+                "assumption:d"
+              ],
+              "epistemic_state_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+              "input_formula_ids": [
+                "assumption:d",
+                "not:assumption:b"
+              ],
+              "operation": "iterated_revise",
+              "policy": "belief_set.iterated.lexicographic",
+              "ranking_provenance": {
+                "input_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+                "method": "hamming_distance",
+                "status": "defaulted"
+              },
+              "rejected_formula_ids": [
+                "assumption:b"
+              ],
+              "trace": {
+                "kind": "revision",
+                "operator": "lexicographic_revise",
+                "pre_image_fingerprint": "7578b7e25b43815f66b07a773c5548ff2b923427"
+              }
+            },
+            "input_atom_id": "assumption:d",
+            "operation": "lexicographic",
+            "policy_snapshot": {
+              "entrenchment_policy_version": "entrenchment.v1",
+              "ranking_policy_version": "ranking.v1",
+              "revision_policy_version": "revision.v1"
+            },
+            "pre_state_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+            "realization": {
+              "accepted_atom_ids": [
+                "assumption:c",
+                "assumption:d"
+              ],
+              "incision_set": [
+                "assumption:b"
+              ],
+              "reasons": {
+                "assumption:b": {
+                  "incision_set": [
+                    "assumption:b"
+                  ],
+                  "reason": "incised",
+                  "selection_rule": "minimal_support_incision"
+                },
+                "assumption:d": {
+                  "reason": "revised_in"
+                }
+              },
+              "rejected_atom_ids": [
+                "assumption:b"
+              ]
+            },
+            "replay_status": "replayed",
+            "target_atom_ids": [
+              "assumption:b"
+            ]
+          },
+          "explanation": {
+            "assumption:b": {
+              "incision_set": [
+                "assumption:b"
+              ],
+              "reason": "incised",
+              "selection_rule": "minimal_support_incision"
+            },
+            "assumption:d": {
+              "reason": "revised_in"
+            }
+          },
+          "incision_set": [
+            "assumption:b"
+          ],
+          "input_atom_id": "assumption:d",
+          "operator": "lexicographic",
+          "rejected_atom_ids": [
+            "assumption:b"
+          ],
+          "target_atom_ids": [
+            "assumption:b"
+          ]
+        }
+      ],
+      "ranked_atom_ids": [
+        "assumption:c",
+        "assumption:d"
+      ],
+      "ranking": {
+        "assumption:c": 0,
+        "assumption:d": 1
+      },
+      "scope": {
+        "bindings": {}
+      }
+    }
+  },
+  "initial_snapshot": {
+    "content_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+    "schema_version": "propstore.epistemic_snapshot.v2",
+    "state": {
+      "accepted_atom_ids": [
+        "assumption:a",
+        "assumption:b"
+      ],
+      "base": {
+        "atoms": [
+          {
+            "assumption": {
+              "assumption_id": "a",
+              "cel": "true",
+              "kind": "test",
+              "source": "original-source-a"
+            },
+            "atom_id": "assumption:a",
+            "type": "assumption"
+          },
+          {
+            "assumption": {
+              "assumption_id": "b",
+              "cel": "true",
+              "kind": "test",
+              "source": "original-source-b"
+            },
+            "atom_id": "assumption:b",
+            "type": "assumption"
+          }
+        ],
+        "essential_support": {},
+        "scope": {
+          "bindings": {}
+        },
+        "support_sets": {}
+      },
+      "entrenchment_reasons": {
+        "assumption:a": {
+          "support_count": 0
+        },
+        "assumption:b": {
+          "support_count": 0
+        }
+      },
+      "ranked_atom_ids": [
+        "assumption:a",
+        "assumption:b"
+      ],
+      "ranking": {
+        "assumption:a": 0,
+        "assumption:b": 1
+      },
+      "scope": {
+        "bindings": {}
+      }
+    }
+  },
+  "journal": {
+    "entries": [
+      {
+        "content_hash": "b9f2abf498a500bb1c5b50281f04d8d89b1b382264c44e30af2dd590f2537228",
+        "explanation": {},
+        "operation": {
+          "input_atom_id": "assumption:c",
+          "name": "iterated_revise",
+          "target_atom_ids": [
+            "assumption:a"
+          ]
+        },
+        "operator": "iterated_revise",
+        "operator_input": {
+          "formula": {
+            "assumption": {
+              "assumption_id": "c",
+              "cel": "true",
+              "kind": "test",
+              "source": "original-source-c"
+            },
+            "atom_id": "assumption:c",
+            "type": "assumption"
+          },
+          "max_candidates": 8,
+          "operator": "iterated_revise",
+          "revision_operator": "lexicographic",
+          "targets": [
+            "assumption:a"
+          ]
+        },
+        "policy": null,
+        "policy_id": "revision.v1",
+        "schema_version": "propstore.transition_journal.v5",
+        "state_in": {
+          "content_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+          "schema_version": "propstore.epistemic_snapshot.v2",
+          "state": {
+            "accepted_atom_ids": [
+              "assumption:a",
+              "assumption:b"
+            ],
+            "base": {
+              "atoms": [
+                {
+                  "assumption": {
+                    "assumption_id": "a",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-a"
+                  },
+                  "atom_id": "assumption:a",
+                  "type": "assumption"
+                },
+                {
+                  "assumption": {
+                    "assumption_id": "b",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-b"
+                  },
+                  "atom_id": "assumption:b",
+                  "type": "assumption"
+                }
+              ],
+              "essential_support": {},
+              "scope": {
+                "bindings": {}
+              },
+              "support_sets": {}
+            },
+            "entrenchment_reasons": {
+              "assumption:a": {
+                "support_count": 0
+              },
+              "assumption:b": {
+                "support_count": 0
+              }
+            },
+            "ranked_atom_ids": [
+              "assumption:a",
+              "assumption:b"
+            ],
+            "ranking": {
+              "assumption:a": 0,
+              "assumption:b": 1
+            },
+            "scope": {
+              "bindings": {}
+            }
+          }
+        },
+        "state_out": {
+          "content_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+          "schema_version": "propstore.epistemic_snapshot.v2",
+          "state": {
+            "accepted_atom_ids": [
+              "assumption:b",
+              "assumption:c"
+            ],
+            "base": {
+              "atoms": [
+                {
+                  "assumption": {
+                    "assumption_id": "b",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-b"
+                  },
+                  "atom_id": "assumption:b",
+                  "type": "assumption"
+                },
+                {
+                  "assumption": {
+                    "assumption_id": "c",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-c"
+                  },
+                  "atom_id": "assumption:c",
+                  "type": "assumption"
+                }
+              ],
+              "essential_support": {},
+              "scope": {
+                "bindings": {}
+              },
+              "support_sets": {}
+            },
+            "entrenchment_reasons": {
+              "assumption:b": {
+                "support_count": 0
+              },
+              "assumption:c": {
+                "support_count": 0
+              }
+            },
+            "history": [
+              {
+                "accepted_atom_ids": [
+                  "assumption:b",
+                  "assumption:c"
+                ],
+                "event": {
+                  "decision": {
+                    "accepted_formula_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                    "input_formula_ids": [
+                      "assumption:c",
+                      "not:assumption:a"
+                    ],
+                    "operation": "iterated_revise",
+                    "policy": "belief_set.iterated.lexicographic",
+                    "ranking_provenance": {
+                      "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                      "method": "hamming_distance",
+                      "status": "defaulted"
+                    },
+                    "rejected_formula_ids": [
+                      "assumption:a"
+                    ],
+                    "trace": {
+                      "kind": "revision",
+                      "operator": "lexicographic_revise",
+                      "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+                    }
+                  },
+                  "input_atom_id": "assumption:c",
+                  "operation": "lexicographic",
+                  "policy_snapshot": {
+                    "entrenchment_policy_version": "entrenchment.v1",
+                    "ranking_policy_version": "ranking.v1",
+                    "revision_policy_version": "revision.v1"
+                  },
+                  "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+                  "realization": {
+                    "accepted_atom_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reasons": {
+                      "assumption:a": {
+                        "incision_set": [
+                          "assumption:a"
+                        ],
+                        "reason": "incised",
+                        "selection_rule": "minimal_support_incision"
+                      },
+                      "assumption:c": {
+                        "reason": "revised_in"
+                      }
+                    },
+                    "rejected_atom_ids": [
+                      "assumption:a"
+                    ]
+                  },
+                  "replay_status": "replayed",
+                  "target_atom_ids": [
+                    "assumption:a"
+                  ]
+                },
+                "explanation": {
+                  "assumption:a": {
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reason": "incised",
+                    "selection_rule": "minimal_support_incision"
+                  },
+                  "assumption:c": {
+                    "reason": "revised_in"
+                  }
+                },
+                "incision_set": [
+                  "assumption:a"
+                ],
+                "input_atom_id": "assumption:c",
+                "operator": "lexicographic",
+                "rejected_atom_ids": [
+                  "assumption:a"
+                ],
+                "target_atom_ids": [
+                  "assumption:a"
+                ]
+              }
+            ],
+            "ranked_atom_ids": [
+              "assumption:b",
+              "assumption:c"
+            ],
+            "ranking": {
+              "assumption:b": 0,
+              "assumption:c": 1
+            },
+            "scope": {
+              "bindings": {}
+            }
+          }
+        },
+        "version_policy_snapshot": {
+          "entrenchment_policy_version": "entrenchment.v1",
+          "ranking_policy_version": "ranking.v1",
+          "revision_policy_version": "revision.v1"
+        }
+      },
+      {
+        "content_hash": "05f2fee6234cdbb787d57e5e99adc07e9aed7faa9187ea968c64f4029bb308a9",
+        "explanation": {},
+        "operation": {
+          "input_atom_id": "assumption:d",
+          "name": "iterated_revise",
+          "target_atom_ids": [
+            "assumption:b"
+          ]
+        },
+        "operator": "iterated_revise",
+        "operator_input": {
+          "formula": {
+            "assumption": {
+              "assumption_id": "d",
+              "cel": "true",
+              "kind": "test",
+              "source": "original-source-d"
+            },
+            "atom_id": "assumption:d",
+            "type": "assumption"
+          },
+          "max_candidates": 8,
+          "operator": "iterated_revise",
+          "revision_operator": "lexicographic",
+          "targets": [
+            "assumption:b"
+          ]
+        },
+        "policy": null,
+        "policy_id": "revision.v1",
+        "schema_version": "propstore.transition_journal.v5",
+        "state_in": {
+          "content_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+          "schema_version": "propstore.epistemic_snapshot.v2",
+          "state": {
+            "accepted_atom_ids": [
+              "assumption:b",
+              "assumption:c"
+            ],
+            "base": {
+              "atoms": [
+                {
+                  "assumption": {
+                    "assumption_id": "b",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-b"
+                  },
+                  "atom_id": "assumption:b",
+                  "type": "assumption"
+                },
+                {
+                  "assumption": {
+                    "assumption_id": "c",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-c"
+                  },
+                  "atom_id": "assumption:c",
+                  "type": "assumption"
+                }
+              ],
+              "essential_support": {},
+              "scope": {
+                "bindings": {}
+              },
+              "support_sets": {}
+            },
+            "entrenchment_reasons": {
+              "assumption:b": {
+                "support_count": 0
+              },
+              "assumption:c": {
+                "support_count": 0
+              }
+            },
+            "history": [
+              {
+                "accepted_atom_ids": [
+                  "assumption:b",
+                  "assumption:c"
+                ],
+                "event": {
+                  "decision": {
+                    "accepted_formula_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                    "input_formula_ids": [
+                      "assumption:c",
+                      "not:assumption:a"
+                    ],
+                    "operation": "iterated_revise",
+                    "policy": "belief_set.iterated.lexicographic",
+                    "ranking_provenance": {
+                      "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                      "method": "hamming_distance",
+                      "status": "defaulted"
+                    },
+                    "rejected_formula_ids": [
+                      "assumption:a"
+                    ],
+                    "trace": {
+                      "kind": "revision",
+                      "operator": "lexicographic_revise",
+                      "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+                    }
+                  },
+                  "input_atom_id": "assumption:c",
+                  "operation": "lexicographic",
+                  "policy_snapshot": {
+                    "entrenchment_policy_version": "entrenchment.v1",
+                    "ranking_policy_version": "ranking.v1",
+                    "revision_policy_version": "revision.v1"
+                  },
+                  "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+                  "realization": {
+                    "accepted_atom_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reasons": {
+                      "assumption:a": {
+                        "incision_set": [
+                          "assumption:a"
+                        ],
+                        "reason": "incised",
+                        "selection_rule": "minimal_support_incision"
+                      },
+                      "assumption:c": {
+                        "reason": "revised_in"
+                      }
+                    },
+                    "rejected_atom_ids": [
+                      "assumption:a"
+                    ]
+                  },
+                  "replay_status": "replayed",
+                  "target_atom_ids": [
+                    "assumption:a"
+                  ]
+                },
+                "explanation": {
+                  "assumption:a": {
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reason": "incised",
+                    "selection_rule": "minimal_support_incision"
+                  },
+                  "assumption:c": {
+                    "reason": "revised_in"
+                  }
+                },
+                "incision_set": [
+                  "assumption:a"
+                ],
+                "input_atom_id": "assumption:c",
+                "operator": "lexicographic",
+                "rejected_atom_ids": [
+                  "assumption:a"
+                ],
+                "target_atom_ids": [
+                  "assumption:a"
+                ]
+              }
+            ],
+            "ranked_atom_ids": [
+              "assumption:b",
+              "assumption:c"
+            ],
+            "ranking": {
+              "assumption:b": 0,
+              "assumption:c": 1
+            },
+            "scope": {
+              "bindings": {}
+            }
+          }
+        },
+        "state_out": {
+          "content_hash": "f3d78ef361fe1802990b36c7cd1090b972d5739d1291ef5936e1469bae642d36",
+          "schema_version": "propstore.epistemic_snapshot.v2",
+          "state": {
+            "accepted_atom_ids": [
+              "assumption:c",
+              "assumption:d"
+            ],
+            "base": {
+              "atoms": [
+                {
+                  "assumption": {
+                    "assumption_id": "c",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-c"
+                  },
+                  "atom_id": "assumption:c",
+                  "type": "assumption"
+                },
+                {
+                  "assumption": {
+                    "assumption_id": "d",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-d"
+                  },
+                  "atom_id": "assumption:d",
+                  "type": "assumption"
+                }
+              ],
+              "essential_support": {},
+              "scope": {
+                "bindings": {}
+              },
+              "support_sets": {}
+            },
+            "entrenchment_reasons": {
+              "assumption:c": {
+                "support_count": 0
+              },
+              "assumption:d": {
+                "support_count": 0
+              }
+            },
+            "history": [
+              {
+                "accepted_atom_ids": [
+                  "assumption:b",
+                  "assumption:c"
+                ],
+                "event": {
+                  "decision": {
+                    "accepted_formula_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                    "input_formula_ids": [
+                      "assumption:c",
+                      "not:assumption:a"
+                    ],
+                    "operation": "iterated_revise",
+                    "policy": "belief_set.iterated.lexicographic",
+                    "ranking_provenance": {
+                      "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                      "method": "hamming_distance",
+                      "status": "defaulted"
+                    },
+                    "rejected_formula_ids": [
+                      "assumption:a"
+                    ],
+                    "trace": {
+                      "kind": "revision",
+                      "operator": "lexicographic_revise",
+                      "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+                    }
+                  },
+                  "input_atom_id": "assumption:c",
+                  "operation": "lexicographic",
+                  "policy_snapshot": {
+                    "entrenchment_policy_version": "entrenchment.v1",
+                    "ranking_policy_version": "ranking.v1",
+                    "revision_policy_version": "revision.v1"
+                  },
+                  "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+                  "realization": {
+                    "accepted_atom_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reasons": {
+                      "assumption:a": {
+                        "incision_set": [
+                          "assumption:a"
+                        ],
+                        "reason": "incised",
+                        "selection_rule": "minimal_support_incision"
+                      },
+                      "assumption:c": {
+                        "reason": "revised_in"
+                      }
+                    },
+                    "rejected_atom_ids": [
+                      "assumption:a"
+                    ]
+                  },
+                  "replay_status": "replayed",
+                  "target_atom_ids": [
+                    "assumption:a"
+                  ]
+                },
+                "explanation": {
+                  "assumption:a": {
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reason": "incised",
+                    "selection_rule": "minimal_support_incision"
+                  },
+                  "assumption:c": {
+                    "reason": "revised_in"
+                  }
+                },
+                "incision_set": [
+                  "assumption:a"
+                ],
+                "input_atom_id": "assumption:c",
+                "operator": "lexicographic",
+                "rejected_atom_ids": [
+                  "assumption:a"
+                ],
+                "target_atom_ids": [
+                  "assumption:a"
+                ]
+              },
+              {
+                "accepted_atom_ids": [
+                  "assumption:c",
+                  "assumption:d"
+                ],
+                "event": {
+                  "decision": {
+                    "accepted_formula_ids": [
+                      "assumption:c",
+                      "assumption:d"
+                    ],
+                    "epistemic_state_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+                    "input_formula_ids": [
+                      "assumption:d",
+                      "not:assumption:b"
+                    ],
+                    "operation": "iterated_revise",
+                    "policy": "belief_set.iterated.lexicographic",
+                    "ranking_provenance": {
+                      "input_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+                      "method": "hamming_distance",
+                      "status": "defaulted"
+                    },
+                    "rejected_formula_ids": [
+                      "assumption:b"
+                    ],
+                    "trace": {
+                      "kind": "revision",
+                      "operator": "lexicographic_revise",
+                      "pre_image_fingerprint": "7578b7e25b43815f66b07a773c5548ff2b923427"
+                    }
+                  },
+                  "input_atom_id": "assumption:d",
+                  "operation": "lexicographic",
+                  "policy_snapshot": {
+                    "entrenchment_policy_version": "entrenchment.v1",
+                    "ranking_policy_version": "ranking.v1",
+                    "revision_policy_version": "revision.v1"
+                  },
+                  "pre_state_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+                  "realization": {
+                    "accepted_atom_ids": [
+                      "assumption:c",
+                      "assumption:d"
+                    ],
+                    "incision_set": [
+                      "assumption:b"
+                    ],
+                    "reasons": {
+                      "assumption:b": {
+                        "incision_set": [
+                          "assumption:b"
+                        ],
+                        "reason": "incised",
+                        "selection_rule": "minimal_support_incision"
+                      },
+                      "assumption:d": {
+                        "reason": "revised_in"
+                      }
+                    },
+                    "rejected_atom_ids": [
+                      "assumption:b"
+                    ]
+                  },
+                  "replay_status": "replayed",
+                  "target_atom_ids": [
+                    "assumption:b"
+                  ]
+                },
+                "explanation": {
+                  "assumption:b": {
+                    "incision_set": [
+                      "assumption:b"
+                    ],
+                    "reason": "incised",
+                    "selection_rule": "minimal_support_incision"
+                  },
+                  "assumption:d": {
+                    "reason": "revised_in"
+                  }
+                },
+                "incision_set": [
+                  "assumption:b"
+                ],
+                "input_atom_id": "assumption:d",
+                "operator": "lexicographic",
+                "rejected_atom_ids": [
+                  "assumption:b"
+                ],
+                "target_atom_ids": [
+                  "assumption:b"
+                ]
+              }
+            ],
+            "ranked_atom_ids": [
+              "assumption:c",
+              "assumption:d"
+            ],
+            "ranking": {
+              "assumption:c": 0,
+              "assumption:d": 1
+            },
+            "scope": {
+              "bindings": {}
+            }
+          }
+        },
+        "version_policy_snapshot": {
+          "entrenchment_policy_version": "entrenchment.v1",
+          "ranking_policy_version": "ranking.v1",
+          "revision_policy_version": "revision.v1"
+        }
+      }
+    ],
+    "schema_version": "propstore.transition_journal.v5"
+  },
+  "producer_commit": "4b865edf992f73ff7fe99f3ab7b1545e8b6bcadc",
+  "worldline": {
+    "created": "",
+    "id": "pre-pr321",
+    "inputs": {
+      "environment": {
+        "assumptions": [],
+        "bindings": {},
+        "context_id": null,
+        "effective_assumptions": []
+      },
+      "overrides": {}
+    },
+    "journal": {
+      "entries": [
+        {
+          "content_hash": "b9f2abf498a500bb1c5b50281f04d8d89b1b382264c44e30af2dd590f2537228",
+          "explanation": {},
+          "operation": {
+            "input_atom_id": "assumption:c",
+            "name": "iterated_revise",
+            "target_atom_ids": [
+              "assumption:a"
+            ]
+          },
+          "operator": "iterated_revise",
+          "operator_input": {
+            "formula": {
+              "assumption": {
+                "assumption_id": "c",
+                "cel": "true",
+                "kind": "test",
+                "source": "original-source-c"
+              },
+              "atom_id": "assumption:c",
+              "type": "assumption"
+            },
+            "max_candidates": 8,
+            "operator": "iterated_revise",
+            "revision_operator": "lexicographic",
+            "targets": [
+              "assumption:a"
+            ]
+          },
+          "policy": null,
+          "policy_id": "revision.v1",
+          "schema_version": "propstore.transition_journal.v5",
+          "state_in": {
+            "content_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+            "schema_version": "propstore.epistemic_snapshot.v2",
+            "state": {
+              "accepted_atom_ids": [
+                "assumption:a",
+                "assumption:b"
+              ],
+              "base": {
+                "atoms": [
+                  {
+                    "assumption": {
+                      "assumption_id": "a",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-a"
+                    },
+                    "atom_id": "assumption:a",
+                    "type": "assumption"
+                  },
+                  {
+                    "assumption": {
+                      "assumption_id": "b",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-b"
+                    },
+                    "atom_id": "assumption:b",
+                    "type": "assumption"
+                  }
+                ],
+                "essential_support": {},
+                "scope": {
+                  "bindings": {}
+                },
+                "support_sets": {}
+              },
+              "entrenchment_reasons": {
+                "assumption:a": {
+                  "support_count": 0
+                },
+                "assumption:b": {
+                  "support_count": 0
+                }
+              },
+              "ranked_atom_ids": [
+                "assumption:a",
+                "assumption:b"
+              ],
+              "ranking": {
+                "assumption:a": 0,
+                "assumption:b": 1
+              },
+              "scope": {
+                "bindings": {}
+              }
+            }
+          },
+          "state_out": {
+            "content_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+            "schema_version": "propstore.epistemic_snapshot.v2",
+            "state": {
+              "accepted_atom_ids": [
+                "assumption:b",
+                "assumption:c"
+              ],
+              "base": {
+                "atoms": [
+                  {
+                    "assumption": {
+                      "assumption_id": "b",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-b"
+                    },
+                    "atom_id": "assumption:b",
+                    "type": "assumption"
+                  },
+                  {
+                    "assumption": {
+                      "assumption_id": "c",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-c"
+                    },
+                    "atom_id": "assumption:c",
+                    "type": "assumption"
+                  }
+                ],
+                "essential_support": {},
+                "scope": {
+                  "bindings": {}
+                },
+                "support_sets": {}
+              },
+              "entrenchment_reasons": {
+                "assumption:b": {
+                  "support_count": 0
+                },
+                "assumption:c": {
+                  "support_count": 0
+                }
+              },
+              "history": [
+                {
+                  "accepted_atom_ids": [
+                    "assumption:b",
+                    "assumption:c"
+                  ],
+                  "event": {
+                    "decision": {
+                      "accepted_formula_ids": [
+                        "assumption:b",
+                        "assumption:c"
+                      ],
+                      "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                      "input_formula_ids": [
+                        "assumption:c",
+                        "not:assumption:a"
+                      ],
+                      "operation": "iterated_revise",
+                      "policy": "belief_set.iterated.lexicographic",
+                      "ranking_provenance": {
+                        "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                        "method": "hamming_distance",
+                        "status": "defaulted"
+                      },
+                      "rejected_formula_ids": [
+                        "assumption:a"
+                      ],
+                      "trace": {
+                        "kind": "revision",
+                        "operator": "lexicographic_revise",
+                        "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+                      }
+                    },
+                    "input_atom_id": "assumption:c",
+                    "operation": "lexicographic",
+                    "policy_snapshot": {
+                      "entrenchment_policy_version": "entrenchment.v1",
+                      "ranking_policy_version": "ranking.v1",
+                      "revision_policy_version": "revision.v1"
+                    },
+                    "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+                    "realization": {
+                      "accepted_atom_ids": [
+                        "assumption:b",
+                        "assumption:c"
+                      ],
+                      "incision_set": [
+                        "assumption:a"
+                      ],
+                      "reasons": {
+                        "assumption:a": {
+                          "incision_set": [
+                            "assumption:a"
+                          ],
+                          "reason": "incised",
+                          "selection_rule": "minimal_support_incision"
+                        },
+                        "assumption:c": {
+                          "reason": "revised_in"
+                        }
+                      },
+                      "rejected_atom_ids": [
+                        "assumption:a"
+                      ]
+                    },
+                    "replay_status": "replayed",
+                    "target_atom_ids": [
+                      "assumption:a"
+                    ]
+                  },
+                  "explanation": {
+                    "assumption:a": {
+                      "incision_set": [
+                        "assumption:a"
+                      ],
+                      "reason": "incised",
+                      "selection_rule": "minimal_support_incision"
+                    },
+                    "assumption:c": {
+                      "reason": "revised_in"
+                    }
+                  },
+                  "incision_set": [
+                    "assumption:a"
+                  ],
+                  "input_atom_id": "assumption:c",
+                  "operator": "lexicographic",
+                  "rejected_atom_ids": [
+                    "assumption:a"
+                  ],
+                  "target_atom_ids": [
+                    "assumption:a"
+                  ]
+                }
+              ],
+              "ranked_atom_ids": [
+                "assumption:b",
+                "assumption:c"
+              ],
+              "ranking": {
+                "assumption:b": 0,
+                "assumption:c": 1
+              },
+              "scope": {
+                "bindings": {}
+              }
+            }
+          },
+          "version_policy_snapshot": {
+            "entrenchment_policy_version": "entrenchment.v1",
+            "ranking_policy_version": "ranking.v1",
+            "revision_policy_version": "revision.v1"
+          }
+        },
+        {
+          "content_hash": "05f2fee6234cdbb787d57e5e99adc07e9aed7faa9187ea968c64f4029bb308a9",
+          "explanation": {},
+          "operation": {
+            "input_atom_id": "assumption:d",
+            "name": "iterated_revise",
+            "target_atom_ids": [
+              "assumption:b"
+            ]
+          },
+          "operator": "iterated_revise",
+          "operator_input": {
+            "formula": {
+              "assumption": {
+                "assumption_id": "d",
+                "cel": "true",
+                "kind": "test",
+                "source": "original-source-d"
+              },
+              "atom_id": "assumption:d",
+              "type": "assumption"
+            },
+            "max_candidates": 8,
+            "operator": "iterated_revise",
+            "revision_operator": "lexicographic",
+            "targets": [
+              "assumption:b"
+            ]
+          },
+          "policy": null,
+          "policy_id": "revision.v1",
+          "schema_version": "propstore.transition_journal.v5",
+          "state_in": {
+            "content_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+            "schema_version": "propstore.epistemic_snapshot.v2",
+            "state": {
+              "accepted_atom_ids": [
+                "assumption:b",
+                "assumption:c"
+              ],
+              "base": {
+                "atoms": [
+                  {
+                    "assumption": {
+                      "assumption_id": "b",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-b"
+                    },
+                    "atom_id": "assumption:b",
+                    "type": "assumption"
+                  },
+                  {
+                    "assumption": {
+                      "assumption_id": "c",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-c"
+                    },
+                    "atom_id": "assumption:c",
+                    "type": "assumption"
+                  }
+                ],
+                "essential_support": {},
+                "scope": {
+                  "bindings": {}
+                },
+                "support_sets": {}
+              },
+              "entrenchment_reasons": {
+                "assumption:b": {
+                  "support_count": 0
+                },
+                "assumption:c": {
+                  "support_count": 0
+                }
+              },
+              "history": [
+                {
+                  "accepted_atom_ids": [
+                    "assumption:b",
+                    "assumption:c"
+                  ],
+                  "event": {
+                    "decision": {
+                      "accepted_formula_ids": [
+                        "assumption:b",
+                        "assumption:c"
+                      ],
+                      "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                      "input_formula_ids": [
+                        "assumption:c",
+                        "not:assumption:a"
+                      ],
+                      "operation": "iterated_revise",
+                      "policy": "belief_set.iterated.lexicographic",
+                      "ranking_provenance": {
+                        "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                        "method": "hamming_distance",
+                        "status": "defaulted"
+                      },
+                      "rejected_formula_ids": [
+                        "assumption:a"
+                      ],
+                      "trace": {
+                        "kind": "revision",
+                        "operator": "lexicographic_revise",
+                        "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+                      }
+                    },
+                    "input_atom_id": "assumption:c",
+                    "operation": "lexicographic",
+                    "policy_snapshot": {
+                      "entrenchment_policy_version": "entrenchment.v1",
+                      "ranking_policy_version": "ranking.v1",
+                      "revision_policy_version": "revision.v1"
+                    },
+                    "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+                    "realization": {
+                      "accepted_atom_ids": [
+                        "assumption:b",
+                        "assumption:c"
+                      ],
+                      "incision_set": [
+                        "assumption:a"
+                      ],
+                      "reasons": {
+                        "assumption:a": {
+                          "incision_set": [
+                            "assumption:a"
+                          ],
+                          "reason": "incised",
+                          "selection_rule": "minimal_support_incision"
+                        },
+                        "assumption:c": {
+                          "reason": "revised_in"
+                        }
+                      },
+                      "rejected_atom_ids": [
+                        "assumption:a"
+                      ]
+                    },
+                    "replay_status": "replayed",
+                    "target_atom_ids": [
+                      "assumption:a"
+                    ]
+                  },
+                  "explanation": {
+                    "assumption:a": {
+                      "incision_set": [
+                        "assumption:a"
+                      ],
+                      "reason": "incised",
+                      "selection_rule": "minimal_support_incision"
+                    },
+                    "assumption:c": {
+                      "reason": "revised_in"
+                    }
+                  },
+                  "incision_set": [
+                    "assumption:a"
+                  ],
+                  "input_atom_id": "assumption:c",
+                  "operator": "lexicographic",
+                  "rejected_atom_ids": [
+                    "assumption:a"
+                  ],
+                  "target_atom_ids": [
+                    "assumption:a"
+                  ]
+                }
+              ],
+              "ranked_atom_ids": [
+                "assumption:b",
+                "assumption:c"
+              ],
+              "ranking": {
+                "assumption:b": 0,
+                "assumption:c": 1
+              },
+              "scope": {
+                "bindings": {}
+              }
+            }
+          },
+          "state_out": {
+            "content_hash": "f3d78ef361fe1802990b36c7cd1090b972d5739d1291ef5936e1469bae642d36",
+            "schema_version": "propstore.epistemic_snapshot.v2",
+            "state": {
+              "accepted_atom_ids": [
+                "assumption:c",
+                "assumption:d"
+              ],
+              "base": {
+                "atoms": [
+                  {
+                    "assumption": {
+                      "assumption_id": "c",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-c"
+                    },
+                    "atom_id": "assumption:c",
+                    "type": "assumption"
+                  },
+                  {
+                    "assumption": {
+                      "assumption_id": "d",
+                      "cel": "true",
+                      "kind": "test",
+                      "source": "original-source-d"
+                    },
+                    "atom_id": "assumption:d",
+                    "type": "assumption"
+                  }
+                ],
+                "essential_support": {},
+                "scope": {
+                  "bindings": {}
+                },
+                "support_sets": {}
+              },
+              "entrenchment_reasons": {
+                "assumption:c": {
+                  "support_count": 0
+                },
+                "assumption:d": {
+                  "support_count": 0
+                }
+              },
+              "history": [
+                {
+                  "accepted_atom_ids": [
+                    "assumption:b",
+                    "assumption:c"
+                  ],
+                  "event": {
+                    "decision": {
+                      "accepted_formula_ids": [
+                        "assumption:b",
+                        "assumption:c"
+                      ],
+                      "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                      "input_formula_ids": [
+                        "assumption:c",
+                        "not:assumption:a"
+                      ],
+                      "operation": "iterated_revise",
+                      "policy": "belief_set.iterated.lexicographic",
+                      "ranking_provenance": {
+                        "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                        "method": "hamming_distance",
+                        "status": "defaulted"
+                      },
+                      "rejected_formula_ids": [
+                        "assumption:a"
+                      ],
+                      "trace": {
+                        "kind": "revision",
+                        "operator": "lexicographic_revise",
+                        "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+                      }
+                    },
+                    "input_atom_id": "assumption:c",
+                    "operation": "lexicographic",
+                    "policy_snapshot": {
+                      "entrenchment_policy_version": "entrenchment.v1",
+                      "ranking_policy_version": "ranking.v1",
+                      "revision_policy_version": "revision.v1"
+                    },
+                    "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+                    "realization": {
+                      "accepted_atom_ids": [
+                        "assumption:b",
+                        "assumption:c"
+                      ],
+                      "incision_set": [
+                        "assumption:a"
+                      ],
+                      "reasons": {
+                        "assumption:a": {
+                          "incision_set": [
+                            "assumption:a"
+                          ],
+                          "reason": "incised",
+                          "selection_rule": "minimal_support_incision"
+                        },
+                        "assumption:c": {
+                          "reason": "revised_in"
+                        }
+                      },
+                      "rejected_atom_ids": [
+                        "assumption:a"
+                      ]
+                    },
+                    "replay_status": "replayed",
+                    "target_atom_ids": [
+                      "assumption:a"
+                    ]
+                  },
+                  "explanation": {
+                    "assumption:a": {
+                      "incision_set": [
+                        "assumption:a"
+                      ],
+                      "reason": "incised",
+                      "selection_rule": "minimal_support_incision"
+                    },
+                    "assumption:c": {
+                      "reason": "revised_in"
+                    }
+                  },
+                  "incision_set": [
+                    "assumption:a"
+                  ],
+                  "input_atom_id": "assumption:c",
+                  "operator": "lexicographic",
+                  "rejected_atom_ids": [
+                    "assumption:a"
+                  ],
+                  "target_atom_ids": [
+                    "assumption:a"
+                  ]
+                },
+                {
+                  "accepted_atom_ids": [
+                    "assumption:c",
+                    "assumption:d"
+                  ],
+                  "event": {
+                    "decision": {
+                      "accepted_formula_ids": [
+                        "assumption:c",
+                        "assumption:d"
+                      ],
+                      "epistemic_state_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+                      "input_formula_ids": [
+                        "assumption:d",
+                        "not:assumption:b"
+                      ],
+                      "operation": "iterated_revise",
+                      "policy": "belief_set.iterated.lexicographic",
+                      "ranking_provenance": {
+                        "input_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+                        "method": "hamming_distance",
+                        "status": "defaulted"
+                      },
+                      "rejected_formula_ids": [
+                        "assumption:b"
+                      ],
+                      "trace": {
+                        "kind": "revision",
+                        "operator": "lexicographic_revise",
+                        "pre_image_fingerprint": "7578b7e25b43815f66b07a773c5548ff2b923427"
+                      }
+                    },
+                    "input_atom_id": "assumption:d",
+                    "operation": "lexicographic",
+                    "policy_snapshot": {
+                      "entrenchment_policy_version": "entrenchment.v1",
+                      "ranking_policy_version": "ranking.v1",
+                      "revision_policy_version": "revision.v1"
+                    },
+                    "pre_state_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+                    "realization": {
+                      "accepted_atom_ids": [
+                        "assumption:c",
+                        "assumption:d"
+                      ],
+                      "incision_set": [
+                        "assumption:b"
+                      ],
+                      "reasons": {
+                        "assumption:b": {
+                          "incision_set": [
+                            "assumption:b"
+                          ],
+                          "reason": "incised",
+                          "selection_rule": "minimal_support_incision"
+                        },
+                        "assumption:d": {
+                          "reason": "revised_in"
+                        }
+                      },
+                      "rejected_atom_ids": [
+                        "assumption:b"
+                      ]
+                    },
+                    "replay_status": "replayed",
+                    "target_atom_ids": [
+                      "assumption:b"
+                    ]
+                  },
+                  "explanation": {
+                    "assumption:b": {
+                      "incision_set": [
+                        "assumption:b"
+                      ],
+                      "reason": "incised",
+                      "selection_rule": "minimal_support_incision"
+                    },
+                    "assumption:d": {
+                      "reason": "revised_in"
+                    }
+                  },
+                  "incision_set": [
+                    "assumption:b"
+                  ],
+                  "input_atom_id": "assumption:d",
+                  "operator": "lexicographic",
+                  "rejected_atom_ids": [
+                    "assumption:b"
+                  ],
+                  "target_atom_ids": [
+                    "assumption:b"
+                  ]
+                }
+              ],
+              "ranked_atom_ids": [
+                "assumption:c",
+                "assumption:d"
+              ],
+              "ranking": {
+                "assumption:c": 0,
+                "assumption:d": 1
+              },
+              "scope": {
+                "bindings": {}
+              }
+            }
+          },
+          "version_policy_snapshot": {
+            "entrenchment_policy_version": "entrenchment.v1",
+            "ranking_policy_version": "ranking.v1",
+            "revision_policy_version": "revision.v1"
+          }
+        }
+      ],
+      "schema_version": "propstore.transition_journal.v5"
+    },
+    "name": "pre-pr321",
+    "policy": {
+      "branch_filter": null,
+      "branch_weights": null,
+      "comparison": "elitist",
+      "concept_strategies": {},
+      "decision_criterion": "pignistic",
+      "future_limit": null,
+      "future_queryables": [],
+      "include_blocked": false,
+      "include_drafts": false,
+      "integrity_constraints": [],
+      "link": "last",
+      "merge_operator": "sigma",
+      "overrides": {},
+      "pessimism_index": 0.5,
+      "praf_mc_confidence": 0.95,
+      "praf_mc_epsilon": 0.01,
+      "praf_mc_seed": null,
+      "praf_strategy": "auto",
+      "praf_treewidth_cutoff": 12,
+      "reasoning_backend": "claim_graph",
+      "semantics": "grounded",
+      "show_quarantined": false,
+      "show_uncertainty_interval": false,
+      "strategy": null
+    },
+    "results": {
+      "argumentation": null,
+      "computed": "",
+      "content_hash": "",
+      "dependencies": {
+        "blocked_exceptions": [],
+        "claims": [],
+        "contexts": [],
+        "lifting_rules": [],
+        "stances": []
+      },
+      "revision": {
+        "error": null,
+        "event": null,
+        "input_atom_id": null,
+        "operation": "iterated_revise",
+        "result": null,
+        "state": {
+          "content_hash": "f3d78ef361fe1802990b36c7cd1090b972d5739d1291ef5936e1469bae642d36",
+          "schema_version": "propstore.epistemic_snapshot.v2",
+          "state": {
+            "accepted_atom_ids": [
+              "assumption:c",
+              "assumption:d"
+            ],
+            "base": {
+              "atoms": [
+                {
+                  "assumption": {
+                    "assumption_id": "c",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-c"
+                  },
+                  "atom_id": "assumption:c",
+                  "type": "assumption"
+                },
+                {
+                  "assumption": {
+                    "assumption_id": "d",
+                    "cel": "true",
+                    "kind": "test",
+                    "source": "original-source-d"
+                  },
+                  "atom_id": "assumption:d",
+                  "type": "assumption"
+                }
+              ],
+              "essential_support": {},
+              "scope": {
+                "bindings": {}
+              },
+              "support_sets": {}
+            },
+            "entrenchment_reasons": {
+              "assumption:c": {
+                "support_count": 0
+              },
+              "assumption:d": {
+                "support_count": 0
+              }
+            },
+            "history": [
+              {
+                "accepted_atom_ids": [
+                  "assumption:b",
+                  "assumption:c"
+                ],
+                "event": {
+                  "decision": {
+                    "accepted_formula_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "epistemic_state_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                    "input_formula_ids": [
+                      "assumption:c",
+                      "not:assumption:a"
+                    ],
+                    "operation": "iterated_revise",
+                    "policy": "belief_set.iterated.lexicographic",
+                    "ranking_provenance": {
+                      "input_hash": "2248d6ba1a98b78bb4ab141b3fb9007173a8d82b1f4b9551d3bd44ef44092274",
+                      "method": "hamming_distance",
+                      "status": "defaulted"
+                    },
+                    "rejected_formula_ids": [
+                      "assumption:a"
+                    ],
+                    "trace": {
+                      "kind": "revision",
+                      "operator": "lexicographic_revise",
+                      "pre_image_fingerprint": "f95342b556f2706b10408cdd37226122eb4f538d"
+                    }
+                  },
+                  "input_atom_id": "assumption:c",
+                  "operation": "lexicographic",
+                  "policy_snapshot": {
+                    "entrenchment_policy_version": "entrenchment.v1",
+                    "ranking_policy_version": "ranking.v1",
+                    "revision_policy_version": "revision.v1"
+                  },
+                  "pre_state_hash": "da3514fb38a17f54585593d6807e5b50d4bdd3e419fae2b630da211433450679",
+                  "realization": {
+                    "accepted_atom_ids": [
+                      "assumption:b",
+                      "assumption:c"
+                    ],
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reasons": {
+                      "assumption:a": {
+                        "incision_set": [
+                          "assumption:a"
+                        ],
+                        "reason": "incised",
+                        "selection_rule": "minimal_support_incision"
+                      },
+                      "assumption:c": {
+                        "reason": "revised_in"
+                      }
+                    },
+                    "rejected_atom_ids": [
+                      "assumption:a"
+                    ]
+                  },
+                  "replay_status": "replayed",
+                  "target_atom_ids": [
+                    "assumption:a"
+                  ]
+                },
+                "explanation": {
+                  "assumption:a": {
+                    "incision_set": [
+                      "assumption:a"
+                    ],
+                    "reason": "incised",
+                    "selection_rule": "minimal_support_incision"
+                  },
+                  "assumption:c": {
+                    "reason": "revised_in"
+                  }
+                },
+                "incision_set": [
+                  "assumption:a"
+                ],
+                "input_atom_id": "assumption:c",
+                "operator": "lexicographic",
+                "rejected_atom_ids": [
+                  "assumption:a"
+                ],
+                "target_atom_ids": [
+                  "assumption:a"
+                ]
+              },
+              {
+                "accepted_atom_ids": [
+                  "assumption:c",
+                  "assumption:d"
+                ],
+                "event": {
+                  "decision": {
+                    "accepted_formula_ids": [
+                      "assumption:c",
+                      "assumption:d"
+                    ],
+                    "epistemic_state_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+                    "input_formula_ids": [
+                      "assumption:d",
+                      "not:assumption:b"
+                    ],
+                    "operation": "iterated_revise",
+                    "policy": "belief_set.iterated.lexicographic",
+                    "ranking_provenance": {
+                      "input_hash": "496514240a1faa4f455e3d81a4c5a0e000ee375a516e3b6e4ea20b397887d6b1",
+                      "method": "hamming_distance",
+                      "status": "defaulted"
+                    },
+                    "rejected_formula_ids": [
+                      "assumption:b"
+                    ],
+                    "trace": {
+                      "kind": "revision",
+                      "operator": "lexicographic_revise",
+                      "pre_image_fingerprint": "7578b7e25b43815f66b07a773c5548ff2b923427"
+                    }
+                  },
+                  "input_atom_id": "assumption:d",
+                  "operation": "lexicographic",
+                  "policy_snapshot": {
+                    "entrenchment_policy_version": "entrenchment.v1",
+                    "ranking_policy_version": "ranking.v1",
+                    "revision_policy_version": "revision.v1"
+                  },
+                  "pre_state_hash": "b6e0ecf8f5939e9d982aa00c9fc19c775d1f1da85f047485c689161f1c4cd385",
+                  "realization": {
+                    "accepted_atom_ids": [
+                      "assumption:c",
+                      "assumption:d"
+                    ],
+                    "incision_set": [
+                      "assumption:b"
+                    ],
+                    "reasons": {
+                      "assumption:b": {
+                        "incision_set": [
+                          "assumption:b"
+                        ],
+                        "reason": "incised",
+                        "selection_rule": "minimal_support_incision"
+                      },
+                      "assumption:d": {
+                        "reason": "revised_in"
+                      }
+                    },
+                    "rejected_atom_ids": [
+                      "assumption:b"
+                    ]
+                  },
+                  "replay_status": "replayed",
+                  "target_atom_ids": [
+                    "assumption:b"
+                  ]
+                },
+                "explanation": {
+                  "assumption:b": {
+                    "incision_set": [
+                      "assumption:b"
+                    ],
+                    "reason": "incised",
+                    "selection_rule": "minimal_support_incision"
+                  },
+                  "assumption:d": {
+                    "reason": "revised_in"
+                  }
+                },
+                "incision_set": [
+                  "assumption:b"
+                ],
+                "input_atom_id": "assumption:d",
+                "operator": "lexicographic",
+                "rejected_atom_ids": [
+                  "assumption:b"
+                ],
+                "target_atom_ids": [
+                  "assumption:b"
+                ]
+              }
+            ],
+            "ranked_atom_ids": [
+              "assumption:c",
+              "assumption:d"
+            ],
+            "ranking": {
+              "assumption:c": 0,
+              "assumption:d": 1
+            },
+            "scope": {
+              "bindings": {}
+            }
+          }
+        },
+        "status": null,
+        "target_atom_ids": []
+      },
+      "sensitivity": null,
+      "steps": [],
+      "values": {}
+    },
+    "revision": null,
+    "targets": [
+      "concept:fixture"
+    ]
+  }
+}
