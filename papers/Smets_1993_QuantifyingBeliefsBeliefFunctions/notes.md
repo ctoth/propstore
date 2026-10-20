@@ -359,11 +359,13 @@ This paper is direct foundational material for propstore's argumentation/reasoni
 - Smets P. (1990b) "Constructing the pignistic probability function in a context of uncertainty" — UAI 5, pp. 29-40 — the credal-to-pignistic projection used at decision time. Directly relevant to propstore's render-time policy.
 - Smets P. (1992c) "The concept of distinct evidence" — IPMU 92, pp. 789-794 — analysis of distinctness of evidence, cited as Smets (1992c) for combination semantics.
 - Klawonn F. and Schwecke E. (1992) "On the axiomatic justification of Dempster's rule of combination" — Int. J. Intel. Systems 7:469-478 — companion axiomatic justification specifically for Dempster's combination rule (this paper axiomatizes the credibility function itself).
-- Klawonn F. and Smets Ph. (1992) "The dynamics of belief in TBM and specialization-generalization matrices" — UAI 92 — TBM dynamics, specialization-generalization matrices.
 - Kennes R. (1991) "Evidential Reasoning in a Categorial Perspective" — UAI 91 — categorial-perspective conjunction/disjunction of belief functions.
 - Kyburg H. (1987a) "Objective probabilities" — IJCAI-87, pp. 902-904 — invoked for axiom A1's motivation (doxastically equivalent propositions are equally credible).
 - Ruspini E.H. (1986) "The logical foundations of evidential reasoning" — SRI Technical Note 408 — logical foundations cited in support of the doxastic equivalence framework.
 - Smith C.A.B. (1961) "Consistency in statistical inference and decision" — J. Roy. Statist. Soc. B 23:1-37 — foundational consistency conditions for inference and decision; relevant for the credal/pignistic split.
+
+### Now in Collection (previously listed as leads)
+- [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md) - Complements this paper: where this paper axiomatizes the credibility function itself, Klawonn and Smets take belief functions as given and derive the update rules, showing unnormalized Dempster conditioning is the least committed specialization that zeroes the plausibility of the excluded set and that the Dempsterian specializations are the largest commuting family containing the conditioning matrices.
 
 ### Supersedes or Recontextualizes
 - (none — this paper provides foundational axiomatic justification rather than supersession)
@@ -391,7 +393,7 @@ This paper is direct foundational material for propstore's argumentation/reasoni
 - **Smets (1990b)** — pignistic transformation, in UAI 5.
 - **Smets (1991) "The Transferable Belief Model"** — already in propstore as `papers/Smets_1991_TransferableBeliefModel/`.
 - **Klawonn and Schwecke (1992)** — On the axiomatic justification of Dempster's rule of combination, Int. J. Intel. Systems 7:469-478.
-- **Klawonn and Smets (1992)** — Dynamics of belief in TBM and specialization-generalization matrices, in UAI 92.
+- **Klawonn and Smets (1992)** — Dynamics of belief in TBM and specialization-generalization matrices, in UAI 92. → NOW IN COLLECTION: [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md)
 - **Gardenfors (1988) "Knowledge in Flux"** — homomorphism and preservation properties of revision.
 - **Shafer (1976)** — Mathematical Theory of Evidence (already in propstore as `papers/Shafer_1976_MathematicalTheoryEvidence/`).
 - **Kyburg (1987a)** — objective probabilities, IJCAI-87, pp. 902-904.

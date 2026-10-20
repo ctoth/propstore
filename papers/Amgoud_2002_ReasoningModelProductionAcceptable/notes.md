@@ -236,7 +236,7 @@ This paper is directly relevant to propstore's preference-sensitive argumentatio
 ## Related Work Worth Reading
 - Dung 1995, "On the acceptability of arguments and its fundamental role in non-monotonic reasoning, logic programming and n-person games." *(p.17-18)*
 - Elvang-Goransson et al. 1993, "Dialectic reasoning with inconsistent information." *(p.18)*
-- Prakken and Sartor 1996/1997/1998 on legal reasoning, dynamic priorities, and argumentation with prioritized logic. *(p.17-18)*
+- Prakken and Sartor 1996/1997/1998 on legal reasoning, dynamic priorities, and argumentation with prioritized logic. *(p.17-18)* → NOW IN COLLECTION (1997 only): [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md)
 - Simari and Loui 1992, "A mathematical treatment of defeasible reasoning and its implementation." *(p.18)*
 - Amgoud, Parsons, and Maudet 2000, "Modelling dialogues using argumentation," for the dialogue setting the proof theory points toward. *(p.17)*
 - Amgoud, Parsons, and Prade 2000, "A dialogue framework based on argumentation," which the conclusion cites as fitting negotiation contexts. *(p.17)*
@@ -252,7 +252,10 @@ This paper is directly relevant to propstore's preference-sensitive argumentatio
 - Amgoud and Cayrol (1998) — "On the acceptability of arguments in preference-based argumentation framework" — immediate predecessor that isolates the preference-based acceptability idea this paper generalizes.
 - Amgoud, Parsons, and Perrussel (2000) — "An argumentation framework based on contextual preferences" — follow-on extension explicitly named in the conclusion as the path beyond total preorders.
 - Amgoud, Parsons, and Maudet (2000) — "Modelling dialogues using argumentation" — dialogue setting that motivates the paper's proof-theoretic game view.
-- Prakken and Sartor (1996/1997/1998) — prioritized legal-argumentation models this paper criticizes for baking priority handling into defeat.
+- Prakken and Sartor (1996/1998) — prioritized legal-argumentation models this paper criticizes for baking priority handling into defeat (the 1997 JANCL paper is now in collection; see below).
+
+### Now in Collection (previously listed as leads)
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - ref [20]. Prakken and Sartor's JANCL 1997 system: strict and defeasible rules with strong and weak negation, rebutting and undercutting attack, priorities compared over the defeasible rules relevant to each conflict, a grounded fixpoint semantics with justified/overruled/defensible arguments and a dialectical proof theory, and defeasible priorities derived inside the system. It confirms this paper's description: priorities enter the definition of defeat, and weak negation (~) provides the negation-as-failure style assumptions.
 
 ### Cited By (in Collection)
 - [[Amgoud_2011_NewApproachPreference-basedArgumentation]] — critiques this paper as the original preference-based attack-removal approach and argues that removing attacks loses essential conflict information.

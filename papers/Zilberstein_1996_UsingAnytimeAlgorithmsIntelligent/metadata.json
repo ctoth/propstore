@@ -1,0 +1,20 @@
+{
+  "cite_key": "zilberstein1996using",
+  "title": "Using Anytime Algorithms in Intelligent Systems",
+  "authors": [
+    "Shlomo Zilberstein"
+  ],
+  "year": "1996",
+  "arxiv_id": null,
+  "doi": "10.1609/aimag.v17i3.1232",
+  "abstract": "Anytime algorithms give intelligent systems the capability to trade deliberation time for quality of results. This capability is essential for successful operation in domains such as signal interpretation, real-time diagnosis and repair, and mobile robot control. What characterizes these domains is that it is not feasible (computationally) or desirable (economically) to compute the optimal answer. This article surveys the main control problems that arise when a system is composed of several anytime algorithms. These problems relate to optimal management of uncertainty and precision. After a brief introduction to anytime computation, I outline a wide range of existing solutions to the metalevel control problem and describe current work that is aimed at increasing the applicability of anytime computation.",
+  "url": "https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/1232",
+  "pdf_url": "https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/download/1232/1133",
+  "document_type": "article",
+  "bibtex": "@Article{Zilberstein1996UsingAA,\n author = {S. Zilberstein},\n booktitle = {The AI Magazine},\n journal = {AI Mag.},\n pages = {73-83},\n title = {Using Anytime Algorithms in Intelligent Systems},\n volume = {17},\n year = {1996}\n}\n",
+  "venue": "AI Magazine",
+  "venue_type": "journal",
+  "volume": "17",
+  "number": "3",
+  "pages": "73-83"
+}

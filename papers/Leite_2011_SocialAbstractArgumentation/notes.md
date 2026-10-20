@@ -180,7 +180,7 @@ This paper is directly relevant to propstore's argumentation layer because it pr
 - Matt and Toni (2008) — argument strength via a game-theoretic measure, cited as a closely related gradual approach. *(p.2288)*
 - Cayrol and Lagasquie-Schiex (2005) — graduality in argumentation, another precursor on graded valuation. *(p.2288)*
 - Dunne et al. (2011) — weighted argument systems, contrasted because it weights attacks rather than socially valued arguments. *(p.2288)*
-- Prakken and Sartor (1997) — preference-based defeasible priorities, cited as unsuitable for the authors' social-web aim. *(p.2288)*
+- Prakken and Sartor (1997) — preference-based defeasible priorities, cited as unsuitable for the authors' social-web aim. *(p.2288)* → NOW IN COLLECTION: [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md)
 
 ## Collection Cross-References
 
@@ -188,6 +188,9 @@ This paper is directly relevant to propstore's argumentation layer because it pr
 - [[Dung_1995_AcceptabilityArguments]] — cited as the abstract foundation whose attack graph is preserved while the semantics move from binary extensions to graded valuations.
 - [[Matt_2008_Game-TheoreticMeasureArgumentStrength]] — cited as a nearby gradual-semantics approach to assigning quantitative strength to arguments.
 - [[Dunne_2011_WeightedArgumentSystemsBasic]] — cited as the contrasting quantitative framework that weights attacks instead of socially weighting arguments themselves.
+
+### Now in Collection (previously listed as leads)
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - Prakken and Sartor's system resolves conflicts with rule priorities that are themselves defeasibly derived, yielding a two-valued justified/overruled/defensible classification; this paper's social-web setting instead uses graded strength from votes, which is why it sets preference-based approaches aside.
 
 ### New Leads (Not Yet in Collection)
 - Cayrol and Lagasquie-Schiex (2005) — "Graduality in argumentation" — nearby graded-semantics precursor.

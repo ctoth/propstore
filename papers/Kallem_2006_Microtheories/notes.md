@@ -274,10 +274,10 @@ The paper's warning about diamond-shaped hierarchies creating inconsistent colle
 
 ### New Leads (Not Yet in Collection)
 - Guha, R.V. (1991). "Contexts: A Formalization and Some Applications." PhD Thesis, Stanford — formal theory of contexts underlying CYC's microtheory system. Directory exists at papers/Guha_1991_ContextsFormalizationApplications/ but notes.md not yet written.
-- Buvac, S. et al. (1995). "Metamathematics of Contexts" — formal properties of context systems including contextual omniscience
 - Ramachandran, D. et al. (2005). "First-ordered Data-Type Expressions and Efficiency in a Common Sense Knowledge Base" — CYC efficiency
 
 ### Now in Collection (previously listed as leads)
+- [Metamathematics of Contexts](../Buvac_1995_MetamathematicsContexts/notes.md) - Buvač, Buvač and Mason give the propositional logic of context its metatheory: partial-assignment semantics over context sequences, a sound and complete Hilbert system (PL, K, Δ, MP, CS), correspondence results for consistent, truth and flat contexts and for Guha-style meaningless-as-false semantics, decidability via the finite model property, and representation theorems relating context models to Kripke models. Correction to the earlier lead description: the Buvac 1995 notes do not use the term "contextual omniscience"; this paper's own footnote attributes that property to Ihroni 1995 and Ihroni et al. 1998.
 - [[McCarthy_1993_FormalizingContext]] — Formalizes contexts as first-class logical objects via ist(c, p), defines lifting rules for cross-context reasoning, nonmonotonic inheritance via abnormality predicates, and transcendence for expanding limited axiomatizations. This is the formal foundation that Kallem's Cyc microtheories directly implement — the ist operator used throughout Kallem's paper originates here.
 
 ### Supersedes or Recontextualizes

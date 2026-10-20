@@ -1,0 +1,19 @@
+{
+  "cite_key": "lamport1978time",
+  "title": "Time, Clocks, and the Ordering of Events in a Distributed System",
+  "authors": [
+    "Leslie Lamport"
+  ],
+  "year": "1978",
+  "arxiv_id": null,
+  "doi": "10.1145/359545.359563",
+  "abstract": "The concept of one event happening before another in a distributed system is examined, and is shown to define a partial ordering of the events. A distributed algorithm is given for synchronizing a system of logical clocks which can be used to totally order the events. The use of the total ordering is illustrated with a method for solving synchronization problems. The algorithm is then specialized for synchronizing physical clocks, and a bound is derived on how far out of synchrony the clocks can become.",
+  "url": "https://www.semanticscholar.org/paper/593619c2a69391454eae1f5ebe75fb8fc7e77e9d",
+  "pdf_url": "https://lamport.azurewebsites.net/pubs/time-clocks.pdf",
+  "document_type": "article",
+  "bibtex": "@Article{Lamport1978TimeCA,\n author = {L. Lamport},\n booktitle = {CACM},\n journal = {Commun. ACM},\n pages = {558-565},\n title = {Time, clocks, and the ordering of events in a distributed system},\n volume = {21},\n year = {1978}\n}\n",
+  "venue": "Communications of the ACM",
+  "volume": "21",
+  "number": "7",
+  "pages": "558-565"
+}

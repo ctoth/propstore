@@ -469,6 +469,7 @@ The framework's separation of strict/defeasible rules and necessary/ordinary pre
 ## Collection Cross-References
 
 ### Already in Collection
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - in the reference list; these notes do not record where it is used in the text
 - [[Dung_1995_AcceptabilityArguments]] — The foundational abstract argumentation framework that ASPIC+ builds upon. ASPIC+ generates Dung-style AFs and applies Dung's semantics (grounded, preferred, stable extensions) to determine justified arguments. *(p.34, p.41)*
 - [[Pollock_1987_DefeasibleReasoning]] — Cited as a pioneer of defeasible reasoning with argument graphs. ASPIC+ generalizes Pollock's approach by adding explicit preference-based defeat and a framework-level separation of strict/defeasible rules. Pollock's rebutting/undercutting defeater distinction is formalized as the three attack types in ASPIC+. *(p.50, p.59)*
 - [[Reiter_1980_DefaultReasoning]] — Default logic is discussed as a related nonmonotonic formalism. ASPIC+ can model default reasoning by treating default rules as defeasible inference rules. *(p.59)*

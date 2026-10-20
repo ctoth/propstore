@@ -90,6 +90,9 @@ The paper also connects to Distributed First Order Logics (DFOL) for heterogeneo
 
 ## Collection Cross-References
 
+### Already in Collection
+- [Metamathematics of Contexts](../Buvac_1995_MetamathematicsContexts/notes.md) - ref [7] (these notes do not record where it is cited in the text). Buvač et al. keep a single modal language with `ist`, partial per-context vocabularies and a complete Hilbert system; Local Models Semantics instead uses multiple local languages and Tarskian local models related by compatibility
+
 ### Conceptual Links (not citation-based)
 
 - [A Defeasible Logic-based Framework for Contextualizing Deployed Applications](../Al-Anbaki_2019_DefeasibleLogicContextualizingApplications/notes.md) — Strong. Al-Anbaki et al.'s per-authority `D^A, D^B, …` partition of domain rules is essentially LMS's local-models partitioning, with their global priority `λ` playing the role LMS assigns to the compatibility relation — but specialised to defeasible-rule priorities rather than general inter-model constraints. The two papers are different operationalisations of the same locality+compatibility intuition: Ghidini & Giunchiglia in pure model theory, Al-Anbaki et al. in defeasible logic with `±Δ / ±δ` proof tags.

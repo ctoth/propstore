@@ -263,6 +263,7 @@ LLM-ASPIC+ (Variant 2) on MineQA: 63.0% accuracy
 ## Collection Cross-References
 
 ### Already in Collection
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - ref [7] in the reference list; these notes do not record where it is used in the text
 - [[Dung_1995_AcceptabilityArguments]] — cited as [6]; foundational AF semantics (admissible, preferred, stable, grounded extensions) that the ASPIC+ solver builds upon
 - [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — cited as [17]; the ASPIC+ tutorial paper defining the framework (strict/defeasible rules, three attack types, preference-based defeat) that LLM-ASPIC+ directly uses
 - [[Modgil_2018_GeneralAccountArgumentationPreferences]] — cited as [19]; the full technical ASPIC+ paper with complete proofs, referenced for the solver implementation

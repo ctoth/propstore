@@ -147,7 +147,7 @@ The key insight is that **the SCC structure of an AF determines information flow
 - **Baroni & Giacomin 2007 (AIJ)**: Full version of this paper with complete proofs and additional semantics.
 - **Baroni & Giacomin 2003**: Earlier version establishing the SCC decomposition idea.
 - **Pollock 1992**: Cited for grounded semantics characterization; relevant to propstore's existing Pollock-based defeat handling.
-- **Prakken & Sartor 1997**: Argument-based logic programming — connects to ASPIC+ lineage.
+- **Prakken & Sartor 1997**: Argument-based logic programming — connects to ASPIC+ lineage. → NOW IN COLLECTION: [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md)
 - **Makinson & Schlechta 1991**: Floating conclusions — the CF2 semantics is designed to handle this case.
 
 ## Collection Cross-References
@@ -163,6 +163,7 @@ The key insight is that **the SCC structure of an AF determines information flow
 - **Makinson & Schlechta 1991**: "Floating conclusions" — CF2 semantics handles this problematic case.
 
 ### Now in Collection (previously listed as leads)
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - ref [7]. A structured (logic-program-based) argumentation system with strict/defeasible rules, rebut and undercut, and priorities that are themselves defeasibly derived; its semantics is a grounded fixpoint plus credulous stable and defensible extensions, not SCC-recursive semantics.
 - [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — Full journal version of this workshop paper, providing the complete principle-based evaluation framework for extension-based argumentation semantics. Evaluates 8 semantics (including CF2 introduced here) against formal criteria: conflict-free, I-maximality, reinstatement, directionality, skepticism adequacy, and resolution adequacy. Key finding: preferred and stable are the only semantics satisfying all criteria including resolution adequacy.
 
 ### Cited By (in Collection)

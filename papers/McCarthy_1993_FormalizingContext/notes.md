@@ -241,7 +241,7 @@ This paper is foundational for propstore's context system. The ist(c, p) relatio
 ## Related Work Worth Reading
 - [McCarthy, 1987] "Generality in Artificial Intelligence" — the original context proposal this paper builds on *(p.1)*
 - [Guha, 1991] "Contexts: A Formalization and Some Applications" — R.V. Guha's PhD thesis developing these ideas further with Cyc *(p.2)*
-- [Buvac and Mason, 1993] "Propositional logic of context" — formal logic treatment, appears at same IJCAI *(p.12)*
+- [Buvac and Mason, 1993] "Propositional logic of context" — formal logic treatment, appeared at AAAI-93 (not IJCAI-93; corrected during reconcile) *(p.12)* → NOW IN COLLECTION: [Propositional Logic of Context](../Buvac_1993_PropositionalLogicContext/notes.md)
 - [Shoham, 1991] "Varieties of Context" — analyzes context as modal operator *(p.11, 13)*
 - [McCarthy and Hayes, 1969] "Some Philosophical Problems from the Standpoint of Artificial Intelligence" — foundational AI philosophy *(p.12)*
 - [Quine, 1969] "Propositional Objects" — eternal sentences concept used for decontextualization *(p.9, 13)*
@@ -255,14 +255,18 @@ This paper is foundational for propstore's context system. The ist(c, p) relatio
 
 ### New Leads (Not Yet in Collection)
 - Guha, R.V. (1991) — "Contexts: A Formalization and Some Applications" — PhD thesis, most comprehensive development of ist(c,p) formalization, directly implemented in Cyc
-- Buvac, S. and Mason, I.A. (1993) — "Propositional logic of context" — formal propositional logic treatment of contexts at same IJCAI
 - Shoham, Y. (1991) — "Varieties of Context" — analyzes ist(c,p) as a modal operator, alternative formalization perspective
 - McCarthy, J. and Buvac, S. (1998) — "Formalizing context (expanded notes)" — expanded version of this paper
+
+### Now in Collection (previously listed as leads)
+- [Propositional Logic of Context](../Buvac_1993_PropositionalLogicContext/notes.md) - Buvač and Mason, AAAI-93 (the citation's own reference list says "Proceedings of the Eleventh National Conference on Artificial Intelligence"). Gives the propositional `ist(κ, φ)` logic with per-context vocabularies, truth relative to a sequence of contexts (non-flat), `ist` read as validity over a set of partial (Bochvar) truth assignments, and a sound and complete Hilbert system, with correspondence results for consistency, flatness and truth axioms. It formalizes the propositional part of what these notes sketch; lifting rules and quantification are left to later work.
 
 ### Supersedes or Recontextualizes
 - (none)
 
 ### Cited By (in Collection)
+- [Propositional Logic of Context](../Buvac_1993_PropositionalLogicContext/notes.md) - cites McCarthy 1993 as the original `ist` proposal it gives a formal propositional logic for
+- [Metamathematics of Contexts](../Buvac_1995_MetamathematicsContexts/notes.md) - ref [18], cited for `ist` and lifting; gives the propositional context logic's metatheory (completeness, decidability, Kripke representation)
 - [[Kallem_2006_Microtheories]] — directly uses McCarthy's ist operator as the foundation of Cyc's microtheory architecture
 - [[Ghidini_2001_LocalModelsSemanticsContextual]] — cites in references as foundational work on context formalization
 

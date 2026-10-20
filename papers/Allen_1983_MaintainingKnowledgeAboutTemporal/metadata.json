@@ -1,0 +1,16 @@
+{
+  "cite_key": "allen1983maintaining",
+  "title": "Maintaining Knowledge about Temporal Intervals",
+  "authors": [
+    "James F. Allen"
+  ],
+  "year": "1983",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "The problem of representing temporal knowledge arises in many areas of computer science. In applications in which such knowledge is imprecise or relative, current representations based on date lines or time instants are inadequate. An interval-based temporal logic is introduced, together with a computationally effective reasoning algorithm based on constraint propagation. This system is notable in offering a delicate balance between expressive power and the efficiency of its deductive engine. A notion of reference intervals is introduced which captures the temporal hierarchy implicit in many domains, and which can be used to precisely control the amount of deduction performed automatically by the system. Examples are provided for a data base containing historical data, a data base used for modeling processes and process interaction, and a data base for an interactive system where the present moment is continually being updated.",
+  "url": "https://urresearch.rochester.edu/fileDownloadForInstitutionalItem.action?itemId=10182&itemFileId=22361",
+  "pdf_url": "https://urresearch.rochester.edu/fileDownloadForInstitutionalItem.action?itemId=10182&itemFileId=22361",
+  "document_type": "techreport",
+  "venue": "University of Rochester, Department of Computer Science, TR 86 (revised), October 1983",
+  "retrieval_note": "This copy is the revised tech report (title page: 'TR 86 (revised), October 1983'; p.1: 'To appear, Commun. of the ACM, 1984'), not the typeset CACM article. The published version is Communications of the ACM 26(11):832-843, DOI 10.1145/182.358434; its PDF could not be retrieved (ACM DL 403). Page citations in notes refer to this tech report's PDF pages, not CACM pages."
+}

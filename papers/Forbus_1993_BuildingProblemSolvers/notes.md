@@ -390,7 +390,7 @@ This book is directly relevant to propstore in several ways:
 - McAllester, D. "An outlook on truth maintenance." AI Memo 551, MIT, 1980. *(p.186)*
 - Reiter, R. "A theory of diagnosis from first principles." *Artificial Intelligence* 32, 1987. *(p.661)*
 - de Kleer, J. and Williams, B. "Diagnosing multiple faults." *Artificial Intelligence* 32, 1987. *(p.661)*
-- Allen, J. "Maintaining knowledge about temporal intervals." *CACM* 26, 1983. *(p.694)*
+- Allen, J. "Maintaining knowledge about temporal intervals." *CACM* 26, 1983. *(p.694)* → NOW IN COLLECTION: [Maintaining Knowledge about Temporal Intervals](../Allen_1983_MaintainingKnowledgeAboutTemporal/notes.md)
 - Waltz, D. "Understanding line drawings of scenes with shadows." In *The Psychology of Computer Vision*, 1975. *(p.694)*
 - Mackworth, A. "Consistency in networks of relations." *Artificial Intelligence* 8, 1977. *(p.694)*
 - Kalish, D. and Montague, R. *Logic: Techniques of Formal Reasoning*. Harcourt Brace, 1964. *(p.124)*
@@ -410,9 +410,11 @@ This book is directly relevant to propstore in several ways:
 
 ### New Leads (Not Yet in Collection)
 - de Kleer, J. and Williams, B. "Diagnosing multiple faults." *Artificial Intelligence* 32, 1987 — key diagnosis paper, BPS Ch17 implements a simplified version
-- Allen, J. "Maintaining knowledge about temporal intervals." *CACM* 26, 1983 — BPS Ch18 implements Allen's temporal reasoning with WALTZER
 - Mackworth, A. "Consistency in networks of relations." *Artificial Intelligence* 8, 1977 — foundational CSP/arc-consistency paper, BPS Ch18 implements these algorithms
 - Stallman, R. and Sussman, G. "Forward reasoning and dependency-directed backtracking." AI Memo 380, MIT, 1977 — original dependency-directed backtracking work predating Doyle's TMS
+
+### Now in Collection (previously listed as leads)
+- [Maintaining Knowledge about Temporal Intervals](../Allen_1983_MaintainingKnowledgeAboutTemporal/notes.md) - BPS Ch18 implements Allen's temporal reasoning with WALTZER. Allen defines the 13 mutually exclusive interval relations, stores disjunctive relation sets on network arcs, and propagates with a 12x12 transitivity table, composing label sets by union over the cross product (the same rule BPS states at p.686); his algorithm guarantees only 3-node consistency, and he adds reference intervals to bound propagation. Note the collection copy is the 1983 Rochester tech report, not the CACM typeset version BPS cites.
 
 ### Conceptual Links (not citation-based)
 - [[Dixon_1993_ATMSandAGM]] — **Strong.** Dixon proves ATMS context switching is behaviourally equivalent to AGM revision. BPS provides the definitive ATMS implementation that Dixon's theoretical results apply to. Together they bridge implementation (BPS) and theory (Dixon).

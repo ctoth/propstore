@@ -1,0 +1,4 @@
+---
+tags: [byzantine-storage, fork-consistency, tamper-evidence, distributed-reasoning]
+---
+Mazières and Shasha show how to build a multi-user network file system (SUNDR) on an untrusted server, defining fork consistency: if the server hides one user's change from another, the two can never again see each other's changes, which out-of-band communication readily exposes. They give a sufficient protocol correctness theorem and prove that SUNDR's protocols, in which each user signs a version structure recording its view of every user's version number (plus update certificates and a pending version list for concurrency), are fork consistent whether or not the server follows the protocol. For propstore this is the formal guarantee available when federated git hosts may equivocate, and a model for making divergent views permanently detectable rather than silently merged.

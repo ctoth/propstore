@@ -281,7 +281,7 @@ Output: updated bel_Theta', bel_X'
 - **Smets 1978 thesis** (ref [6], "Un modèle mathématico-statistique simulant le processus du diagnostic médical", ULB doctoral dissertation) — original derivation of DRC/GBT; deepest reference for proofs. **New lead, possibly hard to obtain.**
 - **Halpern & Fagin 1990** (ref [28], "Two views of belief: Belief as generalized probability and belief as evidence") — the alternative belief-function semantics Smets compares against. **Useful new lead.**
 - **Dubois & Prade 1986** (ref [11], "A set theoretical view of belief functions", Int. J. Gen. Syst. 12:193-226) — heavily cited; provides the dual (`b`, `q`) and proves m_12 relation.
-- **Klawonn & Smets 1992** (ref [20], UAI'92) — minimal commitment specialization-generalization; used to justify ballooning extension.
+- **Klawonn & Smets 1992** (ref [20], UAI'92) — minimal commitment specialization-generalization; used to justify ballooning extension. → NOW IN COLLECTION: [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md)
 - **Nguyen & Smets 1993** (ref [21], IJAR 8:89-104) — derivation of conditioning as minimal commitment in conditional object `B|A`.
 - **Kennes & Smets 1990** (ref [33], "Computational aspects of the Möbius transform", UAI'90) — Fast Möbius Transform implementation. **Useful for any propstore implementation.**
 
@@ -295,6 +295,9 @@ Output: updated bel_Theta', bel_X'
 - [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — ref [15] (Smets-Kennes tech report TR-IRIDIA-90-14, published as AI 1994). Cited throughout for the credal/pignistic split that DRC and GBT operate on at the credal level.
 - Smets 1991 *The Transferable Belief Model and Other Interpretations of Dempster-Shafer's Model* (`Smets_1991_TransferableBeliefModel/`, paper.pdf only, no notes yet) — ref [16]: cited for TBM as a theoretical alternative to the probabilistic interpretation of belief functions.
 - [The Nature of the Unnormalized Beliefs Encountered in the Transferable Belief Model](../Smets_1992_NatureUnnormalizedBeliefsEncountered/notes.md) — ref [19]: open-world `m(empty) > 0`, unnormalized conjunctive uniqueness. The disjunctive analogue of Smets 1992 — together they form the conjunctive+disjunctive companion pair under unnormalized TBM.
+
+### Now in Collection (previously listed as leads)
+- [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md) - ref [20]. Models TBM expansion as specialization matrices and derives unnormalized Dempster conditioning (least committed specialization zeroing pl of the excluded set) and conjunctive combination (largest commuting family containing the conditioning matrices). Its disjunctive side, generalization matrices, is stated as the dual and the disjunctive results are cited from this paper's 1991 technical-report version (Smets 1991c) rather than proved there.
 
 ### New Leads (Not Yet in Collection)
 - Pearl J. (1990) [34] — "Reasoning with belief functions: an analysis of compatibility", IJAR 4:363-390 — Pearl's compatibility critique of DS theory; Smets explicitly says GBT/DRC dissolve these counterexamples. **High priority** for any propstore implementation that mixes Bayes-style and belief-function reasoning.
@@ -310,7 +313,6 @@ Output: updated bel_Theta', bel_X'
 - Dubois D. and Prade H. (1986) [11] — "A set theoretical view of belief functions", IJGS 12:193-226 — provides the dual `(b, q)` representation and the m_12 conditioning identity used heavily in section 2.
 - Yager R. (1986) [23] — "The entailment principle for Dempster-Shafer granules", IJIS 1:247-262 — entailment-principle alternative to minimal commitment.
 - Hsia Y.-T. (1991) [27] — "Characterizing belief with minimum commitment", IJCAI 91:1184-1189 — the minimum-commitment characterization used to justify ballooning extension.
-- Klawonn F. and Smets Ph. (1992) [20] — "The dynamic of belief in the transferable belief model and specialization-generalization matrices", UAI 92 — minimal-commitment specialization-generalization machinery.
 - Nguyen T. H. and Smets Ph. (1993) [21] — "On dynamics of cautious belief and conditional objects", IJAR 8:89-104 — derivation of conditioning via minimal commitment on conditional objects.
 - Edwards A. W. F. (1972) [29] — *Likelihood*, CUP — the likelihood principle Smets's GLP generalizes.
 - Hacking I. (1965) [36] — *Logic of Statistical Inference*, CUP — the Frequency Principle Smets references.
@@ -319,6 +321,7 @@ Output: updated bel_Theta', bel_X'
 - [The Nature of the Unnormalized Beliefs Encountered in the Transferable Belief Model](../Smets_1992_NatureUnnormalizedBeliefsEncountered/notes.md) — Smets 1992 explicitly defers the disjunctive uniqueness result to this paper (footnote, p.295). The two papers form a conjunctive/disjunctive pair under unnormalized TBM.
 - [The transferable belief model](../Smets_Kennes_1994_TransferableBeliefModel/notes.md) — Smets-Kennes 1994 lists this paper (ref [48] in their bibliography) as the source of the disjunctive rule of combination and the generalized Bayesian theorem used inside the TBM operator family.
 - [Quantifying Beliefs by Belief Functions: An Axiomatic Justification](../Smets_1993_QuantifyingBeliefsBeliefFunctions/notes.md) — Smets's IJCAI-93 axiomatic-justification paper cites this IJAR paper as the companion combination/conditioning operator paper of 1993.
+- [The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices](../Klawonn_1992_DynamicBeliefTransferableBelief/notes.md) - cites the 1991 IRIDIA technical-report version (Smets 1991c, TR/IRIDIA/91-1) as the source of the disjunctive-combination results it uses for generalization matrices, without proving them itself.
 
 ### Conceptual Links (not citation-based)
 **Belief-function operator surveys / reuses:**

@@ -80,6 +80,7 @@ This paper is directly relevant if propstore needs a canonical argument identity
 ## Collection Cross-References
 
 ### This paper cites (in collection)
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - cited as [13] in the reference list; these notes do not record where it is used in the text
 - **Besnard_2001_Logic-basedTheoryDeductiveArguments** - cited as [2]. The main comparison point for support-minimal logic-based arguments.
 - **Modgil_2018_GeneralAccountArgumentationPreferences** - cited as [8] via the 2013/2018 "general account" paper. This is the core ASPIC+ reference whose notion of argument minimality is being clarified here.
 - **Pollock_1987_DefeasibleReasoning** - cited as [10]. Part of the historical background on defeasible reasoners where circularity and redundancy are already recognized as bad argument patterns.
