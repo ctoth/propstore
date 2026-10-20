@@ -117,6 +117,9 @@ def test_comprehension_binding_does_not_leak_into_enclosing_scope() -> None:
         "    except ValueError as exc:\n        return str(exc)\n",
         "def compute(x):\n    return divmod(x, 2), slice(x), object(), "
         "issubclass(int, object), OSError()\n",
+        "def helper(x):\n    return x\nclass Container:\n    pass\n"
+        "def compute(x):\n    local = lambda y: y\n"
+        "    return helper(local(x)), Container()\n",
     ],
 )
 def test_local_bindings_and_builtins_need_no_concept_declaration(
@@ -162,6 +165,31 @@ def test_local_bindings_and_builtins_need_no_concept_declaration(
         (
             "def compute():\n    nonlocal missing\n    return missing\n",
             "binding error: Invalid binding syntax",
+        ),
+        pytest.param(
+            "def compute(xs):\n    return sum(x for x in xs) + genexpr\n",
+            "unbound names: genexpr",
+            id="generator_namespace_label",
+        ),
+        pytest.param(
+            "def compute(xs):\n    return [x for x in xs], listcomp\n",
+            "unbound names: listcomp",
+            id="list_comprehension_label",
+        ),
+        pytest.param(
+            "def compute(xs):\n    return {x for x in xs}, setcomp\n",
+            "unbound names: setcomp",
+            id="set_comprehension_label",
+        ),
+        pytest.param(
+            "def compute(xs):\n    return {x: x for x in xs}, dictcomp\n",
+            "unbound names: dictcomp",
+            id="dict_comprehension_label",
+        ),
+        pytest.param(
+            "def compute(xs):\n    return (lambda x: x), lambda_\n",
+            "unbound names: lambda_",
+            id="lambda_namespace",
         ),
         pytest.param(
             "def f(x):\n    return " + "+".join(["x"] * 600) + "\n",

@@ -120,3 +120,25 @@ package-type failures are the reproduced pre-existing #303-area errors above.
   cases complete compiler/validate/build with normal quarantine and preserve the
   exact authored documents. Full-suite/type/CI final results go in the task
   response; parent owns re-review of the final paired heads.
+
+## Anonymous namespace follow-up
+- Parent's exact-head re-review identified genexpr falsely accepted due to an
+  anonymous child table conferring is_namespace=True on the unbound global.
+- Reproduced with compiler metadata only, then a real repository regression:
+  the old b4efa217 pin leaves `sum(x for x in xs) + genexpr` unblocked.
+  Log `namespace-consumer-red-20261020-145445.log` has 1 failed/32 deselected.
+- Owner now requires actual assigned/imported binding flags, preserving named
+  functions/classes and assigned lambdas. Full owner suite: 249 passed;
+  package typing: 0 errors. Exact new pin:
+  `a4680232b6e19c8952262501f80da7514af05332`.
+- Consumer regressions cover genexpr/listcomp/setcomp/dictcomp labels, lambda
+  expressions, and real named namespace bindings through compiler admission and
+  artifact-retaining quarantine. Analysis never executes authored bodies.
+- Separate CI #5 remains at d6d6904aa5fe39265ee2e54efb084ee832bf81e9, hosted
+  run 39494960286 green (220 tests, typing, builds). Do not mix this owner fix
+  with that CI branch; parent reviews/merges CI before the later #4 rebase.
+- Repinned consumer focused suite: all 33 passed (39.55s), including all label
+  cases, real named bindings, and both recursion-limit retention cases. Log:
+  `logs/test-runs/namespace-consumer-green-20261020-145658.log`.
+- Next: final full/type checks and exact-head consumer CI, then return paired
+  fix heads and the unchanged green separate CI head to parent for re-review.
