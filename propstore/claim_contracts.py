@@ -11,8 +11,8 @@ or drops a claim. It returns a report of diagnostics; the caller (a later build
 pass) decides to quarantine, never to abort. The sympy-generation semantic check
 delegates to ``human-to-sympy`` directly (``generate_sympy_rhs_with_error``), and
 algorithm parsing and free-variable analysis delegate to ``ast-equiv``.
-Dimensional checks remain declared but deferred; the report names outstanding checks
-explicitly under ``deferred_checks``.
+Dimensional checks resolve checked forms and concept bindings, then delegate
+the authored expression's algebra to Bridgman.
 """
 
 from __future__ import annotations
@@ -21,14 +21,22 @@ import ast
 from collections.abc import Sized
 from dataclasses import dataclass
 from enum import Enum
+from tokenize import TokenError
+from typing import TYPE_CHECKING
 
 from ast_equiv import AlgorithmParseError, extract_free_variables, parse_algorithm
 from condition_ir import ConceptInfo, KindType
-from human_to_sympy import generate_sympy_rhs_with_error
+from bridgman import DimensionalError, canonicalize_dims, verify_expr
+from human_to_sympy import generate_sympy_rhs_with_error, parse_symbolic
+from sympy import Eq, Symbol, SympifyError
+from sympy.core.relational import Equality
 
 from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.forms import FormDefinition
+
+if TYPE_CHECKING:
+    from propstore.compiler.context import CompilationContext
 
 
 class ClaimConceptLinkRole(str, Enum):
@@ -98,7 +106,7 @@ class SympyGenerationCheck(ClaimSemanticCheck):
 
 @dataclass(frozen=True)
 class DimensionalConsistencyCheck(ClaimSemanticCheck):
-    """Check that an equation is dimensionally consistent (bridgman, later phase)."""
+    """Check an equation against checked concept forms through Bridgman."""
 
 
 @dataclass(frozen=True)
@@ -217,6 +225,7 @@ class ClaimValidationDiagnostic:
 
     field: str | None
     message: str
+    code: str = "claim.contract"
 
 
 @dataclass(frozen=True)
@@ -345,18 +354,97 @@ def _is_present(value: object) -> bool:
     return True
 
 
+def _check_equation_dimensions(
+    claim: Claim, context: CompilationContext | None,
+) -> tuple[ClaimValidationDiagnostic, ...]:
+    """Resolve claim-owned bindings; the substrate owns all dimensional algebra."""
+    problems: list[ClaimValidationDiagnostic] = []
+    evidence: list[str] = []
+
+    def problem(code: str, detail: str) -> None:
+        problems.append(ClaimValidationDiagnostic("expression", detail, code))
+
+    if context is None:
+        problem("claim.dimension.context.missing", "dimensional evidence unavailable: no checked compilation context")
+        return tuple(problems)
+
+    def dimensions(concept_id: str | None, label: str) -> dict[str, int] | None:
+        concept = context.concepts_by_id.get(concept_id or "")
+        if concept is None:
+            problem("claim.dimension.concept.missing", f"dimensional evidence unavailable: {label}, concept {concept_id!r} is missing")
+            return None
+        entry = concept.lexical_entry
+        form_name = None if entry is None else entry.physical_dimension_form
+        form = context.form_registry.registry.get(form_name or "")
+        resolved = f"{label}, concept {concept_id!r}, form {form_name!r}"
+        if form is None:
+            problem("claim.dimension.form.missing", f"dimensional evidence unavailable: {resolved} is missing")
+            return None
+        if form.kind is not KindType.QUANTITY:
+            problem("claim.dimension.kind.invalid", f"dimensional evidence unavailable: {resolved} has non-quantity kind {form.kind.value!r}")
+            return None
+        if form.dimensions is None and not form.is_dimensionless:
+            problem("claim.dimension.signature.missing", f"dimensional evidence unavailable: {resolved} has no dimension signature")
+            return None
+        dims = canonicalize_dims(form.dimensions or {})
+        evidence.append(f"{resolved}: dimensions {dims}")
+        return dims
+
+    try:
+        parsed = parse_symbolic(
+            claim.expression or "",
+            symbol_names=tuple(variable.symbol for variable in claim.variables if variable.symbol),
+        )
+    except (SympifyError, TypeError, ValueError, SyntaxError, TokenError, RecursionError) as exc:
+        problem("claim.dimension.expression.invalid", f"dimensional expression could not be checked: {exc}")
+        return tuple(problems)
+
+    dim_map: dict[str, dict[str, int]] = {}
+    for symbol in sorted(parsed.free_symbols, key=str):
+        bindings = [variable for variable in claim.variables if variable.symbol == symbol.name]
+        if len(bindings) != 1:
+            problem("claim.dimension.binding.unavailable", f"dimensional evidence unavailable: symbol {symbol.name!r} requires one concept binding; found {len(bindings)}")
+            continue
+        binding = bindings[0]
+        dims = dimensions(binding.concept, f"symbol {symbol.name!r}, role {binding.role!r}")
+        if dims is not None:
+            dim_map[symbol.name] = dims
+
+    if not isinstance(parsed, Equality):
+        output_dims = dimensions(claim.output_concept, "output")
+        if output_dims is not None:
+            output_name = "__claim_output__"
+            while output_name in dim_map:
+                output_name += "_"
+            dim_map[output_name] = output_dims
+            parsed = Eq(Symbol(output_name), parsed, evaluate=False)
+    if problems:
+        return tuple(problems)
+
+    details = "; ".join(evidence)
+    try:
+        verified = verify_expr(parsed, dim_map)
+    except (DimensionalError, KeyError, TypeError, ValueError, RecursionError) as exc:
+        problem("claim.dimension.algebra.invalid", f"dimensional algebra failed: {exc}; {details}")
+    else:
+        if not verified:
+            problem("claim.dimension.mismatch", f"dimensionally inconsistent equation {claim.expression!r}; {details}")
+    return tuple(problems)
+
+
 def validate_claim(
     claim: Claim,
     *,
     form: FormDefinition | None = None,
     concept_info: ConceptInfo | None = None,
+    context: CompilationContext | None = None,
 ) -> ClaimValidationReport:
     """Validate a claim against its type contract; return a report (never raises).
 
     Checks required/non-empty fields, then runs the semantic checks this phase
     wires: ``SympyGenerationCheck`` delegates to ``human-to-sympy`` and
-    algorithm parsing/free-name checks delegate to ``ast-equiv``. Dimensional
-    checks are named under ``deferred_checks``.
+    algorithm parsing/free-name checks delegate to ``ast-equiv``. Equation
+    dimensions use the exact checked forms in ``context`` and Bridgman.
     """
 
     contract = claim_type_contract_for(claim.claim_type)
@@ -412,6 +500,9 @@ def validate_claim(
                         message=f"sympy generation failed: {result.error}",
                     )
                 )
+        elif isinstance(check, DimensionalConsistencyCheck):
+            if sympy_error is None:
+                diagnostics.extend(_check_equation_dimensions(claim, context))
         elif isinstance(check, AlgorithmParseCheck):
             try:
                 algorithm_tree = parse_algorithm(claim.body or "")

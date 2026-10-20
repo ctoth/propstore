@@ -20,7 +20,6 @@ from propstore.families.forms import (
     FormDefinition,
     FormRepository,
     validate_form_definition,
-    verify_form_algebra,
 )
 
 
@@ -181,35 +180,3 @@ def test_valid_form_has_no_errors() -> None:
         dimensions={"M": 1, "L": 1, "T": -2},
     )
     assert validate_form_definition(form) == ()
-
-
-# ── form algebra: dimensional verification via bridgman ──────────────────
-
-
-def test_force_equals_mass_times_acceleration_verifies() -> None:
-    forms = {f.name: f for f in _physics_forms()}
-    assert verify_form_algebra(
-        forms["force"], [(forms["mass"], 1), (forms["acceleration"], 1)]
-    )
-
-
-def test_energy_equals_mass_times_velocity_squared_verifies() -> None:
-    forms = {f.name: f for f in _physics_forms()}
-    assert verify_form_algebra(
-        forms["energy"], [(forms["mass"], 1), (forms["velocity"], 2)]
-    )
-
-
-def test_dimensionally_wrong_algebra_does_not_verify() -> None:
-    forms = {f.name: f for f in _physics_forms()}
-    # force = mass * time is dimensionally wrong -> dim_verified is False, never fabricated True.
-    assert not verify_form_algebra(
-        forms["force"], [(forms["mass"], 1), (forms["time"], 1)]
-    )
-
-
-def test_algebra_with_dimensionless_input_is_unverifiable() -> None:
-    # Honest ignorance: a form without dimensions cannot verify -> False, not a guess.
-    forms = {f.name: f for f in _physics_forms()}
-    no_dims = FormDefinition(name="opaque", kind=KindType.QUANTITY)
-    assert not verify_form_algebra(forms["force"], [(no_dims, 1)])

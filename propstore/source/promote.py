@@ -488,6 +488,7 @@ def _revalidate_promoted_claims(
         run_concept_pipeline,
     )
     from propstore.families.forms import FormDefinition
+    from propstore.families.forms_passes import FormCheckedRegistry, LoadedForm, run_form_pipeline
 
     promoted: dict[str, Claim] = {}
     unresolved: set[str] = set()
@@ -520,9 +521,15 @@ def _revalidate_promoted_claims(
         raise ValueError(f"concept validation failed during promotion: {message}")
     if not promoted:
         return {}
+    form_result = run_form_pipeline([
+        LoadedForm(form=form) for form in form_registry.values()
+    ])
+    if not isinstance(form_result.output, FormCheckedRegistry):
+        detail = "; ".join(diagnostic.message for diagnostic in form_result.diagnostics)
+        raise ValueError(f"form validation failed during promotion: {detail}")
     compilation_context = build_compilation_context(
         concept_result.output,
-        form_registry=form_registry,
+        form_registry=form_result.output,
         claims=tuple(promoted.values()),
         context_ids=master_context_ids(repo),
     )

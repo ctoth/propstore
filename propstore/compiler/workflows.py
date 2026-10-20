@@ -427,7 +427,7 @@ def _compile_repository(repo: Repository, *, commit: str | None) -> _CompiledRep
 
     compilation_context = build_compilation_context(
         concept_result.output,
-        form_registry=form_registry,
+        form_registry=form_result.output,
         claims=tuple(loaded.claim for loaded in loaded_claims),
         context_ids=context_ids,
     )
