@@ -16,10 +16,15 @@ from propstore.policies import PolicyProfile
 from propstore.reporting import json_ready
 from propstore.support_revision.explanation_types import RevisionAtomDetail
 from propstore.support_revision.operator_inputs import OperatorInput
-from propstore.support_revision.state import EpistemicState
+from propstore.support_revision.state import (
+    EpistemicState,
+    RevisionContinuationUnavailable,
+)
 
-EPistemicSnapshotVersion = "propstore.epistemic_snapshot.v2"
-TransitionJournalVersion = "propstore.transition_journal.v5"
+EPistemicSnapshotVersion = "propstore.epistemic_snapshot.v3"
+TransitionJournalVersion = "propstore.transition_journal.v6"
+_PREVIOUS_SNAPSHOT_VERSION = "propstore.epistemic_snapshot.v2"
+_PREVIOUS_JOURNAL_VERSION = "propstore.transition_journal.v5"
 
 
 class JournalOperator(Enum):
@@ -125,10 +130,17 @@ class EpistemicSnapshot(
     content_hash: str = ""
 
     def __post_init__(self) -> None:
-        if self.schema_version != EPistemicSnapshotVersion:
+        if self.schema_version not in (
+            EPistemicSnapshotVersion, _PREVIOUS_SNAPSHOT_VERSION,
+        ):
             raise ValueError(
                 f"unsupported epistemic snapshot version: {self.schema_version}"
             )
+        if (
+            self.schema_version == EPistemicSnapshotVersion
+            and self.state.inventory is None
+        ):
+            raise ValueError("snapshot v3 requires retained continuation evidence")
         computed = _stable_hash(self._hash_payload())
         if not self.content_hash:
             object.__setattr__(self, "content_hash", computed)
@@ -141,6 +153,11 @@ class EpistemicSnapshot(
         # from the live state's mutable dict fields (WS-J Step 8). Same type on
         # both ends — this is copy semantics, not a type conversion.
         return cls(
+            schema_version=(
+                _PREVIOUS_SNAPSHOT_VERSION
+                if state.inventory is None
+                else EPistemicSnapshotVersion
+            ),
             state=convert_document_value(
                 to_document_builtins(state),
                 EpistemicState,
@@ -155,6 +172,37 @@ class EpistemicSnapshot(
             dict(_required_mapping(data, "snapshot")),
             cls,
             source="epistemic snapshot",
+        )
+
+    def migrate(self, *, journal: TransitionJournal | None = None) -> EpistemicSnapshot:
+        """Create a current snapshot from evidence, leaving historical bytes intact.
+
+        A nonempty v2 snapshot alone has already lost rejected records and the
+        original ranking seed. Its complete original journal can recover them
+        by replaying the typed inputs, with new outcomes and content hashes.
+        """
+        if self.state.inventory is not None or not self.state.history:
+            inventory, initial_ids = self.state.continuation_seed()
+            return EpistemicSnapshot.from_state(
+                replace_struct(
+                    self.state, inventory=inventory, initial_atom_ids=initial_ids
+                )
+            )
+        if journal is not None:
+            integrity = journal.check_chain_integrity()
+            if not integrity.ok:
+                raise ValueError(
+                    "cannot migrate broken journal: " + "; ".join(integrity.errors)
+                )
+            for index, entry in enumerate(journal.entries):
+                if index == 0 and entry.state_in.content_hash == self.content_hash:
+                    return entry.state_in.migrate()
+                if entry.state_out.content_hash == self.content_hash:
+                    prefix = replace_struct(journal, entries=journal.entries[: index + 1])
+                    return prefix.migrate().entries[-1].state_out
+        raise RevisionContinuationUnavailable(
+            "snapshot is readable but continuation requires its complete original "
+            "transition journal, including the initial seed and this snapshot"
         )
 
     def __eq__(self, other: object) -> bool:
@@ -229,7 +277,9 @@ class TransitionJournalEntry(
     content_hash: str = ""
 
     def __post_init__(self) -> None:
-        if self.schema_version != TransitionJournalVersion:
+        if self.schema_version not in (
+            TransitionJournalVersion, _PREVIOUS_JOURNAL_VERSION,
+        ):
             raise ValueError(
                 f"unsupported transition journal version: {self.schema_version}"
             )
@@ -369,11 +419,56 @@ class TransitionJournal(
     schema_version: str = TransitionJournalVersion
 
     def __post_init__(self) -> None:
-        if self.schema_version != TransitionJournalVersion:
+        if self.schema_version not in (
+            TransitionJournalVersion, _PREVIOUS_JOURNAL_VERSION,
+        ):
             raise ValueError(
                 f"unsupported transition journal version: {self.schema_version}"
             )
         object.__setattr__(self, "entries", tuple(self.entries))
+
+    def migrate(self) -> TransitionJournal:
+        """Replay a complete historical journal into a new, current journal.
+
+        The original journal remains the immutable record of its old outcomes.
+        Migration uses its original seed, typed inputs and policy snapshots;
+        it does not claim the old kernel's outputs were current outputs.
+        """
+        from propstore.support_revision.dispatch import dispatch
+
+        integrity = self.check_chain_integrity()
+        if not integrity.ok:
+            raise ValueError(
+                "cannot migrate broken journal: " + "; ".join(integrity.errors)
+            )
+        if not self.entries:
+            return TransitionJournal()
+        state = self.entries[0].state_in.migrate().state
+        migrated: list[TransitionJournalEntry] = []
+        for entry in self.entries:
+            policy_error = _entry_event_policy_error(entry)
+            if policy_error is not None:
+                raise ValueError(policy_error)
+            next_state = dispatch(
+                entry.operator,
+                state_in=state.to_canonical_dict(),
+                operator_input=entry.operator_input,
+                policy=entry.version_policy_snapshot,
+            )
+            migrated_entry = TransitionJournalEntry.from_states(
+                state_in=state,
+                operation=entry.operation,
+                policy_id=entry.policy_id,
+                operator=entry.operator,
+                operator_input=entry.operator_input,
+                version_policy_snapshot=entry.version_policy_snapshot,
+                state_out=next_state,
+                explanation=next_state.history[-1].explanation,
+                policy_payload=entry.policy,
+            )
+            migrated.append(migrated_entry)
+            state = migrated_entry.state_out.state
+        return TransitionJournal(entries=tuple(migrated))
 
     def check_chain_integrity(self) -> ChainIntegrityReport:
         errors: list[str] = []
@@ -395,6 +490,14 @@ class TransitionJournal(
     def replay(self) -> ReplayReport:
         from propstore.support_revision.dispatch import dispatch
 
+        if self.entries and self.schema_version == _PREVIOUS_JOURNAL_VERSION:
+            return ReplayReport(
+                ok=False,
+                errors=(
+                    "historical journal is readable; call migrate().replay() to "
+                    "recompute outcomes under the current revision semantics",
+                ),
+            )
         checked: list[str] = []
         divergences: list[ReplayDivergence] = []
         errors: list[str] = []
@@ -575,7 +678,7 @@ def apply_epistemic_diff(
             raise ValueError(f"unsupported semantic diff surface: {delta.surface}")
     snapshot = EpistemicSnapshot.from_mapping(
         {
-            "schema_version": EPistemicSnapshotVersion,
+            "schema_version": source.schema_version,
             "state": state_payload,
         }
     )

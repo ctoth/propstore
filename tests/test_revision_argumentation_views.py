@@ -149,6 +149,8 @@ def _state_for_atoms(atoms, *, accepted_atom_ids: tuple[str, ...]) -> EpistemicS
     return EpistemicState(
         scope=base.scope,
         base=base,
+        inventory=base,
+        initial_atom_ids=accepted_atom_ids,
         accepted_atom_ids=accepted_atom_ids,
         ranked_atom_ids=tuple(atom.atom_id for atom in atoms),
         ranking={atom.atom_id: index for index, atom in enumerate(atoms)},

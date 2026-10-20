@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from msgspec.structs import replace
+
 from propstore.support_revision.belief_set_adapter import (
     DEFAULT_ITERATED_OPERATOR,
     DEFAULT_MAX_ALPHABET_SIZE,
@@ -34,6 +36,8 @@ def make_epistemic_state(
     return EpistemicState(
         scope=base.scope,
         base=base,
+        inventory=base,
+        initial_atom_ids=tuple(atom.atom_id for atom in base.atoms),
         accepted_atom_ids=tuple(atom.atom_id for atom in base.atoms),
         ranked_atom_ids=tuple(entrenchment.ranked_atom_ids),
         ranking={
@@ -55,6 +59,8 @@ def advance_epistemic_state(
     policy_snapshot: Mapping[str, str] | None = None,
     replay_status: str | None = None,
     realization_failure: str | None = None,
+    extra_atoms: tuple[BeliefAtom, ...] = (),
+    support_base: BeliefBase | None = None,
 ) -> EpistemicState:
     """Advance one revision episode from an old epistemic state to a new one."""
     from propstore.support_revision.history import EpistemicSnapshot
@@ -80,9 +86,49 @@ def advance_epistemic_state(
         explanation=dict(result.explanation),
         event=event,
     )
+    retained, initial_atom_ids = state.continuation_seed()
+    source_base = state.base if support_base is None else support_base
+    atoms_by_id = {atom.atom_id: atom for atom in retained.atoms}
+    for atom in (*extra_atoms, *result.revised_base.atoms):
+        atoms_by_id[atom.atom_id] = atom
+    assumptions = {
+        assumption.assumption_id: assumption
+        for assumption in (*retained.assumptions, *result.revised_base.assumptions)
+    }
+    # Untouched rejected records remain available for future realization. For
+    # current/input records, the actual operation's support model supersedes
+    # archived proofs, including the absence of a proof on a fresh expansion.
+    touched_ids = {
+        atom.atom_id
+        for atom in (*source_base.atoms, *extra_atoms, *result.revised_base.atoms)
+    }
+    inventory = replace(
+        retained,
+        scope=result.revised_base.scope,
+        atoms=tuple(atoms_by_id.values()),
+        assumptions=tuple(assumptions.values()),
+        support_sets=(
+            {
+                key: value for key, value in retained.support_sets.items()
+                if key not in touched_ids
+            }
+            | source_base.support_sets
+            | result.revised_base.support_sets
+        ),
+        essential_support=(
+            {
+                key: value for key, value in retained.essential_support.items()
+                if key not in touched_ids
+            }
+            | source_base.essential_support
+            | result.revised_base.essential_support
+        ),
+    )
     return EpistemicState(
         scope=result.revised_base.scope,
         base=result.revised_base,
+        inventory=inventory,
+        initial_atom_ids=initial_atom_ids,
         accepted_atom_ids=tuple(result.accepted_atom_ids),
         ranked_atom_ids=tuple(entrenchment.ranked_atom_ids),
         ranking={
@@ -109,14 +155,15 @@ def iterated_revise(
             parent_commits=state.scope.merge_parent_commits
         )
 
-    normalized = normalize_revision_input(state.base, atom)
+    inventory, _ = state.continuation_seed()
+    normalized = normalize_revision_input(inventory, atom)
     current_entrenchment = compute_entrenchment(None, state.base)
     conflict_items: list[tuple[str, tuple[str, ...] | list[str]]] = (
         [] if conflicts is None else list(conflicts.items())
     )
     conflict_map = {atom_id: tuple(targets) for atom_id, targets in conflict_items}
     formal_decision = decide_iterated_revise(
-        state.base,
+        state,
         normalized,
         conflicts=tuple(conflict_map.get(normalized.atom_id, ())),
         operator=operator,
@@ -125,7 +172,7 @@ def iterated_revise(
     targets = tuple(conflict_map.get(normalized.atom_id, ()))
     try:
         result = realize_formal_decision(
-            state.base,
+            inventory,
             formal_decision,
             extra_atoms=(normalized,),
             accepted_reason="revised_in",
@@ -158,6 +205,8 @@ def iterated_revise(
         target_atom_ids=targets,
         policy_snapshot=policy_snapshot,
         replay_status=replay_status,
+        extra_atoms=(normalized,),
+        support_base=inventory,
     )
     return result, next_state
 
