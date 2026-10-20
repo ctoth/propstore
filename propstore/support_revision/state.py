@@ -381,6 +381,10 @@ class RevisionEpisode(
         )
 
 
+class RevisionContinuationUnavailable(ValueError):
+    """A readable historical state lacks evidence needed for continuation."""
+
+
 class EpistemicState(
     msgspec.Struct,
     frozen=True,
@@ -392,8 +396,8 @@ class EpistemicState(
     base: BeliefBase
     # Retained records and the initial seed, together with history, determine
     # the full formal preorder. The realized base alone cannot determine it.
-    inventory: BeliefBase
-    initial_atom_ids: tuple[str, ...]
+    inventory: BeliefBase | None = None
+    initial_atom_ids: tuple[str, ...] | None = None
     accepted_atom_ids: tuple[str, ...]
     ranked_atom_ids: tuple[str, ...]
     ranking: dict[str, int] = msgspec.field(default_factory=dict[str, int])
@@ -403,7 +407,10 @@ class EpistemicState(
     history: tuple[RevisionEpisode, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "initial_atom_ids", tuple(self.initial_atom_ids))
+        if (self.inventory is None) != (self.initial_atom_ids is None):
+            raise ValueError("continuation inventory and initial seed must occur together")
+        if self.initial_atom_ids is not None:
+            object.__setattr__(self, "initial_atom_ids", tuple(self.initial_atom_ids))
         object.__setattr__(
             self,
             "accepted_atom_ids",
@@ -428,6 +435,17 @@ class EpistemicState(
             },
         )
         object.__setattr__(self, "history", tuple(self.history))
+
+    def continuation_seed(self) -> tuple[BeliefBase, tuple[str, ...]]:
+        """Return retained evidence, never infer a lost preorder from accepted atoms."""
+        if self.inventory is not None and self.initial_atom_ids is not None:
+            return self.inventory, self.initial_atom_ids
+        if not self.history:
+            return self.base, tuple(atom.atom_id for atom in self.base.atoms)
+        raise RevisionContinuationUnavailable(
+            "historical state is readable but lacks its original seed and retained "
+            "records; migrate with the complete original transition journal"
+        )
 
     def to_canonical_dict(self) -> dict[str, Any]:
         from quire.documents import to_document_builtins

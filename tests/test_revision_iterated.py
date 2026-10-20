@@ -108,7 +108,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
     )
     payload = epistemic_state_payload(next_state)
 
-    assert payload["schema_version"] == "propstore.epistemic_snapshot.v2"
+    assert payload["schema_version"] == "propstore.epistemic_snapshot.v3"
     assert payload["state"]["accepted_atom_ids"] == list(result.accepted_atom_ids)
     assert payload["state"]["history"][0]["operator"] == "contract"
     assert payload["state"]["history"][0]["incision_set"] == list(result.incision_set)
@@ -522,3 +522,92 @@ def test_transition_journal_roundtrip_keeps_formal_continuation(operator: str) -
     }
     assert journal.check_chain_integrity().ok
     assert journal.replay().ok
+
+
+@pytest.mark.parametrize("contract_first", (False, True))
+def test_explicit_same_id_record_survives_expansion_and_iteration(contract_first: bool) -> None:
+    from propstore.core.labels import EnvironmentKey, Label
+    from propstore.support_revision.dispatch import dispatch
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.history import EpistemicSnapshot, JournalOperator
+    from propstore.support_revision.iterated import make_epistemic_state
+    from propstore.support_revision.operator_inputs import ContractInput, ExpandInput, IteratedReviseInput
+
+    original = make_assertion_atom("same", source_paper="original")
+    updated = make_assertion_atom(
+        "same", source_paper="updated", label=Label((EnvironmentKey(()),))
+    )
+    base = BeliefBase(scope=RevisionScope(bindings={}), atoms=(original,))
+    initial = make_epistemic_state(base, compute_entrenchment(None, base))
+    historical = EpistemicSnapshot.from_state(initial)
+    state = initial
+    policy = {name: "v1" for name in (
+        "revision_policy_version", "ranking_policy_version", "entrenchment_policy_version",
+    )}
+    if contract_first:
+        state = dispatch(
+            JournalOperator.CONTRACT, state_in=state.to_canonical_dict(),
+            operator_input=ContractInput(targets=(original.atom_id,), max_candidates=8), policy=policy,
+        )
+    expanded = dispatch(
+        JournalOperator.EXPAND, state_in=state.to_canonical_dict(),
+        operator_input=ExpandInput(formula=updated, max_candidates=8), policy=policy,
+    )
+    final = dispatch(
+        JournalOperator.ITERATED_REVISE, state_in=expanded.to_canonical_dict(),
+        operator_input=IteratedReviseInput(
+            formula=make_assertion_atom("b"), revision_operator="lexicographic", max_candidates=8,
+        ), policy=policy,
+    )
+    for state in (expanded, final):
+        current = next(atom for atom in state.base.atoms if atom.atom_id == original.atom_id)
+        assert current == updated
+        assert state.inventory is not None
+        assert next(atom for atom in state.inventory.atoms if atom.atom_id == original.atom_id) == updated
+    assert historical.state.base.atoms == (original,)
+    assert initial.base.atoms == (original,)
+
+
+def test_expansion_without_old_support_does_not_restore_obsolete_proof() -> None:
+    from propstore.support_revision.dispatch import dispatch
+    from propstore.support_revision.entrenchment import compute_entrenchment
+    from propstore.support_revision.history import JournalOperator
+    from propstore.support_revision.iterated import make_epistemic_state
+    from propstore.support_revision.operator_inputs import ContractInput, ExpandInput, IteratedReviseInput
+
+    p = AssumptionAtom(
+        "assumption:p", AssumptionRef(assumption_id="p", kind="test", source="original", cel="true")
+    )
+    a = make_assertion_atom("supported")
+    base = BeliefBase(
+        scope=RevisionScope(bindings={}), atoms=(p, a),
+        support_sets={a.atom_id: ((p.atom_id,),)}, essential_support={a.atom_id: (p.atom_id,)},
+    )
+    initial = make_epistemic_state(base, compute_entrenchment(None, base))
+    policy = {name: "v1" for name in (
+        "revision_policy_version", "ranking_policy_version", "entrenchment_policy_version",
+    )}
+    contracted = dispatch(
+        JournalOperator.CONTRACT, state_in=initial.to_canonical_dict(),
+        operator_input=ContractInput(targets=(a.atom_id,), max_candidates=8), policy=policy,
+    )
+    assert contracted.accepted_atom_ids == ()
+    expanded = dispatch(
+        JournalOperator.EXPAND, state_in=contracted.to_canonical_dict(),
+        operator_input=ExpandInput(formula=a, max_candidates=8), policy=policy,
+    )
+    assert expanded.inventory is not None
+    assert a.atom_id not in expanded.inventory.support_sets
+    assert a.atom_id not in expanded.inventory.essential_support
+    final = dispatch(
+        JournalOperator.ITERATED_REVISE, state_in=expanded.to_canonical_dict(),
+        operator_input=IteratedReviseInput(
+            formula=make_assertion_atom("b"), revision_operator="lexicographic", max_candidates=8,
+        ), policy=policy,
+    )
+    assert a.atom_id in final.accepted_atom_ids
+    assert final.inventory is not None
+    assert a.atom_id not in final.inventory.support_sets
+    assert a.atom_id not in final.inventory.essential_support
+    assert initial.inventory is not None and initial.inventory.support_sets[a.atom_id] == ((p.atom_id,),)
+    assert contracted.inventory is not None and contracted.inventory.support_sets[a.atom_id] == ((p.atom_id,),)

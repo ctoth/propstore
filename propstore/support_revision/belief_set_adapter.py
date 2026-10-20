@@ -259,15 +259,16 @@ def _iterated_bundle(
     without a second Propstore spelling of SpohnEpistemicState. Support cuts
     remain realization outcomes, rather than extra formal observations.
     """
-    alphabet = frozenset(a.atom_id for a in (*state.inventory.atoms, atom))
+    inventory, initial_atom_ids = state.continuation_seed()
+    alphabet = frozenset(a.atom_id for a in (*inventory.atoms, atom))
     if len(alphabet) > max_alphabet_size:
         raise AlphabetBudgetExceeded(
             alphabet_size=len(alphabet), max_alphabet_size=max_alphabet_size
         )
-    initial_ids = set(state.initial_atom_ids)
+    initial_ids = set(initial_atom_ids)
     seed = replace_struct(
-        state.inventory,
-        atoms=tuple(a for a in state.inventory.atoms if a.atom_id in initial_ids),
+        inventory,
+        atoms=tuple(a for a in inventory.atoms if a.atom_id in initial_ids),
     )
     seed_bundle = project_formal_bundle(seed, max_alphabet_size=max_alphabet_size)
     formal_state = extend_state(_state_for(seed_bundle), alphabet)
@@ -279,8 +280,8 @@ def _iterated_bundle(
         epistemic_state=formal_state,
         budget_config={"max_alphabet_size": max_alphabet_size},
     )
-    base_atom_ids = state.initial_atom_ids
-    known_atom_ids = set(state.initial_atom_ids)
+    base_atom_ids = initial_atom_ids
+    known_atom_ids = set(initial_atom_ids)
     for episode in state.history:
         if episode.operator in (LEXICOGRAPHIC_OPERATOR, RESTRAINED_OPERATOR):
             if episode.input_atom_id is None:
