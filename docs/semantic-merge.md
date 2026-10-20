@@ -55,18 +55,19 @@ The literature alignment is:
 
 ## Repository Merge Object
 
-`propstore/merge/merge_classifier.py`
+`propstore/merge/merge_commit.py`
 
-### `build_merge_framework()`
+### `build_repository_merge_framework()`
 
 ```python
-def build_merge_framework(
+def build_repository_merge_framework(
     repo: Repository,
     branch_a: str,
     branch_b: str,
     *,
     integrity_constraint: IntegrityConstraint | None = None,
     additional_branches: Sequence[str] = (),
+    branch_commits: Mapping[str, str] | None = None,
 ) -> RepositoryMergeFramework
 ```
 
@@ -198,7 +199,7 @@ Currently supported semantics are:
 
 ```python
 def create_merge_commit(
-    snapshot: RepositorySnapshot,
+    repo: Repository,
     branch_a: str,
     branch_b: str,
     *,

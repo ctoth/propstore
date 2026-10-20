@@ -13,14 +13,18 @@ on the plan. Existing create_merge_commit remains the one-shot public operation;
 app captures the same plan to report the actual target lease. Inspect gains typed
 request/report and --target-branch. No overlapping merge PR (330 grades/331
 dimensions are other workers).
-First focused run: 20 passed, issue173-admission-20261020-163152.log. Final focused
-run including CLI stale-target races: 22 passed in 16.48s,
-issue173-cli-races-20261020-163331.log.
-Draft PR332 head2ceb3a820d3e79a1d208d1221767c3a9c2e53c7b; CI39509173313
-success: 2093 passed, 4 skipped, 4 warnings in 96.65s.
+First focused run20 passed; CLI race follow-up22 passed. Final actively edited
+target/nonclaim files: 84 passed in66.48s, log
+issue173-review-followup-20261020-164311.log.
+Draft PR332 source head5a0de23e5eeb5711767c66c50241a63a30ae8320;
+CI39510208189 success: 2103 passed, 4 skipped, 4 warnings in121.23s.
 Actual Claude Opus5.5 review exit0, gate complete; no admission/CAS correctness
 defect. Follow-ups: strict ancestor of only one parent (added both directions),
 preview's existing ambiguous-base refusal documented/tested, API/CLI docs updated.
+Fresh full-range Claude review at5a0de23e also found no production defect, with
+two doc-signature findings. Author's earlier imprecise patch context changed the
+wrong first-parameter snippet; fixed exact headings/definitions against source:
+repository framework owner/name/branch_commits and create_merge_commit repo arg.
 
 ## Decisions and why
 Active workflow: protocols:cleanup-refactor. The broken branch-name request to
@@ -42,9 +46,10 @@ Current CI runs aggregate logged pytest but no Pyright step. Post-publication
 package Pyright found identical 14 errors on base3a7726a and head2ceb3a82 from
 the untyped occurrences list in family transport. Added the canonical Quire
 ArtifactHandle/CharterDoc collection annotation; no behavior change, cast,
-suppression or environment modification. Pending acceptance recheck.
+suppression or environment modification. Post-publication package Pyright1.1.407
+with the existing interpreter and explicit source paths: exit0, 0errors0warnings.
 
 ## Next step
-Run actively edited focused files, publish draft/CI, and obtain actual independent
-Claude review of the PR's complete pinned range. Return exact PR/head to parent
-before merge. No issue edits.
+Publish docs-only correction, get terminal CI and resumed actual Claude
+verification/complete updated hunk ledger, then return exact PR/head to parent.
+Remain draft pending parent coordination; no merge/ready/issue edits.
