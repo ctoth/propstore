@@ -10,7 +10,9 @@ from quire import git_store
 from quire.git_store import AmbiguousMergeBaseError
 from quire.references import ForeignKeyValidationError
 
-from propstore.app.merge import MergeCommitRequest, commit_merge
+from propstore.app.merge import (
+    MergeCommitRequest, MergeInspectRequest, commit_merge, inspect_merge,
+)
 from propstore.cli import cli
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
@@ -187,7 +189,7 @@ def test_combined_reference_violation_rejects_valid_parents_before_publication(t
 
 @pytest.mark.parametrize("reverse", [False, True])
 @pytest.mark.parametrize("existing_target", [False, True])
-@pytest.mark.parametrize("entrypoint", ["owner", "app", "cli"])
+@pytest.mark.parametrize("entrypoint", ["owner", "app", "cli", "inspect", "cli-inspect"])
 def test_criss_cross_opposite_concept_resolutions_refuse_before_writes(tmp_path, reverse, existing_target, entrypoint):
     repo = init_repo(tmp_path / "knowledge")
     origin = author_concept(repo, "x", name="O")
@@ -204,8 +206,9 @@ def test_criss_cross_opposite_concept_resolutions_refuse_before_writes(tmp_path,
     objects_before = set(git.raw_repo.object_store)
     sources = ("right", "left") if reverse else ("left", "right")
     assert set(git.iter_merge_bases(left, right)) == {a, b}
-    if entrypoint == "cli":
-        result = CliRunner().invoke(cli, ["-C", str(repo.root), "merge", "commit", *sources, "--target-branch", "result"])
+    if entrypoint in ("cli", "cli-inspect"):
+        command = "inspect" if entrypoint == "cli-inspect" else "commit"
+        result = CliRunner().invoke(cli, ["-C", str(repo.root), "merge", command, *sources, "--target-branch", "result"])
         assert result.exit_code == 1
         assert "Multiple best merge bases" in result.output
         assert a in result.output and b in result.output
@@ -213,6 +216,8 @@ def test_criss_cross_opposite_concept_resolutions_refuse_before_writes(tmp_path,
         with pytest.raises(AmbiguousMergeBaseError) as caught:
             if entrypoint == "owner":
                 create_merge_commit(repo, *sources, target_branch="result")
+            elif entrypoint == "inspect":
+                inspect_merge(repo, MergeInspectRequest(*sources, target_branch="result"))
             else:
                 commit_merge(repo, MergeCommitRequest(*sources, target_branch="result"))
         assert set(caught.value.base_shas) == {a, b}

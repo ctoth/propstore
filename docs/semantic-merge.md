@@ -55,18 +55,19 @@ The literature alignment is:
 
 ## Repository Merge Object
 
-`propstore/merge/merge_classifier.py`
+`propstore/merge/merge_commit.py`
 
-### `build_merge_framework()`
+### `build_repository_merge_framework()`
 
 ```python
-def build_merge_framework(
-    snapshot: RepositorySnapshot,
+def build_repository_merge_framework(
+    repo: Repository,
     branch_a: str,
     branch_b: str,
     *,
     integrity_constraint: IntegrityConstraint | None = None,
     additional_branches: Sequence[str] = (),
+    branch_commits: Mapping[str, str] | None = None,
 ) -> RepositoryMergeFramework
 ```
 
@@ -198,11 +199,11 @@ Currently supported semantics are:
 
 ```python
 def create_merge_commit(
-    snapshot: RepositorySnapshot,
+    repo: Repository,
     branch_a: str,
     branch_b: str,
-    message: str = "",
     *,
+    message: str = "",
     target_branch: str | None = None,
 ) -> str
 ```
@@ -211,6 +212,8 @@ This creates a two-parent commit from the formal merge framework.
 
 Behavior:
 
+- `plan_merge_commit()` captures immutable left, right, and target heads once. An absent target is an explicit `None` lease; an existing target must be ancestral to at least one pinned parent, otherwise `DivergentMergeTargetError` refuses the operation before storage. An equal tree alone does not establish containment of history.
+- the plan publishes exactly its two pinned parents. Quire checks all captured heads during publication; changed inputs or a target that advances or appears produce `HeadMismatchError` with expected/actual heads, without retry or ref mutation. No third parent or target-tree overlay is added.
 - ordinary non-claim paths are reconciled by Quire against the pinned common ancestor: a one-sided addition, modification or deletion propagates, equal outcomes converge, and incompatible concurrent changes (including modify/delete) raise an explicit conflict
 - histories with multiple best common ancestors are refused with Quire's `AmbiguousMergeBaseError` before planning or writes; a hash-selected ancestor cannot establish which changes were one-sided ([Git merge-base contract](https://git-scm.com/docs/git-merge-base)). This includes equal-tree multiple bases: recursive or virtual-base semantics are not implemented.
 - only parent occurrences contributing the selected ordinary versions enter reference transport; equal selected bytes from both parents retain both commit-qualified origins and can acquire distinct rival-claim reference images
@@ -253,7 +256,8 @@ Structured merge evidence supports grounded, preferred, and stable semantics. Fo
 
 ### `pks merge inspect BRANCH_A BRANCH_B`
 
-Builds the formal merge framework and prints a YAML summary including:
+Captures the same admitted publication plan as commit, then builds the formal
+merge framework from its pinned inputs and prints a YAML summary including:
 
 - `surface: formal_merge_report`
 - `framework_type: partial_argumentation_framework`
@@ -264,6 +268,17 @@ Builds the formal merge framework and prints a YAML summary including:
 - skeptical results
 - credulous results
 - per-argument status summary
+- `plan`: exact input/target heads (and the unique merge base, if any)
+- `target_admission`: `absent` or `contained`
+
+`--target-branch NAME` selects the proposed destination (default: the primary
+branch). Inspect is read-only. An independently diverged target is a typed
+`DivergentMergeTargetError` and a CLI non-success. As a preview of the same storage
+operation, inspect also refuses multiple best common ancestors with
+`AmbiguousMergeBaseError`; it does not silently choose one by hash. The
+`build_repository_merge_framework()` query remains available independently of
+publication admission. Preview captures a snapshot, not a reservation: a later
+publication still checks its own exact-head leases.
 
 ### `pks merge commit BRANCH_A BRANCH_B`
 
@@ -274,6 +289,11 @@ Creates the two-parent storage merge commit from the same formal merge object an
 - materialized claim files grouped by source and rival origin
 - `manifest_path: merge/manifest.yaml`
 - `commit_sha`
+- `plan` and `target_admission` from the actual captured publication inputs
+
+Commit accepts the same `--target-branch` option and target admission. Divergent
+targets and stale-head CAS failures are CLI non-successes and preserve the
+existing target ref and its reachable data.
 
 ## What This Does Not Claim
 

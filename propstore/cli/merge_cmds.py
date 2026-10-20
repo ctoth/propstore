@@ -1,24 +1,19 @@
 """``pks merge`` — formal repository merge inspection and execution.
 
-Thin Click adapters (CLAUDE.md "CLI adapter discipline"): ``merge inspect``
-summarizes the formal merge framework owner-side
-(:func:`~propstore.merge.summarize_merge_framework` over
-:func:`~propstore.merge.build_repository_merge_framework`) and renders the dict;
-``merge commit`` calls the owner facade :func:`~propstore.app.merge.commit_merge`
-and renders its typed report. No merge logic lives here.
+Thin Click adapters (CLAUDE.md "CLI adapter discipline"): inspect and commit
+call the application owner and render its report, including target admission.
+No merge logic lives here.
 """
 
 from __future__ import annotations
 
 import click
 
-from propstore.app.merge import MergeCommitRequest, commit_merge
+from propstore.app.merge import (
+    MergeCommitRequest, MergeInspectRequest, commit_merge, inspect_merge,
+)
 from propstore.cli.helpers import CliContext, require_repo
 from propstore.cli.output import emit_yaml
-from propstore.merge import (
-    build_repository_merge_framework,
-    summarize_merge_framework,
-)
 
 
 @click.group()
@@ -35,15 +30,18 @@ def merge() -> None:
     default="grounded",
     show_default=True,
 )
+@click.option("--target-branch", default=None, help="Target branch for the proposed merge.")
 @click.pass_obj
-def inspect(obj: CliContext, branch_a: str, branch_b: str, semantics: str) -> None:
+def inspect(
+    obj: CliContext, branch_a: str, branch_b: str, semantics: str,
+    target_branch: str | None,
+) -> None:
     """Inspect the formal merge framework between two branches."""
     repo = require_repo(obj)
-    summary = summarize_merge_framework(
-        build_repository_merge_framework(repo, branch_a, branch_b),
-        semantics=semantics,
+    report = inspect_merge(
+        repo, MergeInspectRequest(branch_a, branch_b, semantics, target_branch)
     )
-    emit_yaml(summary)
+    emit_yaml(report.to_json())
 
 
 @merge.command("commit")
