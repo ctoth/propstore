@@ -81,8 +81,8 @@ def test_validate_equation_generates_sympy_via_human_to_sympy() -> None:
     report = validate_claim(claim)
     assert report.sympy_generated is not None
     assert report.sympy_error is None
-    # The dimensional check is declared but deferred to a later phase, explicitly.
-    assert "DimensionalConsistencyCheck" in report.deferred_checks
+    assert "DimensionalConsistencyCheck" not in report.deferred_checks
+    assert any(d.code == "claim.dimension.context.missing" for d in report.diagnostics)
 
 
 def test_validate_is_non_committal_on_bad_expression() -> None:

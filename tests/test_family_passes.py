@@ -365,9 +365,11 @@ def test_claim_pipeline_blocks_value_outside_closed_category() -> None:
         context=ConceptPipelineContext(form_registry={"category": form}),
     )
     assert isinstance(concept_result.output, ConceptCheckedRegistry)
+    form_result = run_form_pipeline([LoadedForm(form=form)])
+    assert isinstance(form_result.output, FormCheckedRegistry)
     context = build_compilation_context(
         concept_result.output,
-        form_registry={"category": form},
+        form_registry=form_result.output,
     )
     claim = Claim(
         claim_id="unknown-severity",

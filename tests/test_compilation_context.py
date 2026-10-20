@@ -31,6 +31,7 @@ from propstore.families.concepts_passes import (
     run_concept_pipeline,
 )
 from propstore.families.forms import FormDefinition
+from propstore.families.forms_passes import FormCheckedRegistry, LoadedForm, run_form_pipeline
 from propstore.repository import Repository
 
 
@@ -72,9 +73,11 @@ def test_context_from_checked_concepts_populates_tables() -> None:
     )
     assert isinstance(concept_result.output, ConceptCheckedRegistry)
     claims = [Claim(claim_id="c1")]
+    form_result = run_form_pipeline([LoadedForm(form=form) for form in forms.values()])
+    assert isinstance(form_result.output, FormCheckedRegistry)
     context = build_compilation_context(
         concept_result.output,
-        form_registry=forms,
+        form_registry=form_result.output,
         claims=claims,
         context_ids={"ctx1"},
     )
@@ -82,7 +85,8 @@ def test_context_from_checked_concepts_populates_tables() -> None:
     assert context.condition_registry["frequency"].id == "ps:concept:frequency"
     assert "c1" in context.claim_index
     assert context.context_ids == frozenset({"ctx1"})
-    assert "mass" in context.form_registry
+    assert "mass" in context.form_registry.registry
+    assert context.form_registry is form_result.output
 
 
 def test_context_from_repo_reads_concepts_and_forms(tmp_path: Path) -> None:
@@ -114,7 +118,7 @@ def test_context_from_repo_reads_concepts_and_forms(tmp_path: Path) -> None:
     )
     context = build_compilation_context_from_repo(repo)
     assert "ps:concept:frequency" in context.concepts_by_id
-    assert "mass" in context.form_registry
+    assert "mass" in context.form_registry.registry
     assert context.condition_registry["frequency"].id == "ps:concept:frequency"
 
 

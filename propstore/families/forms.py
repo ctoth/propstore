@@ -15,15 +15,13 @@ Discipline (PLAN.md §12, CLAUDE.md substrate boundary):
   contract all fall out of these field annotations (see :class:`FormRepository`).
 * ``KindType`` is imported from ``condition_ir`` and used directly — propstore
   does not mirror it.
-* Dimensional *algebra* is bridgman's: :func:`verify_form_algebra` composes
-  ``propstore.dimensions`` (which calls ``bridgman``) and never re-spells a
-  signature. Dimensionally invalid algebra is reported (``dim_verified`` False),
-  never dropped — non-commitment holds at the form layer too.
+* Dimensional *algebra* is bridgman's. Claim semantic checks consume checked
+  forms and report unavailable evidence separately from inconsistent equations.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Protocol
@@ -45,7 +43,6 @@ from sqlalchemy import select
 from propstore.dimensions import (
     ExtraUnitDefinition,
     UnitConversion,
-    dimensions_match,
 )
 
 
@@ -120,28 +117,6 @@ def validate_form_definition(form: FormDefinition) -> tuple[str, ...]:
     ):
         errors.append("non-dimensionless quantity form must have a non-zero dimension")
     return tuple(errors)
-
-
-def verify_form_algebra(
-    output: FormDefinition,
-    factors: Sequence[tuple[FormDefinition, int]],
-) -> bool:
-    """Whether ``output`` is the dimensional product of ``factors`` (form, exponent).
-
-    Verification is via bridgman's dimensional algebra (through
-    ``propstore.dimensions.dimensions_match``). When the output or any factor
-    lacks dimensions the relation is *unverifiable* — this returns ``False``
-    (``dim_verified`` is recorded, not dropped), it never fabricates a pass.
-    """
-
-    if output.dimensions is None:
-        return False
-    factor_dims: list[tuple[dict[str, int], int]] = []
-    for form_def, exponent in factors:
-        if form_def.dimensions is None:
-            return False
-        factor_dims.append((form_def.dimensions, exponent))
-    return dimensions_match(output.dimensions, factor_dims)
 
 
 @dataclass(frozen=True)

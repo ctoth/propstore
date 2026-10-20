@@ -104,17 +104,18 @@ def _check_one(
         if concept is not None and concept.lexical_entry is not None:
             form_name = concept.lexical_entry.physical_dimension_form
             if form_name is not None:
-                form = context.form_registry.get(form_name)
+                form = context.form_registry.registry.get(form_name)
                 concept_info = context.condition_registry.get(concept.canonical_name)
 
     contract_report = validate_claim(
         claim,
         form=form,
         concept_info=concept_info,
+        context=context,
     )
     for problem in contract_report.diagnostics:
         diagnostics.append(
-            _error("claim.contract", problem.message, loaded, problem.field)
+            _error(problem.code, problem.message, loaded, problem.field)
         )
 
     condition_report = check_claim_conditions(claim, context.condition_registry)

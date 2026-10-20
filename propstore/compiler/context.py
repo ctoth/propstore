@@ -25,6 +25,7 @@ from propstore.families.concepts_passes import (
     run_concept_pipeline,
 )
 from propstore.families.forms import FormDefinition
+from propstore.families.forms_passes import FormCheckedRegistry, LoadedForm, run_form_pipeline
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -34,11 +35,15 @@ if TYPE_CHECKING:
 class CompilationContext:
     """Immutable symbol tables and registries for canonical semantic compilation."""
 
-    form_registry: Mapping[str, FormDefinition]
+    form_registry: FormCheckedRegistry
     context_ids: frozenset[str]
     concepts_by_id: Mapping[str, Concept]
     claim_index: Mapping[str, Claim]
     condition_registry: Mapping[str, ConceptInfo]
+
+    def __post_init__(self) -> None:
+        if type(self.form_registry) is not FormCheckedRegistry:
+            raise TypeError("compilation context requires a FormCheckedRegistry")
 
 
 def build_compiler_claim_index(claims: Sequence[Claim]) -> dict[str, Claim]:
@@ -50,14 +55,14 @@ def build_compiler_claim_index(claims: Sequence[Claim]) -> dict[str, Claim]:
 def build_compilation_context(
     checked_concepts: ConceptCheckedRegistry,
     *,
-    form_registry: Mapping[str, FormDefinition] | None = None,
+    form_registry: FormCheckedRegistry | None = None,
     claims: Sequence[Claim] = (),
     context_ids: Iterable[str] | None = None,
 ) -> CompilationContext:
     """Build compiler symbol tables from the checked concept owner output."""
 
     return CompilationContext(
-        form_registry=MappingProxyType(dict(form_registry or {})),
+        form_registry=form_registry if form_registry is not None else FormCheckedRegistry(forms=(), registry={}),
         context_ids=frozenset(context_ids or ()),
         concepts_by_id=MappingProxyType(dict(checked_concepts.by_id)),
         claim_index=MappingProxyType(build_compiler_claim_index(claims)),
@@ -85,6 +90,12 @@ def build_compilation_context_from_repo(
             handle.document.name: handle.document
             for handle in repo.families.by_name("form").iter_handles(commit=commit)
         }
+    form_result = run_form_pipeline([
+        LoadedForm(form=form) for form in form_registry.values()
+    ])
+    if not isinstance(form_result.output, FormCheckedRegistry):
+        detail = "; ".join(diagnostic.message for diagnostic in form_result.diagnostics)
+        raise ValueError(f"form validation failed: {detail}")
     result = run_concept_pipeline(
         [LoadedConcept(concept=concept) for concept in concepts],
         context=ConceptPipelineContext(form_registry=form_registry),
@@ -94,7 +105,7 @@ def build_compilation_context_from_repo(
         raise ValueError(f"concept validation failed: {detail}")
     return build_compilation_context(
         result.output,
-        form_registry=form_registry,
+        form_registry=form_result.output,
         claims=claims,
         context_ids=context_ids,
     )
