@@ -1539,9 +1539,15 @@ class ATMSEngine:
             if not self._runtime.is_param_compatible(param):
                 continue
 
-            condition_antecedents = self._exact_antecedent_sets(
-                param.checked_conditions
-            )
+            if param.equation_claim_id is not None:
+                equation_node_id = self._claim_node_ids.get(str(param.equation_claim_id))
+                if equation_node_id is None:
+                    continue
+                condition_antecedents = [(equation_node_id,)]
+            else:
+                condition_antecedents = self._exact_antecedent_sets(
+                    param.checked_conditions
+                )
             if not condition_antecedents:
                 continue
 

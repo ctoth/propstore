@@ -177,6 +177,7 @@ class DerivedResult:
     input_values: dict[ConceptId, float] = field(default_factory=dict[ConceptId, float])
     exactness: Exactness | None = None
     label: Label | None = None
+    equation_claim_id: ClaimId | None = None
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
