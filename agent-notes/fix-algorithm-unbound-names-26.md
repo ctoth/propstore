@@ -142,3 +142,24 @@ package-type failures are the reproduced pre-existing #303-area errors above.
   `logs/test-runs/namespace-consumer-green-20261020-145658.log`.
 - Next: final full/type checks and exact-head consumer CI, then return paired
   fix heads and the unchanged green separate CI head to parent for re-review.
+
+## Reviewed owner CI integration
+- Parent authorized ready/merge of independently reviewed owner CI-only #5.
+  Exact reviewed d6d6904aa5fe39265ee2e54efb084ee832bf81e9 merged as
+  470f0907018af5c15b95f9ae8709b3129eb5416e, with source branch preserved.
+  Post-merge push run 39497808299 passed 220 tests, typing and both builds.
+- Owner fix #4 rebased cleanly onto that merge. Range-diff confirms all four
+  semantic commits unchanged. Local locked checks: 249 passed, typing zero
+  errors, source/wheel builds successful. Updated exact owner dependency:
+  cb4ff57565ba83ad779fd3191c47706a2a06e8ef.
+- Owner run 39498146784 passed at that exact head: 249 tests, package typing
+  zero errors, source/wheel builds successful.
+- Repinned consumer focused suite: 33 passed (18.24s), log
+  logs/test-runs/ci-integrated-focused-20261020-151100.log.
+- Full consumer suite: 2019 passed, 4 skipped (95.89s), log
+  logs/test-runs/ci-integrated-full-20261020-151135.log. Warnings are eight
+  FastAPI/Starlette deprecations and one local pytest cache ACL warning.
+- Package typing still reports the same 14 errors at merge_commit.py:245-266,
+  already reproduced at the clean original base; no merge-family file changed.
+- Next: push consumer and verify exact-head hosted CI. #4 and #327 remain
+  drafts pending final semantic review; no merge authorized.
