@@ -275,7 +275,7 @@ merge framework from its pinned inputs and prints a YAML summary including:
 branch). Inspect is read-only. An independently diverged target is a typed
 `DivergentMergeTargetError` and a CLI non-success. As a preview of the same storage
 operation, inspect also refuses multiple best common ancestors with
-`AmbiguousMergeBaseError`; it does not silently choose one by hash. The pure
+`AmbiguousMergeBaseError`; it does not silently choose one by hash. The
 `build_repository_merge_framework()` query remains available independently of
 publication admission. Preview captures a snapshot, not a reservation: a later
 publication still checks its own exact-head leases.
