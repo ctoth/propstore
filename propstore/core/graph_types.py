@@ -49,6 +49,7 @@ class ParameterizationEdge:
     exactness: Exactness | None = None
     conditions: tuple[CelExpr, ...] = ()
     checked_conditions: CheckedConditionSet | None = field(default=None, compare=False)
+    equation_claim_id: ClaimId | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -85,7 +86,22 @@ class CompiledWorldGraph:
         )
         object.__setattr__(self, "relations", tuple(sorted(self.relations)))
         object.__setattr__(
-            self, "parameterizations", tuple(sorted(self.parameterizations))
+            self,
+            "parameterizations",
+            tuple(
+                sorted(
+                    self.parameterizations,
+                    key=lambda edge: (
+                        edge.output_concept_id,
+                        edge.input_concept_ids,
+                        edge.formula or "",
+                        edge.sympy or "",
+                        str(edge.exactness or ""),
+                        edge.conditions,
+                        edge.equation_claim_id or "",
+                    ),
+                )
+            ),
         )
         object.__setattr__(
             self,
