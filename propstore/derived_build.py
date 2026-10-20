@@ -18,11 +18,15 @@ non-charter compute it writes is the conflict / diagnostic plan
 
 from __future__ import annotations
 
+import json
 import os
+import tomllib
+from importlib.metadata import distribution
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from quire.artifacts import UnscannablePlacementError
+from quire.canonical import canonical_json_sha256
 from quire.derived_runtime import (
     connect_sqlite_store,
     write_derived_store_schema_metadata,
@@ -56,14 +60,31 @@ if TYPE_CHECKING:
 _WORLD_PROJECTION_ID = "propstore.world"
 _WORLD_META_KEY = "sidecar"
 
-# The substrate package pins whose versions a built sidecar's contents depend on.
-# (Translated from the reference's ``_SIDECAR_CACHE_DEPENDENCIES``.)
+# Distribution names from uv.lock whose behavior contributes to checked claims,
+# conflict/diagnostic computation or charter serialization. Include the parser,
+# solver and unit-algebra dependencies used by those compilers, not CLI/web tools.
 _SIDECAR_CACHE_DEPENDENCIES = (
-    "argumentation",
     "ast-equiv",
     "bridgman",
+    "cel-parser",
+    "condition-ir",
+    "eq-equiv",
+    "flexcache",
+    "flexparser",
+    "formal-argumentation",
     "gunray",
+    "human-to-sympy",
+    "lark",
+    "mpmath",
+    "msgspec",
+    "pint",
+    "pyyaml",
     "quire",
+    "rfc8785",
+    "sqlalchemy",
+    "sqlalchemy-fts5",
+    "sympy",
+    "z3-solver",
 )
 
 # Families projected from their charters directly. The build computes these rather
@@ -79,8 +100,51 @@ _COMPUTED_FAMILIES = frozenset(
 )
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+def _sidecar_lockfile() -> Path:
+    package = Path(__file__).resolve().parent
+    bundled = package / "_compiler_dependencies.lock"
+    if bundled.is_file():
+        return bundled
+
+    # Editable/source installs use their own changing lockfile. An installed
+    # wheel must never borrow a lockfile from its surrounding environment.
+    project = package.parent / "pyproject.toml"
+    if project.is_file():
+        metadata = tomllib.loads(project.read_text(encoding="utf-8"))
+        if metadata.get("project", {}).get("name") == "propstore":
+            return package.parent / "uv.lock"
+    raise ValueError("world-sidecar compiler dependency lockfile is absent")
+
+
+def _sidecar_dependency_pins() -> dict[str, str]:
+    lockfile = _sidecar_lockfile()
+    pins = read_dependency_pins(lockfile, _SIDECAR_CACHE_DEPENDENCIES)
+    missing = set(_SIDECAR_CACHE_DEPENDENCIES).difference(pins)
+    if missing:
+        raise ValueError(
+            f"world-sidecar dependencies missing from {lockfile.name}: "
+            + ", ".join(sorted(missing))
+        )
+    if lockfile.name == "_compiler_dependencies.lock":
+        # importlib.metadata owns installed distribution identity. Preserve its
+        # direct-URL record (including Git commit IDs) without translating it
+        # into Quire's lockfile source representation. Quire owns hashing/cache.
+        for name in pins:
+            installed = distribution(name)
+            direct_url = installed.read_text("direct_url.json")
+            origin = json.loads(direct_url) if direct_url is not None else {}
+            if (
+                not installed.version
+                or origin.get("dir_info", {}).get("editable")
+                or ("vcs_info" in origin and not origin["vcs_info"].get("commit_id"))
+            ):
+                raise ValueError(
+                    f"world-sidecar installed compiler identity incomplete: {name}"
+                )
+            pins[name] = canonical_json_sha256(
+                {"version": installed.version, "direct_url": direct_url}
+            )
+    return pins
 
 
 def _family_contract_versions() -> dict[str, str]:
@@ -168,9 +232,7 @@ def world_sidecar_hash_inputs(
                 "PROPSTORE_SIDECAR_CACHE_BUST", ""
             ),
         },
-        "dependency_pins": read_dependency_pins(
-            _repo_root() / "uv.lock", _SIDECAR_CACHE_DEPENDENCIES
-        ),
+        "dependency_pins": _sidecar_dependency_pins(),
     }
 
 
@@ -192,9 +254,7 @@ def world_sidecar_hash(
     return derived_store_content_hash(
         projection_version=str(WORLD_SIDECAR_SCHEMA_VERSION),
         schema_hash=schema_hash,
-        dependencies=read_dependency_pins(
-            _repo_root() / "uv.lock", _SIDECAR_CACHE_DEPENDENCIES
-        ),
+        dependencies=_sidecar_dependency_pins(),
         extra_inputs={
             "source_revision": inputs["source_revision"],
             "source_branch_tips": inputs["source_branch_tips"],
