@@ -28,8 +28,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import msgspec
+from quire.references import (
+    ForeignKeySpec,
+    ForeignKeyValidationError,
+    validate_foreign_key,
+)
 
 from propstore.families.claims import Claim
+from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.families.merge_manifests import (
     MergeManifest,
     MergeManifestArgument,
@@ -70,6 +76,23 @@ class NonClaimMergeConflict(RuntimeError):
         return (
             f"non-claim merge conflict at {self.path!r} in family {self.family!r}: "
             f"{self.left_sha} != {self.right_sha}"
+        )
+
+
+@dataclass(frozen=True)
+class MergeReferenceConflict(RuntimeError):
+    """The proposed claim images cannot preserve an input family's reference."""
+
+    source_commit: str
+    source_family: str
+    source_ref: str
+    foreign_key: ForeignKeySpec
+    detail: str
+
+    def __str__(self) -> str:
+        return (
+            f"merge cannot preserve {self.source_family} {self.source_ref!r} "
+            f"from {self.source_commit}: {self.detail}"
         )
 
 
@@ -182,7 +205,7 @@ def _materialize_merge_arguments(
     merge: RepositoryMergeFramework,
     merged_entries: dict[str, str],
     target_branch: str,
-) -> None:
+) -> tuple[Claim, ...]:
     """Write each surviving claim alternative as a blob into ``merged_entries``.
 
     Rival versions of one ``artifact_id`` are stored under distinct ids (each
@@ -190,6 +213,7 @@ def _materialize_merge_arguments(
     pick a winner.
     """
 
+    materialized_claims: list[Claim] = []
     artifact_counts = Counter(argument.artifact_id for argument in merge.arguments)
     for argument in merge.arguments:
         has_rivals = artifact_counts[argument.artifact_id] > 1
@@ -203,6 +227,45 @@ def _materialize_merge_arguments(
         merged_entries[prepared.address.require_path()] = git.store_blob(
             prepared.content
         )
+        materialized_claims.append(prepared.document)
+    return tuple(materialized_claims)
+
+
+def _validate_claim_reference_preservation(
+    repo: Repository,
+    claims: tuple[Claim, ...],
+    source_commits: tuple[str, ...],
+) -> None:
+    """Check input FK incidence against the exact prepared claim images.
+
+    A merge's input maps must commute with FK columns (Schultz/Wisnesky,
+    Algebraic Data Integration §§3.2,4.1,6.1). Nonclaim records are retained
+    unchanged by this merge; an unresolved image therefore has no preserving
+    map. Reject before publishing rather than inventing a relation transport.
+    """
+    claim_family = Claim.__charter__.family
+    claim_index = claim_family.reference_index_from_records(claims)
+    for family in PROPSTORE_FAMILY_REGISTRY.families:
+        specs = tuple(
+            spec for spec in family.foreign_keys
+            if spec.target_family == claim_family.name
+        )
+        if not specs:
+            continue
+        bound = repo.families.by_name(family.name)
+        for source_commit in dict.fromkeys(source_commits):
+            for handle in bound.iter_handles(commit=source_commit):
+                for spec in specs:
+                    try:
+                        validate_foreign_key(spec, handle.document, claim_index)
+                    except ForeignKeyValidationError as exc:
+                        raise MergeReferenceConflict(
+                            source_commit=source_commit,
+                            source_family=family.name,
+                            source_ref=str(handle.ref),
+                            foreign_key=spec,
+                            detail=str(exc),
+                        ) from exc
 
 
 def _derive_manifest_id(
@@ -273,7 +336,9 @@ def create_merge_commit(
     materializes the surviving rival claim alternatives plus a ``MergeManifest``, and
     commits the merged entry set with ``parents=[left, right]`` onto ``target_branch``
     (default: the primary branch). Returns the merge commit sha. Raises
-    :class:`NonClaimMergeConflict` when a non-claim file diverged between the branches.
+    :class:`NonClaimMergeConflict` when a non-claim file diverged between the branches,
+    or :class:`MergeReferenceConflict` when retained evidence cannot reference the
+    proposed claim images. Neither failure advances the target branch.
     """
 
     git = repo.require_git()
@@ -294,7 +359,10 @@ def create_merge_commit(
         dict(git.iter_flat_tree_entries(left_sha)),
         dict(git.iter_flat_tree_entries(right_sha)),
     )
-    _materialize_merge_arguments(repo, git, merge, merged_entries, target_branch)
+    claims = _materialize_merge_arguments(
+        repo, git, merge, merged_entries, target_branch
+    )
+    _validate_claim_reference_preservation(repo, claims, (left_sha, right_sha))
 
     manifest = _build_manifest(merge, branch_a, branch_b)
     prepared_manifest = repo.families.merge_manifest.prepare(
@@ -314,6 +382,7 @@ def create_merge_commit(
 
 
 __all__ = [
+    "MergeReferenceConflict",
     "NonClaimMergeConflict",
     "build_repository_merge_framework",
     "create_merge_commit",
