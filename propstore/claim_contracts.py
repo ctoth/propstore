@@ -10,18 +10,19 @@ The validate workflow is non-committal (PLAN.md §12, CLAUDE.md): it never raise
 or drops a claim. It returns a report of diagnostics; the caller (a later build
 pass) decides to quarantine, never to abort. The sympy-generation semantic check
 delegates to ``human-to-sympy`` directly (``generate_sympy_rhs_with_error``), and
-algorithm parsing delegates to ``ast-equiv``. Dimensional and unbound-name
-checks remain declared but deferred; the report names those outstanding checks
+algorithm parsing and free-variable analysis delegate to ``ast-equiv``.
+Dimensional checks remain declared but deferred; the report names outstanding checks
 explicitly under ``deferred_checks``.
 """
 
 from __future__ import annotations
 
+import ast
 from collections.abc import Sized
 from dataclasses import dataclass
 from enum import Enum
 
-from ast_equiv import AlgorithmParseError, parse_algorithm
+from ast_equiv import AlgorithmParseError, extract_free_variables, parse_algorithm
 from condition_ir import ConceptInfo, KindType
 from human_to_sympy import generate_sympy_rhs_with_error
 
@@ -102,12 +103,12 @@ class DimensionalConsistencyCheck(ClaimSemanticCheck):
 
 @dataclass(frozen=True)
 class AlgorithmParseCheck(ClaimSemanticCheck):
-    """Check that an algorithm body parses (ast-equiv, later phase)."""
+    """Check that an algorithm body parses through ast-equiv."""
 
 
 @dataclass(frozen=True)
 class AlgorithmUnboundNamesCheck(ClaimSemanticCheck):
-    """Check that an algorithm body has no unbound names (ast-equiv, later phase)."""
+    """Check that an algorithm's free names have declared concept bindings."""
 
 
 @dataclass(frozen=True)
@@ -354,8 +355,8 @@ def validate_claim(
 
     Checks required/non-empty fields, then runs the semantic checks this phase
     wires: ``SympyGenerationCheck`` delegates to ``human-to-sympy`` and
-    ``AlgorithmParseCheck`` delegates to ``ast-equiv``. Dimensional and
-    unbound-name checks are named under ``deferred_checks``.
+    algorithm parsing/free-name checks delegate to ``ast-equiv``. Dimensional
+    checks are named under ``deferred_checks``.
     """
 
     contract = claim_type_contract_for(claim.claim_type)
@@ -397,6 +398,7 @@ def validate_claim(
 
     sympy_generated: str | None = None
     sympy_error: str | None = None
+    algorithm_tree: ast.Module | None = None
     deferred: list[str] = []
     for check in contract.semantic_checks:
         if isinstance(check, SympyGenerationCheck):
@@ -412,13 +414,41 @@ def validate_claim(
                 )
         elif isinstance(check, AlgorithmParseCheck):
             try:
-                parse_algorithm(claim.body or "")
-            except AlgorithmParseError as exc:
+                algorithm_tree = parse_algorithm(claim.body or "")
+            except (AlgorithmParseError, RecursionError) as exc:
                 diagnostics.append(
                     ClaimValidationDiagnostic(
                         field="body", message=f"algorithm body parse error: {exc}"
                     )
                 )
+        elif isinstance(check, AlgorithmUnboundNamesCheck):
+            if algorithm_tree is not None:
+                declared_names = {
+                    variable.name or variable.symbol
+                    for variable in claim.variables
+                    if variable.concept and (variable.name or variable.symbol)
+                }
+                try:
+                    unbound_names = sorted(
+                        extract_free_variables(algorithm_tree) - declared_names
+                    )
+                except (AlgorithmParseError, RecursionError) as exc:
+                    diagnostics.append(
+                        ClaimValidationDiagnostic(
+                            field="body", message=f"algorithm body binding error: {exc}"
+                        )
+                    )
+                    continue
+                if unbound_names:
+                    diagnostics.append(
+                        ClaimValidationDiagnostic(
+                            field="body",
+                            message=(
+                                "algorithm body has unbound names: "
+                                + ", ".join(unbound_names)
+                            ),
+                        )
+                    )
         else:
             deferred.append(type(check).__name__)
 
