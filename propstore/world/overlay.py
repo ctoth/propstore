@@ -134,7 +134,8 @@ class _GraphOverlayStore:
         # Keep licences with withdrawn premises: they still identify derived
         # conclusions, but cannot construct an argument without those premises.
         return [
-            item for item in self._base.all_justifications()
+            item
+            for item in self._base.all_justifications()
             if item.conclusion in self._claims_by_id
         ]
 

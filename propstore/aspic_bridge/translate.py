@@ -130,7 +130,9 @@ def justifications_to_rules(
             raise ValueError(
                 f"justification {justification.justification_id!r} has no conclusion"
             )
-        conclusion_key = _literal_key_for_proposition(justification.conclusion, literals)
+        conclusion_key = _literal_key_for_proposition(
+            justification.conclusion, literals
+        )
         premise_keys = tuple(
             _literal_key_for_proposition(pid, literals)
             for pid in justification.premises
@@ -169,6 +171,33 @@ def justifications_to_rules(
             )
 
     return frozenset(strict), frozenset(defeasible)
+
+
+def stances_to_support_rules(
+    stances: Sequence[StanceInput],
+    literals: dict[LiteralKey, Literal],
+) -> frozenset[Rule]:
+    """Translate corroboration relations separately from authored licences."""
+
+    rules: set[Rule] = set()
+    for stance in stances:
+        if stance.stance_type not in (StanceType.SUPPORTS, StanceType.EXPLAINS):
+            continue
+        source_key = _literal_key_for_proposition(stance.claim_id, literals)
+        target_key = _literal_key_for_proposition(stance.target_claim_id, literals)
+        if source_key in literals and target_key in literals:
+            rules.add(
+                Rule(
+                    antecedents=(literals[source_key],),
+                    consequent=literals[target_key],
+                    kind="defeasible",
+                    name=(
+                        f"relation:{stance.claim_id}:"
+                        f"{stance.stance_type.value}:{stance.target_claim_id}"
+                    ),
+                )
+            )
+    return frozenset(rules)
 
 
 def stances_to_contrariness(

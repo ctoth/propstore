@@ -31,8 +31,6 @@ def extract_stance_rows(
         if stance.source_claim_id in active_by_id
         and stance.target_claim_id in active_by_id
         and stance.stance_type in ATTACK_TYPES | SUPPORT_TYPES
-        and stance.source_claim_id is not None
-        and stance.target_claim_id is not None
         and stance.stance_type is not None
     ]
 

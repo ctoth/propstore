@@ -366,7 +366,9 @@ def _minimal_compiled_graph(
         and str(record.claim_b_id) in active_claim_ids
     )
     return CompiledWorldGraph(
-        claims=claims, stances=stances, conflicts=conflicts,
+        claims=claims,
+        stances=stances,
+        conflicts=conflicts,
         justifications=tuple(store.all_justifications()),
     )
 

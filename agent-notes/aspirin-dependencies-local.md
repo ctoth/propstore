@@ -38,7 +38,8 @@ Specific attack targets are a separate owner slice (#55), not a demo adapter.
 - No optional protocol fallback may silently omit canonical justifications.
 - Focused disposable-store regression proves stored licence use, withdrawal,
   context, competing support, and actual argumentation output.
-- Existing logged test wrapper is used; no full CI gate is run locally.
+- Existing logged test wrapper is used. The parent explicitly authorized full
+  local validation for this isolated delivery after the focused checks.
 
 ## Decisions and evidence
 Existing issue coverage: #21 reader/mirror, #55 explicit targets, #56 stance
@@ -46,7 +47,8 @@ evidence, #123 contract, #155 overlay snapshot. No duplicate issue creation.
 Old aspirin schema migration is outside scope; use fresh current charters.
 
 ## Next step
-Commit the verified slice locally and await migration/publication authorization.
+The first slice is committed as 94ddfdc95dec31264dce0efddb382e6a34d9cf7b.
+Commit the validation/review corrections locally; publication remains paused.
 Specific multi-justification attack targeting (#55) remains unresolved; do not
 claim it fixed or close that issue.
 
@@ -116,3 +118,48 @@ use the charter. No compatibility alias, adapter, migration, or old reader added
 Commit message: Read canonical justifications through world argumentation.
 The bounded #21 connection slice reached its search/runtime fixed point; the
 separate #55/#56/#123 issues remain outside this slice.
+
+## Full validation and review correction
+- The first full owner and merged-base compatibility runs found exactly three
+  resolution tests failing: their _ArgumentationWorld fixture lacked the newly
+  required all_justifications inventory. Added an empty canonical inventory to
+  that fixture, preserving the skeptical-outcome, policy-forwarding and error
+  propagation assertions. The production requirement remains mandatory.
+- Three typing findings were introduced by this slice: a private helper import
+  and two redundant None comparisons. Support-stance translation now lives in
+  the existing translation owner; redundant comparisons were removed.
+- Final full owner suite: **1832 passed, 1 skipped**, exit 0, 94.23s.
+  Log: logs/test-runs/full-owner-revised-20261019-181754.log.
+- Exact base is 24e205bac9650b562a8a1cae7b8d8edb2e6f4159. Merged #308
+  (62d4e3ad48717d793383dcf4fba2e8ce16b4a10c) and #307
+  (dac0a7262dfddc455d0367d6ad45c644a100a80f) are not ancestors of this
+  branch. A separate detached ../propstore-compat-307-308 worktree at dac0a726
+  carries only this delivery's patch, without rebasing or changing this branch.
+- Full compatibility suite: **1846 passed, 1 skipped**, exit 0, 94.78s.
+  Log in that worktree:
+  logs/test-runs/compat-307-308-revised-20261019-181758.log.
+- Owner and compatibility pyright: 0 errors, 0 warnings. Both passed ruff check
+  and import-linter (3 contracts kept, 0 broken). Owner formatting: all 611
+  files formatted. Compatibility formatting finds one unchanged base file,
+  tests/test_algorithm_parse_admission.py, introduced by 2eeca9fc2d006e5fa947b6ddfe505aaa6f974e2c
+  in the #308 history; git diff HEAD for that path is empty. It was not edited.
+- Pytest emitted a non-fatal cache warning: its pre-existing .pytest_cache
+  directories denied nodeids writes. Disposable test data used separate
+  --basetemp paths under ../test-output; no dependency installation occurred.
+- #310 head eb229b84811ef272407ce183fb4d2b8242e677ce remains excluded. It
+  is still OPEN in the final read-only GitHub metadata check. No unreviewed
+  changes from it were integrated.
+
+Commands (from each corresponding worktree):
+```powershell
+$env:PYTHONDONTWRITEBYTECODE='1'
+$env:UV_OFFLINE='1'
+$env:UV_NO_SYNC='1'
+$env:UV_CACHE_DIR='C:/Users/Q/Documents/Codex/2026-10-19/task-18/test-output/uv-cache'
+uv run --offline --no-sync --project C:/Users/Q/code/propstore python C:/Users/Q/code/propstore/scripts/run_logged_pytest.py --label full-owner-revised -- tests --basetemp=C:/Users/Q/Documents/Codex/2026-10-19/task-18/test-output/owner-revised -q
+uv run --offline --no-sync --project C:/Users/Q/code/propstore python C:/Users/Q/code/propstore/scripts/run_logged_pytest.py --label compat-307-308-revised -- tests --basetemp=C:/Users/Q/Documents/Codex/2026-10-19/task-18/test-output/compat-revised -q
+uv run --offline --no-sync --project C:/Users/Q/code/propstore pyright --pythonpath C:/Users/Q/code/propstore/.venv/Scripts/python.exe propstore
+uv run --offline --no-sync --project C:/Users/Q/code/propstore ruff check propstore tests
+uv run --offline --no-sync --project C:/Users/Q/code/propstore ruff format --check propstore tests
+uv run --offline --no-sync --project C:/Users/Q/code/propstore lint-imports --no-cache
+```

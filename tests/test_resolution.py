@@ -17,6 +17,7 @@ import pytest
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.core.scalars import ScalarValue
+from propstore.families.justifications import Justification
 from propstore.grounding.bundle import (
     GroundedRulesBundle,
     GroundingStatus,
@@ -115,6 +116,9 @@ class _ArgumentationWorld:
 
     def grounding_bundle(self) -> GroundedRulesBundle:
         return self._bundle
+
+    def all_justifications(self) -> tuple[Justification, ...]:
+        return ()
 
     def stances_between(self, claim_ids: set[str]) -> tuple[object, ...]:
         return (object(),)

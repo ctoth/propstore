@@ -49,7 +49,6 @@ from propstore.aspic_bridge.lifting_projection import (
     project_lifting_decisions,
 )
 from propstore.aspic_bridge.translate import (
-    _literal_key_for_proposition,
     StanceInput,
     build_preference_config,
     claims_to_kb,
@@ -57,6 +56,7 @@ from propstore.aspic_bridge.translate import (
     justifications_to_rules,
     preference_sensitive_stance_pairs,
     stances_to_contrariness,
+    stances_to_support_rules,
 )
 from propstore.context_lifting import LiftingDecision, LiftingDecisionStatus
 from propstore.core.active_claims import ActiveClaim
@@ -64,7 +64,6 @@ from propstore.defeasibility import arguments_concluding, inject_dung_defeats
 from propstore.families.justifications import Justification
 from propstore.core.literal_keys import LiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.stances import StanceType
 
 
 @dataclass(frozen=True)
@@ -127,24 +126,7 @@ def compile_bridge_context(
     literals = lifting_projection.literals
 
     strict_rules, defeasible_rules = justifications_to_rules(justifications, literals)
-    # Corroboration is a relation, distinct from authored inference licences.
-    for stance in stances:
-        if stance.stance_type not in (StanceType.SUPPORTS, StanceType.EXPLAINS):
-            continue
-        source_key = _literal_key_for_proposition(stance.claim_id, literals)
-        target_key = _literal_key_for_proposition(stance.target_claim_id, literals)
-        if source_key in literals and target_key in literals:
-            defeasible_rules |= frozenset(
-                {
-                    Rule(
-                        antecedents=(literals[source_key],),
-                        consequent=literals[target_key],
-                        kind="defeasible",
-                        name=(f"relation:{stance.claim_id}:"
-                              f"{stance.stance_type.value}:{stance.target_claim_id}"),
-                    )
-                }
-            )
+    defeasible_rules |= stances_to_support_rules(stances, literals)
     strict_rules |= lifting_projection.strict_rules
     defeasible_rules |= lifting_projection.defeasible_rules
 
