@@ -152,6 +152,8 @@ def make_state(
     return EpistemicState(
         scope=scope,
         base=base,
+        inventory=base,
+        initial_atom_ids=accepted_atom_ids,
         accepted_atom_ids=accepted_atom_ids,
         ranked_atom_ids=tuple(sorted(ranking, key=lambda a: ranking[a])),
         ranking=ranking,

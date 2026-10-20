@@ -4,8 +4,10 @@ import hashlib
 import json
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
+
+from msgspec.structs import replace as replace_struct
 
 from belief_set import (
     TOP,
@@ -28,6 +30,7 @@ from belief_set import (
     restrained_revise,
     revise,
 )
+from belief_set.agm import extend_state
 
 from propstore.provenance import ProvenanceStatus
 from propstore.support_revision.decision_trace import (
@@ -45,6 +48,7 @@ from propstore.support_revision.integrity_constraints import (
 from propstore.support_revision.state import (
     BeliefAtom,
     BeliefBase,
+    EpistemicState,
     FormalRevisionDecisionReport,
 )
 
@@ -203,31 +207,21 @@ def decide_revise(
 
 
 def decide_iterated_revise(
-    base: BeliefBase,
+    state: EpistemicState,
     atom: BeliefAtom,
     *,
     conflicts: tuple[str, ...] = (),
     operator: str,
     max_alphabet_size: int,
 ) -> FormalDecision:
-    bundle = project_formal_bundle(
-        base, extra_atoms=(atom,), max_alphabet_size=max_alphabet_size
-    )
+    bundle = _iterated_bundle(state, atom, max_alphabet_size=max_alphabet_size)
     formula = _revision_formula(
         bundle,
         atom.atom_id,
         conflicts,
-        base_atom_ids=tuple(base_atom.atom_id for base_atom in base.atoms),
+        base_atom_ids=tuple(base_atom.atom_id for base_atom in state.base.atoms),
     )
-    operators = {
-        LEXICOGRAPHIC_OPERATOR: lexicographic_revise,
-        RESTRAINED_OPERATOR: restrained_revise,
-    }
-    try:
-        revise_operator = operators[operator]
-    except KeyError as exc:
-        raise ValueError(f"Unsupported iterated revision operator: {operator}") from exc
-    outcome = revise_operator(
+    outcome = _iterated_operator(operator)(
         _state_for(bundle),
         formula,
         max_alphabet_size=max_alphabet_size,
@@ -238,8 +232,101 @@ def decide_iterated_revise(
         bundle=bundle,
         outcome=outcome,
         input_formula_ids=_input_formula_ids(atom.atom_id, conflicts),
+        ranking_method="hamming_seed_with_iterated_history",
     )
     return FormalDecision(bundle, outcome, "iterated_revise", report)
+
+
+def _iterated_operator(operator: str):
+    if operator == LEXICOGRAPHIC_OPERATOR:
+        return lexicographic_revise
+    if operator == RESTRAINED_OPERATOR:
+        return restrained_revise
+    raise ValueError(f"Unsupported iterated revision operator: {operator}")
+
+
+def _iterated_bundle(
+    state: EpistemicState,
+    atom: BeliefAtom,
+    *,
+    max_alphabet_size: int,
+) -> FormalProjectionBundle:
+    """Recover the canonical preorder from its seed and complete typed history.
+
+    Darwiche-Pearl Theorem 13 preserves relations between all worlds, not just
+    accepted atoms. Booth-Meyer Definition 4 transforms that previous preorder.
+    Replaying the selected operators retains it exactly across document IO,
+    without a second Propstore spelling of SpohnEpistemicState. Support cuts
+    remain realization outcomes, rather than extra formal observations.
+    """
+    alphabet = frozenset(a.atom_id for a in (*state.inventory.atoms, atom))
+    if len(alphabet) > max_alphabet_size:
+        raise AlphabetBudgetExceeded(
+            alphabet_size=len(alphabet), max_alphabet_size=max_alphabet_size
+        )
+    initial_ids = set(state.initial_atom_ids)
+    seed = replace_struct(
+        state.inventory,
+        atoms=tuple(a for a in state.inventory.atoms if a.atom_id in initial_ids),
+    )
+    seed_bundle = project_formal_bundle(seed, max_alphabet_size=max_alphabet_size)
+    formal_state = extend_state(_state_for(seed_bundle), alphabet)
+    bundle = FormalProjectionBundle(
+        alphabet=alphabet,
+        belief_set=formal_state.belief_set,
+        formula_by_atom_id={atom_id: Atom(atom_id) for atom_id in sorted(alphabet)},
+        atom_id_by_formula_name={atom_id: atom_id for atom_id in sorted(alphabet)},
+        epistemic_state=formal_state,
+        budget_config={"max_alphabet_size": max_alphabet_size},
+    )
+    base_atom_ids = state.initial_atom_ids
+    known_atom_ids = set(state.initial_atom_ids)
+    for episode in state.history:
+        if episode.operator in (LEXICOGRAPHIC_OPERATOR, RESTRAINED_OPERATOR):
+            if episode.input_atom_id is None:
+                raise ValueError("iterated revision history requires its input atom")
+            known_atom_ids.add(episode.input_atom_id)
+            formula = _revision_formula(
+                bundle,
+                episode.input_atom_id,
+                tuple(
+                    target for target in episode.target_atom_ids
+                    if target in known_atom_ids
+                ),
+                base_atom_ids=base_atom_ids,
+            )
+            formal_state = _iterated_operator(episode.operator)(
+                formal_state, formula, max_alphabet_size=max_alphabet_size
+            ).state
+        elif episode.operator in ("expand", "contract", "revise", "ic_merge"):
+            # These explicitly stateless operations return an unranked base.
+            # Its declared Hamming seed starts the next iterated sequence.
+            formal_state = extend_state(
+                _distance_ranked_state(
+                    BeliefSet.from_formula(
+                        frozenset(episode.accepted_atom_ids),
+                        conjunction(
+                            *(
+                                bundle.formula_by_atom_id[atom_id]
+                                for atom_id in episode.accepted_atom_ids
+                            )
+                        ),
+                    )
+                ),
+                alphabet,
+            )
+        else:
+            continue
+        known_atom_ids.update(episode.accepted_atom_ids)
+        if episode.input_atom_id is not None:
+            known_atom_ids.add(episode.input_atom_id)
+        base_atom_ids = episode.accepted_atom_ids
+    return replace(
+        bundle,
+        belief_set=formal_state.belief_set,
+        epistemic_state=formal_state,
+        entrenchment=EpistemicEntrenchment.from_state(formal_state),
+    )
 
 
 def decide_ic_merge(
@@ -388,6 +475,7 @@ def _decision_report(
     outcome: BeliefSet | RevisionOutcome | ICMergeOutcome | SpohnEpistemicState,
     input_formula_ids: tuple[str, ...],
     trace: DecisionTrace | None = None,
+    ranking_method: str = "hamming_distance",
 ) -> FormalRevisionDecisionReport:
     belief_set = _outcome_belief_set(outcome)
     accepted = tuple(
@@ -415,7 +503,7 @@ def _decision_report(
             if state_hash is None
             else RankingProvenance(
                 status=ProvenanceStatus.DEFAULTED,
-                method="hamming_distance",
+                method=ranking_method,
                 input_hash=state_hash,
             )
         ),

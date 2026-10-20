@@ -390,6 +390,10 @@ class EpistemicState(
 ):
     scope: RevisionScope
     base: BeliefBase
+    # Retained records and the initial seed, together with history, determine
+    # the full formal preorder. The realized base alone cannot determine it.
+    inventory: BeliefBase
+    initial_atom_ids: tuple[str, ...]
     accepted_atom_ids: tuple[str, ...]
     ranked_atom_ids: tuple[str, ...]
     ranking: dict[str, int] = msgspec.field(default_factory=dict[str, int])
@@ -399,6 +403,7 @@ class EpistemicState(
     history: tuple[RevisionEpisode, ...] = ()
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "initial_atom_ids", tuple(self.initial_atom_ids))
         object.__setattr__(
             self,
             "accepted_atom_ids",
