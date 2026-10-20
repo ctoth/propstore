@@ -7,7 +7,7 @@ focused draft PR in the verified transferred propstore/propstore repository.
 
 ## State
 Focused publication branch `demo/aspirin-dependencies-public`, integrating
-master ccc71568efa36113b38ff87cb477b10fdcee8cbc, including merged #310.
+master db85b89bf770b63514f19f420466ff87d0be0f63, including merged #309/#310.
 Runtime dependencies are the existing main checkout's installed environment;
 tests must import this worktree, with sync/network installation disabled.
 
@@ -190,3 +190,28 @@ No production adjustment was needed for the #310 integration.
 - Publication command uses the existing authenticated Git/gh route. No new
   permissions, credentials, dependency-repository writes, merge or ready
   transition are part of this delivery.
+
+## Stabilized master and published draft
+Draft PR: https://github.com/propstore/propstore/pull/311.
+The parent's last planned core merge, #309 at db85b89, is merged normally into
+this branch. No published history is rewritten. The initial offline full run
+passed 1895 tests but its wheel probe could not resolve Hatchling from the empty
+isolated build cache. Populating the project-declared build backend in this
+task's cache fixed that execution cause; the shared environment was unchanged.
+
+The new #309 JSON-origin local also produced four Unknown typing errors.
+Classification: IO-boundary-only decoded carrier, consumed entirely inside
+_sidecar_dependency_pins. Disposition: keep it at that IO boundary with an
+explicit dict[str, Any] annotation. Only canonical string pins leave the
+function; no parser mirror, fallback or runtime cache behavior was added.
+
+Final stable-base evidence:
+- Full suite: **1896 passed, 1 skipped**, exit 0, 87.24s.
+  Log: logs/test-runs/publication-owner-stable-final-20261019-191504.log.
+- Derived-build/wheel suite: **44 passed**, exit 0, 23.55s.
+  Log: logs/test-runs/publication-wheel-final-20261019-191416.log.
+- Pyright: 0 errors, 0 warnings. Ruff lint passed; 3 import contracts passed.
+- All nine demo transitions completed after the #309 merge, exit 0.
+
+Keep #311 draft and unmerged. The separate demo repository will pin this
+published owner-fix history explicitly rather than claiming it is in master.
