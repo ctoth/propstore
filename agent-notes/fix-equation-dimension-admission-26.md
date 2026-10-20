@@ -123,3 +123,25 @@ boundary through Bridgman, retaining authored claims and provenance.
   CI39515289950 passed 50 tests with typing zero. Owner review gate passed at
   exact 4caa723; parent retains final merge decision. Publish this final pin,
   obtain exact-head consumer CI/review, and do not merge or mark ready.
+- Parent follow-up found that blacklist syntax checks missed containers and
+  unpacking. Real workflow red log dimension-container-erasure-red-20261020-
+  173936.log reproduces three false acceptances and a generator NameError at
+  the earlier RHS generator. Parser now uses one positive scalar grammar before
+  evaluation in symbolic and string-result entry points. Unsupported RHS syntax
+  now fails the existing SympyGenerationCheck as claim.contract, with an explicit
+  unsupported-syntax reason; the dimension walker is never reached. No new
+  consumer parsing or broad exception catch was introduced.
+- Pin parser 8f0ec84183cc8081f75782f5cf97b681d50c03ad. Expand acceptance to
+  44 cases including both missing and incompatible generator arguments.
+- Parent separately cleared and authorized owner #14: exact 4caa723 merged to
+  maintenance/python-0.2 at 72dd4da9fa66eba7850f9a1b5b0a8c059db79b9c. Verified
+  identical reviewed/merged trees, preserved source branch, and post-merge CI
+  39516574410 green: 204 passed, package typing zero. Keep the reviewed reachable
+  owner commit pin; no Rust master adoption or unnecessary merge-SHA repin.
+- Positive-grammar owner CI39516868384 passed 117 tests and package typing zero.
+  Consumer expanded focused suite: 44 passed (46.52s), including the prior
+  generator crash and both invalid/missing comprehension arguments; authored
+  claims/provenance retention remains green. Log
+  dimension-scalar-grammar-green-20261020-174557.log. Publish the final consumer
+  delta, run hosted full CI and independent exact-head review; parser/consumer
+  remain draft and unmerged pending parent integration.

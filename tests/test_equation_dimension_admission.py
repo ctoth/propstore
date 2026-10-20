@@ -107,15 +107,20 @@ def test_dimensionally_inconsistent_equation_is_quarantined(tmp_path: Path) -> N
         ("m = (m^2)^(1/2)", "mass", None),
         ("m = m^(2/2)", "mass", None),
         ("m = sqrt(m^2)", "mass", None),
-        ("F = F or (m + t)", "force", "claim.dimension.expression.invalid"),
-        ("F = F or unknown", "force", "claim.dimension.expression.invalid"),
-        ("m = m if r else t", "mass", "claim.dimension.expression.invalid"),
-        ("m = Piecewise((m, True), (m+t, False))", "mass", "claim.dimension.expression.invalid"),
-        ("F = (F, m+t)[0]", "force", "claim.dimension.expression.invalid"),
-        ("F = [F, unknown][0]", "force", "claim.dimension.expression.invalid"),
-        ("m = (m+t).args[0]", "mass", "claim.dimension.expression.invalid"),
-        ("F = (lambda x: 0)(m+t)", "force", "claim.dimension.expression.invalid"),
-        ("F = (lambda x: 0)(unknown)", "force", "claim.dimension.expression.invalid"),
+        ("F = F or (m + t)", "force", "claim.contract"),
+        ("F = F or unknown", "force", "claim.contract"),
+        ("m = m if r else t", "mass", "claim.contract"),
+        ("m = Piecewise((m, True), (m+t, False))", "mass", "claim.contract"),
+        ("F = (F, m+t)[0]", "force", "claim.contract"),
+        ("F = [F, unknown][0]", "force", "claim.contract"),
+        ("m = (m+t).args[0]", "mass", "claim.contract"),
+        ("F = (lambda x: 0)(m+t)", "force", "claim.contract"),
+        ("F = (lambda x: 0)(unknown)", "force", "claim.contract"),
+        ("F = Max(*[F for x in (m+t,)])", "force", "claim.contract"),
+        ("F = Max(*{F: m+t})", "force", "claim.contract"),
+        ("F = Max(*[F for x in (unknown,)])", "force", "claim.contract"),
+        ("F = Max(*(F for x in (unknown,)))", "force", "claim.contract"),
+        ("F = Max(*(F for x in (m+t,)))", "force", "claim.contract"),
     ],
 )
 def test_authored_equation_operations_are_checked(
@@ -129,6 +134,8 @@ def test_authored_equation_operations_are_checked(
     entry = checked.claim_bundle.claims[0]
     assert entry.blocked is (code is not None)
     assert [problem.code for problem in entry.diagnostics] == ([] if code is None else [code])
+    if code == "claim.contract":
+        assert "unsupported authored syntax" in entry.diagnostics[0].message
     assert repo.families.claim.load(claim.claim_id) == claim
 
 
