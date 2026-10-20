@@ -29,11 +29,12 @@ to avoid that collision and imports neither it nor the lemon struct here.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
+import msgspec
 from quire.artifacts import BranchPlacement, FlatYamlPlacement
 from quire.canonical import canonical_json_sha256
 from quire.charter_class import CharterDoc, charter, charter_field
@@ -99,13 +100,42 @@ _COREFERENCE_PLACEMENT: FlatYamlPlacement[object, CoreferenceMergeArgumentRef] =
 )
 
 
+def _transport_identity(document: CoreferenceMergeArgumentDoc) -> CoreferenceMergeArgumentDoc:
+    return msgspec.structs.replace(
+        document, argument_id=derive_coreference_argument_id(document.supports)
+    )
+
+
+class CoreferenceTransportConflict(ValueError):
+    """The support-derived images cannot preserve the input argument vertices."""
+
+
+def _validate_transport(
+    originals: Sequence[CoreferenceMergeArgumentDoc],
+    images: Sequence[CoreferenceMergeArgumentDoc],
+) -> None:
+    # Dung's arguments are vertices, independent of their internal content.
+    # A quotient can turn a mutual attack into a self-attack and change the
+    # extensions. Keep the existing support-only identity and reject that loss.
+    sources: dict[str, str] = {}
+    for original, image in zip(originals, images, strict=True):
+        previous = sources.setdefault(image.argument_id, original.argument_id)
+        if previous != original.argument_id:
+            raise CoreferenceTransportConflict(
+                f"coreference transport would collapse distinct arguments "
+                f"{previous!r} and {original.argument_id!r} to {image.argument_id!r}"
+            )
+
+
 @charter(
     key="proposal_coreference",
     name="proposal_coreference",
-    contract_version="2026.07.21",
+    contract_version="2026.10.20.1",
     placement=_COREFERENCE_PLACEMENT,
     accessor="proposal_coreference",
     identity_field="argument_id",
+    transport_identity=_transport_identity,
+    validate_transport=_validate_transport,
 )
 class CoreferenceMergeArgumentDoc(CharterDoc):
     """A defeasible argument that some description claims corefer, stored as a proposal.
@@ -157,7 +187,22 @@ class CoreferenceMergeArgumentDoc(CharterDoc):
             ),
         ),
     ] = ()
-    attacks: Annotated[tuple[str, ...], charter_field(json=True)] = ()
+    attacks: Annotated[
+        tuple[str, ...],
+        charter_field(
+            json=True,
+            foreign_key=ForeignKeySpec(
+                name="coreference_attacks",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="proposal_coreference",
+                source_field="attacks[]",
+                target_family="proposal_coreference",
+                target_field="argument_id",
+                required=False,
+                many=True,
+            ),
+        ),
+    ] = ()
     note: str | None = None
 
 
