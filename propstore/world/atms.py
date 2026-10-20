@@ -50,7 +50,7 @@ from condition_ir import (
 )
 
 from propstore.claim_conditions import compile_checked_conditions
-from propstore.conflict_detector.models import ConflictRecord
+from propstore.conflict_detector.models import ConflictClass, ConflictRecord
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.anytime import EnumerationExceeded
@@ -1539,9 +1539,15 @@ class ATMSEngine:
             if not self._runtime.is_param_compatible(param):
                 continue
 
-            condition_antecedents = self._exact_antecedent_sets(
-                param.checked_conditions
-            )
+            if param.equation_claim_id is not None:
+                equation_node_id = self._claim_node_ids.get(str(param.equation_claim_id))
+                if equation_node_id is None:
+                    continue
+                condition_antecedents = [(equation_node_id,)]
+            else:
+                condition_antecedents = self._exact_antecedent_sets(
+                    param.checked_conditions
+                )
             if not condition_antecedents:
                 continue
 
@@ -1654,6 +1660,12 @@ class ATMSEngine:
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
         for conflict in self._runtime.conflicts():
+            if conflict.warning_class not in {
+                ConflictClass.CONFLICT,
+                ConflictClass.OVERLAP,
+                ConflictClass.PARAM_CONFLICT,
+            }:
+                continue
             claim_a = conflict.claim_a_id
             claim_b = conflict.claim_b_id
 

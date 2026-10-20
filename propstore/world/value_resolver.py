@@ -450,6 +450,7 @@ class ActiveClaimResolver:
             formula=param.formula,
             input_values=input_values,
             exactness=param.exactness,
+            equation_claim_id=param.equation_claim_id,
         )
 
     def _evaluate_parameterization(
