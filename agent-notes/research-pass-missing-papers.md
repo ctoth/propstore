@@ -96,10 +96,35 @@ citation drift + commit.
   papers/out.txt (a 34 KB papers/ listing written 16:51 this session).
 - Not pushed.
 
+- Q: "merge to master or main and push". Done 2026-10-19 in a temp worktree:
+  merged origin/master (23 new remote commits, no overlap) into local master
+  (which carried unpushed 24e205ba "Move root agent notes into agent-notes/"),
+  then `--no-ff` merged the research branch: merge commit 11acf9a4 (parents
+  90100cea, 6acb4028). Pushed db85b89b..11acf9a4; origin/master == master.
+  Worktree removed, main checkout back on master with Q's uncommitted changes
+  intact, branch deleted. index.md diff vs HEAD now renders as 130+/40- only
+  because Q's block precedes ours; verified byte-identical content.
+
+- Q: "make it so!" for the citation drift. Checked Diller et al. 2025 p.3
+  page image: the ground-atom definition is the §2.2 paragraph before Def. 7
+  (Def. 7 defines Datalog rules/safety); §3 grounds over the Herbrand universe
+  (all constants in the theory) — untyped, no sorts. So:
+  - `core/literal_keys.py`: authors corrected; locator now §2.2 (p.3, just
+    before Def. 7).
+  - `families/predicates.py` `validate_predicate_arg_type`: the "§3 grounder
+    enumerates only over declared sorts" claim was unsupported; docstring now
+    states what the code does (`PredicateRegistry.validate_atom`,
+    `grounding/predicates.py:191-215`, checks atom arg types vs declaration).
+  - `docs/cli-reference.md:765-768`: same unsupported claim plus García &
+    Simari 2004 §3 (its notes have no typed-argument notion; §3 pages not
+    read) — rewritten to the code's behaviour, citations dropped.
+  - Not touched: the same literal_keys.py docstring's "Modgil & Prakken 2018,
+    Def. 1 (p.8)" — known drift class (gaps.md:60 says contrariness is Def. 2
+    p.8); not verified against page images this session.
+
 ## Next step
 
-Q: push + PR, or merge to master? `.py` docstring drift waits for "make it
-so".
+Branch fix/diller-2025-citation, commit, push, PR, read CI.
 
 ## Old next step (superseded)
 
