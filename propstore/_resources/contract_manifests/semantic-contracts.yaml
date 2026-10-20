@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.10.20
+  contract_version: 2026.10.20.1
   body:
     families:
     - contract_version: 2026.07.21
@@ -194,10 +194,10 @@ contracts:
     - contract_version: 2026.07.21
       key: temporal_frame
       name: temporal_frame
-    - contract_version: 2026.07.21
+    - contract_version: 2026.10.20
       key: description_temporal_anchor
       name: description_temporal_anchor
-    - contract_version: 2026.07.21
+    - contract_version: 2026.10.20
       key: happens_before_edge
       name: happens_before_edge
     - contract_version: 2026.06.29
@@ -438,7 +438,7 @@ contracts:
     key: defeasible_rule
 - kind: family
   name: description_temporal_anchor
-  contract_version: 2026.07.21
+  contract_version: 2026.10.20
   body:
     accessor: description_temporal_anchor
     artifact_family: description_temporal_anchor
@@ -452,7 +452,7 @@ contracts:
         kind: flat-yaml
         namespace: description_temporal_anchor
         ref_field: self
-    artifact_family_contract_version: 2026.07.21
+    artifact_family_contract_version: 2026.10.20
     foreign_keys:
     - many: false
       required: false
@@ -468,6 +468,7 @@ contracts:
       target_field: frame_id
     identity_field: anchor_id
     key: description_temporal_anchor
+    transport_identity: propstore.families.temporal._transport_anchor_identity
 - kind: family
   name: form
   contract_version: 2026.06.28
@@ -510,7 +511,7 @@ contracts:
     key: grounding_build_configuration
 - kind: family
   name: happens_before_edge
-  contract_version: 2026.07.21
+  contract_version: 2026.10.20
   body:
     accessor: happens_before_edge
     artifact_family: happens_before_edge
@@ -524,7 +525,7 @@ contracts:
         kind: flat-yaml
         namespace: happens_before_edge
         ref_field: self
-    artifact_family_contract_version: 2026.07.21
+    artifact_family_contract_version: 2026.10.20
     foreign_keys:
     - many: false
       required: false
@@ -540,6 +541,7 @@ contracts:
       target_field: claim_id
     identity_field: edge_id
     key: happens_before_edge
+    transport_identity: propstore.families.temporal._transport_edge_identity
 - kind: family
   name: justification
   contract_version: 2026.10.20
@@ -1165,4 +1167,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.10.20
+  contract_version: 2026.10.20.1

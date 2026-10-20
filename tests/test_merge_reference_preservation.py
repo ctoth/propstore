@@ -19,10 +19,8 @@ from propstore.families.micropublications import MicropublicationEvidence
 from propstore.stances import StanceType
 from propstore.verify import verify_claim_tree
 from propstore.families.sources import SourceMicropublicationDocument
-from propstore.families.temporal import DescriptionTemporalAnchorDoc, HappensBeforeEdgeDoc, TemporalFrameDoc
 from propstore.families.coreference import CoreferenceMergeArgumentDoc, CoreferenceMergeArgumentRef
 from propstore.provenance import Provenance, ProvenanceStatus
-from propstore.core.lemon.temporal import HappensBeforeAccount
 from quire.family_transport import UnsupportedFamilyTransportError
 from quire.artifacts import FlatYamlPlacement
 from tests.merge_commit_helpers import author_concept, author_param_claim, init_repo
@@ -242,52 +240,31 @@ def test_micropublication_identity_preserves_source_payload_and_explicit_princip
     )
 
 
-@pytest.mark.parametrize("family", ["description_temporal_anchor", "happens_before_edge", "proposal_coreference"])
-def test_unsupported_family_identity_keeps_target_and_input_evidence(tmp_path: Path, family: str) -> None:
+def test_unsupported_coreference_identity_keeps_target_and_input_evidence(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "knowledge")
     author_concept(repo, "x")
     author_param_claim(repo, "c", "x", 250.0)
     author_param_claim(repo, "s", "x", 100.0)
     provenance = Provenance(status=ProvenanceStatus.STATED)
-    bound = repo.families.by_name(family)
-    if family == "description_temporal_anchor":
-        repo.families.temporal_frame.save(
-            "f", TemporalFrameDoc(frame_id="f", description="authored clock", provenance=provenance),
-            message="frame",
-        )
-        document = DescriptionTemporalAnchorDoc(
-            anchor_id="e", claim_id="c", frame_id="f", provenance=provenance, valid_from=2.0,
-        )
-        ref = "e"
-    elif family == "happens_before_edge":
-        document = HappensBeforeEdgeDoc(
-            edge_id="e", earlier_claim_id="s", later_claim_id="c",
-            account=HappensBeforeAccount.MESSAGE, provenance=provenance,
-        )
-        ref = "e"
-    else:
-        document = CoreferenceMergeArgumentDoc(
-            argument_id="e", supports=("s", "c"), description_claim_ids=("s", "c"),
-            provenance=provenance, note="authored proposal",
-        )
-        ref = CoreferenceMergeArgumentRef("e")
+    bound = repo.families.proposal_coreference
+    document = CoreferenceMergeArgumentDoc(
+        argument_id="e", supports=("s", "c"), description_claim_ids=("s", "c"),
+        provenance=provenance, note="authored proposal",
+    )
+    ref = CoreferenceMergeArgumentRef("e")
     # Fixed proposal placement is authored on its own branch, then the real
     # proposal tree is the starting point for both input instances.
     git = repo.require_git()
-    if family == "proposal_coreference":
-        git.create_branch("proposal/coreference", source_commit=git.branch_sha("master"))
-        bound.save(ref, document, message="evidence")
-        source = git.branch_sha("proposal/coreference")
-        git.create_branch("left", source_commit=source)
-    else:
-        bound.save(ref, document, message="evidence")
-        git.create_branch("left", source_commit=git.branch_sha("master"))
+    git.create_branch("proposal/coreference", source_commit=git.branch_sha("master"))
+    bound.save(ref, document, message="evidence")
+    source = git.branch_sha("proposal/coreference")
+    git.create_branch("left", source_commit=source)
     git.create_branch("peer", source_commit=git.branch_sha("left"))
     author_param_claim(repo, "c", "x", 300.0, branch="left")
     author_param_claim(repo, "c", "x", 150.0, branch="peer")
     left, right = git.branch_sha("left"), git.branch_sha("peer")
     git.create_branch("result", source_commit=left)
-    with pytest.raises(UnsupportedFamilyTransportError, match=family):
+    with pytest.raises(UnsupportedFamilyTransportError, match="proposal_coreference"):
         create_merge_commit(repo, "left", "peer", target_branch="result")
     assert git.branch_sha("result") == left
     for commit in (left, right):
