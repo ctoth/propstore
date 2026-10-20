@@ -327,7 +327,7 @@ def test_prechange_micropublication_owner_remains_readable_and_mergeable(tmp_pat
     assert bound.require(artifact_id, commit=original_commit) == original
 
 
-@pytest.mark.parametrize("difference", ["version", "evidence_order", "uri_spelling", "identical"])
+@pytest.mark.parametrize("difference", ["version", "evidence_order", "uri_spelling", "descendant", "identical"])
 def test_transported_bundle_cannot_overwrite_an_unchanged_normalized_path(
     tmp_path: Path, difference: str,
 ) -> None:
@@ -363,6 +363,8 @@ def test_transported_bundle_cannot_overwrite_an_unchanged_normalized_path(
         existing = msgspec.structs.replace(transported, evidence=tuple(reversed(transported.evidence)))
     elif difference == "uri_spelling":
         existing = msgspec.structs.replace(transported, artifact_id=transported.artifact_id.replace("ni:///", "ni:/", 1))
+    elif difference == "descendant":
+        existing = msgspec.structs.replace(transported, artifact_id=transported.artifact_id + ".yaml/child")
     else:
         existing = transported
     repo.families.micropublication.save(existing.artifact_id, existing, message="existing bundle image", branch="peer")
@@ -379,7 +381,7 @@ def test_transported_bundle_cannot_overwrite_an_unchanged_normalized_path(
         merged = create_merge_commit(repo, "master", "peer", target_branch="result")
     except ValueError as exc:
         assert difference != "identical"
-        assert "normalized path" in str(exc)
+        assert ("path conflict" if difference == "descendant" else "normalized path") in str(exc)
         assert git.branch_sha("result") == left
     else:
         # Inspect what was actually committed, rather than just the proposed
