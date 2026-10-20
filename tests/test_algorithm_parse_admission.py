@@ -110,13 +110,39 @@ def test_comprehension_binding_does_not_leak_into_enclosing_scope() -> None:
         "def compute(x):\n    import math\n    return math.sqrt(x)\n",
         "def compute(x):\n    from math import sqrt as root\n    return root(x)\n",
         "import math\ndef compute(x):\n    return math.sqrt(x)\n",
+        "def compute(x):\n    return math.sqrt(x)\nimport math\n",
+        "def compute(x):\n    def inner():\n        return offset\n"
+        "    offset = x\n    return inner()\n",
+        "def compute(x):\n    try:\n        return int(x)\n"
+        "    except ValueError as exc:\n        return str(exc)\n",
+        "def compute(x):\n    return divmod(x, 2), slice(x), object(), "
+        "issubclass(int, object), OSError()\n",
     ],
 )
-def test_local_bindings_and_builtins_need_no_concept_declaration(body: str) -> None:
+def test_local_bindings_and_builtins_need_no_concept_declaration(
+    body: str,
+    tmp_path: Path,
+) -> None:
     report = validate_claim(_algorithm("local", body))
 
     assert report.diagnostics == ()
     assert report.deferred_checks == ()
+
+    repo = Repository.init(tmp_path)
+    repo.families.concept.save(
+        "output",
+        Concept(concept_id="output", canonical_name="output"),
+        message="Declare output concept",
+    )
+    claim = _algorithm("local", body)
+    repo.families.claim.save("local", claim, message="Author algorithm")
+    checked = compile_repository_checked_bundle(repo, commit=None)
+    assert checked is not None
+    assert checked.claim_bundle.blocked_claims == ()
+    assert [entry.claim.claim_id for entry in checked.claim_bundle.checked_claims] == [
+        "local"
+    ]
+    assert repo.families.claim.load("local") == claim
 
 
 @pytest.mark.parametrize(
@@ -124,6 +150,29 @@ def test_local_bindings_and_builtins_need_no_concept_declaration(body: str) -> N
     [
         ("def", "parse error"),
         ("def compute(x):\n    return x + missing\n", "unbound names: missing"),
+        (
+            "def compute(x):\n    class C:\n        import math\n"
+            "    return math.sqrt(x)\n",
+            "unbound names: math",
+        ),
+        (
+            "def compute(xs):\n    xs[missing] = 0\n    return xs\n",
+            "unbound names: missing",
+        ),
+        (
+            "def compute():\n    nonlocal missing\n    return missing\n",
+            "binding error: Invalid binding syntax",
+        ),
+        pytest.param(
+            "def f(x):\n    return " + "+".join(["x"] * 600) + "\n",
+            "recursion",
+            id="analysis_limit_600",
+        ),
+        pytest.param(
+            "def f(x):\n    return " + "+".join(["x"] * 800) + "\n",
+            "recursion",
+            id="analysis_limit_800",
+        ),
     ],
 )
 def test_repository_quarantines_invalid_algorithm_and_retains_both_claims(

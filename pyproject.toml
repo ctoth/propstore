@@ -13,7 +13,7 @@ dependencies = [
     "sympy>=1.14.0",
     "z3-solver>=4.12",
     "graphviz>=0.20",
-    "ast-equiv @ git+https://github.com/ctoth/ast-equiv@f27924d993ac91d469f52bae08707b5b2afde89b",
+    "ast-equiv @ git+https://github.com/ctoth/ast-equiv@b4efa217744b5dc93cb69dd18e15e50e0213374b",
     "eq-equiv @ git+https://github.com/ctoth/eq-equiv@9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6",
     "human-to-sympy @ git+https://github.com/ctoth/human-to-sympy@f9d67dd54cb1e5e1c0ef9d67094606eb3497cfd7",
     "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@978b10edb8eaf106f64cd760cfeedce1c3cbb237",

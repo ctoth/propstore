@@ -187,7 +187,7 @@ source = { git = "https://github.com/propstore/assignment-selection.git?rev=5816
 [[package]]
 name = "ast-equiv"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/ast-equiv?rev=f27924d993ac91d469f52bae08707b5b2afde89b#f27924d993ac91d469f52bae08707b5b2afde89b" }
+source = { git = "https://github.com/ctoth/ast-equiv?rev=b4efa217744b5dc93cb69dd18e15e50e0213374b#b4efa217744b5dc93cb69dd18e15e50e0213374b" }
 dependencies = [
     { name = "sympy" },
 ]
@@ -1819,7 +1819,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "assignment-selection", git = "https://github.com/propstore/assignment-selection.git?rev=5816c20b8247898fa96e02e6e42e66b69987dfc7" },
-    { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=f27924d993ac91d469f52bae08707b5b2afde89b" },
+    { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=b4efa217744b5dc93cb69dd18e15e50e0213374b" },
     { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=5eb6118bb2e346122aae6f7e3e9cd8581ec6c781" },
     { name = "calibration", git = "https://github.com/ctoth/calibration?rev=aa8e0625d41108cec245eead06cfbba847cc0458" },
     { name = "causal-models", git = "https://github.com/ctoth/causal-models?rev=21d6b1e341c42ae4db57309bab48f1994a9d734f" },

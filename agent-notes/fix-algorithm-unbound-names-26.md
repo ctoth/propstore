@@ -76,3 +76,47 @@ package-type failures are the reproduced pre-existing #303-area errors above.
 - `logs/test-runs/issue26-unbound-full-20261020-135257.log`
 - `logs/test-runs/issue26-final-focused-20261020-140136.log`
 - `logs/test-runs/issue26-final-full-20261020-140132.log`
+
+## Review correction
+- Parent requested reproduction of five source-traced findings against old heads
+  `8f3d87945d6606d106250c31cb154f35578fa02e` / ast-equiv
+  `f27924d993ac91d469f52bae08707b5b2afde89b`. All five were reproduced by owner
+  tests: 11 failed/1 passed. Do not treat the old passing suite as scope evidence.
+- The owner fix deletes the custom scope visitor and queries Python's symtable
+  compiler analysis. This fixes class isolation, store subscript loads, lexical
+  bindings independent of statement order, exception aliases, and builtins.
+  Runtime reachability/definite-assignment analysis remains outside the contract.
+- Exact updated owner pin: `88525a0707b6af18efa2923206527ca645f52200`, pushed
+  to existing draft ast-equiv #4. Owner full suite: 242 passed; typing: 0 errors.
+- Propstore catches the owner's typed binding-syntax error through existing body
+  diagnostics, including a real repository invalid-nonlocal regression.
+- Expanded admission suite: 25 passed in 12.21s, with real repository coverage
+  for both newly rejected and newly admitted cases. Full checks are running.
+- Latest focused log: `logs/test-runs/review-admission-focused-20261020-142125.log`.
+- No edits to existing PR descriptions; both PRs remain draft. Next: finish full
+  checks, commit/push Propstore, read exact-head CI, and return both full SHAs for
+  parent re-review. No merge or ready transition is authorized.
+- Final owner pin supersedes the intermediate `88525a0` pin above:
+  `b4efa217744b5dc93cb69dd18e15e50e0213374b`. Complete builtin lookup is confined
+  to free-name analysis; existing positional-renaming policy is preserved after
+  a directly reproduced comparison regression. Final owner full suite: 243
+  passed; typing: 0 errors.
+- Propstore full suite on the intermediate owner pin passed 2011 tests with
+  4 skipped; final owner pin validation is next. Typing still reports exactly the
+  same 14 baseline merge-code errors, with no merge-family changes.
+- Claude review report at `task-13/propstore-history/reports/algorithm-327-ast4-adjudication.md`
+  supplied a sixth case: a valid 600-term addition body aborts compilation with
+  RecursionError. Reproduced on final owner b4efa21: 1221 bytes, parses as Module,
+  recursion limit 1000, ast.unparse raises through validate_claim. Real repository
+  regressions for 600 and 800 operands both failed with uncaught RecursionError
+  (`review-recursion-red-20261020-142947.log`).
+- Smallest correction: add RecursionError to the existing expected exception
+  handling for parse and binding checks, matching app/claims.py:99 and conflict
+  algorithms.py:77. Keep the owner's existing exception contract; convert the
+  expected analysis limit into ordinary typed body diagnostics and quarantine.
+  Source is never executed, recursion limits are unchanged, and no inputs drop.
+- With the recursion correction, all 27 focused admission tests pass (12.11s):
+  `logs/test-runs/review-recursion-green-20261020-143038.log`. Both deep-body
+  cases complete compiler/validate/build with normal quarantine and preserve the
+  exact authored documents. Full-suite/type/CI final results go in the task
+  response; parent owns re-review of the final paired heads.

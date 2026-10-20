@@ -415,7 +415,7 @@ def validate_claim(
         elif isinstance(check, AlgorithmParseCheck):
             try:
                 algorithm_tree = parse_algorithm(claim.body or "")
-            except AlgorithmParseError as exc:
+            except (AlgorithmParseError, RecursionError) as exc:
                 diagnostics.append(
                     ClaimValidationDiagnostic(
                         field="body", message=f"algorithm body parse error: {exc}"
@@ -428,9 +428,17 @@ def validate_claim(
                     for variable in claim.variables
                     if variable.concept and (variable.name or variable.symbol)
                 }
-                unbound_names = sorted(
-                    extract_free_variables(algorithm_tree) - declared_names
-                )
+                try:
+                    unbound_names = sorted(
+                        extract_free_variables(algorithm_tree) - declared_names
+                    )
+                except (AlgorithmParseError, RecursionError) as exc:
+                    diagnostics.append(
+                        ClaimValidationDiagnostic(
+                            field="body", message=f"algorithm body binding error: {exc}"
+                        )
+                    )
+                    continue
                 if unbound_names:
                     diagnostics.append(
                         ClaimValidationDiagnostic(
