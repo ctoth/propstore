@@ -30,6 +30,8 @@ from typing import TYPE_CHECKING
 import msgspec
 from quire.charter_class import CharterDoc
 from quire.family_transport import FamilyInstanceMap, FamilyReferenceImage
+from quire.git_store import AmbiguousMergeBaseError
+from quire.tree_merge import TreeMergeConflict, iter_merged_tree_entries
 
 from propstore.families.claims import Claim
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
@@ -54,20 +56,20 @@ if TYPE_CHECKING:
 _CLAIM_STORAGE_ROOT = Claim.__charter__.family.storage_root()
 
 
-@dataclass(frozen=True)
+@dataclass
 class NonClaimMergeConflict(RuntimeError):
-    """A non-claim file diverged between the two branches and cannot be merged.
+    """Competing ordinary changes or transported evidence cannot be combined.
 
     Claim divergence is held as rival arguments (non-commitment); a non-claim file
-    (a concept, a context, a form) that differs between the branches has no
-    rival-alternative semantics, so the merge refuses rather than silently picking
-    a side.
+    (a concept, a context, a form) has no rival-alternative semantics. A change
+    against an unchanged peer propagates; incompatible concurrent changes fail
+    rather than selecting a side.
     """
 
     path: str
     family: str
-    left_sha: str
-    right_sha: str
+    left_sha: str | None
+    right_sha: str | None
 
     def __str__(self) -> str:
         return (
@@ -157,33 +159,6 @@ def build_repository_merge_framework(
     )
 
 
-def _merge_non_claim_entries(
-    left_entries: dict[str, str], right_entries: dict[str, str]
-) -> dict[str, str]:
-    """Union the two trees' non-claim files, refusing on a divergent shared file."""
-
-    merged: dict[str, str] = {}
-    for path in sorted(set(left_entries) | set(right_entries)):
-        if _is_claim_path(path):
-            continue
-        left_blob = left_entries.get(path)
-        right_blob = right_entries.get(path)
-        if left_blob is not None and right_blob is not None:
-            if left_blob != right_blob:
-                raise NonClaimMergeConflict(
-                    path=path,
-                    family=_family_for_path(path),
-                    left_sha=left_blob,
-                    right_sha=right_blob,
-                )
-            merged[path] = left_blob
-        elif left_blob is not None:
-            merged[path] = left_blob
-        elif right_blob is not None:
-            merged[path] = right_blob
-    return merged
-
-
 def _materialize_merge_arguments(
     repo: Repository,
     git: GitStore,
@@ -226,21 +201,27 @@ def _transport_family_occurrences(
     instances: dict[str, FamilyInstanceMap],
     merged_entries: dict[str, str],
     target_branch: str,
+    parent_entries: Mapping[str, Mapping[str, str]],
 ) -> None:
     """Map real parent occurrences, keeping each parent's FK incidence.
 
-    Rebuild each family's paths from every parent occurrence, preserving an
-    unchanged occurrence when the other parent's copy moves. Equal output
-    bytes coalesce while the commit-qualified witnesses remain distinct.
+    Only parent occurrences contributing the selected ordinary version enter
+    transport. Equal selected parent bytes can still have distinct claim images;
+    equal output bytes coalesce with commit-qualified witnesses retained.
     """
     records: dict[str, Sequence[CharterDoc]] = {"claim": claims}
+    selected_entries = dict(merged_entries)
     for family in PROPSTORE_FAMILY_REGISTRY.families:
         if family.name == "claim" or family.identity_field is None:
             continue
         bound = repo.families.by_name(family.name)
         occurrences = []
-        for instance in instances.values():
-            handles = tuple(bound.iter_handles(commit=instance.source_commit))
+        for branch, instance in instances.items():
+            handles = tuple(
+                handle for handle in bound.iter_handles(commit=instance.source_commit)
+                if parent_entries[branch][handle.address.require_path()]
+                == selected_entries.get(handle.address.require_path())
+            )
             documents = instance.transport_family(family, tuple(h.document for h in handles))
             occurrences.extend(zip(handles, documents, strict=True))
         outputs: dict[str, str] = {}
@@ -248,7 +229,7 @@ def _transport_family_occurrences(
         for handle, document in occurrences:
             if document is handle.document:
                 path = handle.address.require_path()
-                blob = merged_entries[path]
+                blob = selected_entries[path]
             else:
                 prepared = bound.prepare(
                     family.ref_from_document(document),
@@ -340,10 +321,12 @@ def create_merge_commit(
     Reads the claim sets out of both branch trees, builds the merge framework,
     materializes the surviving rival claim alternatives plus a ``MergeManifest``, and
     commits the merged entry set with ``parents=[left, right]`` onto ``target_branch``
-    (default: the primary branch). Returns the merge commit sha. Raises
-    :class:`NonClaimMergeConflict` when a non-claim file diverged between the branches,
-    or when a family cannot transport a changed reference. Neither failure
-    advances the target branch.
+    (default: the primary branch). Returns the merge commit sha. Multiple best
+    ancestors raise :class:`AmbiguousMergeBaseError` before planning or writes. Raises
+    :class:`NonClaimMergeConflict` for incompatible concurrent ordinary changes
+    or colliding transported documents. Reference admission can also refuse
+    the combined family instance. These failures never
+    advance the target branch.
     """
 
     git = repo.require_git()
@@ -360,14 +343,29 @@ def create_merge_commit(
     expected_heads: dict[str, str | None] = dict(branch_commits)
     if target_branch not in expected_heads:
         expected_heads[target_branch] = git.branch_sha(target_branch)
+    base_shas = tuple(git.iter_merge_bases(left_sha, right_sha))
+    if len(base_shas) > 1:
+        raise AmbiguousMergeBaseError(left_sha, right_sha, base_shas)
     merge = build_repository_merge_framework(
         repo, branch_a, branch_b, branch_commits=branch_commits
     )
 
-    merged_entries = _merge_non_claim_entries(
-        dict(git.iter_flat_tree_entries(left_sha)),
-        dict(git.iter_flat_tree_entries(right_sha)),
+    parent_entries = {
+        branch: dict(git.iter_flat_tree_entries(commit))
+        for branch, commit in ((branch_a, left_sha), (branch_b, right_sha))
+    }
+    base_entries = dict(git.iter_flat_tree_entries(base_shas[0])) if base_shas else {}
+    base_ordinary, left_ordinary, right_ordinary = (
+        {path: blob for path, blob in entries.items() if not _is_claim_path(path)}
+        for entries in (base_entries, parent_entries[branch_a], parent_entries[branch_b])
     )
+    try:
+        merged_entries = dict(iter_merged_tree_entries(base_ordinary, left_ordinary, right_ordinary))
+    except TreeMergeConflict as conflict:
+        raise NonClaimMergeConflict(
+            conflict.path, _family_for_path(conflict.path),
+            conflict.left_sha, conflict.right_sha,
+        ) from conflict
     instances = {
         branch: FamilyInstanceMap(commit, {
             family.name: repo.families.by_name(family.name).reference_index(commit=commit)
@@ -380,7 +378,7 @@ def create_merge_commit(
         repo, git, merge, merged_entries, target_branch, instances
     )
     _transport_family_occurrences(
-        repo, git, claims, instances, merged_entries, target_branch
+        repo, git, claims, instances, merged_entries, target_branch, parent_entries
     )
 
     reference_images = tuple(sorted(

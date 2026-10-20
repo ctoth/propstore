@@ -50,7 +50,7 @@ The literature alignment is:
 - **Konieczny & Pino Perez 2002**: operator vocabulary and aggregation intuition
 - **Halpin et al. 2010 / Beek et al. 2018**: sameAs links are explicit graded evidence, not unconditional union-find closure
 - **Buneman et al. 2001**: materialized alternatives carry source witness basis and where/why provenance
-- **Roddick 1995**: non-claim file disagreement is surfaced as conflict, not silently resolved by side bias
+- **Khanna, Kunal & Pierce 2007**, [*A Formal Investigation of Diff3*](https://www.cis.upenn.edu/~bcpierce/papers/diff3-short.pdf), pp.3,5: compare current replicas against their common ancestor to identify one-sided changes and competing changes. Ordinary Git paths use exact-key/object equality, rather than Diff3's list alignment; equal object IDs converge as required by the storage contract.
 - **Modgil / Prakken / ASPIC+**: branch-local structured summaries
 
 ## Repository Merge Object
@@ -211,7 +211,10 @@ This creates a two-parent commit from the formal merge framework.
 
 Behavior:
 
-- non-claim file disagreements raise an explicit conflict instead of silently choosing a side
+- ordinary non-claim paths are reconciled by Quire against the pinned common ancestor: a one-sided addition, modification or deletion propagates, equal outcomes converge, and incompatible concurrent changes (including modify/delete) raise an explicit conflict
+- histories with multiple best common ancestors are refused with Quire's `AmbiguousMergeBaseError` before planning or writes; a hash-selected ancestor cannot establish which changes were one-sided ([Git merge-base contract](https://git-scm.com/docs/git-merge-base)). This includes equal-tree multiple bases: recursive or virtual-base semantics are not implemented.
+- only parent occurrences contributing the selected ordinary versions enter reference transport; equal selected bytes from both parents retain both commit-qualified origins and can acquire distinct rival-claim reference images
+- final family/FK and tree-path admission still reject an invalid combination before the target branch advances
 - claim content is serialized from `RepositoryMergeFramework.arguments`
 - conflicting emitted alternatives keep canonical artifact IDs and branch-origin provenance
 - manifest rows include witness-basis records
