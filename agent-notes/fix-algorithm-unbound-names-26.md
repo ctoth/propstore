@@ -7,6 +7,8 @@ undeclared names through the claim CHECKED pass. Open a draft PR; no merge,
 ready transition, or existing issue/PR edits. Stay outside #303 merge code.
 
 ## State
+- Published draft PR: https://github.com/propstore/propstore/pull/327.
+  Implementation commit: `33728ab9fe70c2c2699271be3392c0b3e8b2963c`.
 - Isolated branch `fix/algorithm-unbound-names-26`, base `5c62b8d1` from
   freshly fetched `origin/master`; dirty main checkout untouched.
 - Local origin is `git@github.com:ctoth/propstore.git`; GitHub resolves it to
@@ -63,9 +65,9 @@ ready transition, or existing issue/PR edits. Stay outside #303 merge code.
   with apply_patch. Locked sync accepted the resulting minimal lockfile.
 
 ## Next step
-Implementation and local validation are complete. Publish the Propstore draft
-PR and read its exact-head CI result, then report commits/results to the parent
-for independent review. Do not merge either PR or mark either ready. The only
+Implementation, local validation, and draft publication are complete. Parent
+owns independent review and any later merge decision. Read the final-head CI
+result before reporting. Do not merge either PR or mark either ready. The only
 package-type failures are the reproduced pre-existing #303-area errors above.
 
 ## Evidence logs
