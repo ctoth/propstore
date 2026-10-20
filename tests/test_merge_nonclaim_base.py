@@ -6,6 +6,7 @@ import msgspec
 import pytest
 import yaml
 from click.testing import CliRunner
+from quire.git_store import AmbiguousMergeBaseError
 from quire.references import ForeignKeyValidationError
 
 from propstore.app.merge import MergeCommitRequest, commit_merge
@@ -181,3 +182,41 @@ def test_combined_reference_violation_rejects_valid_parents_before_publication(t
     assert git.branch_sha("result") == base
     assert (git.branch_sha("master"), git.branch_sha("peer")) == (removed, added)
     assert repo.families.concept.require("x", commit=base).concept_id == "x"
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("existing_target", [False, True])
+@pytest.mark.parametrize("entrypoint", ["owner", "app", "cli"])
+def test_criss_cross_opposite_concept_resolutions_refuse_before_writes(tmp_path, reverse, existing_target, entrypoint):
+    repo = init_repo(tmp_path / "knowledge")
+    origin = author_concept(repo, "x", name="O")
+    git = repo.require_git()
+    git.create_branch("left", source_commit=origin)
+    git.create_branch("right", source_commit=origin)
+    a = author_concept(repo, "x", name="A", branch="left")
+    b = author_concept(repo, "x", name="B", branch="right")
+    left = git.commit_flat_tree(dict(git.iter_flat_tree_entries(a)), "retain A", parents=[a, b], branch="left")
+    right = git.commit_flat_tree(dict(git.iter_flat_tree_entries(b)), "retain B", parents=[b, a], branch="right")
+    if existing_target:
+        git.create_branch("result", source_commit=origin)
+    refs_before = git.raw_repo.refs.as_dict()
+    objects_before = set(git.raw_repo.object_store)
+    sources = ("right", "left") if reverse else ("left", "right")
+    assert set(git.iter_merge_bases(left, right)) == {a, b}
+    if entrypoint == "cli":
+        result = CliRunner().invoke(cli, ["-C", str(repo.root), "merge", "commit", *sources, "--target-branch", "result"])
+        assert result.exit_code == 1
+        assert "Multiple best merge bases" in result.output
+        assert a in result.output and b in result.output
+    else:
+        with pytest.raises(AmbiguousMergeBaseError) as caught:
+            if entrypoint == "owner":
+                create_merge_commit(repo, *sources, target_branch="result")
+            else:
+                commit_merge(repo, MergeCommitRequest(*sources, target_branch="result"))
+        assert set(caught.value.base_shas) == {a, b}
+        assert (caught.value.left_sha, caught.value.right_sha) == ((right, left) if reverse else (left, right))
+    assert git.raw_repo.refs.as_dict() == refs_before
+    assert set(git.raw_repo.object_store) == objects_before
+    assert repo.families.concept.require("x", commit=left).canonical_name == "A"
+    assert repo.families.concept.require("x", commit=right).canonical_name == "B"

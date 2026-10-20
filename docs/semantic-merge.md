@@ -212,6 +212,7 @@ This creates a two-parent commit from the formal merge framework.
 Behavior:
 
 - ordinary non-claim paths are reconciled by Quire against the pinned common ancestor: a one-sided addition, modification or deletion propagates, equal outcomes converge, and incompatible concurrent changes (including modify/delete) raise an explicit conflict
+- histories with multiple best common ancestors are refused with Quire's `AmbiguousMergeBaseError` before planning or writes; a hash-selected ancestor cannot establish which changes were one-sided ([Git merge-base contract](https://git-scm.com/docs/git-merge-base)). This includes equal-tree multiple bases: recursive or virtual-base semantics are not implemented.
 - only parent occurrences contributing the selected ordinary versions enter reference transport; equal selected bytes from both parents retain both commit-qualified origins and can acquire distinct rival-claim reference images
 - final family/FK and tree-path admission still reject an invalid combination before the target branch advances
 - claim content is serialized from `RepositoryMergeFramework.arguments`

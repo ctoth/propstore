@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 import msgspec
 from quire.charter_class import CharterDoc
 from quire.family_transport import FamilyInstanceMap, FamilyReferenceImage
+from quire.git_store import AmbiguousMergeBaseError
 from quire.tree_merge import TreeMergeConflict, iter_merged_tree_entries
 
 from propstore.families.claims import Claim
@@ -320,7 +321,8 @@ def create_merge_commit(
     Reads the claim sets out of both branch trees, builds the merge framework,
     materializes the surviving rival claim alternatives plus a ``MergeManifest``, and
     commits the merged entry set with ``parents=[left, right]`` onto ``target_branch``
-    (default: the primary branch). Returns the merge commit sha. Raises
+    (default: the primary branch). Returns the merge commit sha. Multiple best
+    ancestors raise :class:`AmbiguousMergeBaseError` before planning or writes. Raises
     :class:`NonClaimMergeConflict` for incompatible concurrent ordinary changes
     or colliding transported documents. Reference admission can also refuse
     the combined family instance. These failures never
@@ -341,6 +343,9 @@ def create_merge_commit(
     expected_heads: dict[str, str | None] = dict(branch_commits)
     if target_branch not in expected_heads:
         expected_heads[target_branch] = git.branch_sha(target_branch)
+    base_shas = tuple(git.iter_merge_bases(left_sha, right_sha))
+    if len(base_shas) > 1:
+        raise AmbiguousMergeBaseError(left_sha, right_sha, base_shas)
     merge = build_repository_merge_framework(
         repo, branch_a, branch_b, branch_commits=branch_commits
     )
@@ -349,12 +354,7 @@ def create_merge_commit(
         branch: dict(git.iter_flat_tree_entries(commit))
         for branch, commit in ((branch_a, left_sha), (branch_b, right_sha))
     }
-    try:
-        base_sha = git.merge_base(left_sha, right_sha)
-    except ValueError:
-        base_entries: dict[str, str] = {}
-    else:
-        base_entries = dict(git.iter_flat_tree_entries(base_sha))
+    base_entries = dict(git.iter_flat_tree_entries(base_shas[0])) if base_shas else {}
     base_ordinary, left_ordinary, right_ordinary = (
         {path: blob for path, blob in entries.items() if not _is_claim_path(path)}
         for entries in (base_entries, parent_entries[branch_a], parent_entries[branch_b])
