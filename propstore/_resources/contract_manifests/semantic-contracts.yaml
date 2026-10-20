@@ -134,7 +134,7 @@ contracts:
       value_field: value
 - kind: family-registry
   name: propstore
-  contract_version: 2026.07.22
+  contract_version: 2026.10.20
   body:
     families:
     - contract_version: 2026.07.21
@@ -158,7 +158,7 @@ contracts:
     - contract_version: 2026.06.29
       key: predicate
       name: predicate
-    - contract_version: 2026.06.29
+    - contract_version: 2026.10.20
       key: stance
       name: stance
     - contract_version: 2026.06.29
@@ -185,10 +185,10 @@ contracts:
     - contract_version: 2026.07.21
       key: proposal_coreference
       name: proposal_coreference
-    - contract_version: 2026.06.29
+    - contract_version: 2026.10.20
       key: justification
       name: justification
-    - contract_version: 2026.07.13
+    - contract_version: 2026.10.20
       key: micropublication
       name: micropublication
     - contract_version: 2026.07.21
@@ -233,7 +233,7 @@ contracts:
     - contract_version: 2026.07.22
       key: grounding_build_configuration
       name: grounding_build_configuration
-    - contract_version: 2026.06.29
+    - contract_version: 2026.10.20
       key: merge_manifest
       name: merge_manifest
     - contract_version: 2026.07.13
@@ -542,7 +542,7 @@ contracts:
     key: happens_before_edge
 - kind: family
   name: justification
-  contract_version: 2026.06.29
+  contract_version: 2026.10.20
   body:
     accessor: justification
     artifact_family: justification
@@ -556,7 +556,7 @@ contracts:
         kind: flat-yaml
         namespace: justification
         ref_field: self
-    artifact_family_contract_version: 2026.06.29
+    artifact_family_contract_version: 2026.10.20
     foreign_keys:
     - many: false
       required: false
@@ -572,6 +572,7 @@ contracts:
       target_field: claim_id
     identity_field: justification_id
     key: justification
+    transport_identity: propstore.families.justifications._transport_identity
 - kind: family
   name: lifting_materialization
   contract_version: 2026.06.29
@@ -614,7 +615,7 @@ contracts:
     key: lifting_rule
 - kind: family
   name: merge_manifest
-  contract_version: 2026.06.29
+  contract_version: 2026.10.20
   body:
     accessor: merge_manifest
     artifact_family: merge_manifest
@@ -628,13 +629,13 @@ contracts:
         kind: flat-yaml
         namespace: merge_manifest
         ref_field: self
-    artifact_family_contract_version: 2026.06.29
+    artifact_family_contract_version: 2026.10.20
     foreign_keys: []
     identity_field: manifest_id
     key: merge_manifest
 - kind: family
   name: micropublication
-  contract_version: 2026.07.13
+  contract_version: 2026.10.20
   body:
     accessor: micropublication
     artifact_family: micropublication
@@ -648,7 +649,7 @@ contracts:
         kind: flat-yaml
         namespace: micropublication
         ref_field: self
-    artifact_family_contract_version: 2026.07.13
+    artifact_family_contract_version: 2026.10.20
     foreign_keys:
     - many: false
       required: true
@@ -662,8 +663,15 @@ contracts:
       source_field: claims[]
       target_family: claim
       target_field: claim_id
+    - many: false
+      required: false
+      source_family: micropublication
+      source_field: principal_claim
+      target_family: claim
+      target_field: claim_id
     identity_field: artifact_id
     key: micropublication
+    transport_identity: propstore.families.micropublications._transport_identity
 - kind: family
   name: predicate
   contract_version: 2026.06.29
@@ -976,7 +984,7 @@ contracts:
     key: source_stances
 - kind: family
   name: stance
-  contract_version: 2026.06.29
+  contract_version: 2026.10.20
   body:
     accessor: stance
     artifact_family: stance
@@ -990,7 +998,7 @@ contracts:
         kind: flat-yaml
         namespace: stance
         ref_field: self
-    artifact_family_contract_version: 2026.06.29
+    artifact_family_contract_version: 2026.10.20
     foreign_keys:
     - many: false
       required: false
@@ -1006,6 +1014,7 @@ contracts:
       target_field: claim_id
     identity_field: stance_id
     key: stance
+    transport_identity: propstore.families.relations._transport_identity
 - kind: family
   name: temporal_frame
   contract_version: 2026.07.21
@@ -1156,4 +1165,4 @@ contracts:
     family: form
 registry:
   name: propstore
-  contract_version: 2026.07.22
+  contract_version: 2026.10.20

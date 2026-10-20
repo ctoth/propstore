@@ -28,11 +28,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import msgspec
-from quire.references import (
-    ForeignKeySpec,
-    ForeignKeyValidationError,
-    validate_foreign_key,
-)
+from quire.charter_class import CharterDoc
+from quire.family_transport import FamilyInstanceMap, FamilyReferenceImage
 
 from propstore.families.claims import Claim
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
@@ -76,23 +73,6 @@ class NonClaimMergeConflict(RuntimeError):
         return (
             f"non-claim merge conflict at {self.path!r} in family {self.family!r}: "
             f"{self.left_sha} != {self.right_sha}"
-        )
-
-
-@dataclass(frozen=True)
-class MergeReferenceConflict(RuntimeError):
-    """The proposed claim images cannot preserve an input family's reference."""
-
-    source_commit: str
-    source_family: str
-    source_ref: str
-    foreign_key: ForeignKeySpec
-    detail: str
-
-    def __str__(self) -> str:
-        return (
-            f"merge cannot preserve {self.source_family} {self.source_ref!r} "
-            f"from {self.source_commit}: {self.detail}"
         )
 
 
@@ -205,6 +185,7 @@ def _materialize_merge_arguments(
     merge: RepositoryMergeFramework,
     merged_entries: dict[str, str],
     target_branch: str,
+    instances: dict[str, FamilyInstanceMap],
 ) -> tuple[Claim, ...]:
     """Write each surviving claim alternative as a blob into ``merged_entries``.
 
@@ -228,54 +209,72 @@ def _materialize_merge_arguments(
             prepared.content
         )
         materialized_claims.append(prepared.document)
+        for branch in argument.branch_origins:
+            instances[branch].assign("claim", argument.artifact_id, storage_id)
     return tuple(materialized_claims)
 
 
-def _validate_claim_reference_preservation(
+def _transport_family_occurrences(
     repo: Repository,
+    git: GitStore,
     claims: tuple[Claim, ...],
-    source_commits: tuple[str, ...],
+    instances: dict[str, FamilyInstanceMap],
+    merged_entries: dict[str, str],
+    target_branch: str,
 ) -> None:
-    """Check input FK incidence against the exact prepared claim images.
+    """Map real parent occurrences, keeping each parent's FK incidence.
 
-    A merge's input maps must commute with FK columns (Schultz/Wisnesky,
-    Algebraic Data Integration §§3.2,4.1,6.1). Nonclaim records are retained
-    unchanged by this merge; an unresolved image therefore has no preserving
-    map. Reject before publishing rather than inventing a relation transport.
+    Rebuild each family's paths from every parent occurrence, preserving an
+    unchanged occurrence when the other parent's copy moves. Equal output
+    bytes coalesce while the commit-qualified witnesses remain distinct.
     """
-    claim_family = Claim.__charter__.family
-    claim_index = claim_family.reference_index_from_records(claims)
+    records: dict[str, Sequence[CharterDoc]] = {"claim": claims}
     for family in PROPSTORE_FAMILY_REGISTRY.families:
-        specs = tuple(
-            spec for spec in family.foreign_keys
-            if spec.target_family == claim_family.name
-        )
-        if not specs:
+        if family.name == "claim" or family.identity_field is None:
             continue
         bound = repo.families.by_name(family.name)
-        for source_commit in dict.fromkeys(source_commits):
-            for handle in bound.iter_handles(commit=source_commit):
-                for spec in specs:
-                    try:
-                        validate_foreign_key(spec, handle.document, claim_index)
-                    except ForeignKeyValidationError as exc:
-                        raise MergeReferenceConflict(
-                            source_commit=source_commit,
-                            source_family=family.name,
-                            source_ref=str(handle.ref),
-                            foreign_key=spec,
-                            detail=str(exc),
-                        ) from exc
+        occurrences = [
+            (instance, handle)
+            for instance in instances.values()
+            for handle in bound.iter_handles(commit=instance.source_commit)
+        ]
+        outputs: dict[str, str] = {}
+        prepared_records: dict[str, CharterDoc] = {}
+        for instance, handle in occurrences:
+            document = instance.transport(family, handle.document)
+            if document is handle.document:
+                path = handle.address.require_path()
+                blob = merged_entries[path]
+            else:
+                prepared = bound.prepare(
+                    next(iter(family.reference_index_from_records((document,)).records_by_id)),
+                    document, branch=target_branch,
+                )
+                path = prepared.address.require_path()
+                blob = git.store_blob(prepared.content)
+                document = prepared.document
+            previous = outputs.get(path)
+            if previous is not None and previous != blob:
+                raise NonClaimMergeConflict(path, family.name, previous, blob)
+            outputs[path] = blob
+            prepared_records[path] = document
+        for _, handle in occurrences:
+            merged_entries.pop(handle.address.require_path(), None)
+        merged_entries.update(outputs)
+        records[family.name] = tuple(prepared_records.values())
+    PROPSTORE_FAMILY_REGISTRY.validate_records(records)
 
 
 def _derive_manifest_id(
-    branch_a: str, branch_b: str, arguments: tuple[MergeManifestArgument, ...]
+    branch_a: str, branch_b: str, arguments: tuple[MergeManifestArgument, ...],
+    reference_images: tuple[FamilyReferenceImage, ...],
 ) -> str:
     key = json.dumps(
         {
             "branch_a": branch_a,
             "branch_b": branch_b,
             "assertion_ids": sorted(argument.assertion_id for argument in arguments),
+            "reference_images": msgspec.to_builtins(reference_images),
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -285,7 +284,8 @@ def _derive_manifest_id(
 
 
 def _build_manifest(
-    merge: RepositoryMergeFramework, branch_a: str, branch_b: str
+    merge: RepositoryMergeFramework, branch_a: str, branch_b: str,
+    reference_images: tuple[FamilyReferenceImage, ...],
 ) -> MergeManifest:
     arguments = tuple(
         MergeManifestArgument(
@@ -314,11 +314,12 @@ def _build_manifest(
         for group in merge.semantic_candidates
     )
     return MergeManifest(
-        manifest_id=_derive_manifest_id(branch_a, branch_b, arguments),
+        manifest_id=_derive_manifest_id(branch_a, branch_b, arguments, reference_images),
         branch_a=branch_a,
         branch_b=branch_b,
         arguments=arguments,
         semantic_candidates=semantic_candidates,
+        reference_images=reference_images,
     )
 
 
@@ -337,8 +338,8 @@ def create_merge_commit(
     commits the merged entry set with ``parents=[left, right]`` onto ``target_branch``
     (default: the primary branch). Returns the merge commit sha. Raises
     :class:`NonClaimMergeConflict` when a non-claim file diverged between the branches,
-    or :class:`MergeReferenceConflict` when retained evidence cannot reference the
-    proposed claim images. Neither failure advances the target branch.
+    or when a family cannot transport a changed reference. Neither failure
+    advances the target branch.
     """
 
     git = repo.require_git()
@@ -359,12 +360,26 @@ def create_merge_commit(
         dict(git.iter_flat_tree_entries(left_sha)),
         dict(git.iter_flat_tree_entries(right_sha)),
     )
+    instances = {
+        branch: FamilyInstanceMap(commit, {
+            family.name: repo.families.by_name(family.name).reference_index(commit=commit)
+            for family in PROPSTORE_FAMILY_REGISTRY.families
+            if family.identity_field is not None
+        })
+        for branch, commit in ((branch_a, left_sha), (branch_b, right_sha))
+    }
     claims = _materialize_merge_arguments(
-        repo, git, merge, merged_entries, target_branch
+        repo, git, merge, merged_entries, target_branch, instances
     )
-    _validate_claim_reference_preservation(repo, claims, (left_sha, right_sha))
+    _transport_family_occurrences(
+        repo, git, claims, instances, merged_entries, target_branch
+    )
 
-    manifest = _build_manifest(merge, branch_a, branch_b)
+    reference_images = tuple(sorted(
+        {image for instance in instances.values() for image in instance.iter_images()},
+        key=lambda image: (image.source_commit, image.family, image.source_id),
+    ))
+    manifest = _build_manifest(merge, branch_a, branch_b, reference_images)
     prepared_manifest = repo.families.merge_manifest.prepare(
         manifest.manifest_id, manifest, branch=target_branch
     )
@@ -382,7 +397,6 @@ def create_merge_commit(
 
 
 __all__ = [
-    "MergeReferenceConflict",
     "NonClaimMergeConflict",
     "build_repository_merge_framework",
     "create_merge_commit",

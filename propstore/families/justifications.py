@@ -12,18 +12,35 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import msgspec
+
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.references import ForeignKeySpec
 
 from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 
 
+def _transport_identity(document: Justification) -> Justification:
+    from propstore.families.identity.justifications import derive_justification_artifact_id
+
+    return msgspec.structs.replace(
+        document,
+        justification_id=derive_justification_artifact_id(
+            conclusion=document.conclusion,
+            premises=document.premises,
+            rule_kind=document.rule_kind,
+            rule_strength=document.rule_strength,
+        ),
+    )
+
+
 @charter(
     key="justification",
     name="justification",
-    contract_version="2026.06.29",
+    contract_version="2026.10.20",
     placement="justification",
     identity_field="justification_id",
+    transport_identity=_transport_identity,
 )
 class Justification(CharterDoc):
     """An authored ``premises ⊢ conclusion`` justification over claims."""
