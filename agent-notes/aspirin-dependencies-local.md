@@ -2,11 +2,12 @@
 
 ## Goal
 Build the approved narrow end-to-end demonstration using disposable stores,
-preserving the original corpus and other active fixes. No push/publication while
-the parent coordinates the repository organization transfer.
+preserving the original corpus and other active fixes. Q has now authorized a
+focused draft PR in the verified transferred propstore/propstore repository.
 
 ## State
-Isolated branch `demo/aspirin-dependencies-local`, based on 24e205ba.
+Focused publication branch `demo/aspirin-dependencies-public`, integrating
+master ccc71568efa36113b38ff87cb477b10fdcee8cbc, including merged #310.
 Runtime dependencies are the existing main checkout's installed environment;
 tests must import this worktree, with sync/network installation disabled.
 
@@ -48,7 +49,7 @@ Old aspirin schema migration is outside scope; use fresh current charters.
 
 ## Next step
 The first slice is committed as 94ddfdc95dec31264dce0efddb382e6a34d9cf7b.
-Commit the validation/review corrections locally; publication remains paused.
+Keep the publication PR as a draft and await review. Do not merge or mark ready.
 Specific multi-justification attack targeting (#55) remains unresolved; do not
 claim it fixed or close that issue.
 
@@ -163,3 +164,29 @@ uv run --offline --no-sync --project C:/Users/Q/code/propstore ruff check propst
 uv run --offline --no-sync --project C:/Users/Q/code/propstore ruff format --check propstore tests
 uv run --offline --no-sync --project C:/Users/Q/code/propstore lint-imports --no-cache
 ```
+
+## Publication integration and final validation
+The original isolated branch and all its changes are preserved at 65a616e5.
+Its original local base included 25 unrelated agent-note additions, so the
+focused publication worktree starts at verified remote master and carries only
+the two reviewed task commits. Those unrelated notes are excluded from the PR.
+The newly merged #310 was then merged cleanly at ccc71568. #309 is not imported.
+
+Added the requested equation/justification interaction coverage to the existing
+equation-applicability test owner. A real stored equation and input support an
+application via a canonical justification. Withdrawing the equation removes
+both its derived value and the application's accepted ASPIC argument while the
+canonical licence stays stored. This passes under claim-graph and ATMS policies.
+No production adjustment was needed for the #310 integration.
+
+- Final full suite: **1861 passed, 1 skipped**, exit 0, 83.71s.
+  Log: logs/test-runs/publication-owner-final-20261019-190735.log.
+- Equation/canonical-justification focused run: 18 passed, exit 0, 13.52s.
+  Log: logs/test-runs/equation-justification-interaction-20261019-190631.log.
+- Integrated package pyright: 0 errors, 0 warnings; ruff check passed;
+  import-linter: 3 contracts kept, 0 broken.
+- The unchanged standalone demo completed all nine transitions on this
+  integrated implementation with exit 0.
+- Publication command uses the existing authenticated Git/gh route. No new
+  permissions, credentials, dependency-repository writes, merge or ready
+  transition are part of this delivery.
