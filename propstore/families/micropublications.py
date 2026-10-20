@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import msgspec
+from quire.artifacts import FlatYamlPlacement
 
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.references import ForeignKeySpec
@@ -77,12 +78,23 @@ def principal_claim_id(
     return claims[0]
 
 
+def _transport_identity(document: Micropublication) -> Micropublication:
+    from propstore.families.identity.micropubs import micropub_artifact_id, micropub_version_id
+
+    return msgspec.structs.replace(
+        document,
+        artifact_id=micropub_artifact_id(document),
+        version_id=micropub_version_id(document),
+    )
+
+
 @charter(
     key="micropublication",
     name="micropublication",
-    contract_version="2026.07.13",
-    placement="micropublication",
+    contract_version="2026.10.20",
+    placement=FlatYamlPlacement("micropublication", str, codec="base64url"),
     identity_field="artifact_id",
+    transport_identity=_transport_identity,
 )
 class Micropublication(CharterDoc):
     """A Clark micropublication bundle authored against a context.
@@ -138,7 +150,20 @@ class Micropublication(CharterDoc):
     stance: StanceType | None = None
     provenance: Annotated[Provenance | None, charter_field(json=True)] = None
     source: str | None = None
-    principal_claim: str | None = None
+    principal_claim: Annotated[
+        str | None,
+        charter_field(
+            foreign_key=ForeignKeySpec(
+                name="micropublication_principal_claim",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="micropublication",
+                source_field="principal_claim",
+                target_family="claim",
+                target_field="claim_id",
+                required=False,
+            )
+        ),
+    ] = None
 
     def __post_init__(self) -> None:
         if not self.artifact_id:

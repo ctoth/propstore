@@ -23,6 +23,7 @@ from typing import Annotated
 import msgspec
 
 from quire.charter_class import CharterDoc, charter, charter_field
+from quire.family_transport import FamilyReferenceImage
 
 
 class MergeManifestWitness(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
@@ -61,17 +62,17 @@ class MergeManifestCandidate(msgspec.Struct, frozen=True, forbid_unknown_fields=
 @charter(
     key="merge_manifest",
     name="merge_manifest",
-    contract_version="2026.06.29",
+    contract_version="2026.10.20",
     placement="merge_manifest",
     identity_field="manifest_id",
 )
 class MergeManifest(CharterDoc):
     """The record of one two-parent storage merge.
 
-    ``manifest_id`` is the identity (derived from the merged branches and the
-    surviving arguments, so a re-merge of the same branches records the same
-    manifest). ``arguments`` holds the surviving rival claim alternatives;
+    ``manifest_id`` includes the surviving arguments and commit-qualified
+    occurrence images. ``arguments`` holds the rival claim alternatives;
     ``semantic_candidates`` flags cross-claim clusters the merge could not collapse.
+    ``reference_images`` traces transported documents to exact input occurrences.
     """
 
     manifest_id: Annotated[str, charter_field(primary_key=True)]
@@ -82,4 +83,7 @@ class MergeManifest(CharterDoc):
     ] = ()
     semantic_candidates: Annotated[
         tuple[MergeManifestCandidate, ...], charter_field(json=True)
+    ] = ()
+    reference_images: Annotated[
+        tuple[FamilyReferenceImage, ...], charter_field(json=True)
     ] = ()

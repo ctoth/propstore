@@ -1,0 +1,26 @@
+# Successful rival graph transport (#303)
+
+## Goal
+Deliver working branch-qualified claim, stance and micropublication transport, preserving correlated evidence and principal/membership consistency. Separate branch from merged #320; no merge/ready/default push or edits to other PRs.
+
+## State
+- Isolated branch `fix/merge-graph-transport-303`, base master `4b865edf` containing #320. Quire support separately isolated at `task-14/quire-transport-303`, base `d1daeed8`.
+- Literature/source contract: for each pinned input b and FK f, `m_b(f(x)) = f_result(m_b(x))`. Schultz/Wisnesky §3.2 p.11, §4.1 pp.12–14, §6.1 pp.34–35. Kuhn content references require new identity when endpoints change; Clark §3.2.3 p.19 requires principal and membership move together. Previous report and page images remain available in the #320 worktree and read-only paper collection.
+- Working transport implemented. Claim materialization assigns each actual parent occurrence's image; Quire transports typed documents; family callbacks recompute existing stance/justification/bundle identities; final prepared documents pass Quire's shared registry validator. Manifest identity includes sorted commit-qualified image witnesses.
+- All 18 edited-file integration regressions pass: `logs/test-runs/merge-graph-transport-bundles-20261019-204724.log` (15.96s). Separate Quire edited-file suite: 12 passed, `family-transport-identity-20261019-204427.log`. Used the existing task-20 exact-pin environment with process-only Quire PYTHONPATH; no dependency installation or shared environment mutation.
+- Generic owner draft: https://github.com/propstore/quire/pull/19 at `05b180e40b1344c95229d621bab22c45c9437f90`. This consumer's manifest and lock pin that exact reachable commit; all other dependency versions/pins are preserved. `uv lock --upgrade-package quire` refreshed ten unrelated greenlet wheel entries; removed that metadata churn via apply_patch so the lock diff contains only the two Quire source entries.
+
+## Decisions and why
+- Smallest implementation: use Quire's new atomic transport on each actual source occurrence with a pinned-commit map; keep existing rival claim materialization; register family-owned identity callbacks for stances/justifications/micropublications using their existing identity functions. Add the micropublication principal's real FK metadata. Approximately 200 workflow/domain lines plus regressions. Preserve all other fields and record original-to-result image witnesses in the merge manifest.
+- Only changed reference-bearing documents require new identities. Equal transported bytes can share an identity; divergent bytes at one resulting identity must reject, never overwrite. Unsupported family reidentity remains explicit rejection with source refs unchanged; temporal/happens-before/coreference need regression coverage, not fabricated ID rules.
+- Canonical family types cross the boundary directly. No handwritten FK path tables, generic setter, Cartesian relation expansion, fabricated base alternative, or compatibility adapter in Propstore.
+- This work makes no concurrency or object-store rollback claim. Ref-atomic failure can leave unreachable blobs. Existing source-ref resolution/absent-target lease gaps are outside this transport slice.
+- Classified the old guard caller as a valid capability with the wrong representation (validating untransported originals against moved targets). Replaced it with typed per-occurrence transport and final prepared-instance validation through Quire's existing validator owner; deleted the obsolete guard exception, no parallel fallback.
+- Micropublication principal is an actual FK and is replaced atomically with membership. Its existing URI identity requires a reversible filename encoding: `FlatYamlPlacement(..., codec="base64url")` uses Quire's existing codec, never changes the URI. No legacy placement fallback or migration was added.
+
+## Surprises
+- First integration run exposed my wrong `ref_from_loaded(document)` call (requires a loaded artifact path) and scanning of unscannable source batches. Replaced the former with the canonical family reference index and limited canonical instance scans to identity-bearing families.
+- Next run passed 11 tests but missed all transported micropubs during enumeration: their `ni:///` identities introduced nested paths in the default flat placement. The explicit reversible base64url placement fixes the declaration itself; all 18 now pass including bundle readback.
+
+## Next step
+Publish the separate Quire draft, pin its exact reachable commit in this draft, publish this draft and read CI. Parent handles review/merges. Unsupported temporal/happens-before/coreference reidentity, shared divergent nonclaim files, source-ref races and absent-target leases are outside this successful stance/justification/micropublication transport slice; no false completion or concurrency claim.

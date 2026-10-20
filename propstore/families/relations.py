@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Protocol
 
 from doxa import Opinion
+import msgspec
 from quire.artifacts import BranchPlacement, FlatYamlPlacement
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.charters import charter_catalog
@@ -49,13 +50,27 @@ from propstore.stances import NON_ATTACK_TYPES, StanceType, coerce_stance_type
 _DOGMATIC_TOL = 1e-9
 
 
+def _transport_identity(document: Stance) -> Stance:
+    from propstore.families.identity.stances import derive_stance_artifact_id
+
+    return msgspec.structs.replace(
+        document,
+        stance_id=derive_stance_artifact_id(
+            source_claim_id=document.source_claim_id,
+            target_claim_id=document.target_claim_id,
+            stance_type=None if document.stance_type is None else document.stance_type.value,
+        ),
+    )
+
+
 @charter(
     key="stance",
     name="stance",
-    contract_version="2026.06.29",
+    contract_version="2026.10.20",
     placement="stance",
     identity_field="stance_id",
     semantic="propstore.stance",
+    transport_identity=_transport_identity,
 )
 class Stance(CharterDoc):
     """A typed relation one claim takes toward another, with optional opinion.

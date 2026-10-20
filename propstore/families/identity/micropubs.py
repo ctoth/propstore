@@ -24,6 +24,7 @@ import msgspec
 
 from quire.canonical import canonical_json_sha256
 
+from propstore.families.micropublications import Micropublication
 from propstore.families.sources import SourceMicropublicationDocument
 from propstore.uri import compute_ni_uri
 
@@ -51,7 +52,7 @@ def _is_str_object_dict(value: object) -> TypeGuard[dict[str, object]]:
 
 
 def canonicalize_micropub_for_identity(
-    document: SourceMicropublicationDocument,
+    document: SourceMicropublicationDocument | Micropublication,
 ) -> dict[str, object]:
     """Return the semantic micropub content used for content identity.
 
@@ -65,6 +66,10 @@ def canonicalize_micropub_for_identity(
     )
     for field in MICROPUB_IDENTITY_EXCLUDED_FIELDS:
         canonical.pop(field, None)
+    # Source bundles have no explicit principal field. Preserve their existing
+    # payload when the canonical bundle also leaves the principal implicit.
+    if canonical.get("principal_claim") is None:
+        canonical.pop("principal_claim", None)
 
     for field in MICROPUB_SORTED_STRING_LIST_FIELDS:
         value = canonical.get(field)
@@ -82,7 +87,9 @@ def canonicalize_micropub_for_identity(
     return canonical
 
 
-def canonical_micropub_payload(document: SourceMicropublicationDocument) -> bytes:
+def canonical_micropub_payload(
+    document: SourceMicropublicationDocument | Micropublication,
+) -> bytes:
     """The exact canonical bytes the bundle's ``ni:`` URI verifies against."""
 
     return json.dumps(
@@ -93,13 +100,17 @@ def canonical_micropub_payload(document: SourceMicropublicationDocument) -> byte
     ).encode("utf-8")
 
 
-def micropub_artifact_id(document: SourceMicropublicationDocument) -> str:
+def micropub_artifact_id(
+    document: SourceMicropublicationDocument | Micropublication,
+) -> str:
     """The ``ni:///sha-256;...`` trusty URI identifying the bundle's content."""
 
     return compute_ni_uri(canonical_micropub_payload(document))
 
 
-def micropub_version_id(document: SourceMicropublicationDocument) -> str:
+def micropub_version_id(
+    document: SourceMicropublicationDocument | Micropublication,
+) -> str:
     """The ``sha256:`` content version id of the bundle."""
 
     return canonical_json_sha256(canonicalize_micropub_for_identity(document))
