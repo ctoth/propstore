@@ -19,7 +19,6 @@ from __future__ import annotations
 from typing import Annotated
 
 import msgspec
-from quire.artifacts import FlatYamlPlacement
 
 from quire.charter_class import CharterDoc, charter, charter_field
 from quire.references import ForeignKeySpec
@@ -92,7 +91,7 @@ def _transport_identity(document: Micropublication) -> Micropublication:
     key="micropublication",
     name="micropublication",
     contract_version="2026.10.20",
-    placement=FlatYamlPlacement("micropublication", str, codec="base64url"),
+    placement="micropublication",
     identity_field="artifact_id",
     transport_identity=_transport_identity,
 )

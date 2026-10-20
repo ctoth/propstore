@@ -1,6 +1,7 @@
 """A merge transports each parent's complete graph with correlated incidence."""
 
 from pathlib import Path
+from dataclasses import replace
 
 import pytest
 import msgspec
@@ -22,6 +23,7 @@ from propstore.families.coreference import CoreferenceMergeArgumentDoc, Corefere
 from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.core.lemon.temporal import HappensBeforeAccount
 from quire.family_transport import UnsupportedFamilyTransportError
+from quire.artifacts import FlatYamlPlacement
 from tests.merge_commit_helpers import author_concept, author_param_claim, init_repo
 
 
@@ -289,3 +291,36 @@ def test_unsupported_family_identity_keeps_target_and_input_evidence(tmp_path: P
     assert git.branch_sha("result") == left
     for commit in (left, right):
         assert bound.require(ref, commit=commit) == document
+
+
+@pytest.mark.parametrize("artifact_id", ["edge", "bundle", "ni:///sha-256;previous"])
+def test_prechange_micropublication_owner_remains_readable_and_mergeable(tmp_path: Path, artifact_id: str) -> None:
+    repo = init_repo(tmp_path / "knowledge")
+    author_concept(repo, "x")
+    author_param_claim(repo, "c", "x", 250.0)
+    repo.families.context.save("ctx", Context(context_id="ctx", name="ctx"), message="context")
+    original = Micropublication(
+        artifact_id=artifact_id, context_id="ctx", claims=("c",), source="urn:original",
+    )
+    bound = repo.families.micropublication
+    # Exercise the production store with the exact pre-change placement owner,
+    # rather than authoring the old fixture through the replacement charter.
+    previous_family = replace(bound.family, placement=FlatYamlPlacement("micropublication", str))
+    bound.store.save(previous_family, artifact_id, original, message="pre-change bundle")
+    git = repo.require_git()
+    original_commit = git.branch_sha("master")
+    assert bound.require(artifact_id, commit=original_commit) == original
+    handles = tuple(bound.iter_handles(commit=original_commit))
+    assert len(handles) == 1
+    assert handles[0].ref == artifact_id
+    assert handles[0].document == original
+    git.create_branch("peer", source_commit=original_commit)
+    author_param_claim(repo, "c", "x", 300.0)
+    author_param_claim(repo, "c", "x", 150.0, branch="peer")
+    merged = create_merge_commit(repo, "master", "peer", target_branch="result")
+    images = tuple(bound.iter_handles(commit=merged))
+    assert len(images) == 2
+    for handle in images:
+        assert bound.require(handle.document.artifact_id, commit=merged) == handle.document
+        assert handle.ref == handle.document.artifact_id
+    assert bound.require(artifact_id, commit=original_commit) == original
