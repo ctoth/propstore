@@ -21,7 +21,6 @@ from propstore.verify import verify_claim_tree
 from propstore.families.sources import SourceMicropublicationDocument
 from propstore.families.coreference import CoreferenceMergeArgumentDoc, CoreferenceMergeArgumentRef
 from propstore.provenance import Provenance, ProvenanceStatus
-from quire.family_transport import UnsupportedFamilyTransportError
 from quire.artifacts import FlatYamlPlacement
 from tests.merge_commit_helpers import author_concept, author_param_claim, init_repo
 
@@ -240,7 +239,7 @@ def test_micropublication_identity_preserves_source_payload_and_explicit_princip
     )
 
 
-def test_unsupported_coreference_identity_keeps_target_and_input_evidence(tmp_path: Path) -> None:
+def test_coreference_identity_transports_claims_and_keeps_input_evidence(tmp_path: Path) -> None:
     repo = init_repo(tmp_path / "knowledge")
     author_concept(repo, "x")
     author_param_claim(repo, "c", "x", 250.0)
@@ -264,9 +263,10 @@ def test_unsupported_coreference_identity_keeps_target_and_input_evidence(tmp_pa
     author_param_claim(repo, "c", "x", 150.0, branch="peer")
     left, right = git.branch_sha("left"), git.branch_sha("peer")
     git.create_branch("result", source_commit=left)
-    with pytest.raises(UnsupportedFamilyTransportError, match="proposal_coreference"):
-        create_merge_commit(repo, "left", "peer", target_branch="result")
-    assert git.branch_sha("result") == left
+    merged = create_merge_commit(repo, "left", "peer", target_branch="result")
+    assert git.branch_sha("result") == merged
+    assert verify_claim_tree(repo, commit=merged).ok
+    assert len(tuple(bound.iter_handles(commit=merged))) == 2
     for commit in (left, right):
         assert bound.require(ref, commit=commit) == document
 

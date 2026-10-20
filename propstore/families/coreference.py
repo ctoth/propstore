@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
+import msgspec
 from quire.artifacts import BranchPlacement, FlatYamlPlacement
 from quire.canonical import canonical_json_sha256
 from quire.charter_class import CharterDoc, charter, charter_field
@@ -99,13 +100,20 @@ _COREFERENCE_PLACEMENT: FlatYamlPlacement[object, CoreferenceMergeArgumentRef] =
 )
 
 
+def _transport_identity(document: CoreferenceMergeArgumentDoc) -> CoreferenceMergeArgumentDoc:
+    return msgspec.structs.replace(
+        document, argument_id=derive_coreference_argument_id(document.supports)
+    )
+
+
 @charter(
     key="proposal_coreference",
     name="proposal_coreference",
-    contract_version="2026.07.21",
+    contract_version="2026.10.20",
     placement=_COREFERENCE_PLACEMENT,
     accessor="proposal_coreference",
     identity_field="argument_id",
+    transport_identity=_transport_identity,
 )
 class CoreferenceMergeArgumentDoc(CharterDoc):
     """A defeasible argument that some description claims corefer, stored as a proposal.
@@ -157,7 +165,22 @@ class CoreferenceMergeArgumentDoc(CharterDoc):
             ),
         ),
     ] = ()
-    attacks: Annotated[tuple[str, ...], charter_field(json=True)] = ()
+    attacks: Annotated[
+        tuple[str, ...],
+        charter_field(
+            json=True,
+            foreign_key=ForeignKeySpec(
+                name="coreference_attacks",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="proposal_coreference",
+                source_field="attacks[]",
+                target_family="proposal_coreference",
+                target_field="argument_id",
+                required=False,
+                many=True,
+            ),
+        ),
+    ] = ()
     note: str | None = None
 
 

@@ -233,21 +233,20 @@ def _transport_family_occurrences(
         if family.name == "claim" or family.identity_field is None:
             continue
         bound = repo.families.by_name(family.name)
-        occurrences = [
-            (instance, handle)
-            for instance in instances.values()
-            for handle in bound.iter_handles(commit=instance.source_commit)
-        ]
+        occurrences = []
+        for instance in instances.values():
+            handles = tuple(bound.iter_handles(commit=instance.source_commit))
+            documents = instance.transport_family(family, tuple(h.document for h in handles))
+            occurrences.extend(zip(handles, documents, strict=True))
         outputs: dict[str, str] = {}
         prepared_records: dict[str, CharterDoc] = {}
-        for instance, handle in occurrences:
-            document = instance.transport(family, handle.document)
+        for handle, document in occurrences:
             if document is handle.document:
                 path = handle.address.require_path()
                 blob = merged_entries[path]
             else:
                 prepared = bound.prepare(
-                    next(iter(family.reference_index_from_records((document,)).records_by_id)),
+                    family.ref_from_document(document),
                     document, branch=target_branch,
                 )
                 path = prepared.address.require_path()
@@ -258,7 +257,7 @@ def _transport_family_occurrences(
                 raise NonClaimMergeConflict(path, family.name, previous, blob)
             outputs[path] = blob
             prepared_records[path] = document
-        for _, handle in occurrences:
+        for handle, _ in occurrences:
             merged_entries.pop(handle.address.require_path(), None)
         merged_entries.update(outputs)
         records[family.name] = tuple(prepared_records.values())
