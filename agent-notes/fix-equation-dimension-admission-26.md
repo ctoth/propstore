@@ -61,3 +61,26 @@ boundary through Bridgman, retaining authored claims and provenance.
   18 then-current focused cases (16.82s), log
   dimension-output-binding-green-20261020-163824.log. Added explicit cases for
   full equalities without output annotations and bare RHS without output evidence.
+
+## Independent review and remaining owner blockers
+- Independent full-diff/two-pass review completed at aa5d2ff5 and parser 5dd5da9;
+  both review gates printed complete. That consumer head passed hosted CI with
+  2091 tests and 4 skips. Output binding/implicit equality correction confirmed.
+- Verified review's malformed m.attribute=m case through a stored claim: it
+  escaped as AttributeError. Added it to expected parse failures and regression.
+- Verified functional Eq(F,F) was reduced to True in parser; owner 43942105
+  now disables evaluation during constructors and supplies an optional RHS
+  output symbol. Hosted owner run 39510944625: 37 passed, typing zero errors.
+- Consumer uses that owner API directly, with no raw SymPy constructors/imports
+  or partial-typed symbol.name access. Corrected focused suite: 22 passed
+  (16.28s), dimension-review-corrections-20261020-165110.log.
+- Remaining reproduced substrate bugs (not merge-eligible): r=2^m accepts a
+  mass-dimensional exponent when the base is dimensionless; F=0 is diagnosed
+  as mismatch although Kennedy p.3 requires polymorphic zero. Stored repros:
+  task-3/dimension-review-repro-_n3tdq19 and -xjevdzif. Bridgman owns these
+  algebra rules; no consumer-side exception or replacement algebra was added.
+- Bridgman remote master 3acb3c0 has an independent Rust rewrite; current consumer
+  pin remains 5eb6118b/Python 0.2.0. Do not silently pull that rewrite into this
+  focused validation draft. Parent must integrate the dimensional owner work.
+- Next: exact-head CI and independent delta re-review; report eligibility and
+  the concrete owner blockers. No PR/body/comment/issue mutation or merge.

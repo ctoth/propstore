@@ -28,8 +28,6 @@ from ast_equiv import AlgorithmParseError, extract_free_variables, parse_algorit
 from condition_ir import ConceptInfo, KindType
 from bridgman import DimensionalError, canonicalize_dims, verify_expr
 from human_to_sympy import generate_sympy_rhs_with_error, parse_symbolic
-from sympy import Eq, Symbol, SympifyError
-from sympy.core.relational import Equality
 
 from propstore.core.scalars import ScalarValue
 from propstore.families.claims import Claim, ClaimType
@@ -395,22 +393,23 @@ def _check_equation_dimensions(
             claim.expression or "",
             symbol_names=tuple(variable.symbol for variable in claim.variables if variable.symbol),
         )
-    except (SympifyError, TypeError, ValueError, SyntaxError, TokenError, RecursionError) as exc:
+    except (AttributeError, TypeError, ValueError, SyntaxError, TokenError, RecursionError) as exc:
         problem("claim.dimension.expression.invalid", f"dimensional expression could not be checked: {exc}")
         return tuple(problems)
 
     dim_map: dict[str, dict[str, int]] = {}
     for symbol in sorted(parsed.free_symbols, key=str):
-        bindings = [variable for variable in claim.variables if variable.symbol == symbol.name]
+        symbol_name = str(symbol)
+        bindings = [variable for variable in claim.variables if variable.symbol == symbol_name]
         if len(bindings) != 1:
-            problem("claim.dimension.binding.unavailable", f"dimensional evidence unavailable: symbol {symbol.name!r} requires one concept binding; found {len(bindings)}")
+            problem("claim.dimension.binding.unavailable", f"dimensional evidence unavailable: symbol {symbol_name!r} requires one concept binding; found {len(bindings)}")
             continue
         binding = bindings[0]
-        dims = dimensions(binding.concept, f"symbol {symbol.name!r}, role {binding.role!r}")
+        dims = dimensions(binding.concept, f"symbol {symbol_name!r}, role {binding.role!r}")
         if dims is not None:
-            dim_map[symbol.name] = dims
+            dim_map[symbol_name] = dims
 
-    if isinstance(parsed, Equality):
+    if parsed.is_Equality:
         if claim.output_concept is not None and not any(
             variable.concept == claim.output_concept
             and variable.symbol in dim_map
@@ -427,7 +426,11 @@ def _check_equation_dimensions(
             while output_name in dim_map:
                 output_name += "_"
             dim_map[output_name] = output_dims
-            parsed = Eq(Symbol(output_name), parsed, evaluate=False)
+            parsed = parse_symbolic(
+                claim.expression or "",
+                symbol_names=tuple(dim_map),
+                output_symbol=output_name,
+            )
     if problems:
         return tuple(problems)
 

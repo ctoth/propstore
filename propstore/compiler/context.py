@@ -42,7 +42,7 @@ class CompilationContext:
     condition_registry: Mapping[str, ConceptInfo]
 
     def __post_init__(self) -> None:
-        if not isinstance(self.form_registry, FormCheckedRegistry):
+        if type(self.form_registry) is not FormCheckedRegistry:
             raise TypeError("compilation context requires a FormCheckedRegistry")
 
 
