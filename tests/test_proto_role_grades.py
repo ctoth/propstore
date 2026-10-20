@@ -97,6 +97,12 @@ def test_nonfinite_grade_rejected_at_construction(value: float) -> None:
         _entailment(value)
 
 
+@pytest.mark.parametrize("value", [False, True])
+def test_boolean_grade_rejected_at_construction(value: bool) -> None:
+    with pytest.raises(ValueError, match="graded entailment value must be numeric"):
+        _entailment(value)
+
+
 @NONFINITE
 @pytest.mark.parametrize("decoder", ["convert", "msgpack"])
 def test_nonfinite_grade_rejected_at_typed_decode(value: float, decoder: str) -> None:
@@ -152,7 +158,23 @@ def test_nonfinite_concept_cannot_be_authored(value: float, tmp_path: Path) -> N
     assert list(repo.families.concept.iter_handles()) == []
 
 
-@pytest.mark.parametrize("value", [0.0, 0.5, 1.0])
+@pytest.mark.parametrize("value", [False, True])
+def test_boolean_concept_cannot_be_authored(value: bool, tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    before = repo.require_git().head_sha()
+    with pytest.raises(ValueError, match="graded entailment value must be numeric"):
+        repo.families.concept.save(
+            "concept:measurement",
+            _concept(value),
+            message="author invalid boolean grade",
+        )
+        repo.families.concept.load("concept:measurement")
+    assert repo.require_git().head_sha() == before
+    assert repo.families.concept.load("concept:measurement") is None
+    assert list(repo.families.concept.iter_handles()) == []
+
+
+@pytest.mark.parametrize("value", [0, 0.0, 0.5, 1.0, 1])
 def test_slot_grade_round_trips_through_registered_concept_family(
     value: float, tmp_path: Path
 ) -> None:
