@@ -78,7 +78,7 @@ markers = [
 ]
 
 [tool.uv.sources]
-quire = { git = "https://github.com/propstore/quire", rev = "f3668cc07719793d2430343ffd996e7b78355f2e" }
+quire = { git = "https://github.com/propstore/quire", rev = "0e961ccb77d772af61254b34dc87f3a32d953611" }
 sqlalchemy-fts5 = { git = "https://github.com/ctoth/sqlalchemy-fts5", rev = "ac6d05968f2f3bcf61c20a09efa41de4a605560d" }
 
 [dependency-groups]

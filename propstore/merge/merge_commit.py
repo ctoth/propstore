@@ -23,7 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -106,12 +106,12 @@ def _read_branch_merge_claims(
 
 
 def _read_base_merge_claims(
-    repo: Repository, git: GitStore, branch_a: str, branch_b: str
+    repo: Repository, git: GitStore, branch_a: str, left_sha: str, right_sha: str
 ) -> tuple[MergeClaim, ...]:
     """Read the merge-base claim set, or empty when the branches share no ancestor."""
 
     try:
-        base_sha = git.merge_base(branch_a, branch_b)
+        base_sha = git.merge_base(left_sha, right_sha)
     except ValueError:
         return ()
     return tuple(_read_branch_merge_claims(repo, branch_a, base_sha))
@@ -124,24 +124,29 @@ def build_repository_merge_framework(
     *,
     integrity_constraint: IntegrityConstraint | None = None,
     additional_branches: Sequence[str] = (),
+    branch_commits: Mapping[str, str] | None = None,
 ) -> RepositoryMergeFramework:
     """Read per-branch claim sets out of storage and build the formal merge object.
 
     The storage-facing companion to the pure
     :func:`~propstore.merge.merge_classifier.build_merge_framework`: it resolves each
     branch tip, reads its claims, computes the merge-base claim set, and delegates the
-    classification math unchanged.
+    classification math unchanged. ``branch_commits`` supplies already captured
+    tips for a write plan; all reads, including the merge base, use those commits.
     """
 
     git = repo.require_git()
     branch_names = (branch_a, branch_b, *additional_branches)
-    claim_sets: dict[str, Sequence[MergeClaim]] = {}
+    commits: dict[str, str] = {}
     for name in branch_names:
-        commit_sha = git.branch_sha(name)
+        commit_sha = git.branch_sha(name) if branch_commits is None else branch_commits[name]
         if commit_sha is None:
             raise ValueError(f"Branch {name!r} does not exist")
-        claim_sets[name] = _read_branch_merge_claims(repo, name, commit_sha)
-    base_claims = _read_base_merge_claims(repo, git, branch_a, branch_b)
+        commits[name] = commit_sha
+    claim_sets: dict[str, Sequence[MergeClaim]] = {}
+    for name in branch_names:
+        claim_sets[name] = _read_branch_merge_claims(repo, name, commits[name])
+    base_claims = _read_base_merge_claims(repo, git, branch_a, commits[branch_a], commits[branch_b])
     return build_merge_framework(
         claim_sets,
         branch_a,
@@ -344,16 +349,20 @@ def create_merge_commit(
     git = repo.require_git()
     if target_branch is None:
         target_branch = git.primary_branch_name()
-    target_expected_head = git.branch_sha(target_branch)
-
     left_sha = git.branch_sha(branch_a)
-    right_sha = git.branch_sha(branch_b)
+    right_sha = left_sha if branch_a == branch_b else git.branch_sha(branch_b)
     if left_sha is None:
         raise ValueError(f"Branch {branch_a!r} does not exist")
     if right_sha is None:
         raise ValueError(f"Branch {branch_b!r} does not exist")
 
-    merge = build_repository_merge_framework(repo, branch_a, branch_b)
+    branch_commits = {branch_a: left_sha, branch_b: right_sha}
+    expected_heads: dict[str, str | None] = dict(branch_commits)
+    if target_branch not in expected_heads:
+        expected_heads[target_branch] = git.branch_sha(target_branch)
+    merge = build_repository_merge_framework(
+        repo, branch_a, branch_b, branch_commits=branch_commits
+    )
 
     merged_entries = _merge_non_claim_entries(
         dict(git.iter_flat_tree_entries(left_sha)),
@@ -391,7 +400,7 @@ def create_merge_commit(
         message or f"Merge {branch_a} and {branch_b}",
         parents=[left_sha, right_sha],
         branch=target_branch,
-        expected_head=target_expected_head,
+        expected_heads=expected_heads,
     )
 
 
