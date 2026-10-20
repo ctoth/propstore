@@ -382,7 +382,7 @@ Paper is a proposal, not an evaluation. The worked theorems are:
 - **[29] Guha 1991 PhD thesis** — Cyc context formalization; direct ancestor of notation used here.
 - **[39] McCarthy 1987 "Generality in AI"** — original motivation for the paper.
 - **[42] McCarthy 1993 IJCAI** — the paper this expanded note revises.
-- **[12] Buvač/Buvač/Mason 1995 "Metamathematics of contexts"** — propositional context → multi-modal reduction.
+- **[12] Buvač/Buvač/Mason 1995 "Metamathematics of contexts"** — propositional context → multi-modal reduction. → NOW IN COLLECTION: [Metamathematics of Contexts](../Buvac_1995_MetamathematicsContexts/notes.md)
 - **[9] Buvač 1996 "Quantificational logic of context"** — why that reduction does not extend to the quantified case.
 - **[26] Giunchiglia & Serafini 1994 "Multilanguage hierarchical logics"** — proof-theoretic parallel.
 - **[43] McCarthy & Hayes 1969** — epistemological/heuristic decomposition of AI.
@@ -391,3 +391,11 @@ Paper is a proposal, not an evaluation. The worked theorems are:
 - **[59] van Benthem 1998 "Changing contexts and shifting assertions"** — same volume, comparison to situation theory.
 - **[34] Kamp 1981 DRT** — reference markers the paper deliberately omits.
 - **[1] Akman & Surav 1996 AI Magazine** — overview of context research.
+
+## Collection Cross-References
+
+### Now in Collection (previously listed as leads)
+- [Metamathematics of Contexts](../Buvac_1995_MetamathematicsContexts/notes.md) - ref [12]. Sound and complete Hilbert system for propositional context logic over partial assignments and context sequences, decidability via the finite model property, and representation theorems relating context models and Kripke models (the propositional-to-modal correspondence this paper cites). It is propositional only; the quantified case is Buvač 1996 [9].
+
+### Conceptual Links (not citation-based)
+- [Propositional Logic of Context](../Buvac_1993_PropositionalLogicContext/notes.md) - Strong. Buvač and Mason's AAAI-93 paper (not in this paper's reference list) is the first formal propositional semantics and complete Hilbert system for the `ist(c, p)` notation used here: truth relative to context sequences, `ist` as validity over partial truth assignments, per-context vocabularies. The propositional-to-multi-modal reduction cited here as [12] is its journal continuation.

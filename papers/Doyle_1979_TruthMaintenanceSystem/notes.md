@@ -293,6 +293,7 @@ This is the foundational paper for the entire truth maintenance / belief revisio
 - [[Reiter_1980_DefaultReasoning]] -- cites Doyle (1978) as the heuristic implementation mechanism for belief revision under default reasoning
 - [[Pollock_1987_DefeasibleReasoning]] -- cites this as Doyle (1979); contrasts OSCAR's approach (storing only immediate bases) with Doyle's TMS (storing all arguments)
 - [[Shapiro_1998_BeliefRevisionTMS]] -- surveys this as the foundational JTMS architecture
+- [Maintaining Knowledge about Temporal Intervals](../Allen_1983_MaintainingKnowledgeAboutTemporal/notes.md) - cites this as the truth maintenance needed to manage persistent-interval assumptions (facts assumed to persist until noticed otherwise), which Allen treats as independent of his interval representation
 
 ### Conceptual Links (not citation-based)
 - [[deKleer_1986_AssumptionBasedTMS]] -- Strong: this paper defines the single-context justification-based TMS; that paper defines the multi-context assumption-based TMS that replaces it. Same core problem (belief revision under contradictions) with fundamentally different architecture (retraction-based vs. label-based). Key concepts from this paper (justifications, nogoods, dependency-directed backtracking) are preserved but reconceptualized in the ATMS.

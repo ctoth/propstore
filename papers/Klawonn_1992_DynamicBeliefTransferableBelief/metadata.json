@@ -1,0 +1,17 @@
+{
+  "cite_key": "klawonn1992dynamic",
+  "title": "The Dynamic of Belief in the Transferable Belief Model and Specialization-Generalization Matrices",
+  "authors": [
+    "Frank Klawonn",
+    "Philippe Smets"
+  ],
+  "year": "1992",
+  "arxiv_id": "1303.5408",
+  "doi": "10.1016/B978-1-4832-8287-9.50022-0",
+  "abstract": "The fundamental updating process in the transferable belief model is related to the concept of specialization and can be described by a specialization matrix. The degree of belief in the truth of a proposition is a degree of justified support. The Principle of Minimal Commitment implies that one should never give more support to the truth of a proposition than justified. We show that Dempster's rule of conditioning corresponds essentially to the least committed specialization, and that Dempster's rule of combination results essentially from commutativity requirements. The concept of generalization, dual to the concept of specialization, is described.",
+  "url": "http://arxiv.org/abs/1303.5408v1",
+  "pdf_url": "https://arxiv.org/pdf/1303.5408v1",
+  "document_type": "article",
+  "venue": "Proceedings of the Eighth Conference on Uncertainty in Artificial Intelligence (UAI-92)",
+  "pages": "130-137"
+}

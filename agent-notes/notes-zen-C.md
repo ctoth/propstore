@@ -1,0 +1,22 @@
+# notes — zen review C (Phase 5, 6)
+
+## State
+All inputs read: REWRITE_PLAN.md, CLAUDE.md (zen), SPEC.md, argumentation-opinion.md, merge-conflict-relations.md (decomp), argumentation-stances.md, merge-conflict-relations.md (inventory), _argopinion_notes.md. DESIGN-projection-registry.md does NOT exist (plan cites a missing file — minor finding).
+
+## Findings so far (Phase 5 — argumentation-bridge + stances)
+- F5.1 (Z3/Z1 — WORST CANDIDATE): plan keeps "thin provenance/honesty deltas (enforce_coh, metadata_strength_vector) propstore-side" over doxa. doxa is "intentionally pure — no provenance" (its __init__ docstring). The decomp (_argopinion §3 GAP1/GAP2) says CONSUME requires a propstore-side provenance-carrying WRAPPER/SUBTYPE of doxa.Opinion + a module-function SHIM aliasing doxa methods (consensus/discount/wbf/ccf/fuse/from_probability). A subtype that re-wraps Opinion through every operator (_compose_opinion_provenance threads it) = a second spelling of Opinion + a coercer at every operator boundary. That is exactly the Z3 mirror/coercer debt the rewrite exists to kill. Plan does not resolve GAP1 vs the upstream-doxa-payload alternative — it picks the wrapper by default ("keep deltas propstore-side").
+- F5.2 (Z3): plan Phase 5 line names "core/analyzers.py (the real Dung-AF + PrAF assembly — NOT the argumentation.py marker)" — GOOD, it kills the 2-spelling marker. But it does NOT say argumentation.py marker is deleted; SPEC keeps argumentation.py as PROPSTORE marker (decomp table row). Keeping a 2-line marker module AND core/analyzers = two spellings of "the argumentation layer." Minor.
+- F5.3 (Z2): plan does not explicitly preserve NoCalibration/vacuous honesty as an exit gate. Inventory cap 16/18 (honest NoCalibration, vacuous when uncalibrated) are PORT but plan's Phase 5 bullet doesn't name the honesty tests. Risk of dropping honest-ignorance gate.
+- F5.4 (Z3): ProbabilisticRelation (R6) is "thin DTO over doxa Opinion" — if opinion becomes a propstore wrapper subtype, R6 inherits the mirror.
+
+## Findings (Phase 6 — merge-conflict + relations)
+- F6.1 (Z1 — strong): plan says merge is "Dung-backed ... two-parent merge commit (quire)". Inventory M4/M1 confirm rivals materialized both-sides, no winner. GOOD. But plan does NOT state the non-commitment invariant as an exit gate; M3 IntegrityConstraint (test_ic_postulate_coverage) is UNDER-COVERED (no dedicated test per inventory). Plan closes M3 but the gating test is the IC-postulate one, not a merge-rival-preservation property. Risk: a winner could be picked without test_T1_1_merge_preserves_rivals being named as the gate.
+- F6.2 (Z3): ConflictClaim/MergeClaim — inventory C8/M7/M8 mark these DROP (charter) but KEEP with_source_condition / assertion-id / semantic-key logic "as adapter". "as adapter" is the danger word. If they become field-subset VIEWS over the Claim charter = OK; if parallel stored types = VIOLATION. Plan says "merge-claim coreference" without specifying view-vs-type. Ambiguous = flag.
+- F6.3 (Z3): eq-equiv CONSUME has an open GAP (decomp §4): ref still imports in-tree equation_comparison; plan Phase 3 deletes in-tree + consumes eq-equiv, but keeps compare_equation_claims(ConflictClaim,...)/equation_signature as ConflictClaim-shaped adapters propstore-side. ConflictClaim-shaped adapter over a generic package = the parameterize-by-args test (Z3): is eq-equiv parameterized by claim args, or does propstore coerce ConflictClaim->eq-equiv types? If coerce = violation.
+- F6.4 (Z5): concept alignment via PAF (R5) — plan says "vocab reconciliation via PAF". Inventory R5 = classify_relation + build_alignment_artifact + align/decide/promote = proposals workflow. Plan does not explicitly say alignment output is PROPOSAL-only / render-time. Risk Z5 if alignment writes source mutations.
+- F6.5: description_kinds (M10) — plan Phase 6 does not mention it; inventory says it belongs in core/lemon (Phase 2) and merge/description_kinds.py is a DROP re-export. Plan Phase 2 mentions "Dung coreference" so likely fine, but the merge re-export deletion isn't named.
+
+## Worst finding (current pick): F5.1 — opinion wrapper subtype over doxa reintroduces a second Opinion spelling + per-operator coercer, the exact Z3 debt the rewrite kills. Plan defaults to it ("keep deltas propstore-side") instead of resolving the upstream-doxa-payload boundary.
+
+## Next
+Write report to reports/rewrite-zen-C.md (may be blocked by foreman Write restriction — will attempt).

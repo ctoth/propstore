@@ -17,8 +17,8 @@ dependencies = [
     "eq-equiv @ git+https://github.com/ctoth/eq-equiv@9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6",
     "human-to-sympy @ git+https://github.com/ctoth/human-to-sympy@f9d67dd54cb1e5e1c0ef9d67094606eb3497cfd7",
     "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@978b10edb8eaf106f64cd760cfeedce1c3cbb237",
-    "assignment-selection @ git+https://github.com/ctoth/assignment-selection.git@d8554962eee40b73dd8444f6361a72b9b9f95d86",
-    "doxa @ git+https://github.com/ctoth/doxa.git@404bf384f5dbbb7a8025baf86b6e7eaf10fd471c",
+    "assignment-selection @ git+https://github.com/propstore/assignment-selection.git@5816c20b8247898fa96e02e6e42e66b69987dfc7",
+    "doxa @ git+https://github.com/propstore/doxa.git@ef12c894a6760d9dd86ebcd2c45da679c8928059",
     "bridgman @ git+https://github.com/ctoth/bridgman@5eb6118bb2e346122aae6f7e3e9cd8581ec6c781",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
@@ -56,6 +56,9 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["propstore"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"uv.lock" = "propstore/_compiler_dependencies.lock"
+
 [tool.pyright]
 typeCheckingMode = "strict"
 venvPath = "."
@@ -75,7 +78,7 @@ markers = [
 ]
 
 [tool.uv.sources]
-quire = { git = "https://github.com/ctoth/quire", rev = "9f9d9ff155b482e139011969ae73fc603c5e4ff5" }
+quire = { git = "https://github.com/propstore/quire", rev = "d1daeed8b361fff227fb0cbf915f9a2049f1bbf0" }
 sqlalchemy-fts5 = { git = "https://github.com/ctoth/sqlalchemy-fts5", rev = "ac6d05968f2f3bcf61c20a09efa41de4a605560d" }
 
 [dependency-groups]

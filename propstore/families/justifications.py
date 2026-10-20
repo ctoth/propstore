@@ -28,6 +28,9 @@ from propstore.families import SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION
 class Justification(CharterDoc):
     """An authored ``premises ⊢ conclusion`` justification over claims."""
 
+    # A non-reported licence makes its conclusion inferred, rather than an
+    # unconditional premise. An independent report requires an explicit
+    # reported_claim licence. Withdrawal disables support, not this document.
     justification_id: Annotated[str, charter_field(primary_key=True)]
     conclusion: Annotated[
         str | None,

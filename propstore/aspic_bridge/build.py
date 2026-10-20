@@ -56,11 +56,12 @@ from propstore.aspic_bridge.translate import (
     justifications_to_rules,
     preference_sensitive_stance_pairs,
     stances_to_contrariness,
+    stances_to_support_rules,
 )
 from propstore.context_lifting import LiftingDecision, LiftingDecisionStatus
 from propstore.core.active_claims import ActiveClaim
 from propstore.defeasibility import arguments_concluding, inject_dung_defeats
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.core.literal_keys import LiteralKey
 from propstore.grounding.bundle import GroundedRulesBundle
 
@@ -109,7 +110,7 @@ def _build_language(
 
 def compile_bridge_context(
     active_claims: Sequence[ActiveClaim],
-    justifications: list[CanonicalJustification],
+    justifications: Sequence[Justification],
     stances: Sequence[StanceInput],
     *,
     bundle: GroundedRulesBundle,
@@ -125,6 +126,7 @@ def compile_bridge_context(
     literals = lifting_projection.literals
 
     strict_rules, defeasible_rules = justifications_to_rules(justifications, literals)
+    defeasible_rules |= stances_to_support_rules(stances, literals)
     strict_rules |= lifting_projection.strict_rules
     defeasible_rules |= lifting_projection.defeasible_rules
 
@@ -299,7 +301,7 @@ def apply_lifting_exception_defeats(
 
 def build_bridge_csaf(
     active_claims: Sequence[ActiveClaim],
-    justifications: list[CanonicalJustification],
+    justifications: Sequence[Justification],
     stances: Sequence[StanceInput],
     *,
     bundle: GroundedRulesBundle,

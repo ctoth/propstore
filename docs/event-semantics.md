@@ -56,7 +56,7 @@ The architectural payoff of propstore's non-commitment discipline extended into 
 
 Per `disciplines.md` rule 1: every paper resolves to a `papers/<dir>/` location or is tagged `to fetch` against `semantic-substrate-papers.md`. Code citations must come with a backing test, runtime invariant check, or linked `xfail`.
 
-- **Hobbs 1985, *Ontological Promiscuity*** — `to fetch` (P3-primary). Ontological-promiscuity argument.
+- **Hobbs 1985, *Ontological Promiscuity*** — `papers/Hobbs_1985_OntologicalPromiscuity/`. Ontological-promiscuity argument.
 - **Quine 1968, *Ontological Relativity*** — `to fetch` (P3-primary). Translation-manual / inscrutability-of-reference argument.
 - **Putnam, late-period internal-realism essays** — `to fetch` (P3-secondary; *Realism with a Human Face*). Earlier spirit, not the late retraction.
 - **Davidson 1967, *The Logical Form of Action Sentences*** — `to fetch` (read-for-rejection). Position considered and rejected.
@@ -65,8 +65,8 @@ Per `disciplines.md` rule 1: every paper resolves to a `papers/<dir>/` location 
 - **Pustejovsky 1991, *The Generative Lexicon*** — `papers/Pustejovsky_1991_GenerativeLexicon/`. Qualia and type coercion.
 - **Dowty 1991, *Thematic Proto-Roles*** — `papers/Dowty_1991_ThematicProtoRoles/`. Proto-agent / proto-patient graded entailments.
 - **Fillmore 1982, *Frame Semantics*** — `papers/Fillmore_1982_FrameSemantics/`. Cognitive-frame motivation; not an implementation target.
-- **Allen 1983, *Maintaining Knowledge About Temporal Intervals*** — interval relations over `KindType.TIMEPOINT` via `ConditionSolver`; already consumed.
-- **Lamport 1978, *Time, Clocks, and the Ordering of Events in a Distributed System*** — `to fetch` (temporal-layer primary). Happens-before partial order; total order as a per-observer projection, not a global fact — the primitive the rebuilt temporal layer implements as `HappensBeforeEdge` + declared-frame TIMEPOINT projections.
+- **Allen 1983, *Maintaining Knowledge About Temporal Intervals*** — `papers/Allen_1983_MaintainingKnowledgeAboutTemporal/` (Rochester TR 86 revised preprint of the CACM article). Interval relations over `KindType.TIMEPOINT` via `ConditionSolver`.
+- **Lamport 1978, *Time, Clocks, and the Ordering of Events in a Distributed System*** — `papers/Lamport_1978_TimeClocksOrderingEvents/` (temporal-layer primary). Happens-before partial order; total order as a per-observer projection, not a global fact — the primitive the rebuilt temporal layer implements as `HappensBeforeEdge` + declared-frame TIMEPOINT projections.
 
 ## 8. Cross-references within propstore
 

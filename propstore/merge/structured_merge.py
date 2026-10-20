@@ -31,7 +31,6 @@ from argumentation.frameworks.partial_af import EnumerationExceeded
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.aspic_bridge.translate import StanceInput
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.justifications import CanonicalJustification
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.merge.merge_claims import MergeClaim
 from propstore.stances import StanceType
@@ -267,21 +266,10 @@ def build_branch_structured_summary(
 
     if claims:
         active_claims = [_merge_active_claim(claim, branch) for claim in claims]
-        # Each branch-local claim enters the KB as a reported premise: the store
-        # path synthesizes these reported justifications from claim rows, so the
-        # store-free path does the same here.
-        justifications = [
-            CanonicalJustification(
-                justification_id=f"reported:{claim.artifact_id}",
-                conclusion_claim_id=claim.artifact_id,
-                rule_kind="reported_claim",
-            )
-            for claim in claims
-        ]
         stance_inputs = [_stance_input_from_row(row) for row in stance_rows]
         csaf = build_bridge_csaf(
             active_claims,
-            justifications,
+            (),
             stance_inputs,
             bundle=GroundedRulesBundle.empty(),
         )

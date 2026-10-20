@@ -17,7 +17,7 @@ from argumentation.structured.aspic.aspic import GroundAtom
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.families.rules import Atom, BodyLiteral, DefeasibleRule, Term
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
@@ -62,9 +62,9 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
     csaf = build_bridge_csaf(
         [claim],
         [
-            CanonicalJustification(
+            Justification(
                 justification_id="reported:claim-a",
-                conclusion_claim_id="claim-a",
+                conclusion="claim-a",
                 rule_kind="reported_claim",
             )
         ],

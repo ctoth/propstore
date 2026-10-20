@@ -31,7 +31,7 @@ from propstore.conflict_detector.models import (
     coerce_conflict_class,
 )
 from propstore.core.graph_types import ParameterizationEdge
-from propstore.core.id_types import to_concept_id, to_concept_ids
+from propstore.core.id_types import to_claim_id, to_concept_id, to_concept_ids
 from propstore.core.store_results import ConceptSearchHit
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.concepts import Concept
@@ -39,6 +39,7 @@ from propstore.families.contexts import Context, LiftingRule
 from propstore.families.coreference import CoreferenceMergeArgumentDoc
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
+from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.families.temporal import (
@@ -175,6 +176,15 @@ def count_claims(session: DerivedSession) -> int:
 
 
 # ── stances ──────────────────────────────────────────────────────────────────
+
+
+def select_justifications(session: DerivedSession) -> list[Justification]:
+    """Every authored inference licence, hydrated by its charter."""
+    model = session.schema.model("justification")
+    return [
+        Justification.__charter__.document_from_model(row, Justification)
+        for row in session.scalars(select(model))
+    ]
 
 
 def select_stances(session: DerivedSession) -> list[Stance]:
@@ -392,8 +402,9 @@ def derive_parameterizations(claims: Sequence[Claim]) -> list[ParameterizationEd
     An equation claim names the concept it computes (``output_concept``) and the
     concepts it is computed from (the other ``concepts`` it references). That is a
     parameterization edge ``output <- inputs``; the formula/sympy, the claim's
-    stated exactness, and the claim's checked conditions ride on the edge. A claim with no output concept or no
-    distinct input concepts contributes no edge.
+    stated exactness, checked conditions and originating claim reference ride on
+    the edge. Applicability belongs to that claim's activation decision. A claim
+    with no output concept or no distinct input concepts contributes no edge.
     """
 
     edges: list[ParameterizationEdge] = []
@@ -416,6 +427,7 @@ def derive_parameterizations(claims: Sequence[Claim]) -> list[ParameterizationEd
                 sympy=claim.sympy,
                 exactness=claim.exactness,
                 checked_conditions=_checked_conditions(claim.conditions_ir),
+                equation_claim_id=to_claim_id(claim.claim_id),
             )
         )
     return edges

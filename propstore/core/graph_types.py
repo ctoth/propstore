@@ -21,6 +21,7 @@ from propstore.core.graph_relation_types import (
 from propstore.core.id_types import ClaimId, ConceptId, to_claim_ids, to_concept_ids
 from propstore.families.claims import Claim, Exactness
 from propstore.families.concepts import Concept
+from propstore.families.justifications import Justification
 from propstore.families.relations import Stance
 
 
@@ -49,6 +50,7 @@ class ParameterizationEdge:
     exactness: Exactness | None = None
     conditions: tuple[CelExpr, ...] = ()
     checked_conditions: CheckedConditionSet | None = field(default=None, compare=False)
+    equation_claim_id: ClaimId | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -73,8 +75,14 @@ class CompiledWorldGraph:
     parameterizations: tuple[ParameterizationEdge, ...] = ()
     stances: tuple[Stance, ...] = ()
     conflicts: tuple[ConflictRecord, ...] = ()
+    justifications: tuple[Justification, ...] = ()
 
     def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "justifications",
+            tuple(sorted(self.justifications, key=lambda item: item.justification_id)),
+        )
         object.__setattr__(
             self,
             "concepts",
@@ -85,7 +93,22 @@ class CompiledWorldGraph:
         )
         object.__setattr__(self, "relations", tuple(sorted(self.relations)))
         object.__setattr__(
-            self, "parameterizations", tuple(sorted(self.parameterizations))
+            self,
+            "parameterizations",
+            tuple(
+                sorted(
+                    self.parameterizations,
+                    key=lambda edge: (
+                        edge.output_concept_id,
+                        edge.input_concept_ids,
+                        edge.formula or "",
+                        edge.sympy or "",
+                        str(edge.exactness or ""),
+                        edge.conditions,
+                        edge.equation_claim_id or "",
+                    ),
+                )
+            ),
         )
         object.__setattr__(
             self,
@@ -156,6 +179,9 @@ class GraphDelta:
                 )
             ),
             parameterizations=graph.parameterizations,
+            justifications=tuple(
+                item for item in graph.justifications if item.conclusion in claim_ids
+            ),
             stances=tuple(
                 stance
                 for stance in graph.stances

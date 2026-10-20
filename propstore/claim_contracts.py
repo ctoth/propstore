@@ -9,11 +9,10 @@ condition machinery and stays propstore-side.
 The validate workflow is non-committal (PLAN.md §12, CLAUDE.md): it never raises
 or drops a claim. It returns a report of diagnostics; the caller (a later build
 pass) decides to quarantine, never to abort. The sympy-generation semantic check
-delegates to ``human-to-sympy`` directly (``generate_sympy_rhs_with_error``);
-propstore re-implements no NL->sympy logic. Dimensional and algorithm checks are
-declared here but executed by later phases (they consume ``bridgman`` /
-``ast-equiv``); the report names them explicitly under ``deferred_checks`` rather
-than skipping them silently (honest ignorance).
+delegates to ``human-to-sympy`` directly (``generate_sympy_rhs_with_error``), and
+algorithm parsing delegates to ``ast-equiv``. Dimensional and unbound-name
+checks remain declared but deferred; the report names those outstanding checks
+explicitly under ``deferred_checks``.
 """
 
 from __future__ import annotations
@@ -22,6 +21,7 @@ from collections.abc import Sized
 from dataclasses import dataclass
 from enum import Enum
 
+from ast_equiv import AlgorithmParseError, parse_algorithm
 from condition_ir import ConceptInfo, KindType
 from human_to_sympy import generate_sympy_rhs_with_error
 
@@ -353,9 +353,9 @@ def validate_claim(
     """Validate a claim against its type contract; return a report (never raises).
 
     Checks required/non-empty fields, then runs the semantic checks this phase
-    wires: ``SympyGenerationCheck`` delegates to ``human-to-sympy``. Dimensional
-    and algorithm checks are named under ``deferred_checks`` (executed in later
-    phases), not skipped silently.
+    wires: ``SympyGenerationCheck`` delegates to ``human-to-sympy`` and
+    ``AlgorithmParseCheck`` delegates to ``ast-equiv``. Dimensional and
+    unbound-name checks are named under ``deferred_checks``.
     """
 
     contract = claim_type_contract_for(claim.claim_type)
@@ -408,6 +408,15 @@ def validate_claim(
                     ClaimValidationDiagnostic(
                         field="expression",
                         message=f"sympy generation failed: {result.error}",
+                    )
+                )
+        elif isinstance(check, AlgorithmParseCheck):
+            try:
+                parse_algorithm(claim.body or "")
+            except AlgorithmParseError as exc:
+                diagnostics.append(
+                    ClaimValidationDiagnostic(
+                        field="body", message=f"algorithm body parse error: {exc}"
                     )
                 )
         else:

@@ -20,6 +20,7 @@ from propstore.core.graph_types import (
 )
 from propstore.families.claims import Claim
 from propstore.families.concepts import Concept
+from propstore.families.justifications import Justification
 from propstore.families.relations import Stance
 
 
@@ -43,12 +44,16 @@ class CharterStore:
     concepts: tuple[Concept, ...] = ()
     claims: tuple[Claim, ...] = ()
     stances: tuple[Stance, ...] = ()
+    justifications: tuple[Justification, ...] = ()
     relationships: tuple[RelationEdge, ...] = ()
     parameterizations: tuple[ParameterizationEdge, ...] = ()
     conflict_records: tuple[ConflictRecord, ...] = field(default_factory=tuple)
 
     def all_concepts(self) -> Sequence[Concept]:
         return self.concepts
+
+    def all_justifications(self) -> Sequence[Justification]:
+        return self.justifications
 
     def claims_for(self, concept_id: str | None) -> Sequence[Claim]:
         if concept_id is None:

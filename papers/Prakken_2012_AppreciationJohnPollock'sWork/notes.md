@@ -289,6 +289,7 @@ This paper provides essential historical context for understanding the foundatio
 ## Collection Cross-References
 
 ### Already in Collection
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - in the reference list; these notes do not record where it is used in the text
 - [[Dung_1995_AcceptabilityArguments]] -- cited extensively as the foundational abstract argumentation framework that Pollock's work is compared against; Prakken & Horty argue Pollock's system should be understood as generating Dung-style frameworks *(p.3, 7, 13)*
 - [[Pollock_1987_DefeasibleReasoning]] -- the primary subject paper; this survey reviews and extends the ideas introduced there *(p.3-4)*
 - [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] -- the ASPIC+ framework by co-author Prakken, positioned as the modern integration of Pollock's ideas with structured argumentation *(p.2, 13)*

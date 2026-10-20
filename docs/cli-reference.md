@@ -763,9 +763,8 @@ uv run pks context lifting remove ctx_argumentation lift_dung_to_argumentation
 ## Predicates (`pks predicate`)
 
 Declare DeLP/Datalog predicate artifacts. Each predicate names a relation
-symbol, fixes its arity, and tags every argument position with a sort that the
-grounder uses to enumerate well-typed substitutions (Diller, Borg, Bex 2025
-§3-4; Garcia & Simari 2004 §3). Canonical storage is one artifact per
+symbol, fixes its arity, and tags every argument position with a type that
+`PredicateRegistry.validate_atom` checks each atom against. Canonical storage is one artifact per
 predicate id; `--file` is optional authoring-group metadata.
 
 ### `pks predicate list`

@@ -1,0 +1,4 @@
+---
+tags: [merkle-trees, tamper-evidence, transparency-logs, provenance]
+---
+Crosby and Wallach formalize tamper-evident logging for an untrusted logger audited by clients and auditors (membership and incremental proofs, historical consistency) and introduce the history tree, a versioned Merkle tree whose proofs are O(log n) instead of the linear proofs of hash chains and skip lists. They add Merkle aggregation for authenticated attribute queries with no false negatives and provably policy-conformant safe deletion, and a syslog prototype handles 1,750 signed events per second with roughly 3 KB membership proofs in an 80-million-event log. The structure underlies Certificate Transparency and gives propstore a model for verifiable append-only provenance histories and fork detection across federated peers.

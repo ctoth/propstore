@@ -7,6 +7,7 @@ from propstore.core.environment import (
     ClaimStanceInventoryStore,
     ConceptCatalogStore,
     ConflictStore,
+    JustificationCatalogStore,
     ParameterizationCatalogStore,
     RelationshipCatalogStore,
     StanceStore,
@@ -25,6 +26,8 @@ def build_compiled_world_graph(store: object) -> CompiledWorldGraph:
         raise TypeError("build_compiled_world_graph requires all_parameterizations()")
     if not isinstance(store, ConflictStore):
         raise TypeError("build_compiled_world_graph requires conflicts()")
+    if not isinstance(store, JustificationCatalogStore):
+        raise TypeError("build_compiled_world_graph requires all_justifications()")
 
     claims = tuple(store.claims_for(None))
     claim_ids = {claim.claim_id for claim in claims}
@@ -48,6 +51,7 @@ def build_compiled_world_graph(store: object) -> CompiledWorldGraph:
         parameterizations=tuple(store.all_parameterizations()),
         stances=stances,
         conflicts=tuple(store.conflicts()),
+        justifications=tuple(store.all_justifications()),
     )
 
 

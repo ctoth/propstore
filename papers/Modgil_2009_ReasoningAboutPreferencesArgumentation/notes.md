@@ -143,7 +143,7 @@ This paper is directly relevant to propstore's preference layer because it forma
 - Dung (1995), "On the acceptability of arguments and its fundamental role in nonmonotonic reasoning, logic programming and n-person games" — the base semantics reused throughout. *(p.903-904, p.933)*
 - Bench-Capon (2003), "Persuasion in practical argument using value-based argumentation frameworks" — the fixed-value-ordering approach that this paper generalizes. *(p.901-902, p.932)*
 - Kakas and Moraitis (2003), "Argumentation based decision making for autonomous agents" — a logic-programming preference framework that the paper reconstructs in EAF form. *(p.903, p.919-920, p.932)*
-- Prakken and Sartor (1997), "Argument-based extended logic programming with defeasible priorities" — the ALP-DP formalism instantiated in Section 7. *(p.903, p.914-920, p.934)*
+- Prakken and Sartor (1997), "Argument-based extended logic programming with defeasible priorities" — the ALP-DP formalism instantiated in Section 7. *(p.903, p.914-920, p.934)* → NOW IN COLLECTION: [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md)
 - Prakken (2010), "An abstract framework for argumentation with structured arguments" — the structured-argumentation successor that moves from abstract EAFs to internal argument structure. *(collection context)*
 - Modgil and Prakken (2014, 2018) — later ASPIC+ treatments that absorb the central lessons here into structured argumentation. *(collection context)*
 
@@ -154,10 +154,12 @@ This paper is directly relevant to propstore's preference layer because it forma
 - [[Amgoud_2002_ReasoningModelProductionAcceptable]] — cited as [3]; an earlier preference-based framework that assumes preferences externally rather than arguing about them inside the AF.
 - [[Prakken_2010_AbstractFrameworkArgumentationStructured]] — cited as the structured-argument successor that internalizes attacks and defeat types beyond the abstract EAF level.
 
+### Now in Collection (previously listed as leads)
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - the ALP-DP formalism instantiated in Section 7: strict/defeasible rules, rebut and undercut (undercut ignores priorities), priorities over relevant defeasible rules, and defeasible priorities. **Tension:** these notes say ALP-DP provides "only grounded status"; Prakken and Sartor's §7 (PDF pp.34-36) also defines credulous stable extensions and defensible extensions. What it lacks is Dung-style admissible and preferred semantics, which is the part of the claim that stands.
+
 ### New Leads (Not Yet in Collection)
 - Kakas and Moraitis (2003) — "Argumentation based decision making for autonomous agents" — decision-making formalism reconstructed within hierarchical EAFs.
 - Modgil (2007) — "An abstract theory of argumentation that accommodates defeasible reasoning about preferences" — immediate precursor to the full EAF account.
-- Prakken and Sartor (1997) — "Argument-based extended logic programming with defeasible priorities" — core ALP-DP formalism instantiated here.
 
 ### Cited By (in Collection)
 - [[Amgoud_2011_NewApproachPreference-basedArgumentation]] — cites and critiques this paper as another attack-removal approach that mishandles asymmetric conflicts.

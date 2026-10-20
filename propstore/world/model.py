@@ -77,6 +77,7 @@ from propstore.families.claims import Claim, ClaimStatus
 from propstore.families.concepts import Concept
 from propstore.families.diagnostics import BuildDiagnostic
 from propstore.families.forms import FormDefinition
+from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -100,6 +101,7 @@ from propstore.world.queries import (
     select_contexts,
     select_forms,
     select_incident_stances,
+    select_justifications,
     select_lifting_rules,
     select_micropublications,
     select_stances,
@@ -672,6 +674,9 @@ class WorldQuery(WorldStore):
 
     def all_claim_stances(self) -> Sequence[Stance]:
         return select_stances(self._session)
+
+    def all_justifications(self) -> Sequence[Justification]:
+        return select_justifications(self._session)
 
     def explain(self, claim_id: str) -> Sequence[Stance]:
         resolved = self.resolve_claim(claim_id) or claim_id

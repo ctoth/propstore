@@ -1,0 +1,19 @@
+{
+  "cite_key": "buvac1993propositional",
+  "title": "Propositional Logic of Context",
+  "authors": [
+    "Saša Buvač",
+    "Ian A. Mason"
+  ],
+  "year": "1993",
+  "doi": null,
+  "arxiv_id": null,
+  "abstract": "In this paper we investigate the simple logical properties of contexts. We describe both the syntax and semantics of a general propositional language of context, and give a Hilbert style proof system for this language. A propositional logic of context extends classical propositional logic in two ways. Firstly, a new modality, ist(κ, φ), is introduced. It is used to express that the sentence, φ, holds in the context κ. Secondly, each context has its own vocabulary, i.e. a set of propositional atoms which are defined or meaningful in that context. The main results of this paper are the soundness and completeness of this Hilbert style proof system. We also provide soundness and completeness results (i.e. correspondence theory) for various extensions of the general system.",
+  "url": "https://aaai.org/papers/00412-aaai93-062-propositional-logic-of-context/",
+  "pdf_url": "http://www-formal.stanford.edu/buvac/propositional-logic-of-context.ps",
+  "bibtex": "@Inproceedings{Buvac1993PropositionalLC,\n author = {Sa\\v{s}a Buva\\v{c} and Ian A. Mason},\n booktitle = {Proceedings of the Eleventh National Conference on Artificial Intelligence (AAAI-93)},\n pages = {412-419},\n title = {Propositional Logic of Context},\n year = {1993}\n}\n",
+  "venue": "Proceedings of the Eleventh National Conference on Artificial Intelligence (AAAI-93)",
+  "pages": "412-419",
+  "document_type": "article",
+  "retrieval_note": "paper.pdf is the authors' PostScript (Stanford Formal Reasoning Group page; its footer says 'Appears in the Proceedings of the Eleventh National Conference on Artificial Intelligence, 1993'), converted to PDF with Ghostscript. The AAAI CDN copy https://cdn.aaai.org/AAAI/1993/AAAI93-062.pdf has only 6 pages (printed pp. 412-417; no conclusion or references), so it was not used."
+}

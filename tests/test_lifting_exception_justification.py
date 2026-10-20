@@ -24,7 +24,7 @@ from propstore.context_lifting import (
     LiftingSystem,
 )
 from propstore.core.active_claims import ActiveClaim
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.families.contexts import LiftingDecisionStatus
 from propstore.grounding.bundle import GroundedRulesBundle
 
@@ -38,10 +38,10 @@ def _claim(claim_id: str, context_id: str) -> ActiveClaim:
     )
 
 
-def _reported(claim_id: str) -> CanonicalJustification:
-    return CanonicalJustification(
+def _reported(claim_id: str) -> Justification:
+    return Justification(
         justification_id=f"reported:{claim_id}",
-        conclusion_claim_id=claim_id,
+        conclusion=claim_id,
         rule_kind="reported_claim",
     )
 

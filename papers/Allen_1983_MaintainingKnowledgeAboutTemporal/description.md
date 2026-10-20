@@ -1,0 +1,4 @@
+---
+tags: [temporal-logic, knowledge-representation, constraint-propagation, interval-algebra]
+---
+Introduces Allen's interval algebra: thirteen mutually exclusive relations between temporal intervals, a network whose arcs carry disjunctive sets of these relations, and a queue-driven constraint-propagation algorithm over a 12x12 transitivity table, plus reference intervals that cluster nodes so cross-cluster relations are composed at retrieval time. The algorithm is shown to terminate with at most 13 changes per arc and average O(N) work per addition, but guarantees only three-node consistency; extensions sketch a duration reasoner, date lines, a moving NOW, and persistent intervals for assumption-based belief revision. It is the source for propstore's Allen relations over description-claim intervals and an early example of storing every still-possible relation instead of committing to one.

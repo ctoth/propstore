@@ -1,0 +1,19 @@
+{
+  "cite_key": "mazieres2002building",
+  "title": "Building secure file systems out of byzantine storage",
+  "authors": [
+    "David Mazières",
+    "Dennis Shasha"
+  ],
+  "year": "2002",
+  "arxiv_id": null,
+  "doi": "10.1145/571825.571840",
+  "abstract": "This paper shows how to implement a trusted network file system on an untrusted server. While cryptographic storage techniques exist that allow users to keep data secret from untrusted servers, this work concentrates on the detection of tampering attacks and stale data. Ideally, users of an untrusted storage server would immediately and unconditionally notice any misbehavior on the part of the server. This ideal is unfortunately not achievable. However, we define a notion of data integrity called fork consistency in which, if the server delays just one user from seeing even a single change by another, the two users will never again see one another's changes—a failure easily detectable with on-line communication. We give a practical protocol for a multi-user network file system called SUNDR, and prove that SUNDR offers fork consistency whether or not the server obeys the protocol.",
+  "url": "https://www.semanticscholar.org/paper/4905910ed47b1a08ef0da3e0972b3ddabb1762b3",
+  "pdf_url": "https://www.scs.stanford.edu/~dm/home/papers/mazieres:sundr-podc.ps.gz",
+  "bibtex": "@Article{Mazières2002BuildingSF,\n author = {David Mazières and D. Shasha},\n booktitle = {ACM SIGACT-SIGOPS Symposium on Principles of Distributed Computing},\n pages = {108-117},\n title = {Building secure file systems out of byzantine storage},\n year = {2002}\n}\n",
+  "document_type": "conference_paper",
+  "venue": "ACM SIGACT-SIGOPS Symposium on Principles of Distributed Computing",
+  "venue_type": "conference",
+  "pages": "108-117"
+}

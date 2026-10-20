@@ -42,7 +42,7 @@ from propstore.aspic_bridge.grounding import project_grounded_rules, typed_scala
 from propstore.aspic_bridge.translate import StanceInput
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.analyzers import shared_analyzer_input_from_graph
-from propstore.core.justifications import CanonicalJustification
+from propstore.families.justifications import Justification
 from propstore.fragility_scoring import (
     FragilityWarning,
     score_conflict,
@@ -603,7 +603,7 @@ def collect_grounded_rule_interventions(
 def collect_bridge_undercut_interventions(
     bundle: GroundedRulesBundle,
     active_claims: Sequence[ActiveClaim],
-    justifications: list[CanonicalJustification],
+    justifications: list[Justification],
     stance_rows: Sequence[StanceInput],
 ) -> tuple[RankedIntervention, ...]:
     compiled = compile_bridge_context(
@@ -699,7 +699,7 @@ def collect_bridge_undercut_interventions(
 
 def build_bound_bridge_inputs(
     bound: FragilityWorld,
-) -> tuple[tuple[ActiveClaim, ...], list[CanonicalJustification], list[StanceInput]]:
+) -> tuple[tuple[ActiveClaim, ...], list[Justification], list[StanceInput]]:
     active_claims = tuple(bound.active_claims())
     active_by_id = {str(claim.claim_id): claim for claim in active_claims}
     active_graph = bound.active_graph
@@ -709,7 +709,6 @@ def build_bound_bridge_inputs(
     justifications = extract_justifications(
         bound.store,
         active_by_id,
-        stance_rows,
         active_graph=active_graph,
     )
     return active_claims, list(justifications), list(stance_rows)

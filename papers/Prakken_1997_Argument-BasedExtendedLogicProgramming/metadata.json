@@ -1,0 +1,20 @@
+{
+  "cite_key": "prakken1997argumentbased",
+  "title": "Argument-Based Extended Logic Programming with Defeasible Priorities",
+  "authors": [
+    "Henry Prakken",
+    "Giovanni Sartor"
+  ],
+  "year": "1997",
+  "arxiv_id": null,
+  "doi": "10.1080/11663081.1997.10510900",
+  "abstract": "Inspired by legal reasoning, this paper presents a semantics and proof theory of a system for defeasible argumentation. Arguments are expressed in a logic-programming language with both weak and strong negation. Conflicts between arguments are decided with the help of priorities on the rules. An important feature of the system is that these priorities are not fixed, but are themselves defeasibly derived as conclusions within the system. Thus debates on the choice between conflicting arguments can also be modelled. The semantics of the system is given with a fixpoint definition, while its proof theory is stated in dialectical style, where a proof takes the form of a dialogue between a proponent and an opponent of an argument: an argument is shown to be justified if the proponent can make the opponent run out of moves in whatever way the opponent attacks.",
+  "url": "https://www.semanticscholar.org/paper/a5c059066c9d2e4879ed65dd2fbf75e788f04aed",
+  "pdf_url": "https://webspace.science.uu.nl/~prakk101/pubs/DefArgJANCL97.pdf",
+  "bibtex": "@Article{Prakken1997ArgumentBasedEL,\n author = {H. Prakken and G. Sartor},\n booktitle = {J. Appl. Non Class. Logics},\n journal = {J. Appl. Non Class. Logics},\n pages = {25-75},\n title = {Argument-Based Extended Logic Programming with Defeasible Priorities},\n volume = {7},\n year = {1997}\n}\n",
+  "venue": "J. Appl. Non Class. Logics",
+  "volume": "7",
+  "pages": "25-75",
+  "document_type": "article",
+  "retrieval_note": "paper.pdf is the authors' PDF linked from Henry Prakken's publication list (webspace.science.uu.nl/~prakk101/publications.html) under the JANCL 7:25-75 (1997) entry; 52 pages, no printed page numbers, so it is not verified to be the typeset journal version. sci-hub.st showed a bot check for the DOI."
+}

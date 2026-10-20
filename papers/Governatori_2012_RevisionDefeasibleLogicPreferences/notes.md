@@ -414,7 +414,7 @@ This paper is the **canonical reference** for "revising what wins, not what's tr
 - **Levi 1977 [19], Gärdenfors 1988 [20]** — Levi/Harper identity foundations.
 - **Inoue & Sakama 1999 [21]** — abducting preferences.
 - **Moguillansky et al. 2008/2010 [26, 27]** — DeLP argument-theory-change.
-- **Prakken & Sartor 1997 [28]** — argument-based extended LP with priorities.
+- **Prakken & Sartor 1997 [28]** — argument-based extended LP with priorities. → NOW IN COLLECTION: [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md)
 
 ## Collection Cross-References
 
@@ -426,6 +426,9 @@ This paper is the **canonical reference** for "revising what wins, not what's tr
 ### Cited By (in Collection)
 - [A Defeasible Logic-based Framework for Contextualizing Deployed Applications](../Al-Anbaki_2019_DefeasibleLogicContextualizingApplications/notes.md) — cites this as ref [24] in the static-priority discussion; this paper directly addresses the dynamic-priority limitation Al-Anbaki et al. acknowledge as future work.
 
+### Now in Collection (previously listed as leads)
+- [Argument-Based Extended Logic Programming with Defeasible Priorities](../Prakken_1997_Argument-BasedExtendedLogicProgramming/notes.md) - ref [28]. Encodes rule priorities (including legal ones such as lex superior, posterior, specialis) as defeasible conclusions inside the argumentation system, so priorities are argued over rather than fixed; a contrast to this paper's revision of a fixed superiority relation by external change operations.
+
 ### New Leads (Not Yet in Collection)
 - Billington, Antoniou, Governatori & Maher (1999) — "Revising non-monotonic belief sets: The case of defeasible logic" (KI-99) [ref 2] — direct precursor to this paper; first paper on AGM-vs-DL revision.
 - Alchourrón, Gärdenfors & Makinson (1985) — "On the logic of theory change: Partial meet contraction and revision functions" (J. Symbolic Logic 50) [ref 3] — the foundational AGM paper.
@@ -436,7 +439,6 @@ This paper is the **canonical reference** for "revising what wins, not what's tr
 - Gärdenfors (1988) — "Knowledge in Flux: Modeling the Dynamics of Epistemic States" [ref 20] — original Harper identity.
 - Inoue & Sakama (1999) — "Abducing priorities to derive intended conclusions" (IJCAI) [ref 21] — closest related work; abduction of priorities (vs. modification).
 - Moguillansky, Rotstein, Falappa, García & Simari (2008/2010) — Argument Theory Change for DeLP [refs 26, 27] — explicitly compared and critiqued in this paper.
-- Prakken & Sartor (1997) — "Argument-based extended logic programming with defeasible priorities" (J. Applied Non-Classical Logics 7) [ref 28] — legal-reasoning rule-priority encoding.
 - Antoniou (2004) — "Defeasible logic with dynamic priorities" (Int. J. Intell. Syst. 19) [ref 29] — dynamic priority derivation, conceptually adjacent.
 - Brewka (1996) — "Well-founded semantics for extended logic programs with dynamic preferences" (JAIR 4) [ref 30].
 - Maher (2001) — "Propositional defeasible logic has linear complexity" (TPLP 1) [ref 18] — linear-time DL extension computation, key for this paper's NP-completeness proof. → NOW IN COLLECTION: [Propositional Defeasible Logic has Linear Complexity](../Maher_2001_PropositionalDefeasibleLogicLinearComplexity/notes.md). Confirms its load-bearing role: Maher's `O(N)` algorithm (Theorem 5, p.17) is the linear-time DL extension oracle the NP-completeness reduction here invokes — without it, the upper bound on the `>`-revision decision problem would be weaker.
