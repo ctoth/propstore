@@ -11,6 +11,7 @@ from propstore.families.justifications import Justification
 from propstore.families.micropublications import Micropublication
 from propstore.families.relations import Stance
 from propstore.merge.merge_commit import create_merge_commit, NonClaimMergeConflict
+from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.families.identity.micropubs import micropub_artifact_id, micropub_version_id
 from propstore.families.identity.stances import derive_stance_artifact_id
 from propstore.families.identity.justifications import derive_justification_artifact_id
@@ -324,3 +325,71 @@ def test_prechange_micropublication_owner_remains_readable_and_mergeable(tmp_pat
         assert bound.require(handle.document.artifact_id, commit=merged) == handle.document
         assert handle.ref == handle.document.artifact_id
     assert bound.require(artifact_id, commit=original_commit) == original
+
+
+@pytest.mark.parametrize("difference", ["version", "evidence_order", "uri_spelling", "identical"])
+def test_transported_bundle_cannot_overwrite_an_unchanged_normalized_path(
+    tmp_path: Path, difference: str,
+) -> None:
+    repo = init_repo(tmp_path / "knowledge")
+    author_concept(repo, "x")
+    author_param_claim(repo, "c", "x", 250.0)
+    repo.families.context.save("ctx", Context(context_id="ctx", name="ctx"), message="context")
+    original = Micropublication(
+        artifact_id="bundle", context_id="ctx", claims=("c",), source="urn:original",
+        evidence=(MicropublicationEvidence("quote", "urn:first"), MicropublicationEvidence("quote", "urn:second")),
+    )
+    repo.families.micropublication.save("bundle", original, message="original bundle")
+    git = repo.require_git()
+    git.create_branch("peer", source_commit=git.branch_sha("master"))
+    author_param_claim(repo, "c", "x", 300.0)
+    author_param_claim(repo, "c", "x", 150.0, branch="peer")
+
+    # Obtain the exact image through the real framework/materializer/commit,
+    # before introducing the collision. No identity algorithm is mirrored here.
+    preview_left = git.branch_sha("master")
+    preview = create_merge_commit(repo, "master", "peer", target_branch="preview")
+    manifest = next(repo.families.merge_manifest.iter_handles(commit=preview)).document
+    image = next(i for i in manifest.reference_images if i.source_commit == preview_left and i.family == "micropublication")
+    transported = repo.families.micropublication.require(image.target_id, commit=preview)
+    claim_image = repo.families.claim.require(transported.claims[0], commit=preview)
+    for branch in ("master", "peer"):
+        # This already-materialized claim is identical to the would-be result,
+        # and makes every existing bundle FK valid in both input instances.
+        repo.families.claim.save(claim_image.claim_id, claim_image, message="existing claim image", branch=branch)
+    if difference == "version":
+        existing = msgspec.structs.replace(transported, version_id="authored-version")
+    elif difference == "evidence_order":
+        existing = msgspec.structs.replace(transported, evidence=tuple(reversed(transported.evidence)))
+    elif difference == "uri_spelling":
+        existing = msgspec.structs.replace(transported, artifact_id=transported.artifact_id.replace("ni:///", "ni:/", 1))
+    else:
+        existing = transported
+    repo.families.micropublication.save(existing.artifact_id, existing, message="existing bundle image", branch="peer")
+    left, right = git.branch_sha("master"), git.branch_sha("peer")
+    for commit in (left, right):
+        PROPSTORE_FAMILY_REGISTRY.validate_records({
+            family.name: tuple(h.document for h in repo.families.by_name(family.name).iter_handles(commit=commit))
+            for family in PROPSTORE_FAMILY_REGISTRY.families if family.identity_field is not None
+        })
+    if difference in {"version", "evidence_order", "identical"}:
+        assert micropub_artifact_id(existing) == transported.artifact_id
+    git.create_branch("result", source_commit=left)
+    try:
+        merged = create_merge_commit(repo, "master", "peer", target_branch="result")
+    except ValueError as exc:
+        assert difference != "identical"
+        assert "normalized path" in str(exc)
+        assert git.branch_sha("result") == left
+    else:
+        # Inspect what was actually committed, rather than just the proposed
+        # dictionaries. The conflicting payloads must never select a winner.
+        committed = tuple(h.document for h in repo.families.micropublication.iter_handles(commit=merged))
+        if difference != "identical":
+            pytest.fail(
+                f"merge advanced to {merged} and silently selected a payload; "
+                f"expected both {existing!r} and {transported!r}; committed={committed!r}"
+            )
+        assert committed.count(transported) == 1
+    assert repo.families.micropublication.require(existing.artifact_id, commit=right) == existing
+    assert repo.families.micropublication.require("bundle", commit=left) == original
