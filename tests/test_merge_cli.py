@@ -99,7 +99,10 @@ def test_merge_inspect_matches_owner_helper(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    assert yaml.safe_load(result.output) == expected
+    payload = yaml.safe_load(result.output)
+    assert payload.pop("target_admission") == "contained"
+    assert payload.pop("plan")["target_sha"] == repo.require_git().branch_sha("master")
+    assert payload == expected
 
 
 def test_merge_commit_surfaces_storage_commit_metadata(tmp_path: Path) -> None:

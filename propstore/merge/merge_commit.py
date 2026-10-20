@@ -25,7 +25,7 @@ import json
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import msgspec
 from quire.charter_class import CharterDoc
@@ -308,25 +308,123 @@ def _build_manifest(
     )
 
 
-def create_merge_commit(
+@dataclass
+class DivergentMergeTargetError(ValueError):
+    """The observed target history is absent from both proposed parents."""
+
+    target_branch: str
+    target_sha: str
+    left_sha: str
+    right_sha: str
+
+    def __str__(self) -> str:
+        return (
+            f"Merge target {self.target_branch!r} at {self.target_sha} is not an "
+            f"ancestor of either parent ({self.left_sha}, {self.right_sha})"
+        )
+
+
+@dataclass(frozen=True)
+class MergeCommitPlan:
+    """Pinned, admitted inputs to a two-parent publication.
+
+    Construct with :func:`plan_merge_commit`. Absence is represented by a None
+    target SHA and remains an absence lease at publication, not permission to
+    overwrite a branch that subsequently appears.
+    """
+
+    branch_a: str
+    branch_b: str
+    left_sha: str
+    right_sha: str
+    target_branch: str
+    target_sha: str | None
+    base_sha: str | None
+
+    @property
+    def target_admission(self) -> Literal["absent", "contained"]:
+        return "absent" if self.target_sha is None else "contained"
+
+    @property
+    def branch_commits(self) -> dict[str, str]:
+        return {self.branch_a: self.left_sha, self.branch_b: self.right_sha}
+
+    @property
+    def expected_heads(self) -> dict[str, str | None]:
+        return {**self.branch_commits, self.target_branch: self.target_sha}
+
+    def commit(self, repo: Repository, *, message: str = "") -> str:
+        """Publish this exact plan, retaining Quire's expected-head CAS."""
+        git = repo.require_git()
+        branch_a, branch_b = self.branch_a, self.branch_b
+        target_branch = self.target_branch
+        left_sha, right_sha = self.left_sha, self.right_sha
+        merge = build_repository_merge_framework(
+            repo, branch_a, branch_b, branch_commits=self.branch_commits
+        )
+        parent_entries = {
+            branch: dict(git.iter_flat_tree_entries(commit))
+            for branch, commit in ((branch_a, left_sha), (branch_b, right_sha))
+        }
+        base_entries = dict(git.iter_flat_tree_entries(self.base_sha)) if self.base_sha else {}
+        base_ordinary, left_ordinary, right_ordinary = (
+            {path: blob for path, blob in entries.items() if not _is_claim_path(path)}
+            for entries in (base_entries, parent_entries[branch_a], parent_entries[branch_b])
+        )
+        try:
+            merged_entries = dict(iter_merged_tree_entries(base_ordinary, left_ordinary, right_ordinary))
+        except TreeMergeConflict as conflict:
+            raise NonClaimMergeConflict(
+                conflict.path, _family_for_path(conflict.path),
+                conflict.left_sha, conflict.right_sha,
+            ) from conflict
+        instances = {
+            branch: FamilyInstanceMap(commit, {
+                family.name: repo.families.by_name(family.name).reference_index(commit=commit)
+                for family in PROPSTORE_FAMILY_REGISTRY.families
+                if family.identity_field is not None
+            })
+            for branch, commit in ((branch_a, left_sha), (branch_b, right_sha))
+        }
+        claims = _materialize_merge_arguments(
+            repo, git, merge, merged_entries, target_branch, instances
+        )
+        _transport_family_occurrences(
+            repo, git, claims, instances, merged_entries, target_branch, parent_entries
+        )
+        reference_images = tuple(sorted(
+            {image for instance in instances.values() for image in instance.iter_images()},
+            key=lambda image: (image.source_commit, image.family, image.source_id),
+        ))
+        manifest = _build_manifest(merge, branch_a, branch_b, reference_images)
+        prepared_manifest = repo.families.merge_manifest.prepare(
+            manifest.manifest_id, manifest, branch=target_branch
+        )
+        merged_entries[prepared_manifest.address.require_path()] = git.store_blob(
+            prepared_manifest.content
+        )
+        return git.commit_flat_tree(
+            merged_entries,
+            message or f"Merge {branch_a} and {branch_b}",
+            parents=[left_sha, right_sha],
+            branch=target_branch,
+            expected_heads=self.expected_heads,
+        )
+
+
+def plan_merge_commit(
     repo: Repository,
     branch_a: str,
     branch_b: str,
     *,
-    message: str = "",
     target_branch: str | None = None,
-) -> str:
-    """Create a two-parent storage merge commit from the formal merge object.
+) -> MergeCommitPlan:
+    """Capture heads once and refuse an existing target outside both histories.
 
-    Reads the claim sets out of both branch trees, builds the merge framework,
-    materializes the surviving rival claim alternatives plus a ``MergeManifest``, and
-    commits the merged entry set with ``parents=[left, right]`` onto ``target_branch``
-    (default: the primary branch). Returns the merge commit sha. Multiple best
-    ancestors raise :class:`AmbiguousMergeBaseError` before planning or writes. Raises
-    :class:`NonClaimMergeConflict` for incompatible concurrent ordinary changes
-    or colliding transported documents. Reference admission can also refuse
-    the combined family instance. These failures never
-    advance the target branch.
+    Git's two-parent merge records the histories of the two tips. A target may
+    advance to that commit only when its captured tip is reachable from a parent.
+    This is graph reachability (git-merge-base --is-ancestor), not a timestamp or
+    tree-equality test. Multiple best bases remain a separate typed refusal.
     """
 
     git = repo.require_git()
@@ -339,71 +437,45 @@ def create_merge_commit(
     if right_sha is None:
         raise ValueError(f"Branch {branch_b!r} does not exist")
 
-    branch_commits = {branch_a: left_sha, branch_b: right_sha}
-    expected_heads: dict[str, str | None] = dict(branch_commits)
-    if target_branch not in expected_heads:
-        expected_heads[target_branch] = git.branch_sha(target_branch)
+    target_sha = (
+        left_sha if target_branch == branch_a else
+        right_sha if target_branch == branch_b else git.branch_sha(target_branch)
+    )
+    if (
+        target_sha is not None
+        and target_sha not in (left_sha, right_sha)
+        and target_sha not in git.ancestor_distances(left_sha)
+        and target_sha not in git.ancestor_distances(right_sha)
+    ):
+        raise DivergentMergeTargetError(target_branch, target_sha, left_sha, right_sha)
     base_shas = tuple(git.iter_merge_bases(left_sha, right_sha))
     if len(base_shas) > 1:
         raise AmbiguousMergeBaseError(left_sha, right_sha, base_shas)
-    merge = build_repository_merge_framework(
-        repo, branch_a, branch_b, branch_commits=branch_commits
+    return MergeCommitPlan(
+        branch_a, branch_b, left_sha, right_sha, target_branch, target_sha,
+        base_shas[0] if base_shas else None,
     )
 
-    parent_entries = {
-        branch: dict(git.iter_flat_tree_entries(commit))
-        for branch, commit in ((branch_a, left_sha), (branch_b, right_sha))
-    }
-    base_entries = dict(git.iter_flat_tree_entries(base_shas[0])) if base_shas else {}
-    base_ordinary, left_ordinary, right_ordinary = (
-        {path: blob for path, blob in entries.items() if not _is_claim_path(path)}
-        for entries in (base_entries, parent_entries[branch_a], parent_entries[branch_b])
-    )
-    try:
-        merged_entries = dict(iter_merged_tree_entries(base_ordinary, left_ordinary, right_ordinary))
-    except TreeMergeConflict as conflict:
-        raise NonClaimMergeConflict(
-            conflict.path, _family_for_path(conflict.path),
-            conflict.left_sha, conflict.right_sha,
-        ) from conflict
-    instances = {
-        branch: FamilyInstanceMap(commit, {
-            family.name: repo.families.by_name(family.name).reference_index(commit=commit)
-            for family in PROPSTORE_FAMILY_REGISTRY.families
-            if family.identity_field is not None
-        })
-        for branch, commit in ((branch_a, left_sha), (branch_b, right_sha))
-    }
-    claims = _materialize_merge_arguments(
-        repo, git, merge, merged_entries, target_branch, instances
-    )
-    _transport_family_occurrences(
-        repo, git, claims, instances, merged_entries, target_branch, parent_entries
-    )
 
-    reference_images = tuple(sorted(
-        {image for instance in instances.values() for image in instance.iter_images()},
-        key=lambda image: (image.source_commit, image.family, image.source_id),
-    ))
-    manifest = _build_manifest(merge, branch_a, branch_b, reference_images)
-    prepared_manifest = repo.families.merge_manifest.prepare(
-        manifest.manifest_id, manifest, branch=target_branch
-    )
-    merged_entries[prepared_manifest.address.require_path()] = git.store_blob(
-        prepared_manifest.content
-    )
-
-    return git.commit_flat_tree(
-        merged_entries,
-        message or f"Merge {branch_a} and {branch_b}",
-        parents=[left_sha, right_sha],
-        branch=target_branch,
-        expected_heads=expected_heads,
-    )
+def create_merge_commit(
+    repo: Repository,
+    branch_a: str,
+    branch_b: str,
+    *,
+    message: str = "",
+    target_branch: str | None = None,
+) -> str:
+    """Plan and publish a two-parent merge, refusing lost target history."""
+    return plan_merge_commit(
+        repo, branch_a, branch_b, target_branch=target_branch
+    ).commit(repo, message=message)
 
 
 __all__ = [
     "NonClaimMergeConflict",
+    "DivergentMergeTargetError",
+    "MergeCommitPlan",
     "build_repository_merge_framework",
     "create_merge_commit",
+    "plan_merge_commit",
 ]
