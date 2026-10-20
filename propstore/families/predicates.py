@@ -203,8 +203,8 @@ _ENUM_ARG_TYPE_RE = re.compile(r"^enum:[A-Za-z0-9_-]+(\|[A-Za-z0-9_-]+)+$")
 def validate_predicate_arg_type(arg_type: str) -> None:
     """Accept a base sort or an ``enum:a|b|...`` tag; reject anything else.
 
-    The argument-type vocabulary is a closed set (Diller/Borg/Bex 2025 §3): the
-    grounder enumerates substitutions only over declared sorts, so an unknown tag
+    The argument-type vocabulary is a closed set: ``PredicateRegistry.validate_atom``
+    checks every atom's argument types against its declaration, so an unknown tag
     is a proposal error, not a free-form string.
     """
 

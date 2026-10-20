@@ -10,9 +10,10 @@ References:
     Modgil & Prakken 2018, Def. 1 (p.8): the logical language ``L`` contains
     formulas and their contradictories; identity is defined over formula
     structure rather than serialized strings.
-    Diller, Borg, Bex 2025, Def. 7 (p.3): a ground atom is a predicate symbol
-    applied to a tuple of ground terms — that tuple is part of the atom's
-    identity, modelled directly here.
+    Diller, Gaggl, Hanisch, Monterosso & Rauschenbach 2025, §2.2 (p.3, just
+    before Def. 7): an atom is a predicate symbol applied to a tuple of terms,
+    and is ground when all of those terms are constants — that tuple is part of
+    the atom's identity, modelled directly here.
 
 Substrate boundary (CLAUDE.md): ``GroundAtom``/``Scalar`` are the argumentation
 package's own ASPIC+ types, imported from their leaf module and used directly.
