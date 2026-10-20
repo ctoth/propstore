@@ -18,6 +18,7 @@ from propstore.families.coreference import (
     CoreferenceMergeArgumentDoc,
     CoreferenceMergeArgumentRepository,
     CoreferenceMergeArgumentRef,
+    CoreferenceTransportConflict,
     coreference_proposal_branch,
     derive_coreference_argument_id,
 )
@@ -137,7 +138,7 @@ def test_same_argument_identity_cannot_discard_different_authored_evidence(tmp_p
     git.create_branch("peer", source_commit=source)
     author_param_claim(repo, "c", "x", 300.0, branch="left")
     author_param_claim(repo, "c", "x", 150.0, branch="peer")
-    with pytest.raises(NonClaimMergeConflict):
+    with pytest.raises(CoreferenceTransportConflict, match="collapse distinct arguments"):
         create_merge_commit(repo, "left", "peer", target_branch=proposal)
     assert git.branch_sha(proposal) == source
     for document in (first, second):
@@ -221,3 +222,46 @@ def test_unresolved_legacy_attack_remains_readable_but_cannot_silently_merge(tmp
     with pytest.raises(ForeignKeyValidationError, match="coreference_attacks.*does not resolve"):
         create_merge_commit(repo, proposal, "peer", target_branch=proposal)
     assert git.branch_sha(proposal) == source
+
+
+def test_legacy_mutual_arguments_cannot_collapse_to_self_attack(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path / "knowledge")
+    author_concept(repo, "x")
+    author_param_claim(repo, "c", "x", 250.0)
+    author_param_claim(repo, "s", "x", 100.0)
+    git = repo.require_git()
+    proposal = coreference_proposal_branch()
+    git.create_branch(proposal, source_commit=git.branch_sha("master"))
+    provenance = Provenance(status=ProvenanceStatus.STATED)
+    first = CoreferenceMergeArgumentDoc(
+        argument_id="legacy:A", supports=("s", "c"), description_claim_ids=("s", "c"),
+        attacks=("legacy:B",), provenance=provenance, note="same evidence",
+    )
+    second = msgspec.structs.replace(first, argument_id="legacy:B", attacks=("legacy:A",))
+    bound = repo.families.proposal_coreference
+    with repo.families.transact(message="valid legacy mutual attack", branch=proposal) as transaction:
+        for document in (first, second):
+            transaction.by_name("proposal_coreference").save(CoreferenceMergeArgumentRef(document.argument_id), document)
+    source = git.branch_sha(proposal)
+    for document in (first, second):
+        assert bound.require(CoreferenceMergeArgumentRef(document.argument_id), commit=source) == document
+    assert verify_claim_tree(repo, commit=source).ok
+    before = coreference_clusters(repo, RenderPolicy(semantics=ArgumentationSemantics.PREFERRED))
+    assert isinstance(before, CoreferenceClustersReport)
+    assert before.clusters
+    git.create_branch("left", source_commit=source)
+    git.create_branch("peer", source_commit=source)
+    author_param_claim(repo, "c", "x", 300.0, branch="left")
+    author_param_claim(repo, "c", "x", 150.0, branch="peer")
+    parents = (git.branch_sha("left"), git.branch_sha("peer"))
+    assert all(verify_claim_tree(repo, commit=parent).ok for parent in parents)
+    with pytest.raises(CoreferenceTransportConflict, match="collapse distinct arguments"):
+        create_merge_commit(repo, "left", "peer", target_branch=proposal)
+    assert git.branch_sha(proposal) == source
+    assert (git.branch_sha("left"), git.branch_sha("peer")) == parents
+    for parent in (source, *parents):
+        for document in (first, second):
+            assert bound.require(CoreferenceMergeArgumentRef(document.argument_id), commit=parent) == document
+    after = coreference_clusters(repo, RenderPolicy(semantics=ArgumentationSemantics.PREFERRED))
+    assert isinstance(after, CoreferenceClustersReport)
+    assert after == before
