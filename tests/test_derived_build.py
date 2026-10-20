@@ -13,12 +13,17 @@ These pin the 9-0-rest-B build spine:
 
 from __future__ import annotations
 
+import os
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
 from propstore.derived_build import (
+    _SIDECAR_CACHE_DEPENDENCIES,
     materialize_world_sidecar,
     world_sidecar_hash,
     world_sidecar_hash_inputs,
@@ -106,6 +111,234 @@ def test_hash_inputs_carry_the_expected_keys() -> None:
     assert "dependency_pins" in inputs
     assert "build_time_config" in inputs
     assert inputs["grounding_config"] == {"max_arguments": None}
+
+
+@pytest.fixture
+def compiler_lockfile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    lockfile = tmp_path / "uv.lock"
+    lockfile.write_bytes((Path(__file__).resolve().parents[1] / "uv.lock").read_bytes())
+    monkeypatch.setattr("propstore.derived_build._sidecar_lockfile", lambda: lockfile)
+    return lockfile
+
+
+def _change_dependency(
+    lockfile: Path, name: str, *, remove: bool = False, git_revision: bool = False
+) -> None:
+    sections = lockfile.read_text(encoding="utf-8").split("[[package]]")
+    for index, section in enumerate(sections):
+        if not section.startswith(f'\nname = "{name}"\n'):
+            continue
+        if remove:
+            del sections[index]
+        elif git_revision:
+            prefix, source = section.split('git = "', 1)
+            url, suffix = source.split('"', 1)
+            repository, _ = url.split("?rev=", 1)
+            revision = "0" * 40
+            sections[index] = (
+                f'{prefix}git = "{repository}?rev={revision}#{revision}"{suffix}'
+            )
+        else:
+            prefix, version = section.split('version = "', 1)
+            _, suffix = version.split('"', 1)
+            sections[index] = f'{prefix}version = "999.0.0"{suffix}'
+        lockfile.write_text("[[package]]".join(sections), encoding="utf-8")
+        return
+    raise AssertionError(f"{name} is absent from the real lockfile")
+
+
+def test_dependency_selection_resolves_every_declared_distribution() -> None:
+    inputs = world_sidecar_hash_inputs("rev", schema_hash="schema")
+    assert set(inputs["dependency_pins"]) == set(_SIDECAR_CACHE_DEPENDENCIES)
+    assert {"condition-ir", "eq-equiv", "cel-parser", "formal-argumentation"} <= set(
+        inputs["dependency_pins"]
+    )
+
+
+@pytest.mark.parametrize("dependency", _SIDECAR_CACHE_DEPENDENCIES)
+def test_compiler_dependency_pin_invalidates_hash(
+    compiler_lockfile: Path, dependency: str
+) -> None:
+    before = world_sidecar_hash("same-knowledge-commit", schema_hash="same-schema")
+    _change_dependency(compiler_lockfile, dependency)
+    after = world_sidecar_hash("same-knowledge-commit", schema_hash="same-schema")
+    assert before != after
+
+
+@pytest.mark.parametrize(
+    "dependency", ("condition-ir", "eq-equiv", "formal-argumentation", "quire")
+)
+def test_compiler_git_revision_invalidates_hash(
+    compiler_lockfile: Path, dependency: str
+) -> None:
+    before = world_sidecar_hash("rev", schema_hash="schema")
+    _change_dependency(compiler_lockfile, dependency, git_revision=True)
+    assert world_sidecar_hash("rev", schema_hash="schema") != before
+
+
+def test_unrelated_dependency_does_not_invalidate_hash(compiler_lockfile: Path) -> None:
+    before = world_sidecar_hash("rev", schema_hash="schema")
+    _change_dependency(compiler_lockfile, "click")
+    assert world_sidecar_hash("rev", schema_hash="schema") == before
+
+
+def test_missing_compiler_dependency_is_an_error(compiler_lockfile: Path) -> None:
+    _change_dependency(compiler_lockfile, "condition-ir", remove=True)
+    with pytest.raises(ValueError, match="world-sidecar.*condition-ir"):
+        world_sidecar_hash("rev", schema_hash="schema")
+
+
+@pytest.mark.parametrize("project_name", (None, "unrelated-project"))
+def test_installed_package_rejects_unrelated_adjacent_lockfile(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, project_name: str | None
+) -> None:
+    monkeypatch.setattr(
+        "propstore.derived_build.__file__", str(tmp_path / "propstore/derived_build.py")
+    )
+    (tmp_path / "uv.lock").write_bytes(
+        (Path(__file__).resolve().parents[1] / "uv.lock").read_bytes()
+    )
+    if project_name:
+        (tmp_path / "pyproject.toml").write_text(
+            f'[project]\nname = "{project_name}"\n', encoding="utf-8"
+        )
+    with pytest.raises(ValueError, match="compiler dependency lockfile is absent"):
+        world_sidecar_hash("rev", schema_hash="schema")
+
+
+def test_source_checkout_uses_its_current_compiler_lockfile(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "propstore.derived_build.__file__", str(tmp_path / "propstore/derived_build.py")
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "propstore"\n', encoding="utf-8"
+    )
+    lockfile = tmp_path / "uv.lock"
+    lockfile.write_bytes((Path(__file__).resolve().parents[1] / "uv.lock").read_bytes())
+    before = world_sidecar_hash("rev", schema_hash="schema")
+    _change_dependency(lockfile, "condition-ir", git_revision=True)
+    assert world_sidecar_hash("rev", schema_hash="schema") != before
+    _change_dependency(lockfile, "condition-ir", remove=True)
+    with pytest.raises(ValueError, match="world-sidecar.*condition-ir"):
+        world_sidecar_hash("rev", schema_hash="schema")
+
+
+def test_built_wheel_tracks_installed_compilers_with_a_fixed_bundled_lock(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    subprocess.run(
+        [
+            "uv", "build", "--wheel", "--python", sys.executable,
+            "--out-dir", str(tmp_path / "dist"), str(project_root),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (wheel,) = (tmp_path / "dist").glob("*.whl")
+    installed = tmp_path / "installed"
+    with ZipFile(wheel) as archive:
+        assert archive.read("propstore/_compiler_dependencies.lock") == (
+            project_root / "uv.lock"
+        ).read_bytes()
+        archive.extractall(installed)
+    # This is deliberately not Propstore's lockfile. The wheel must ignore it.
+    (installed / "uv.lock").write_text("not valid TOML", encoding="utf-8")
+    probe = r'''
+import json
+import sys
+from pathlib import Path
+from importlib.metadata import distribution
+import propstore.derived_build as build
+from propstore.repository import Repository
+assert Path(build.__file__).resolve().is_relative_to(Path.cwd())
+assert build._sidecar_lockfile().parent == Path(build.__file__).parent
+pins = build.world_sidecar_hash_inputs("rev", schema_hash="schema")["dependency_pins"]
+assert set(pins) == set(build._SIDECAR_CACHE_DEPENDENCIES)
+repo = Repository.init(Path(sys.argv[1]))
+handle, built = build.materialize_world_sidecar(repo)
+assert built and Path(handle.path).is_file()
+again, built = build.materialize_world_sidecar(repo)
+assert not built and again.path == handle.path
+snapshot = build._sidecar_lockfile().read_bytes()
+revision = repo.require_git().head_sha()
+metadata_root = Path(sys.argv[2])
+metadata_root.mkdir()
+sys.path.insert(0, str(metadata_root))
+for name in ("sympy", "z3-solver", "quire"):
+    installed = distribution(name)
+    metadata = metadata_root / (name.replace("-", "_") + "-test.dist-info")
+    metadata.mkdir()
+    original_version = installed.version
+    original_url = installed.read_text("direct_url.json")
+    version = "999.0.0" if name != "quire" else original_version
+    (metadata / "METADATA").write_text(
+        f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n", encoding="utf-8"
+    )
+    if original_url is not None:
+        origin = json.loads(original_url)
+        if name == "quire":
+            origin["vcs_info"]["commit_id"] = "0" * 40
+        (metadata / "direct_url.json").write_text(json.dumps(origin), encoding="utf-8")
+    changed, built = build.materialize_world_sidecar(repo)
+    assert built and changed.path != handle.path, name
+    assert Path(handle.path).is_file()
+    handle = changed
+    unchanged, built = build.materialize_world_sidecar(repo)
+    assert not built and unchanged.path == changed.path
+    assert build._sidecar_lockfile().read_bytes() == snapshot
+    assert repo.require_git().head_sha() == revision
+    if name == "quire":
+        assert distribution(name).version == original_version
+        for invalid_origin in (
+            {"url": "file:///editable", "dir_info": {"editable": True}},
+            {"url": "https://example.invalid/repo", "vcs_info": {"vcs": "git"}},
+        ):
+            (metadata / "direct_url.json").write_text(
+                json.dumps(invalid_origin), encoding="utf-8"
+            )
+            try:
+                build.materialize_world_sidecar(repo)
+            except ValueError as error:
+                assert "installed compiler identity incomplete: quire" in str(error)
+            else:
+                raise AssertionError("incomplete compiler identity reused a sidecar")
+'''
+    subprocess.run(
+        [sys.executable, "-c", probe, str(tmp_path / "knowledge"),
+         str(tmp_path / "compiler-metadata")],
+        cwd=installed,
+        env={**os.environ, "PYTHONPATH": str(installed)},
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.mark.parametrize("dependency", ("condition-ir", "eq-equiv", "z3-solver"))
+def test_compiler_dependency_change_rebuilds_existing_sidecar(
+    tmp_path: Path, compiler_lockfile: Path, dependency: str
+) -> None:
+    repo = _repo(tmp_path)
+    revision = repo.require_git().head_sha()
+    first, built = materialize_world_sidecar(repo)
+    assert built
+    unchanged, built = materialize_world_sidecar(repo)
+    assert not built
+    assert unchanged.path == first.path
+
+    _change_dependency(
+        compiler_lockfile, dependency, git_revision=dependency != "z3-solver"
+    )
+    changed, built = materialize_world_sidecar(repo)
+    assert built
+    assert changed.path != first.path
+    assert repo.require_git().head_sha() == revision
+    assert Path(first.path).is_file()
+    assert Path(changed.path).is_file()
 
 
 def test_hash_changes_with_source_revision() -> None:

@@ -56,6 +56,9 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["propstore"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"uv.lock" = "propstore/_compiler_dependencies.lock"
+
 [tool.pyright]
 typeCheckingMode = "strict"
 venvPath = "."
