@@ -96,6 +96,7 @@ def test_dimensionally_inconsistent_equation_is_quarantined(tmp_path: Path) -> N
         ("F = m + a", "force", "claim.dimension.algebra.invalid"),
         ("m = m + t - t", "mass", "claim.dimension.algebra.invalid"),
         ("m.attribute = m", "mass", "claim.dimension.expression.invalid"),
+        ("__claim_output__(m)", "force", "claim.dimension.algebra.invalid"),
         ("r = sin(t)", "ratio", "claim.dimension.algebra.invalid"),
         ("r = sin(r)", "ratio", None),
         ("F = m * unknown", "force", "claim.dimension.binding.unavailable"),

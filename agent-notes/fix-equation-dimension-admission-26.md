@@ -84,3 +84,14 @@ boundary through Bridgman, retaining authored claims and provenance.
   focused validation draft. Parent must integrate the dimensional owner work.
 - Next: exact-head CI and independent delta re-review; report eligibility and
   the concrete owner blockers. No PR/body/comment/issue mutation or merge.
+- At 988264bc, hosted CI passed 2132 tests/4 skips. Delta review verified
+  malformed input and functional Eq corrections, but reproduced one caller bug:
+  __claim_output__(m) was shadowed by the synthetic output alias when reparsing.
+- Fix the cause: both parses use only the authored symbol_names tuple; the
+  synthetic output remains a dimensional binding and constructor argument.
+  Expected parse exceptions are typed at both calls. Red log
+  dimension-generated-alias-red-20261020-165900.log; all 23 focused cases now
+  pass (15.00s), dimension-generated-alias-green-20261020-165943.log.
+- Consumer package typing: 15 errors, comprising the prior 14 unchanged merge
+  file errors and one newly reached unannotated Bridgman verify_expr input.
+  Do not hide it with a consumer protocol, adapter, stub, or suppression.

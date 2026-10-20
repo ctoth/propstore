@@ -388,10 +388,13 @@ def _check_equation_dimensions(
         evidence.append(f"{resolved}: dimensions {dims}")
         return dims
 
+    symbol_names = tuple(
+        variable.symbol for variable in claim.variables if variable.symbol
+    )
     try:
         parsed = parse_symbolic(
             claim.expression or "",
-            symbol_names=tuple(variable.symbol for variable in claim.variables if variable.symbol),
+            symbol_names=symbol_names,
         )
     except (AttributeError, TypeError, ValueError, SyntaxError, TokenError, RecursionError) as exc:
         problem("claim.dimension.expression.invalid", f"dimensional expression could not be checked: {exc}")
@@ -426,11 +429,15 @@ def _check_equation_dimensions(
             while output_name in dim_map:
                 output_name += "_"
             dim_map[output_name] = output_dims
-            parsed = parse_symbolic(
-                claim.expression or "",
-                symbol_names=tuple(dim_map),
-                output_symbol=output_name,
-            )
+            try:
+                parsed = parse_symbolic(
+                    claim.expression or "",
+                    symbol_names=symbol_names,
+                    output_symbol=output_name,
+                )
+            except (AttributeError, TypeError, ValueError, SyntaxError, TokenError, RecursionError) as exc:
+                problem("claim.dimension.expression.invalid", f"dimensional expression could not be checked: {exc}")
+                return tuple(problems)
     if problems:
         return tuple(problems)
 
