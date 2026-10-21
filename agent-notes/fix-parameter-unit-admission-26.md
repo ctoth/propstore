@@ -37,3 +37,15 @@ Correction head `2f01ff6b5ef624f4dc8b8085b1a5245bbe7fa4b5` had full hosted green
 ## Next step
 
 Publish the focused draft and read full hosted CI, correct any real integration failures without weakening the required unit evidence, and obtain independent review. Return exact head and eligibility to parent without merging.
+
+## Parent review: non-quantity comparison
+
+Parent identified a regression after the previously reviewed head `e7ae4dc394b677451cc8b7a75ae60b0d995ee341` (hosted CI: 2,223 passed, 4 skipped). I reproduced all four real stored-rival cases before editing production: TIMEPOINT and STRUCTURAL forms with `is_dimensionless=True`, no canonical unit, and equal-valued claims with omitted versus `s` or malformed `N / (` units. Admission and validate succeeded, then build raised a conversion ValueError or TokenError. Log: `parameter-unit-nonquantity-red-20261020-184406.log` (4 failed).
+
+Cause: the new comparison predicate treated every `is_dimensionless` form as a physical ratio despite admission deliberately preserving non-quantity scalar policy. Smallest correction: about five production lines, requiring `KindType.QUANTITY` before unit normalization in value comparison. Keep non-quantity numeric scalar comparisons unchanged and retain quantity ratio/default conversion. No change to admission or authored fields. Add the four actual compiler/validate/build regressions, run the actively edited file, then publish the correction on the same draft for full CI and independent exact-head review. No merge or issue changes.
+
+The non-quantity correction passed all 45 actively edited admission tests (`parameter-unit-nonquantity-green-20261020-184456.log`). Parent then identified decreasing affine endpoint order. I reproduced the exact remaining-percent example in a real repository: quantity ratio with `remaining_percent = -0.01*x + 1`, an authored value 50 with bounds [0,100], and a rival 0.5 with omitted unit. Both admitted and validated, but build emitted a false CONFLICT because converted endpoints remained (1,0). Log: `parameter-unit-decreasing-red-20261020-184620.log` (1 failed).
+
+Smallest second correction: approximately four lines in the existing `_normalize_interval` owner, ordering the converted lower/upper endpoints with min/max after the existing unit conversions. No new representation or rejection of admitted decreasing scales; authored documents remain unchanged. Reverify this regression and the non-quantity correction together before parent review.
+
+Both corrections passed the complete actively edited admission file: **46 passed** in `parameter-unit-parent-review-green-20261020-184727.log`. The correction commit changes only value comparison, these stored-workflow regressions, and this living note. Next: exact-head full hosted CI, package typing, independent review and parent follow-up review. Keep the PR draft and unmerged.

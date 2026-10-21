@@ -368,3 +368,47 @@ def test_finite_values_with_nonfinite_conversion_results_are_quarantined(tmp_pat
     assert not validation.ok
     assert [problem.code for problem in validation.errors] == ["claim.unit.conversion.invalid"] * 2
     assert [repo.families.claim.load(claim.claim_id) for claim in claims] == list(claims)
+
+
+@pytest.mark.parametrize("kind", [KindType.TIMEPOINT, KindType.STRUCTURAL])
+@pytest.mark.parametrize("unit", ["s", "N / ("])
+def test_non_quantity_dimensionless_rivals_keep_scalar_policy(
+    tmp_path: Path, kind: KindType, unit: str,
+) -> None:
+    repo = _repo(tmp_path, FormDefinition(name="scalar", kind=kind, is_dimensionless=True))
+    claims = (_parameter("unlabelled", None), _parameter("labelled", unit))
+    for claim in claims:
+        repo.families.claim.save(claim.claim_id, claim, message="Author scalar rival")
+    checked = compile_repository_checked_bundle(repo, commit=None)
+    assert checked is not None
+    assert not checked.claim_bundle.blocked_claims
+    assert validate_repository(repo).ok
+    built = build_repository(repo)
+    assert built.claim_count == 2
+    assert built.blocked_claim_count == 0
+    assert built.conflicts == ()
+    assert [repo.families.claim.load(claim.claim_id) for claim in claims] == list(claims)
+
+
+def test_decreasing_affine_scale_orders_converted_interval_endpoints(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, FormDefinition(
+        name="ratio", kind=KindType.QUANTITY, is_dimensionless=True,
+        conversions={"remaining_percent": UnitConversion(
+            unit="remaining_percent", type="affine", multiplier=-0.01, offset=1,
+        )},
+    ))
+    claims = (
+        Claim(claim_id="remaining", claim_type=ClaimType.PARAMETER, output_concept="output",
+              value=50, lower_bound=0, upper_bound=100, unit="remaining_percent"),
+        Claim(claim_id="ratio", claim_type=ClaimType.PARAMETER, output_concept="output", value=0.5),
+    )
+    for claim in claims:
+        repo.families.claim.save(claim.claim_id, claim, message="Author overlapping ratio")
+    checked = compile_repository_checked_bundle(repo, commit=None)
+    assert checked is not None
+    assert not checked.claim_bundle.blocked_claims
+    assert validate_repository(repo).ok
+    built = build_repository(repo)
+    assert built.blocked_claim_count == 0
+    assert built.conflicts == ()
+    assert [repo.families.claim.load(claim.claim_id) for claim in claims] == list(claims)
