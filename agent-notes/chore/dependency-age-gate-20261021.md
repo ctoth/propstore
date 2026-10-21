@@ -13,7 +13,9 @@ while preserving existing locked dependency versions, sources, and hashes.
   timestamp formatting normalizations. All 108 package versions, sources, and
   artifact hashes match the original lock.
 - The existing CI command remains `uv sync --dev --locked`.
-- Draft publication and hosted CI are next. No merge is authorized.
+- Draft PR: https://github.com/propstore/propstore/pull/334
+- Hosted validation is the PR's normal Tests / Python 3.13 check; inspect the
+  check attached to the current PR head for its live result. No merge is authorized.
 
 ## Decisions and evidence
 
@@ -42,5 +44,5 @@ Reference: https://docs.astral.sh/uv/concepts/resolution/#time-based-reproducibl
 
 ## Next step
 
-Commit, push only this feature branch, open a draft PR, and inspect its normal
-hosted CI. Preserve dependency versions and hashes during any repair.
+Inspect the draft's normal hosted CI through completion. Preserve dependency
+versions and hashes during any repair; leave the PR in draft for review.
