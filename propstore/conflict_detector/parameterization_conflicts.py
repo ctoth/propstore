@@ -177,8 +177,6 @@ def _normalize_claim_value(
     if forms is None:
         return value
     unit = claim.unit
-    if unit is None:
-        return value
     form_name = _concept_form_name(concepts, concept_id)
     if form_name is None or form_name not in forms:
         return value

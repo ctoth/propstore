@@ -6,12 +6,12 @@ import pytest
 
 from propstore.conflict_detector.models import ConflictClass
 from propstore.families.claims import Claim, ClaimType
-from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
 from propstore.repository import Repository
 from propstore.world import WorldQuery
 from propstore.world.types import QueryableAssumption
 from tests.atms_feed import ClaimSpec, ConflictSpec, build_bound
+from tests.fixtures.units import save_dimensionless_concept
 
 
 @pytest.mark.parametrize("classification", list(ConflictClass))
@@ -30,9 +30,7 @@ def test_only_proven_conflicts_make_nogoods(classification: ConflictClass) -> No
 
 def test_repository_context_separation_does_not_make_nogood(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.families.concept.save(
-        "x", Concept(concept_id="x", canonical_name="x"), message="concept"
-    )
+    save_dimensionless_concept(repo, "x", "x")
     for context_id, value in (("a", 1), ("b", 2)):
         repo.families.context.save(
             context_id,

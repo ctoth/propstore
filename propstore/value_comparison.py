@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from condition_ir import KindType
+
 from propstore.dimensions import normalize_to_si
 from propstore.families.forms import FormDefinition
 
@@ -77,11 +79,10 @@ def _normalize_interval(
     interval: Interval, unit: str | None, form: FormDefinition
 ) -> Interval:
     center, lo, hi = interval
-    return (
-        normalize_to_si(center, unit, form),
-        normalize_to_si(lo, unit, form),
-        normalize_to_si(hi, unit, form),
-    )
+    center = normalize_to_si(center, unit, form)
+    lo = normalize_to_si(lo, unit, form)
+    hi = normalize_to_si(hi, unit, form)
+    return center, min(lo, hi), max(lo, hi)
 
 
 def values_compatible(
@@ -110,8 +111,10 @@ def values_compatible(
                 unit_a = _as_unit(_claim_field(claim_a, "unit"))
                 unit_b = _as_unit(_claim_field(claim_b, "unit"))
                 if (
-                    unit_a is not None or unit_b is not None
-                ) and form_def.unit_symbol is not None:
+                    form_def.kind is KindType.QUANTITY
+                    and (unit_a is not None or unit_b is not None)
+                    and (form_def.unit_symbol is not None or form_def.is_dimensionless)
+                ):
                     interval_a = _normalize_interval(interval_a, unit_a, form_def)
                     interval_b = _normalize_interval(interval_b, unit_b, form_def)
             return intervals_compatible(interval_a, interval_b, tolerance)

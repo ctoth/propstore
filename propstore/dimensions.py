@@ -18,6 +18,8 @@ partially unknown. We therefore confine pint to a typed :class:`_PintRegistry` /
 from __future__ import annotations
 
 from collections.abc import Sequence
+from math import isfinite
+from tokenize import TokenError
 from typing import Any, Protocol
 
 import msgspec
@@ -58,7 +60,9 @@ class DimensionalForm(Protocol):
 
     name: str
     unit_symbol: str | None
+    is_dimensionless: bool
     dimensions: dict[str, int] | None
+    extra_units: tuple[ExtraUnitDefinition, ...]
     conversions: dict[str, UnitConversion]
     delta_conversions: dict[str, UnitConversion]
 
@@ -114,9 +118,12 @@ def _pint_unit(unit_str: str) -> str:
 def normalize_to_si(value: float, unit: str | None, form: DimensionalForm) -> float:
     """Convert ``value`` (given in ``unit``) to the form's canonical SI unit."""
 
-    if unit is None or unit == form.unit_symbol:
+    target = form.unit_symbol or ("1" if form.is_dimensionless else None)
+    if unit is None and form.is_dimensionless:
+        unit = "1"
+    if unit is None or unit == target:
         return value
-    if form.unit_symbol is None:
+    if target is None:
         raise ValueError(
             f"Cannot convert '{unit}' for dimensionless form '{form.name}'"
         )
@@ -138,7 +145,7 @@ def normalize_to_si(value: float, unit: str | None, form: DimensionalForm) -> fl
     try:
         return (
             ureg.Quantity(value, _pint_unit(unit))
-            .to(_pint_unit(form.unit_symbol))
+            .to(_pint_unit(target))
             .magnitude
         )
     except (pint.UndefinedUnitError, pint.DimensionalityError) as exc:
@@ -150,9 +157,12 @@ def normalize_to_si(value: float, unit: str | None, form: DimensionalForm) -> fl
 def from_si(si_value: float, unit: str | None, form: DimensionalForm) -> float:
     """Convert an SI value back to ``unit``."""
 
-    if unit is None or unit == form.unit_symbol:
+    source = form.unit_symbol or ("1" if form.is_dimensionless else None)
+    if unit is None and form.is_dimensionless:
+        unit = "1"
+    if unit is None or unit == source:
         return si_value
-    if form.unit_symbol is None:
+    if source is None:
         raise ValueError(
             f"Cannot convert to '{unit}' for dimensionless form '{form.name}'"
         )
@@ -175,7 +185,7 @@ def from_si(si_value: float, unit: str | None, form: DimensionalForm) -> float:
             return (si_value - conv.offset) / conv.multiplier
     try:
         return (
-            ureg.Quantity(si_value, _pint_unit(form.unit_symbol))
+            ureg.Quantity(si_value, _pint_unit(source))
             .to(_pint_unit(unit))
             .magnitude
         )
@@ -193,8 +203,58 @@ def can_convert_unit_to(unit: str, target_unit: str | None) -> bool:
     try:
         ureg.Quantity(1.0, _pint_unit(unit)).to(_pint_unit(target_unit))
         return True
-    except (pint.UndefinedUnitError, pint.DimensionalityError, TypeError, ValueError):
+    # Pint's parser also raises TokenError for an unfinished group and
+    # AssertionError for a binary operator without its right operand.
+    except (pint.UndefinedUnitError, pint.DimensionalityError, TypeError, ValueError, TokenError, AssertionError):
         return False
+
+
+def unit_compatible_with_form(unit: str, form: DimensionalForm) -> bool:
+    """Check the form's unit evidence without converting an authored value.
+
+    Explicit conversion specifications are evidence for domain-specific scales;
+    an allowed-unit label alone is not. Standard units are checked by Pint.
+    Invalid form evidence raises ValueError; False concerns the authored unit.
+    """
+    target = form.unit_symbol or ("1" if form.is_dimensionless else None)
+    for extra in form.extra_units:
+        if not can_convert_unit_to(extra.symbol, extra.symbol):
+            register_extra_unit_with_pint(extra.symbol, extra.dimensions)
+        elif not can_convert_unit_to(extra.symbol, _pint_expression_for_dimensions(extra.dimensions)):
+            raise ValueError(f"extra unit {extra.symbol!r} has incompatible declared dimensions")
+    if target is None or not can_convert_unit_to(target, target):
+        raise ValueError(f"canonical unit {target!r} is not recognized")
+    dimensions = {} if form.is_dimensionless else form.dimensions
+    if dimensions is not None and not can_convert_unit_to(
+        target, _pint_expression_for_dimensions(dimensions)
+    ):
+        raise ValueError(f"canonical unit {target!r} disagrees with dimensions {dimensions!r}")
+    if unit == target:
+        return True
+    conversion = form.delta_conversions.get(unit) or form.conversions.get(unit)
+    if conversion is not None:
+        if unit in form.delta_conversions and conversion.type != "multiplicative":
+            raise ValueError(f"delta conversion for {unit!r} must be multiplicative")
+        if conversion.type in {"multiplicative", "affine"}:
+            usable = isfinite(conversion.multiplier) and conversion.multiplier != 0
+            if conversion.type == "affine":
+                usable = usable and isfinite(conversion.offset)
+        elif conversion.type == "logarithmic":
+            usable = (
+                isfinite(conversion.base) and conversion.base > 0 and conversion.base != 1
+                and isfinite(conversion.divisor) and conversion.divisor != 0
+                and isfinite(conversion.reference) and conversion.reference > 0
+            )
+        else:
+            usable = False
+        if not usable:
+            raise ValueError(f"conversion for {unit!r} is not finite and invertible")
+        # A declaration cannot change the physical dimensions of a known unit.
+        # A logarithmic level may instead use a dimensionless ratio unit (dB).
+        if can_convert_unit_to(unit, unit) and not can_convert_unit_to(unit, target):
+            return conversion.type == "logarithmic" and can_convert_unit_to(unit, "1")
+        return True
+    return can_convert_unit_to(unit, target)
 
 
 _PINT_DIMENSION_BASES: dict[str, str] = {
@@ -210,7 +270,7 @@ _PINT_DIMENSION_BASES: dict[str, str] = {
 
 def _pint_expression_for_dimensions(dimensions: dict[str, int]) -> str:
     factors: list[str] = []
-    for key, exponent in sorted(dimensions.items()):
+    for key, exponent in sorted(canonicalize_dims(dimensions).items()):
         if exponent == 0:
             continue
         base = _PINT_DIMENSION_BASES.get(key)
