@@ -26,7 +26,7 @@ from propstore.core.lemon import (
     LexicalSense,
     OntologyReference,
 )
-from propstore.families.claims import Claim, ClaimType
+from propstore.families.claims import Claim, ClaimType, ClaimVariable
 from propstore.families.concepts import Concept
 from propstore.families.contexts import Context, LiftingRule
 from propstore.families.forms import FormDefinition
@@ -35,6 +35,7 @@ from propstore.repository import Repository
 from propstore.sensitivity import analyze_sensitivity
 from propstore.world import OverlayWorld, RenderPolicy, WorldQuery
 from propstore.world.types import ReasoningBackend, ValueStatus
+from tests.fixtures.units import save_dimensionless_concept
 
 
 def _repo(
@@ -47,7 +48,7 @@ def _repo(
     repo = Repository.init(tmp_path / "knowledge")
     repo.families.form.save(
         "quantity",
-        FormDefinition(name="quantity", kind=KindType.QUANTITY),
+        FormDefinition(name="quantity", kind=KindType.QUANTITY, is_dimensionless=True),
         message="form",
     )
     for concept_id in ("x", "y"):
@@ -102,6 +103,7 @@ def _repo(
                 claim_type=ClaimType.EQUATION,
                 context_id=context_id,
                 output_concept="y",
+                variables=(ClaimVariable(concept="x", symbol="x"),),
                 concepts=("x",),
                 expression=f"{multiplier} * x",
                 sympy=f"Eq(y, {multiplier} * x)",
@@ -284,11 +286,7 @@ def test_equation_and_canonical_justification_share_withdrawn_support(
 
 def test_context_separation_and_equation_support_coexist(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
-    repo.families.concept.save(
-        "contextual",
-        Concept(concept_id="contextual", canonical_name="contextual"),
-        message="contextual parameter",
-    )
+    save_dimensionless_concept(repo, "contextual", "contextual")
     for context_id, value in (("a", 1), ("b", 2)):
         claim_id = f"context_{context_id}"
         repo.families.claim.save(

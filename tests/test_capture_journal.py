@@ -34,6 +34,7 @@ from tests.fixtures.journal import (
     single_chapter_journal,
     synthetic_belief_space_with,
 )
+from tests.fixtures.units import save_dimensionless_concept
 
 
 @dataclass(frozen=True)
@@ -316,14 +317,11 @@ def _repo_with_one_atom(tmp_path: Path) -> tuple[Repository, str]:
     """A repo with one parameter claim; returns (repo, its projected atom id)."""
     from propstore.core.environment import Environment
     from propstore.families.claims import Claim, ClaimType
-    from propstore.families.concepts import Concept
     from propstore.families.contexts import Context
     from propstore.world import WorldQuery
 
     repo = Repository.init(tmp_path / "knowledge")
-    repo.families.concept.save(
-        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
-    )
+    save_dimensionless_concept(repo, "c1", "Speed")
     repo.families.context.save(
         "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
     )
@@ -395,15 +393,12 @@ def _repo_two_rivals_with_rebut(tmp_path: Path) -> Repository:
     conflict to surface within the accepted claim set.
     """
     from propstore.families.claims import Claim, ClaimType
-    from propstore.families.concepts import Concept
     from propstore.families.contexts import Context
     from propstore.families.relations import Stance
     from propstore.stances import StanceType
 
     repo = Repository.init(tmp_path / "knowledge")
-    repo.families.concept.save(
-        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
-    )
+    save_dimensionless_concept(repo, "c1", "Speed")
     repo.families.context.save(
         "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
     )

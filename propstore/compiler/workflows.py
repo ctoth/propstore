@@ -155,11 +155,11 @@ class RepositoryBuildReport:
 
     @property
     def blocked_claim_count(self) -> int:
-        return sum(
-            1
+        return len({
+            message.artifact_id
             for message in self.messages
             if message.is_error and message.family is PropstoreFamily.CLAIM
-        )
+        })
 
 
 # --------------------------------------------------------------------------- #

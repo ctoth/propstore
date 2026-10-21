@@ -10,7 +10,7 @@ from propstore.compiler.context import build_compilation_context_from_repo
 from propstore.compiler.workflows import build_repository, compile_repository_checked_bundle, validate_repository
 from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
 from propstore.dimensions import ExtraUnitDefinition, UnitConversion
-from propstore.families.claims import Claim, ClaimType
+from propstore.families.claims import Claim, ClaimType, ClaimVariable, Exactness
 from propstore.families.concepts import Concept
 from propstore.families.forms import FormDefinition
 from propstore.provenance import Provenance, ProvenanceStatus, read_provenance_note, write_provenance_note
@@ -188,7 +188,31 @@ def test_inconsistent_canonical_unit_does_not_prove_compatibility(tmp_path: Path
         name="force", kind=KindType.QUANTITY, unit_symbol="kg", dimensions={"M": 1, "L": 1, "T": -2},
     ))
     report = validate_claim(_parameter("wrong", "kg"), context=build_compilation_context_from_repo(repo))
-    assert [problem.code for problem in report.diagnostics] == ["claim.unit.incompatible"]
+    assert [problem.code for problem in report.diagnostics] == ["claim.unit.form.invalid"]
+    assert "evidence unavailable" in report.diagnostics[0].message
+
+
+@pytest.mark.parametrize("unit", ["unknown_canonical", "kg"])
+def test_dimensionless_canonical_unit_must_have_proven_dimensionless_evidence(tmp_path: Path, unit: str) -> None:
+    repo = _repo(tmp_path, FormDefinition(name="ratio", kind=KindType.QUANTITY, is_dimensionless=True, unit_symbol=unit))
+    report = validate_claim(_parameter("wrong", unit), context=build_compilation_context_from_repo(repo))
+    assert [problem.code for problem in report.diagnostics] == ["claim.unit.form.invalid"]
+
+
+@pytest.mark.parametrize("dimension", ["Theta", "\u0398", "\u03b8"])
+def test_temperature_signature_aliases_remain_supported(tmp_path: Path, dimension: str) -> None:
+    repo = _repo(tmp_path, FormDefinition(name="temperature", kind=KindType.QUANTITY, unit_symbol="K", dimensions={dimension: 1}))
+    report = validate_claim(_parameter("temperature", "degC"), context=build_compilation_context_from_repo(repo))
+    assert not report.diagnostics
+
+
+def test_build_counts_quarantined_claims_once_with_multiple_diagnostics(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    claim = Claim(claim_id="invalid", claim_type=ClaimType.PARAMETER, output_concept="output", value="not_numeric", unit="kg")
+    repo.families.claim.save(claim.claim_id, claim, message="Author invalid claim")
+    built = build_repository(repo)
+    assert len(built.errors) == 2
+    assert built.claim_count == built.blocked_claim_count == 1
 
 
 @pytest.mark.parametrize("kind", [KindType.CATEGORY, KindType.BOOLEAN, KindType.STRUCTURAL, KindType.TIMEPOINT])
@@ -221,3 +245,109 @@ def test_unit_owner_called_once_in_claim_admission(tmp_path: Path, monkeypatch: 
     assert checked is not None
     assert not checked.claim_bundle.blocked_claims
     assert calls == 1
+
+
+def test_omitted_unit_is_one_when_canonical_unit_is_percent(tmp_path: Path) -> None:
+    from propstore.dimensions import from_si, normalize_to_si
+
+    form = FormDefinition(name="ratio", kind=KindType.QUANTITY, is_dimensionless=True, unit_symbol="percent")
+    repo = _repo(tmp_path, form)
+    claims = (
+        _parameter("implicit_one", None),
+        Claim(claim_id="percent", claim_type=ClaimType.PARAMETER, output_concept="output", value=100, unit="percent"),
+    )
+    for claim in claims:
+        repo.families.claim.save(claim.claim_id, claim, message="Author equivalent ratio")
+    assert validate_repository(repo).ok
+    built = build_repository(repo)
+    assert built.blocked_claim_count == 0
+    assert built.conflicts == ()
+    assert normalize_to_si(1.0, None, form) == 100.0
+    assert from_si(100.0, None, form) == 1.0
+    assert [repo.families.claim.load(claim.claim_id) for claim in claims] == list(claims)
+
+
+@pytest.mark.parametrize("conversion", [
+    UnitConversion(unit="unusable_force", type="logarithmic", divisor=0),
+    UnitConversion(unit="unusable_force", type="logarithmic", base=1),
+    UnitConversion(unit="unusable_force", type="multiplicative", multiplier=0),
+])
+def test_unusable_conversion_evidence_quarantines_before_comparison(tmp_path: Path, conversion: UnitConversion) -> None:
+    repo = _repo(tmp_path, FormDefinition(
+        name="force", kind=KindType.QUANTITY, unit_symbol="N", dimensions={"M": 1, "L": 1, "T": -2},
+        conversions={"unusable_force": conversion},
+    ))
+    claims = (_parameter("valid", "N"), _parameter("unusable", "unusable_force"))
+    for claim in claims:
+        repo.families.claim.save(claim.claim_id, claim, message="Author rival")
+    built = build_repository(repo)
+    validation = validate_repository(repo)
+    assert built.blocked_claim_count == 1
+    assert built.conflicts == ()
+    assert not validation.ok
+    assert any(problem.code == "claim.unit.form.invalid" for problem in validation.errors)
+    assert [repo.families.claim.load(claim.claim_id) for claim in claims] == list(claims)
+
+
+def test_compound_units_can_use_declared_extra_units(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, FormDefinition(
+        name="pressure", kind=KindType.QUANTITY, unit_symbol="Pa", dimensions={"M": 1, "L": -1, "T": -2},
+        extra_units=(ExtraUnitDefinition(symbol="unit_admission_compound_newton", dimensions={"M": 1, "L": 1, "T": -2}),),
+    ))
+    for claim in (_parameter("canonical", "Pa"), _parameter("compound", "unit_admission_compound_newton / m**2")):
+        repo.families.claim.save(claim.claim_id, claim, message="Author equivalent pressure")
+    assert validate_repository(repo).ok
+    built = build_repository(repo)
+    assert built.blocked_claim_count == 0
+    assert built.conflicts == ()
+
+
+def test_parameterization_uses_omitted_dimensionless_default(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, FormDefinition(name="ratio", kind=KindType.QUANTITY, is_dimensionless=True, unit_symbol="percent"))
+    repo.families.concept.save("input", Concept(
+        concept_id="input", canonical_name="input",
+        lexical_entry=LexicalEntry(
+            identifier="entry:input",
+            canonical_form=LexicalForm(written_rep="input", language="en"),
+            senses=(LexicalSense(reference=OntologyReference(uri="urn:input")),),
+            physical_dimension_form="ratio",
+        ),
+    ), message="Declare input")
+    for claim in (
+        Claim(claim_id="input", claim_type=ClaimType.PARAMETER, output_concept="input", value=1, unit=None),
+        Claim(claim_id="output", claim_type=ClaimType.PARAMETER, output_concept="output", value=100, unit="percent"),
+        Claim(claim_id="identity", claim_type=ClaimType.EQUATION, output_concept="output", concepts=("input",),
+              expression="out = inp", sympy="input", exactness=Exactness.EXACT,
+              variables=(ClaimVariable(concept="output", symbol="out"), ClaimVariable(concept="input", symbol="inp"))),
+    ):
+        repo.families.claim.save(claim.claim_id, claim, message="Author identity")
+    assert validate_repository(repo).ok
+    built = build_repository(repo)
+    assert built.blocked_claim_count == 0
+    assert built.conflicts == ()
+
+
+def test_logarithmic_value_overflow_is_quarantined_before_comparison(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, FormDefinition(
+        name="force", kind=KindType.QUANTITY, unit_symbol="N", dimensions={"M": 1, "L": 1, "T": -2},
+        conversions={"log_force": UnitConversion(unit="log_force", type="logarithmic")},
+    ))
+    for claim in (
+        _parameter("valid", "N"),
+        Claim(claim_id="overflow", claim_type=ClaimType.PARAMETER, output_concept="output", value=10000, unit="log_force"),
+    ):
+        repo.families.claim.save(claim.claim_id, claim, message="Author force")
+    built = build_repository(repo)
+    assert built.blocked_claim_count == 1
+    assert built.conflicts == ()
+    assert any(problem.code == "claim.unit.conversion.invalid" for problem in built.errors)
+
+
+def test_linear_conversion_cannot_relabel_known_mass_as_force(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, FormDefinition(
+        name="force", kind=KindType.QUANTITY, unit_symbol="N", dimensions={"M": 1, "L": 1, "T": -2},
+        conversions={"kg": UnitConversion(unit="kg", type="multiplicative")},
+    ))
+    repo.families.claim.save("mass", _parameter("mass", "kg"), message="Author force")
+    assert not validate_repository(repo).ok
+    assert build_repository(repo).blocked_claim_count == 1

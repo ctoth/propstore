@@ -13,7 +13,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.families.claims import Claim, ClaimType
-from propstore.families.concepts import Concept
 from propstore.families.contexts import Context
 from propstore.families.relations import Stance
 from propstore.repository import Repository
@@ -32,6 +31,7 @@ from tests.fixtures.journal import (
     make_state,
     single_chapter_journal,
 )
+from tests.fixtures.units import save_dimensionless_concept
 
 
 def _atom(claim_id: str, ix: int):
@@ -47,9 +47,7 @@ def _repo(tmp_path: Path, *claim_ids: str, rebut: bool = False) -> Repository:
     """Author a concept + context + one parameter claim per id, on one concept."""
 
     repo = Repository.init(tmp_path / "kn")
-    repo.families.concept.save(
-        "c1", Concept(concept_id="c1", canonical_name="Speed"), message="m"
-    )
+    save_dimensionless_concept(repo, "c1", "Speed")
     repo.families.context.save(
         "ctx1", Context(context_id="ctx1", name="ctx"), message="m"
     )

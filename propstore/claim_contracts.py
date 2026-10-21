@@ -31,7 +31,7 @@ from bridgman import DimensionalError, canonicalize_dims, verify_expr
 from human_to_sympy import generate_sympy_rhs_with_error, parse_symbolic
 
 from propstore.core.scalars import ScalarValue
-from propstore.dimensions import unit_compatible_with_form
+from propstore.dimensions import normalize_to_si, unit_compatible_with_form
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.forms import FormDefinition
 
@@ -490,6 +490,13 @@ def _check_parameter_unit(
         return problem("claim.unit.form.invalid", f"unit evidence unavailable: {evidence}: {exc}")
     if not compatible:
         return problem("claim.unit.incompatible", f"unit {claim.unit!r} is not compatible with {evidence}, canonical unit {form.unit_symbol!r}, dimensions {form.dimensions!r}")
+    for field in ("value", "lower_bound", "upper_bound"):
+        value = getattr(claim, field)
+        if isinstance(value, int | float) and not isinstance(value, bool):
+            try:
+                normalize_to_si(float(value), unit, form)
+            except (ArithmeticError, ValueError) as exc:
+                return problem("claim.unit.conversion.invalid", f"unit conversion unavailable: {evidence}, {field}={value!r}, unit {claim.unit!r}: {exc}")
     return ()
 
 
