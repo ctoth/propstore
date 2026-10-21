@@ -351,3 +351,20 @@ def test_linear_conversion_cannot_relabel_known_mass_as_force(tmp_path: Path) ->
     repo.families.claim.save("mass", _parameter("mass", "kg"), message="Author force")
     assert not validate_repository(repo).ok
     assert build_repository(repo).blocked_claim_count == 1
+
+
+def test_finite_values_with_nonfinite_conversion_results_are_quarantined(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    claims = tuple(
+        Claim(claim_id=f"large{index}", claim_type=ClaimType.PARAMETER, output_concept="output", value=value, unit="kN")
+        for index, value in enumerate((1e308, 1.1e308))
+    )
+    for claim in claims:
+        repo.families.claim.save(claim.claim_id, claim, message="Author finite rival")
+    built = build_repository(repo)
+    validation = validate_repository(repo)
+    assert built.claim_count == built.blocked_claim_count == 2
+    assert built.conflicts == ()
+    assert not validation.ok
+    assert [problem.code for problem in validation.errors] == ["claim.unit.conversion.invalid"] * 2
+    assert [repo.families.claim.load(claim.claim_id) for claim in claims] == list(claims)

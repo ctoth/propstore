@@ -22,6 +22,7 @@ import ast
 from collections.abc import Sized
 from dataclasses import dataclass
 from enum import Enum
+from math import isfinite
 from tokenize import TokenError
 from typing import TYPE_CHECKING
 
@@ -494,7 +495,9 @@ def _check_parameter_unit(
         value = getattr(claim, field)
         if isinstance(value, int | float) and not isinstance(value, bool):
             try:
-                normalize_to_si(float(value), unit, form)
+                converted = normalize_to_si(float(value), unit, form)
+                if not isfinite(converted):
+                    raise ValueError("conversion returned a non-finite value")
             except (ArithmeticError, ValueError) as exc:
                 return problem("claim.unit.conversion.invalid", f"unit conversion unavailable: {evidence}, {field}={value!r}, unit {claim.unit!r}: {exc}")
     return ()

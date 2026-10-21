@@ -32,6 +32,8 @@ Independent native review (dimension_review, no external CLI model) reproduced c
 
 Omitted dimensionless units mean the contract's `1`, including when the canonical scale is percent. normalize_to_si/from_si now apply that default; removed the derivation caller's premature unit=None return so it reaches the owner. Declared extra units register through the existing Pint owner before compound-unit parsing; known definitions cannot be overwritten by contradictory declarations. Bridgman canonicalizes temperature signature aliases before Pint expressions. Final actively authored unit-admission file: 40 passed in parameter-unit-review-green-20261020-182942.log. Awaiting full hosted CI and exact-head independent re-review of the correction commit.
 
+Correction head `2f01ff6b5ef624f4dc8b8085b1a5245bbe7fa4b5` had full hosted green run `39521807841` and package pyright: 0 errors. Independent review closed F1–F4 but reproduced one remaining conversion-result failure: finite authored `1e308 kN` and `1.1e308 kN` both normalize to `inf` without an exception and compare equal. I reproduced it with a real saved-rival test (`parameter-unit-finite-red-20261020-183439.log`: 1 failed). The existing numeric-field conversion check now requires a finite result and emits the same typed `claim.unit.conversion.invalid` disposition; no new numeric subsystem or mutation. The next commit needs fresh full CI and exact-head re-review before parent integration.
+
 ## Next step
 
 Publish the focused draft and read full hosted CI, correct any real integration failures without weakening the required unit evidence, and obtain independent review. Return exact head and eligibility to parent without merging.
