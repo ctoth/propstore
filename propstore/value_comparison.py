@@ -111,7 +111,7 @@ def values_compatible(
                 unit_b = _as_unit(_claim_field(claim_b, "unit"))
                 if (
                     unit_a is not None or unit_b is not None
-                ) and form_def.unit_symbol is not None:
+                ) and (form_def.unit_symbol is not None or form_def.is_dimensionless):
                     interval_a = _normalize_interval(interval_a, unit_a, form_def)
                     interval_b = _normalize_interval(interval_b, unit_b, form_def)
             return intervals_compatible(interval_a, interval_b, tolerance)

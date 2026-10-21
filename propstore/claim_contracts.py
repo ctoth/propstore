@@ -12,7 +12,8 @@ pass) decides to quarantine, never to abort. The sympy-generation semantic check
 delegates to ``human-to-sympy`` directly (``generate_sympy_rhs_with_error``), and
 algorithm parsing and free-variable analysis delegate to ``ast-equiv``.
 Dimensional checks resolve checked forms and concept bindings, then delegate
-the authored expression's algebra to Bridgman.
+the authored expression's algebra to Bridgman. Parameter units use the same
+checked form evidence and the unit-conversion owner in ``propstore.dimensions``.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from bridgman import DimensionalError, canonicalize_dims, verify_expr
 from human_to_sympy import generate_sympy_rhs_with_error, parse_symbolic
 
 from propstore.core.scalars import ScalarValue
+from propstore.dimensions import unit_compatible_with_form
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.forms import FormDefinition
 
@@ -452,6 +454,45 @@ def _check_equation_dimensions(
     return tuple(problems)
 
 
+def _check_parameter_unit(
+    claim: Claim, context: CompilationContext | None,
+) -> tuple[ClaimValidationDiagnostic, ...]:
+    """Resolve checked output evidence; the unit owner checks compatibility."""
+    def problem(code: str, message: str) -> tuple[ClaimValidationDiagnostic, ...]:
+        return (ClaimValidationDiagnostic("unit", message, code),)
+
+    if context is None:
+        return problem("claim.unit.context.missing", "unit evidence unavailable: no checked compilation context")
+    concept = context.concepts_by_id.get(claim.output_concept or "")
+    if concept is None:
+        return problem("claim.unit.concept.missing", f"unit evidence unavailable: output concept {claim.output_concept!r} is missing")
+    entry = concept.lexical_entry
+    form_name = None if entry is None else entry.physical_dimension_form
+    form = context.form_registry.registry.get(form_name or "")
+    evidence = f"concept {claim.output_concept!r}, form {form_name!r}"
+    if form is None:
+        return problem("claim.unit.form.missing", f"unit evidence unavailable: {evidence} is missing")
+    if form.kind is not KindType.QUANTITY:
+        # Category/boolean/structural/timepoint values have no quantity-unit policy.
+        return ()
+    policy = CLAIM_TYPE_CONTRACTS[ClaimType.PARAMETER].unit_policy
+    assert policy is not None
+    unit = claim.unit
+    if unit is None and form.is_dimensionless:
+        unit = policy.dimensionless_default_unit
+    if not unit:
+        return problem("claim.unit.required", f"unit {claim.unit!r} is required for {evidence}")
+    if not form.unit_symbol and not form.is_dimensionless:
+        return problem("claim.unit.form.unit.missing", f"unit evidence unavailable: {evidence} has no canonical unit for authored unit {claim.unit!r}")
+    try:
+        compatible = unit_compatible_with_form(unit, form)
+    except ValueError as exc:
+        return problem("claim.unit.form.invalid", f"unit evidence unavailable: {evidence}: {exc}")
+    if not compatible:
+        return problem("claim.unit.incompatible", f"unit {claim.unit!r} is not compatible with {evidence}, canonical unit {form.unit_symbol!r}, dimensions {form.dimensions!r}")
+    return ()
+
+
 def validate_claim(
     claim: Claim,
     *,
@@ -465,6 +506,7 @@ def validate_claim(
     wires: ``SympyGenerationCheck`` delegates to ``human-to-sympy`` and
     algorithm parsing/free-name checks delegate to ``ast-equiv``. Equation
     dimensions use the exact checked forms in ``context`` and Bridgman.
+    Parameter units use checked output forms and the unit-conversion owner.
     """
 
     contract = claim_type_contract_for(claim.claim_type)
@@ -509,7 +551,9 @@ def validate_claim(
     algorithm_tree: ast.Module | None = None
     deferred: list[str] = []
     for check in contract.semantic_checks:
-        if isinstance(check, SympyGenerationCheck):
+        if isinstance(check, UnitFormCompatibilityCheck):
+            diagnostics.extend(_check_parameter_unit(claim, context))
+        elif isinstance(check, SympyGenerationCheck):
             result = generate_sympy_rhs_with_error(claim.expression)
             sympy_generated = result.expression
             sympy_error = result.error

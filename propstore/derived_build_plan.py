@@ -181,7 +181,8 @@ def _compile_conflicts(
     checked: RepositoryCheckedBundle,
     micropubs: tuple[Micropublication, ...],
 ) -> tuple[ConflictProjection, ...]:
-    conflict_claims = _conflict_claims(checked.claims, _claim_sources(micropubs))
+    admitted = tuple(entry.claim for entry in checked.claim_bundle.checked_claims)
+    conflict_claims = _conflict_claims(admitted, _claim_sources(micropubs))
     if not conflict_claims:
         return ()
     lifting_system = LiftingSystem(
@@ -194,7 +195,7 @@ def _compile_conflicts(
         checked.compilation_context.condition_registry,
         lifting_system=lifting_system,
         forms=dict(checked.form_registry),
-        parameterizations=_parameterizations_by_output(checked.claims),
+        parameterizations=_parameterizations_by_output(admitted),
     )
     return tuple(
         _conflict_row(record, index=index) for index, record in enumerate(records)

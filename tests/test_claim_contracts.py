@@ -19,6 +19,29 @@ from propstore.claim_contracts import (
 )
 from propstore.families.claims import Claim, ClaimType
 from propstore.families.forms import FormDefinition
+from propstore.compiler.context import CompilationContext, build_compilation_context
+from propstore.core.lemon import LexicalEntry, LexicalForm, LexicalSense, OntologyReference
+from propstore.families.concepts import Concept
+from propstore.families.concepts_passes import ConceptCheckedRegistry, ConceptPipelineContext, LoadedConcept, run_concept_pipeline
+from propstore.families.forms_passes import FormCheckedRegistry, LoadedForm, run_form_pipeline
+
+
+def _context(form: FormDefinition) -> CompilationContext:
+    forms = run_form_pipeline([LoadedForm(form=form)])
+    assert isinstance(forms.output, FormCheckedRegistry)
+    concepts = run_concept_pipeline([
+        LoadedConcept(concept=Concept(
+            concept_id=form.name, canonical_name=form.name,
+            lexical_entry=LexicalEntry(
+                identifier=f"entry:{form.name}",
+                canonical_form=LexicalForm(written_rep=form.name, language="en"),
+                senses=(LexicalSense(reference=OntologyReference(uri=f"urn:{form.name}")),),
+                physical_dimension_form=form.name,
+            ),
+        )),
+    ], context=ConceptPipelineContext(form_registry=forms.output.registry))
+    assert isinstance(concepts.output, ConceptCheckedRegistry)
+    return build_compilation_context(concepts.output, form_registry=forms.output)
 
 
 def test_parameter_contract_shape() -> None:
@@ -153,6 +176,7 @@ def test_validate_category_uses_closed_vocabulary_without_numeric_checks() -> No
         ),
         form=form,
         concept_info=info,
+        context=_context(form),
     )
     assert not accepted.diagnostics
 
@@ -165,6 +189,7 @@ def test_validate_category_uses_closed_vocabulary_without_numeric_checks() -> No
         ),
         form=form,
         concept_info=info,
+        context=_context(form),
     )
     assert any("closed category vocabulary" in d.message for d in rejected.diagnostics)
 
@@ -178,6 +203,7 @@ def test_validate_extensible_category_accepts_new_text() -> None:
             value="critical",
         ),
         form=FormDefinition(name="severity", kind=KindType.CATEGORY),
+        context=_context(FormDefinition(name="severity", kind=KindType.CATEGORY)),
         concept_info=ConceptInfo(
             id="severity",
             canonical_name="severity",
@@ -199,6 +225,7 @@ def test_validate_boolean_requires_bool_and_rejects_bounds() -> None:
             lower_bound=0.0,
         ),
         form=FormDefinition(name="enabled", kind=KindType.BOOLEAN),
+        context=_context(FormDefinition(name="enabled", kind=KindType.BOOLEAN)),
     )
     assert {d.field for d in report.diagnostics} == {"value", "lower_bound"}
 
@@ -213,5 +240,6 @@ def test_validate_structural_adds_no_scalar_policy() -> None:
             lower_bound=0.0,
         ),
         form=FormDefinition(name="structure", kind=KindType.STRUCTURAL),
+        context=_context(FormDefinition(name="structure", kind=KindType.STRUCTURAL)),
     )
     assert not report.diagnostics
