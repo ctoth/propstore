@@ -77,6 +77,9 @@ markers = [
     "slow: intentionally slow tests or suites",
 ]
 
+[tool.uv]
+exclude-newer = "14 days"
+
 [tool.uv.sources]
 quire = { git = "https://github.com/propstore/quire", rev = "862f8bc16afe0d37a4c945c13f31a4cb2ac2a0b3" }
 sqlalchemy-fts5 = { git = "https://github.com/ctoth/sqlalchemy-fts5", rev = "ac6d05968f2f3bcf61c20a09efa41de4a605560d" }
